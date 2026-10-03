@@ -206,6 +206,103 @@ export async function login(loginName: string, password: string, turnstileToken?
   });
 }
 
+// ─── Invitation / reset tokens (handoff 45) ──────────────────────────────────
+//
+// The letter's link lands on the APP (`/app/accept-invite?token=…`,
+// `/app/reset-password?token=…`), not on Odoo. These three calls are
+// anonymous like login(): the token in the URL is the credential.
+
+export type PasswordTokenState = "outstanding" | "expired" | "redeemed" | "cancelled" | "invalid";
+
+export interface PasswordRules {
+  required: boolean;
+  must_match_confirmation: boolean;
+  min_length: number;
+  source: string;
+}
+
+export interface PasswordTokenStatus {
+  state: PasswordTokenState;
+  kind: "invitation" | "reset" | null;
+  expires_at: string | null;
+  organisation: string;
+  password_rules: PasswordRules;
+  name?: string;
+  login?: string;
+  message?: string;
+  next?: string;
+}
+
+/** Thrown with the server's own sentence; `details` carries `state`/`next`
+ *  on a 409 so the page can switch to the right panel. */
+export class AuthPageError extends Error {
+  code: string;
+  details: Record<string, unknown>;
+  constructor(code: string, message: string, details?: Record<string, unknown>) {
+    super(message);
+    this.code = code;
+    this.details = details ?? {};
+  }
+}
+
+async function postAnonymous<T>(path: string, payload: unknown): Promise<T> {
+  const base = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
+  let res: Response;
+  try {
+    res = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new AuthPageError("network", "Cannot reach the server. Check your connection and try again.");
+  }
+  let body: unknown = null;
+  try { body = await res.json(); } catch { /* handled below */ }
+  const env = body as { data?: T; error?: { code?: string; message?: string; details?: Record<string, unknown> } } | null;
+  if (!res.ok || !env || env.error || env.data === undefined) {
+    throw new AuthPageError(
+      env?.error?.code ?? "request_failed",
+      env?.error?.message ?? `The server answered HTTP ${res.status}.`,
+      env?.error?.details,
+    );
+  }
+  return env.data;
+}
+
+export function inspectPasswordToken(token: string): Promise<PasswordTokenStatus> {
+  return postAnonymous<PasswordTokenStatus>("/api/v1/auth/password-token/inspect", { token });
+}
+
+/** Sets the password and, when the server signs the person in, stores the
+ *  session exactly as login() does. Returns whether they are signed in. */
+export async function redeemPasswordToken(
+  token: string, password: string, confirmPassword: string,
+): Promise<{ signedIn: boolean; login?: string }> {
+  const data = await postAnonymous<TokenResponse["data"] & { signed_in?: boolean; login?: string }>(
+    "/api/v1/auth/password-token/redeem",
+    { token, password, confirm_password: confirmPassword },
+  );
+  if (data.signed_in && data.access_token) {
+    storeToken({
+      token: data.access_token,
+      expiresIn: data.expires_in ?? 3600,
+      scope: data.scope,
+      refreshToken: data.refresh_token,
+      refreshExpiresIn: data.refresh_token_expires_in,
+    });
+    return { signedIn: true, login: data.login };
+  }
+  return { signedIn: false, login: data.login };
+}
+
+export function requestPasswordReset(loginName: string, turnstileToken?: string): Promise<{ message: string }> {
+  return postAnonymous<{ message: string }>("/api/v1/auth/password-reset", {
+    login: loginName,
+    ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
+  });
+}
+
 // ─── Silent refresh ──────────────────────────────────────────────────────────
 
 // Dedupes concurrent refreshes: if N requests 401 at once (or fire while the

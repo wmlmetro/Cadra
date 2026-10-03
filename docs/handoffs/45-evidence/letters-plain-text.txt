@@ -1,0 +1,51 @@
+=== From: Nigeria Revenue Service <facilities@nrs.gov.ng> | Subject: Nigeria Revenue Service asset register — your access
+    Text part present: True | HTML part present: True | len(Text)= 1239
+    --- the text part, as a client with HTML off shows it ---
+    | Nigeria Revenue Service
+    | 
+    | 
+    | Dear pytest-person-d098b1bb42,
+    | You have been given access to the Nigeria Revenue Service asset register.
+    | To start, choose a password by opening the link below. Your sign-in name is *pytest-person-d098b1bb42@example.invalid*.
+    | 
+    | 
+    | Set my password [1]
+    | 
+    | If the button does not work, copy this address into your browser:
+    | http://test19.localhost:8069/app/accept-invite?token=<redacted> [2]
+    | The link is valid for 6 days. If it has expired, ask the administrator who set up your account to send it again — this one was sent by Smoke Test (API client).
+    | If you were not expecting this, you can ignore it. Nothing happens until the link is used.
+=== From: Nigeria Revenue Service <facilities@nrs.gov.ng> | Subject: Nigeria Revenue Service asset register — reset your password
+    Text part present: True | HTML part present: True | len(Text)= 1148
+    --- the text part, as a client with HTML off shows it ---
+    | Nigeria Revenue Service
+    | 
+    | 
+    | Dear pytest-h45-be727a91b9,
+    | A password reset was requested for your account on the Nigeria Revenue Service asset register.
+    | Open the link below to choose a new password. Your sign-in name is *pytest-h45-be727a91b9@example.invalid*.
+    | 
+    | 
+    | Choose a new password [1]
+    | 
+    | If the button does not work, copy this address into your browser:
+    | http://test19.localhost/app/reset-password?token=<redacted> [2]
+    | The link is valid for 4 hours.
+    | If you did not ask for this, you can ignore it; your password stays as it is. Nothing happens until the link is used.
+=== From: Jaiz Bank Plc <no-reply@jaizbankplc.example> | Subject: Jaiz Bank Plc asset register — your access
+    Text part present: True | HTML part present: True | len(Text)= 1245
+    --- the text part, as a client with HTML off shows it ---
+    | Image [4]
+    | 
+    | 
+    | Dear E2E-1790979715516-5942 officer-zhxlcf,
+    | You have been given access to the Jaiz Bank Plc asset register.
+    | To start, choose a password by opening the link below. Your sign-in name is *e2e-1790979715516-5942-officer-zhxlcf@example.invalid*.
+    | 
+    | 
+    | Set my password [1]
+    | 
+    | If the button does not work, copy this address into your browser:
+    | http://boot44.localhost:8069/app/accept-invite?token=<redacted> [2]
+    | The link is valid for 6 days. If it has expired, ask the administrator who set up your account to send it again — this one was sent by Administrator.
+    | If you were not expecting this, you can ignore it. Nothing happens until the link is used.

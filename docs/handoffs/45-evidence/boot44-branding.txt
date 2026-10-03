@@ -1,0 +1,4 @@
+from brand_params.xml: {'short_name': 'Jaiz', 'primary': '#004080', 'primary_dark': '#00305F', 'logo': 'data:image/svg+xml;base64,PHN2…'}
+PATCH /settings/branding -> 200 {"data": {"name": "Jaiz Bank Plc", "short_name": "Jaiz", "primary": "#004080", "primary_dark": "#00305F", "logo": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU
+PATCH sender_email='not an address' -> 400 {"error": {"code": "invalid_request", "message": "`sender_email` must be one email address, like assets@example.org, with no name or spaces \u2014 'not an address' is not one. Send it empty to clear it.", "request_id": "
+GET -> {'name': 'Jaiz Bank Plc', 'short_name': 'Jaiz', 'primary': '#004080', 'primary_dark': '#00305F', 'logo': 'data:image/svg+xml;base64,PHN2', 'sender_email': 'no-reply@jaizbankplc.example'}

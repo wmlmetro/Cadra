@@ -103,6 +103,50 @@ side. The diff is the only thing that reports what actually moved.
 It also makes the eight upgrade-time security XML writes silent when they are
 re-applying links that are already there, which is what stops this record
 filling with noise on every module upgrade.
+
+
+AN ACCOUNT SWITCHED OFF, AND BACK ON (handoff 45 §1)
+----------------------------------------------------
+
+Deactivation is the most complete removal of access there is, and until
+2026-10-02 this record showed a role grant but not an account being switched
+off: the answer to *"who removed this person's access and when"* sat in
+`res_users.write_uid` / `write_date`, which one later write overwrites, and
+not in the report an auditor reads. So `deactivated` and `reactivated` are
+events here too, with the same actor resolution and the same append-only
+guard. They name a user and NO group — `group_id`, `group_name` and the
+implied pair stay empty.
+
+The hook is `res.users.write` with `active` in the vals, diffing the real
+before and after like the membership hooks, because `active` has more than one
+writer and every one of them converges there: the two API routes
+(`/users/<id>/deactivate`, `/reactivate`), the back office's *Archive* /
+*Unarchive* (`action_archive` assigns the field, and `Field.__set__` on a
+stored record is `write`), core's portal self-deletion
+(`_deactivate_portal_user`, as SUPERUSER, so `__system__`), the API-client
+provisioner (`_provision_client_user` writes `active: True`) and a shell.
+Measured against Odoo 19 core: nothing there writes `res_users.active` in raw
+SQL. Raw SQL from anywhere is not seen, the same boundary as above.
+
+Three decisions, stated rather than implied:
+
+* **A write that does not move `active` writes nothing.** `False -> False` is
+  not a deactivation, so `action_archive` on an already archived account, or
+  a form save re-sending the flag, leaves no row.
+* **A user CREATED inactive is not a deactivation.** Nobody's access was
+  taken away — the account never had any to lose — and the creation is already
+  evidenced (`account_created` in the report, plus the membership rows its
+  groups wrote). If such an account is later switched on, that IS recorded,
+  as `reactivated`: the event means "active went from false to true", which
+  is what an auditor needs whether or not it had been on before.
+* **Deleting a user is not a deactivation either.** `unlink` records the
+  removals the cascade is about to erase, as it always did.
+
+An outstanding invitation is cancelled by the same write
+(`auth_signup`'s `res.users.write` calls `partner.signup_cancel()` when
+`active` goes false), and there is no other cancel act in this product — so
+the `deactivated` row is also the record of that cancellation, and no
+separate event is invented for it.
 """
 
 from odoo import models, fields, api, _
@@ -139,6 +183,11 @@ ACCESS_EVENT_GRANTED = 'granted'
 ACCESS_EVENT_REMOVED = 'removed'
 ACCESS_EVENT_IMPLIED_ADDED = 'implied_added'
 ACCESS_EVENT_IMPLIED_REMOVED = 'implied_removed'
+#: An account's `active` flag moved (handoff 45 §1). They name a user and no
+#: group. Published as `data.events[].event` on the access-changes report.
+ACCESS_EVENT_DEACTIVATED = 'deactivated'
+ACCESS_EVENT_REACTIVATED = 'reactivated'
+ACCOUNT_STATE_EVENTS = (ACCESS_EVENT_DEACTIVATED, ACCESS_EVENT_REACTIVATED)
 
 
 # Translated at the call, not at import: `_()` evaluated at class-build time
@@ -157,9 +206,9 @@ def _append_only_message():
 def _no_hand_written_rows_message():
     return _(
         "An access-change record cannot be created directly. Rows are written "
-        "only as a side effect of group membership actually changing, so that "
-        "the record says what happened rather than what somebody typed. "
-        "Change the user's groups instead."
+        "only as a side effect of group membership, or an account's active "
+        "state, actually changing, so that the record says what happened "
+        "rather than what somebody typed. Change the user instead."
     )
 
 
@@ -186,6 +235,10 @@ class MyserviceApiAccessChange(models.Model):
         # silently handed an implication edge.
         (ACCESS_EVENT_IMPLIED_ADDED, 'Implication added'),
         (ACCESS_EVENT_IMPLIED_REMOVED, 'Implication removed'),
+        # Not membership either: the ACCOUNT was switched off or on. A user
+        # and no group. See the module docstring, handoff 45 §1.
+        (ACCESS_EVENT_DEACTIVATED, 'Account deactivated'),
+        (ACCESS_EVENT_REACTIVATED, 'Account reactivated'),
     ], string='Event', required=True, index=True)
 
     # Null on the two implication events, which are about a pair of groups and
@@ -202,6 +255,8 @@ class MyserviceApiAccessChange(models.Model):
     user_login = fields.Char(string='User Login (as recorded)')
     user_name = fields.Char(string='User Name (as recorded)')
 
+    # Null on `deactivated` / `reactivated`, which are about the account and
+    # name no group.
     group_id = fields.Many2one(
         'res.groups', string='Group', ondelete='set null', index=True)
     group_name = fields.Char(string='Group (as recorded)')
@@ -240,6 +295,7 @@ class MyserviceApiAccessChange(models.Model):
         ('user_write', 'User record — groups changed'),
         ('user_create', 'User record — created'),
         ('user_unlink', 'User record — deleted'),
+        ('user_active', 'User record — active changed'),
         ('group_write', 'Group record — members changed'),
         ('group_implied', 'Group record — implication changed'),
         ('direct', 'Direct write'),
@@ -273,7 +329,31 @@ class MyserviceApiAccessChange(models.Model):
         the upgrade instant would assert coverage of a period in which nothing
         was being written down.
         """
-        row = self.sudo().search([], order='changed_at, id', limit=1)
+        # The MEMBERSHIP half only (verification pass, report 45 §G): an
+        # account-state row has its own boundary, and a tenant whose first
+        # row were a deactivation must not have its group coverage dated
+        # from it.
+        row = self.sudo().search(
+            [('event', 'not in', list(ACCOUNT_STATE_EVENTS))],
+            order='changed_at, id', limit=1)
+        return row.changed_at or None
+
+    @api.model
+    def account_state_record_starts_at(self):
+        """The earliest `deactivated` / `reactivated` row, or None.
+
+        A SEPARATE boundary from `record_starts_at`, because the two halves of
+        this record did not start together: membership has been recorded
+        since handoff 24 and the account's active state only since handoff 45.
+        A period the membership record covers completely can still hold a
+        deactivation nobody wrote down, and borrowing the older start would
+        claim it. Measured from the earliest row for the same reason as the
+        other — it is later than the deploy, never earlier, so the error is
+        always in the direction of claiming less.
+        """
+        row = self.sudo().search(
+            [('event', 'in', list(ACCOUNT_STATE_EVENTS))],
+            order='changed_at, id', limit=1)
         return row.changed_at or None
 
     # ── The single writer ─────────────────────────────────────────────

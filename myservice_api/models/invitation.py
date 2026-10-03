@@ -54,7 +54,7 @@ outstanding, sent on <date> by <who>* without a second mechanism. They are
 stored columns on `res.users`: a multi-tenant migration, per CLAUDE.md.
 """
 import logging
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit
 
 from odoo import SUPERUSER_ID, api, fields, models, _
 from odoo.exceptions import UserError
@@ -76,6 +76,14 @@ GENERIC_COMPANY_NAMES = frozenset({'My Company', 'YourCompany', 'Your Company'})
 #: Where the letter sends the person after they have set a password: the
 #: app, not Odoo's back office.
 LANDING_PATH = '/app/'
+
+#: Context key set ONLY by `POST /api/v1/auth/password-token/redeem` around
+#: core's `signup()`. Handoff 45: setting the password a letter asked for
+#: made core send its own *"Security Update: Password Changed"* mail — an
+#: Odoo-branded letter with an Odoo link, in the middle of the first five
+#: minutes, telling the person what they did a second ago from a link sent
+#: to that same mailbox. Every other password change keeps core's notice.
+PASSWORD_FROM_LETTER = 'cadra_password_from_letter'
 
 
 def _request_is_authenticated():
@@ -107,6 +115,34 @@ def request_base_url():
     httpreq = getattr(request, 'httprequest', None)
     url_root = getattr(httpreq, 'url_root', None) if httpreq is not None else None
     return (url_root or '').rstrip('/')
+
+
+#: Handoff 45 §2.1: the page that takes a letter's token is the APP's. Core's
+#: route for each signup type → ours. The token itself is core's, unchanged.
+APP_PASSWORD_PAGES = {
+    '/web/signup': '/app/accept-invite',
+    '/web/reset_password': '/app/reset-password',
+}
+
+
+def app_password_path(relative):
+    """Core's `/web/signup?db=…&token=…&redirect=…` (or `/web/reset_password…`)
+    → `/app/accept-invite?token=…` (or `/app/reset-password?token=…`).
+
+    Only the TOKEN travels: `db` is the host's business under the dbfilter,
+    `redirect` was always the app, and `signup_email` would put the address
+    in a URL for nothing. Any other core path (`/web/login?…`, a record
+    link) is returned untouched. `controllers/backoffice.py` sends a link in
+    the old shape — every letter sent before this change — to the same page.
+    """
+    parsed = urlsplit(relative)
+    page = APP_PASSWORD_PAGES.get(parsed.path)
+    if not page:
+        return relative
+    token = dict(parse_qsl(parsed.query)).get('token')
+    if not token:
+        return relative
+    return '%s?%s' % (page, urlencode({'token': token}))
 
 
 def signup_base_url(partner):
@@ -201,7 +237,10 @@ class ResUsersInvitation(models.Model):
             'scheduled_date': False,
         }
         acting = self.env.user
-        sender = acting if (self.env.uid != SUPERUSER_ID
+        # `acting` is EMPTY under an `auth='none'` request with no user bound
+        # — handoff 45's anonymous *Forgot password?* route — and
+        # `_is_public()` on an empty recordset raises. No user, no sender.
+        sender = acting if (acting and self.env.uid != SUPERUSER_ID
                             and not acting._is_public()) else self.env['res.users']
         now = fields.Datetime.now()
 
@@ -307,6 +346,18 @@ class ResUsersInvitation(models.Model):
         }
 
 
+class ResUsersLetterPassword(models.Model):
+    _inherit = 'res.users'
+
+    def _notify_security_setting_update(self, subject, content, mail_values=None, **kwargs):
+        """Core's security notice — except for the password a letter asked
+        for, set through the app's page (`PASSWORD_FROM_LETTER`)."""
+        if self.env.context.get(PASSWORD_FROM_LETTER):
+            return self.env['mail.mail']
+        return super()._notify_security_setting_update(
+            subject, content, mail_values=mail_values, **kwargs)
+
+
 class ResPartnerSignupHost(models.Model):
     _inherit = 'res.partner'
 
@@ -334,6 +385,13 @@ class ResPartnerSignupHost(models.Model):
             if not rel:
                 out[partner.id] = rel
                 continue
+            # Only an internal account's letter goes to the app's page; a
+            # portal partner's link (core's "grant portal access") keeps core's
+            # path — the app cannot set a password for an account it does not
+            # serve (verification pass, report 45 §G).
+            if partner.sudo().with_context(active_test=False).user_ids.filtered(
+                    lambda u: not u.share):
+                rel = app_password_path(rel)
             out[partner.id] = urljoin(signup_base_url(partner) + '/', rel.lstrip('/'))
         return out
 

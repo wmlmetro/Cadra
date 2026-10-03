@@ -11,6 +11,7 @@ import re
 
 from odoo import http
 from odoo.http import request
+from odoo.tools.mail import single_email_re
 
 from .utils import (
     ERR_CONFLICT,
@@ -260,6 +261,28 @@ class CadraConfigV1(http.Controller):
     _ALLOWED_LOGO_PREFIXES = ("data:image/svg+xml", "data:image/png",
                               "data:image/jpeg", "data:image/webp")
 
+    #: RFC 5321's limit on a forward path; anything longer is not an address
+    #: a mail server will accept, whatever the pattern says.
+    _SENDER_EMAIL_MAX_CHARS = 254
+
+    def _sender_company(self):
+        """The company whose `email` is the letters' From (handoff 45 H.6).
+
+        `res.users._action_reset_password` (`models/invitation.py`) sends
+        from `user.company_id.email_formatted` — the RECIPIENT's company —
+        and a person created over the API is put in the main company. So the
+        main company is the one written; the first company by order is the
+        fallback for a database that has lost the xmlid. Every local tenant
+        has exactly one company (8 of 8, measured 2026-10-02), so this and
+        the `search([], limit=1)` that `name` renames are the same record
+        there; on a multi-company database they need not be.
+        """
+        env = request.env
+        company = env.ref("base.main_company", raise_if_not_found=False)
+        if company and company._name == "res.company" and company.exists():
+            return company.sudo()
+        return env["res.company"].sudo().search([], limit=1)
+
     def _branding_payload(self):
         """Plain dict — NOT the route handler.
 
@@ -270,16 +293,21 @@ class CadraConfigV1(http.Controller):
         env = request.env
         icp = env["ir.config_parameter"].sudo()
         company = env["res.company"].sudo().search([], limit=1)
+        sender = self._sender_company()
         return {
             "name": company.name if company else "Cadra",
             "short_name": icp.get_param(self._BRAND_PARAMS["short_name"], ""),
             "primary": icp.get_param(self._BRAND_PARAMS["primary"], ""),
             "primary_dark": icp.get_param(self._BRAND_PARAMS["primary_dark"], ""),
             "logo": icp.get_param(self._BRAND_PARAMS["logo"], ""),
+            # The address invitations and password resets are sent FROM; ""
+            # when the company has none. Stored on the company record, not
+            # as a parameter, because that is where the letter reads it.
+            "sender_email": (sender.email or "") if sender else "",
         }
 
     @cadra_route("/api/v1/settings/branding", method="GET",
-                 summary="Tenant branding (name, colours, logo)",
+                 summary="Tenant branding (name, colours, logo, sender address)",
                  scopes=[SCOPE_ASSETS_READ])
     def get_branding(self, **kwargs):
         return self._branding_payload()
@@ -297,6 +325,17 @@ class CadraConfigV1(http.Controller):
                          "primary_dark": {"type": "string"},
                          "logo": {"type": "string",
                                   "description": "data: URI, or empty to clear"},
+                         "sender_email": {
+                             "type": "string", "format": "email",
+                             "nullable": True,
+                             "description":
+                                 "The address invitations and password "
+                                 "resets are sent from — the company "
+                                 "record's email. One bare address "
+                                 "(no display name); null or \"\" clears "
+                                 "it. An address that is not one is "
+                                 "refused with 400 and nothing is written.",
+                         },
                      },
                  },
                  request_example={"short_name": "Jaiz", "primary": "#004080",
@@ -309,7 +348,7 @@ class CadraConfigV1(http.Controller):
         is the whole point of not shipping a module per customer.
         """
         body = get_params()
-        allowed = {"name"} | set(self._BRAND_PARAMS)
+        allowed = {"name", "sender_email"} | set(self._BRAND_PARAMS)
         vals = {k: v for k, v in body.items() if k in allowed}
         rejected = [k for k in body if k not in allowed]
         if rejected:
@@ -352,6 +391,31 @@ class CadraConfigV1(http.Controller):
         if "name" in vals and not (vals["name"] or "").strip():
             return err(ERR_INVALID_REQUEST, "`name` cannot be blank")
 
+        # The sender address (handoff 45 H.6). Validated here, with the rest,
+        # because a refusal must come before ANY write. The value the record
+        # already holds is accepted as it is: the Branding screen sends every
+        # key on every save, so an address stored before this check existed
+        # must not make saving a colour impossible.
+        sender_email = None
+        if "sender_email" in vals:
+            raw = vals["sender_email"]
+            if raw is not None and not isinstance(raw, str):
+                return err(ERR_INVALID_REQUEST,
+                           "`sender_email` must be an email address, or "
+                           "empty to clear it",
+                           details={"sender_email": raw})
+            sender_email = (raw or "").strip()
+            current = (self._sender_company().email or "").strip()
+            if sender_email and sender_email != current and (
+                    len(sender_email) > self._SENDER_EMAIL_MAX_CHARS
+                    or not single_email_re.match(sender_email)):
+                return err(ERR_INVALID_REQUEST,
+                           f"`sender_email` must be one email address, like "
+                           f"assets@example.org, with no name or spaces — "
+                           f"'{sender_email[:80]}' is not one. Send it empty "
+                           f"to clear it.",
+                           details={"sender_email": sender_email})
+
         env = request.env
         icp = env["ir.config_parameter"].sudo()
         for field, key in self._BRAND_PARAMS.items():
@@ -365,6 +429,14 @@ class CadraConfigV1(http.Controller):
             company = env["res.company"].sudo().search([], limit=1)
             if company:
                 company.name = name
+
+        if sender_email is not None:
+            company = self._sender_company()
+            if company and (company.email or "").strip() != sender_email:
+                # `res.company.email` is a related field onto the company's
+                # partner, so this writes `res_partner.email` — the column
+                # `company_id.email_formatted` reads.
+                company.email = sender_email or False
 
         return self._branding_payload()
 

@@ -31,6 +31,8 @@ import logging
 from odoo import http
 from odoo.http import request
 
+from ..models.audit_access import record_order
+
 from .utils import (
     ERR_INVALID_REQUEST,
     SCOPE_IDENTITY_READ,
@@ -161,8 +163,9 @@ class CadraAuditReportsV1(http.Controller):
     # ── Access changes: GET /api/v1/reports/access-changes ─────────
 
     @cadra_route("/api/v1/reports/access-changes", method="GET",
-                 summary="Access events in a period, and the statement that "
-                         "group changes are not among them",
+                 summary="Access events in a period — role grants and "
+                         "removals, and accounts deactivated or reactivated "
+                         "— and how much of the period the record covers",
                  scopes=[SCOPE_IDENTITY_READ],
                  response_schema={
                      "$ref": "#/components/schemas/AccessChangeReport"},
@@ -262,6 +265,7 @@ class CadraAuditReportsV1(http.Controller):
         on_page = {r["user_id"] for r in page}
         events = [e for e in sorted(report["events"],
                                     key=lambda e: (e["user_id"], e["at"],
+                                                   record_order(e),
                                                    e["event"]))
                   if e["user_id"] in on_page]
 

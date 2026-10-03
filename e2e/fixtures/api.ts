@@ -146,6 +146,18 @@ export class ApiClient {
     return { status: res.status(), ok: res.ok(), body };
   }
 
+  /** Raw write returning {status, body} without throwing — for a call whose
+   *  REFUSAL is a legitimate outcome the spec branches on (handoff 45: a
+   *  tenant that cannot send the letter answers 500 and the spec skips). */
+  async raw(method: "POST" | "PATCH", path: string, data: unknown) {
+    const headers: Record<string, string> = { ...this.headers(), "Content-Type": "application/json" };
+    const res = method === "POST"
+      ? await this.ctx.post(path, { headers, data })
+      : await this.ctx.patch(path, { headers, data });
+    const body = await res.json().catch(() => null);
+    return { status: res.status(), ok: res.ok(), body };
+  }
+
   async post<T = any>(path: string, data: unknown, idempotencyKey?: string): Promise<T> {
     const headers: Record<string, string> = { ...this.headers(), "Content-Type": "application/json" };
     if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;

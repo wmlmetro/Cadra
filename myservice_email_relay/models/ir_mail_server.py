@@ -30,7 +30,32 @@ Relay contract (https://dev-api.akraa.io/api/v1/public/email/send):
   4xx {"success": false, "error": "..."}
 
 One recipient per request, so a message with several To/Cc/Bcc addresses
-is delivered as one POST per address. No attachments; HTML body only.
+is delivered as one POST per address. No attachments. No From either: the
+relay sends as its own account, whatever the letter's From says.
+
+The plain-text part, and why it is behind a parameter
+-----------------------------------------------------
+Odoo builds every HTML mail as multipart/alternative — a text/plain part
+and a text/html part — and a reader who has HTML switched off (common in
+government mail clients) reads the first. The five keys above carry the HTML
+only, so through the relay that reader received nothing at all.
+
+The relay is not in this repository and nobody here knows whether it
+accepts a plain-text field, or under what name. Its refusals show it
+validates the body it is sent (`PublicSendEmailRequest.Secret ... failed on
+the 'required' tag`); if it also refuses an UNKNOWN key, sending one by
+guess would stop every mail on every tenant at once. So the field is named
+by `cadra.email_relay_text_field`:
+
+  - absent or empty — the payload is exactly the five keys above, as it
+    always was;
+  - set (e.g. `body_text`) — a sixth key of that name carries the message's
+    text/plain part, decoded. A message with no text part sends no sixth key
+    rather than inventing one. A name that collides with one of the five is
+    refused on every send (a MailDeliveryException naming the parameter),
+    because it would overwrite the secret, the address or the HTML body.
+
+Set it only once whoever runs the relay has confirmed the field's name.
 """
 import email.utils
 import logging
@@ -44,6 +69,14 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 RELAY_TIMEOUT_SECONDS = 30
+
+#: ir.config_parameter naming the relay's plain-text field. Absent or empty =
+#: no such field is sent (the payload as it was before handoff 45).
+TEXT_FIELD_PARAM = "cadra.email_relay_text_field"
+
+#: The keys the relay is known to accept. The text field may not be one of
+#: them: it would overwrite the secret, the address or the HTML body.
+RELAY_KEYS = ("secret", "to_email", "to_name", "subject", "body")
 
 
 class _RelaySession:
@@ -100,6 +133,28 @@ class IrMailServer(models.Model):
         url = (ICP.get_param("cadra.email_relay_url") or "").strip()
         secret = (ICP.get_param("cadra.email_relay_secret") or "").strip()
         return (url, secret) if (url and secret) else (None, None)
+
+    def _cadra_relay_text_field(self):
+        """The relay's plain-text field name, or None when unset.
+
+        Read on every send, like the URL and the secret. A name that is one
+        of `RELAY_KEYS` is refused rather than ignored: ignoring it would
+        quietly drop the text part the owner asked for, and honouring it
+        would overwrite a key the relay needs.
+        """
+        ICP = self.env["ir.config_parameter"].sudo()
+        name = (ICP.get_param(TEXT_FIELD_PARAM) or "").strip()
+        if not name:
+            return None
+        if name in RELAY_KEYS:
+            raise MailDeliveryException(
+                _("Email relay is misconfigured"),
+                "%s is %r, which is one of the keys the relay already uses "
+                "(%s); name the relay's plain-text field, or clear the "
+                "parameter to send HTML only"
+                % (TEXT_FIELD_PARAM, name, ", ".join(RELAY_KEYS)),
+            )
+        return name
 
     def _cadra_relay_active(self):
         """The relay is configured AND sending is not disabled.
@@ -164,8 +219,13 @@ class IrMailServer(models.Model):
                 _("Email relay: message has no recipient"),
                 message.get("Subject", "") or "",
             )
+        text_field = self._cadra_relay_text_field()
         subject = message.get("Subject", "") or ""
         body = self._extract_html_body(message)
+        # Only when the owner has named the relay's field, and only when the
+        # message HAS a text part — never derived from the HTML here, so what
+        # the reader sees is the alternative Odoo built, not a second guess.
+        text = self._extract_text_body(message) if text_field else None
 
         sent = 0
         for to_email, to_name in recipients:
@@ -176,6 +236,8 @@ class IrMailServer(models.Model):
                 "subject": subject,
                 "body": body,
             }
+            if text_field and text is not None:
+                payload[text_field] = text
             try:
                 self._cadra_relay_post(relay_url, payload)
             except MailDeliveryException as exc:
@@ -257,36 +319,78 @@ class IrMailServer(models.Model):
         return out
 
     @staticmethod
-    def _extract_html_body(message):
-        """Pull the text/html part out of a (possibly multipart) message.
+    def _body_parts(message):
+        """(html_part, text_part): the first of each that is a BODY.
 
-        Falls back to text/plain wrapped in <pre> if no HTML part exists,
-        which keeps text-only mails (a password reset, by default) readable.
+        A part marked as an attachment is skipped, so a text file attached
+        to a text-only mail is not mistaken for the mail itself (Odoo puts
+        attachments after the body, but nothing says every caller does).
         """
         html_part = None
         text_part = None
         if message.is_multipart():
             for part in message.walk():
+                if part.is_multipart() or part.get_content_disposition() == "attachment":
+                    continue
                 ctype = part.get_content_type()
                 if ctype == "text/html" and html_part is None:
                     html_part = part
                 elif ctype == "text/plain" and text_part is None:
                     text_part = part
+        elif message.get_content_type() == "text/html":
+            html_part = message
         else:
-            if message.get_content_type() == "text/html":
-                html_part = message
-            else:
-                text_part = message
+            text_part = message
+        return html_part, text_part
 
+    @staticmethod
+    def _part_text(part):
+        """A text part's content as str, whatever its transfer encoding.
+
+        `get_content()` (an `EmailMessage`, which is what Odoo 19 builds)
+        undoes base64 and quoted-printable AND the charset in one step. A
+        legacy `Message` has no `get_content`, and an unknown charset makes
+        it raise; both fall back to the decoded bytes, read as the declared
+        charset with replacement, as this module always did.
+        """
+        get_content = getattr(part, "get_content", None)
+        if get_content is not None:
+            try:
+                content = get_content()
+            except (KeyError, LookupError, ValueError):
+                content = None
+            if isinstance(content, str):
+                return content
+        payload = part.get_payload(decode=True)
+        if not payload:
+            return ""
+        charset = part.get_content_charset() or "utf-8"
+        try:
+            return payload.decode(charset, errors="replace")
+        except LookupError:
+            return payload.decode("utf-8", errors="replace")
+
+    @classmethod
+    def _extract_text_body(cls, message):
+        """The text/plain body part, decoded, or None when there is none.
+
+        None, not "": a message with no text part (an HTML-only mail) sends
+        no text field at all, rather than an empty one a client might show
+        as a blank letter.
+        """
+        _html, text_part = cls._body_parts(message)
+        return cls._part_text(text_part) if text_part is not None else None
+
+    @classmethod
+    def _extract_html_body(cls, message):
+        """Pull the text/html part out of a (possibly multipart) message.
+
+        Falls back to text/plain wrapped in <pre> if no HTML part exists,
+        which keeps text-only mails readable.
+        """
+        html_part, text_part = cls._body_parts(message)
         if html_part is not None:
-            payload = html_part.get_payload(decode=True)
-            charset = html_part.get_content_charset() or "utf-8"
-            return payload.decode(charset, errors="replace") if payload else ""
-
+            return cls._part_text(html_part)
         if text_part is not None:
-            payload = text_part.get_payload(decode=True)
-            charset = text_part.get_content_charset() or "utf-8"
-            text = payload.decode(charset, errors="replace") if payload else ""
-            return "<pre>%s</pre>" % text
-
+            return "<pre>%s</pre>" % cls._part_text(text_part)
         return ""

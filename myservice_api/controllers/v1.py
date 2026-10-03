@@ -1357,7 +1357,33 @@ class MyserviceApiV1(http.Controller):
                             "effective access while writing no membership "
                             "row at all. It is counted separately and is "
                             "not in `data.events`, which is paged by user "
-                            "and an implication names none. `data.roster` "
+                            "and an implication names none. ADDITIVE "
+                            "2026-10-02 (handoff 45): an account switched "
+                            "off or back on is an event too — "
+                            "`data.events[].event` is `deactivated` or "
+                            "`reactivated`, `precision: exact`, with the "
+                            "actor and `attributable` like a grant, and "
+                            "`group: null` because it names no group. It is "
+                            "recorded under every writer of the account's "
+                            "`active` flag (the two `/users/<id>/` routes, "
+                            "the back office, a script), a write that does "
+                            "not move the flag records nothing, and a user "
+                            "CREATED inactive is not a deactivation. They "
+                            "are counted in "
+                            "`summary.account_state_changes_in_period` "
+                            "(and `..._not_shown` for accounts no longer on "
+                            "the roster), never in the group or "
+                            "implication counts, and they have their own "
+                            "boundary: "
+                            "`data.fidelity.account_state_record_starts_at` "
+                            "(earliest such row, `null` until the first) "
+                            "and `summary.account_state_coverage` — same "
+                            "three values as `coverage`, because this half "
+                            "of the record began later than the group half "
+                            "and `coverage` does not speak for it. A "
+                            "deactivation also cancels any outstanding "
+                            "invitation in the same write; there is no "
+                            "separate cancellation event. `data.roster` "
                             "is CURRENT access, never history. "
                             "`data.fidelity` is re-measured on every "
                             "request rather than carried as a constant."),
@@ -1384,7 +1410,13 @@ class MyserviceApiV1(http.Controller):
                                     "no `empty` — a quiet period and an "
                                     "unrecorded one must not look alike, "
                                     "which is exactly what `coverage` "
-                                    "exists to distinguish."),
+                                    "exists to distinguish. "
+                                    "`account_state_coverage` (handoff 45) "
+                                    "is the same enum for deactivations "
+                                    "and reactivations, measured against "
+                                    "`fidelity.account_state_record_"
+                                    "starts_at`; `coverage` is about group "
+                                    "changes only."),
                             },
                             "fidelity": {"type": "object"},
                             "events": {"type": "array",
@@ -1629,7 +1661,15 @@ class MyserviceApiV1(http.Controller):
                                     "requester may not, whoever was named. "
                                     "A DIFFERENT FIELD from `decided_by`, "
                                     "always — a requester who can name the "
-                                    "approver can forge one.")},
+                                    "approver can forge one. Since handoff "
+                                    "45 carries `active`: false means the "
+                                    "person asked cannot sign in, and the "
+                                    "request waits on nobody until it is "
+                                    "re-pointed (`POST …/renominate`)."),
+                                "properties": {
+                                    "id": {"type": "integer"},
+                                    "name": {"type": "string"},
+                                    "active": {"type": "boolean"}}},
                             "decided_by": {
                                 "type": "object", "nullable": True,
                                 "description": (
@@ -1683,6 +1723,28 @@ class MyserviceApiV1(http.Controller):
                                                "shaping an interface; the "
                                                "model is the authority."},
                             "can_withdraw": {"type": "boolean"},
+                            "can_renominate": {
+                                "type": "boolean",
+                                "description": "Whether THIS caller may "
+                                               "re-point the request at "
+                                               "somebody else: the requester, "
+                                               "or an Odoo administrator "
+                                               "(Access Rights, which System "
+                                               "Administrator implies — the "
+                                               "same `_is_admin()` rule as "
+                                               "deciding), while pending "
+                                               "(handoff 45)."},
+                            "renominations": {
+                                "type": "array",
+                                "description": (
+                                    "Every time the request was re-pointed, "
+                                    "oldest first: who it was asked of "
+                                    "before (`from`), who after (`to`), who "
+                                    "re-pointed it (`by`), when, and why. "
+                                    "Each is an append-only "
+                                    "`nrs.asset.change.request.renomination` "
+                                    "row (handoff 45)."),
+                                "items": {"type": "object"}},
                         },
                     },
                     "AssetCustody": {

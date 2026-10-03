@@ -660,6 +660,12 @@ class TestTheGroupChangeCount(AccessReportCase):
         self.assertIsInstance(summary["group_changes_in_period"], int)
         self.assertIn("implication_changes_in_period", summary)
         self.assertEqual(summary["implication_changes_in_period"], 0)
+        # Handoff 45's count is present at zero for the same reason, and a
+        # period in 2001 is before any deactivation could have been recorded.
+        self.assertIn("account_state_changes_in_period", summary)
+        self.assertEqual(summary["account_state_changes_in_period"], 0)
+        self.assertEqual(summary["account_state_coverage"],
+                         ACCESS_COVERAGE_NONE)
 
     def test_a_grant_moves_the_count_by_exactly_one(self):
         """The count is a measurement, asserted as a DELTA.
@@ -810,6 +816,9 @@ class TestTheGroupChangeCount(AccessReportCase):
         report = self._report()
         for key in ("accounts", "accounts_active", "events_in_period",
                     "group_changes_in_period", "implication_changes_in_period",
+                    "account_state_changes_in_period",
+                    "account_state_changes_not_shown",
+                    "account_state_coverage",
                     "coverage", "statement"):
             self.assertIn(key, report["summary"])
         self.assertEqual(report["summary"]["events_in_period"],
@@ -1383,5 +1392,12 @@ class TestTheStatementIsNotTranslated(AccessReportCase):
         expected = self.Users._access_change_coverage(
             report["events"], report["fidelity"], start=start, end=end,
             group_changes=report["summary"]["group_changes_in_period"])
+        # Since handoff 45 the statement says the account-state half too —
+        # recomputed from the same inputs, appended the way the report does.
+        account_state = self.Users._access_account_state_coverage(
+            report["fidelity"], start=start, end=end,
+            changes=report["summary"]["account_state_changes_in_period"])
         self.assertEqual(report["summary"]["coverage"], expected[0])
-        self.assertEqual(report["summary"]["statement"], expected[1])
+        self.assertEqual(report["summary"]["account_state_coverage"], account_state[0])
+        self.assertEqual(report["summary"]["statement"],
+                         "%s %s" % (expected[1], account_state[1]))

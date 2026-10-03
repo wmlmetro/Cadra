@@ -39,6 +39,15 @@ limitation that has stopped being true. A boundary that is a constant is a
 boundary that goes stale silently, which is the defect the whole INT-10
 document exists to argue against.
 
+**Since handoff 45 an account deactivated or reactivated is an event too**
+(`deactivated` / `reactivated`, read from the same append-only record, a user
+and no group). It is counted in `summary.account_state_changes_in_period`,
+never in the group or implication counts, and it has its OWN boundary —
+`fidelity.account_state_record_starts_at` and `summary.account_state_coverage`
+— because that half of the record began later than the membership half, and
+a period the membership record covers completely can still hold a
+deactivation nobody wrote down.
+
 It never writes. That is an acceptance criterion, not an aspiration:
 `myservice_api/tests/test_audit_access_report.py` fingerprints before and
 after.
@@ -48,6 +57,7 @@ from odoo import api, fields, models
 from .access_change import (
     ACCESS_EVENT_GRANTED,
     ACCESS_EVENT_REMOVED,
+    ACCOUNT_STATE_EVENTS,
     SYSTEM_ACTOR,
 )
 
@@ -96,6 +106,19 @@ ACCESS_EVENT_MODIFIED = 'account_modified'
 #: list that reads as measured has to be.
 _STRUCTURAL_LOGINS = ('__system__', 'public', 'portaltemplate')
 
+
+
+def record_order(event):
+    """The `myservice.api.access.change` id behind a recorded event, or 0 for
+    a derived one — the tie-break that keeps one second's events causal."""
+    evidence = event.get('evidence') or ''
+    prefix = 'myservice_api_access_change.id='
+    if evidence.startswith(prefix):
+        try:
+            return int(evidence[len(prefix):])
+        except ValueError:
+            return 0
+    return 0
 
 class ResUsersAccessReport(models.Model):
     _inherit = 'res.users'
@@ -150,6 +173,25 @@ class ResUsersAccessReport(models.Model):
         if model is None:
             return None
         return model.record_starts_at()
+
+    @api.model
+    def _access_account_state_record_start(self):
+        """The instant deactivations and reactivations began to be recorded
+        on this tenant, or None — measured from the earliest such row, never
+        from the deploy (handoff 45 §1)."""
+        model = self.env.get('myservice.api.access.change')
+        if model is None:
+            return None
+        return model.account_state_record_starts_at()
+
+    @api.model
+    def _access_account_state_rows(self):
+        """How many deactivations and reactivations this tenant holds."""
+        model = self.env.get('myservice.api.access.change')
+        if model is None:
+            return 0
+        return model.sudo().search_count(
+            [('event', 'in', list(ACCOUNT_STATE_EVENTS))])
 
     @api.model
     def _access_record_rows(self):
@@ -216,6 +258,8 @@ class ResUsersAccessReport(models.Model):
 
         record_start = self._access_record_start()
         record_rows = self._access_record_rows()
+        account_state_start = self._access_account_state_record_start()
+        account_state_rows = self._access_account_state_rows()
 
         recoverable = [
             'account_created', 'account_created_by', 'account_modified_at',
@@ -241,6 +285,17 @@ class ResUsersAccessReport(models.Model):
             recoverable.extend(_recorded_facts)
         else:
             not_recoverable.extend(_recorded_facts)
+        # The same rule for the account's active state (handoff 45), against
+        # ITS OWN start: it began later than the membership half, and a
+        # tenant holding grants but no deactivation yet has not begun it.
+        _account_state_facts = [
+            'account_deactivated', 'account_reactivated',
+            'account_state_change_actor', 'account_state_change_timestamp',
+        ]
+        if account_state_start:
+            recoverable.extend(_account_state_facts)
+        else:
+            not_recoverable.extend(_account_state_facts)
 
         notes = {
             'membership': (
@@ -294,7 +349,33 @@ class ResUsersAccessReport(models.Model):
                 "carries one write stamp covering every change ever made to "
                 "it, so this is the MOST RECENT change and not a list of "
                 "them, and it does not say which field moved. A timezone "
-                "edit and a group grant are indistinguishable here."),
+                "edit and a group grant are indistinguishable here. A grant, "
+                "a removal, a deactivation or a reactivation made through "
+                "the user record ALSO stamps it, so an `account_modified` "
+                "row at the moment of a recorded event is usually that same "
+                "write seen through the coarser evidence — not a second "
+                "change."),
+            'account_state': (
+                ("Deactivations and reactivations of accounts are recorded "
+                 "as they happen, with the acting user, from %s — the "
+                 "earliest such row this tenant holds (%d in all). That "
+                 "began later than the group record, so it has its own "
+                 "start and its own `summary.account_state_coverage`. "
+                 "Before it, an account switched off left only its current "
+                 "`active` flag in the roster and, at best, an "
+                 "`account_modified` stamp that a later write overwrites. "
+                 "Deactivation also cancels any outstanding invitation in "
+                 "the same write; there is no separate cancel act, so the "
+                 "`deactivated` row is that record too."
+                 % (account_state_start, account_state_rows))
+                if account_state_start else
+                ("This tenant holds NO deactivation or reactivation rows, "
+                 "so that half of the record has not begun here. The "
+                 "recorder is installed and writes the first row the next "
+                 "time an account is switched off or on, by any route; "
+                 "until then nothing can be said about who switched an "
+                 "account off or when, and the roster's `active` flag is "
+                 "current state only.")),
             'structural_users': (
                 "Odoo's own non-human accounts (%s) are excluded from the "
                 "roster and from the events."
@@ -318,6 +399,11 @@ class ResUsersAccessReport(models.Model):
             # change is recorded on this tenant.
             'record_starts_at': record_start and str(record_start) or None,
             'record_rows': record_rows,
+            # The account-state half's own boundary (handoff 45). `None`
+            # until the first deactivation or reactivation is recorded.
+            'account_state_record_starts_at': (
+                account_state_start and str(account_state_start) or None),
+            'account_state_record_rows': account_state_rows,
             'notes': notes,
         }
 
@@ -406,6 +492,37 @@ class ResUsersAccessReport(models.Model):
             "record was last modified, in the requested period. An "
             "`account_modified` row does not say which field changed."
             % len(events))
+
+    @api.model
+    def _access_account_state_coverage(self, fidelity, start=None, end=None,
+                                       changes=0):
+        """`none` / `partial` / `recorded` for deactivations and
+        reactivations, against the account-state record's OWN start, plus
+        the sentence appended to `summary.statement`. The same three values
+        and the same rules as `coverage`; a different boundary, because the
+        two halves of the record began at different instants."""
+        begins_at = fidelity.get('account_state_record_starts_at')
+        if not begins_at:
+            return ACCESS_COVERAGE_NONE, (
+                "Deactivations and reactivations of accounts have not begun "
+                "to be recorded on this tenant — it holds none — so this "
+                "report cannot say whether any account was switched off or "
+                "on in this period, or by whom.")
+        begins = fields.Datetime.to_datetime(begins_at)
+        if end is not None and end < begins:
+            return ACCESS_COVERAGE_NONE, (
+                "Deactivations and reactivations are recorded from %s, after "
+                "this period ended, so nothing can be said about accounts "
+                "switched off or on in it." % begins_at)
+        if start is not None and start < begins:
+            return ACCESS_COVERAGE_PARTIAL, (
+                "Deactivations and reactivations are recorded from %s, "
+                "part-way through this period; the %d below are a LOWER "
+                "BOUND." % (begins_at, changes))
+        return ACCESS_COVERAGE_RECORDED, (
+            "Every deactivation and reactivation in this period is "
+            "recorded — %d — each with the account and the actor."
+            % changes)
 
     # ── the rows ────────────────────────────────────────────────────
 
@@ -522,6 +639,11 @@ class ResUsersAccessReport(models.Model):
         # pages by user id would either drop them silently or break the page
         # contract. They are counted and stated separately instead.
         group_changes, implication_changes, unshown = 0, 0, 0
+        # Handoff 45: an account switched off or on. Its own counters, never
+        # folded into the group or implication counts — a reader counting
+        # grants and removals must not be handed a deactivation, and the
+        # other way round.
+        account_state_changes, account_state_unshown = 0, 0
         Record = self.env.get('myservice.api.access.change')
         if Record is not None:
             rows = Record.sudo().search(
@@ -554,12 +676,48 @@ class ResUsersAccessReport(models.Model):
                         'attributable': row.attributable,
                         'groups_now': membership.get(row.user_id.id, []),
                     })
+                elif row.event in ACCOUNT_STATE_EVENTS:
+                    account_state_changes += 1
+                    # Same rule as the group rows: counted, but not invented
+                    # into a page that has no roster row for it.
+                    if row.user_id.id not in known:
+                        account_state_unshown += 1
+                        continue
+                    events.append({
+                        'event': row.event,
+                        'precision': 'exact',
+                        'at': row.changed_at,
+                        'actor': ({'id': row.changed_by_id.id,
+                                   'name': row.actor}
+                                  if row.attributable else
+                                  {'id': None, 'name': SYSTEM_ACTOR}),
+                        'user_id': row.user_id.id,
+                        'login': row.user_login,
+                        'evidence': 'myservice_api_access_change.id=%d' % row.id,
+                        # Present and null, not absent: the row is about
+                        # the account, and a consumer reading `group` on
+                        # every recorded event should find the key.
+                        'group': None,
+                        'attributable': row.attributable,
+                        'groups_now': membership.get(row.user_id.id, []),
+                    })
                 else:
                     implication_changes += 1
 
-        events.sort(key=lambda e: (e['at'], e['user_id'], e['event']))
+        # Within one second the RECORD's id is the order things happened in
+        # — `changed_at` is to the second, and the event name, which used to
+        # break the tie, put a `deactivated` before the `reactivated` that
+        # preceded it (handoff 45, found by its own test). Derived events
+        # carry no record id and sort first within their second.
+        events.sort(key=lambda e: (e['at'], e['user_id'], record_order(e),
+                                   e['event']))
         coverage, statement = self._access_change_coverage(
             events, fidelity, start=start, end=end, group_changes=group_changes)
+        account_state_coverage, account_state_statement = (
+            self._access_account_state_coverage(
+                fidelity, start=start, end=end,
+                changes=account_state_changes))
+        statement = "%s %s" % (statement, account_state_statement)
         return {
             'events': events,
             'roster': roster,
@@ -581,6 +739,12 @@ class ResUsersAccessReport(models.Model):
                 # `group_changes_in_period: 7` above five rows must not have
                 # to guess why.
                 'group_changes_not_shown': unshown,
+                # Handoff 45: deactivations and reactivations in the period,
+                # their own count and their own boundary. `coverage` above
+                # is about GROUP changes and does not speak for these.
+                'account_state_changes_in_period': account_state_changes,
+                'account_state_changes_not_shown': account_state_unshown,
+                'account_state_coverage': account_state_coverage,
                 'coverage': coverage,
                 'statement': statement,
             },

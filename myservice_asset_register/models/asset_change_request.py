@@ -95,6 +95,8 @@ is the RECORD: who asked, who approved, when, and what it was before. Those
 are plain columns here, written once, and `write`/`unlink` refuse to touch a
 request after it has been decided.
 """
+from markupsafe import Markup
+
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -234,6 +236,15 @@ class NRSAssetChangeRequest(models.Model):
     approver_id = fields.Many2one(
         'res.users', string='Approver Asked', required=True,
         ondelete='restrict', index=True)
+
+    # WHO WAS ASKED BEFORE, and who changed it. Handoff 45 ruling G.1(b): a
+    # pending request can be re-pointed at somebody else — the way a request
+    # left waiting on a deactivated account is fixed forward — and every
+    # re-pointing is an append-only row naming who did it, when and why.
+    # `approver_id` above only ever says who is being asked NOW.
+    renomination_ids = fields.One2many(
+        'nrs.asset.change.request.renomination', 'request_id',
+        string='Re-nominations', readonly=True)
 
     # WHO CLICKED. Written from `self.env.uid` by `action_approve` and by
     # nothing else, ever. A DIFFERENT COLUMN from `approver_id` on purpose
@@ -742,6 +753,187 @@ class NRSAssetChangeRequest(models.Model):
         self._close_activity()
         return True
 
+    # ── Re-nomination: ask somebody else (handoff 45, G.1(b)) ────────
+    #
+    # THE ONE PATH by which a pending request's `approver_id` changes. The
+    # `write` below still refuses every field without `_transition`'s flag;
+    # this method is a caller of `_transition`, exactly as the three
+    # decisions are, and it is the only new one. Nothing about the model was
+    # loosened to make room for it.
+    #
+    # Why it exists: handoff 43 measured a request left waiting on a
+    # deactivated approver, with nothing on it saying so. The ruling was that
+    # DEACTIVATION IS NEVER BLOCKED — a queue must never be able to hold an
+    # account open — so the request is fixed forward instead, by an act with
+    # a name and a time on it.
+
+    def _may_renominate(self, user):
+        """Whether `user` may re-point THIS request. Read by the API too.
+
+        The REQUESTER — it was their nomination to make in the first place,
+        and they are the person who finds out the approver has left — or an
+        administrator, who is omnipotent by construction (the same ruling
+        `_may_decide` and `action_withdraw` make) and is who fixes a request
+        whose requester has left as well.
+
+        NOT the current approver, and not any eligible person. Any eligible
+        person can already DECIDE the request (`_may_decide`), so one who
+        wants it gone has a better act than handing it to somebody else; and
+        letting anybody in the approver group re-point anybody's request
+        would let one approver steer a request away from another.
+        """
+        self.ensure_one()
+        if self.state != STATE_PENDING:
+            return False
+        if user.id == self.requested_by_id.id:
+            return True
+        return bool(user._is_superuser() or user._is_admin())
+
+    def _renomination_refusal(self, user):
+        """The sentence `user` is refused with, or False. One statement of
+        the rule, so the route's 403 and the model's raise say the same."""
+        self.ensure_one()
+        if self._may_renominate(user):
+            return False
+        return _(
+            "Only %(who)s, who raised this request, or an administrator can "
+            "ask somebody else to approve it. If you can decide it yourself, "
+            "approve or reject it instead.",
+            who=self.requested_by_name or self.requested_by_id.display_name)
+
+    def _renomination_target_problem(self, new_approver):
+        """Why `new_approver` cannot be the person asked, or False.
+
+        The same four tests, in the same words, as `_resolve_approver` in
+        `myservice_api/controllers/v1_assets.py` applies when a request is
+        first RAISED — a re-nomination is a nomination, and a person who
+        could not have been asked at the start cannot be asked now. Plus one
+        a first nomination cannot fail: naming the person already asked.
+
+        Read under sudo: a requester who is not an HR or settings user must
+        still be able to ask whether a user is active and in a group.
+        """
+        self.ensure_one()
+        new = new_approver.sudo().exists() if new_approver else new_approver
+        if not new:
+            return _("Name the person you are asking instead.")
+        if new.id == self.requested_by_id.id:
+            return _(
+                "A request cannot be sent to the person who raised it. "
+                "Choose somebody else to approve this change.")
+        if new.id == self.approver_id.id:
+            return _(
+                "%(who)s is already the person being asked. Choose somebody "
+                "else.", who=new.display_name)
+        if not new.active:
+            # Handoff 43 §2: the picker hides a deactivated user and a
+            # nomination by id must not get round it — re-pointing a request
+            # AT somebody who cannot sign in recreates the defect this method
+            # exists to fix.
+            return _(
+                "%(who)s cannot be asked: their account is deactivated. Name "
+                "somebody who can sign in.", who=new.display_name)
+        if not new.has_group(self.APPROVER_GROUP) and not new._is_admin():
+            return _(
+                "%(who)s cannot approve a change of this kind. An approver "
+                "must be somebody who could have made the change "
+                "themselves.", who=new.display_name)
+        return False
+
+    def action_renominate(self, new_approver, reason):
+        """Re-point a pending request at a different approver.
+
+        EVERYTHING THAT CAN REFUSE RUNS BEFORE ANYTHING IS WRITTEN — state,
+        who may, the reason, the new approver — for the reason
+        `action_approve` gives and `CLAUDE.md` records: a refusal must never
+        leave half an act behind.
+
+        Then, in order: the append-only row (who, from whom, to whom, when,
+        why), the ONE field moved through `_transition`, the old approver's
+        inbox cleared and the new approver's filled, and a note on the
+        request's chatter. The row is the record; the activity and the note
+        are doorbells, and each is wrapped so that a doorbell failing does
+        not undo the act.
+
+        `new_approver` is a `res.users` record or an id.
+        """
+        self.ensure_one()
+        if self.state != STATE_PENDING:
+            raise UserError(self._not_pending_message())
+        actor = self.env.user
+        refusal = self._renomination_refusal(actor)
+        if refusal:
+            raise UserError(refusal)
+        reason = (reason or '').strip() if isinstance(reason, str) else ''
+        if not reason:
+            raise UserError(_(
+                "Say why you are asking somebody else. The record of who was "
+                "asked, and why that changed, is read by whoever audits this "
+                "request."))
+        if isinstance(new_approver, int):
+            new_approver = self.env['res.users'].browse(new_approver)
+        problem = self._renomination_target_problem(new_approver)
+        if problem:
+            raise UserError(problem)
+
+        new = new_approver.sudo()
+        old = self.sudo().approver_id
+        now = fields.Datetime.now()
+
+        # The row FIRST, then the field: if the transition raised, the row
+        # rolls back with it (one transaction), and there is never a moved
+        # `approver_id` without the record of who moved it.
+        row = self.env['nrs.asset.change.request.renomination']._record(
+            self, old, new, actor, reason, at=now)
+        # SUDO for the one write, and only after `_may_renominate` above has
+        # decided. Who may re-point is the MODEL's rule (the requester or an
+        # administrator), not an ACL's: an administrator outside
+        # `group_asset_manager` holds no write right on this model, and the
+        # ruling that they may fix a stranded request would otherwise depend
+        # on which groups they happen to hold. Sudo does not widen what is
+        # written — `_transition` is handed exactly one key.
+        self.sudo()._transition({'approver_id': new.id})
+        self._close_activity()
+        self._schedule_activity()
+        self._note_renomination(old, new, actor, reason)
+        return row
+
+    def _note_renomination(self, old, new, actor, reason):
+        """A line on the request's chatter, and the requester told when it
+        was somebody else who re-pointed their request.
+
+        A doorbell, not the record — the row in
+        `nrs.asset.change.request.renomination` is the record. `Markup` with
+        `%` escapes every value, so a reason containing markup is shown as
+        text rather than rendered.
+        """
+        self.ensure_one()
+        body = Markup(
+            "<b>%s</b> %s<br/>%s") % (
+            _("Re-pointed by %(who)s.", who=actor.display_name),
+            _("Now waiting on %(new)s (was %(old)s).",
+              new=new.display_name, old=old.display_name),
+            _("Reason: %(why)s", why=reason))
+        partner = self.requested_by_id.partner_id
+        partner_ids = ([partner.id] if partner
+                       and actor.id != self.requested_by_id.id else [])
+        try:
+            self.sudo().message_post(
+                body=body, partner_ids=partner_ids,
+                message_type='comment', subtype_xmlid='mail.mt_note')
+            return True
+        # catch-all: reported — the same argument as `_tell_the_requester`:
+        # the re-nomination is written and the new approver's activity is
+        # scheduled by the time this runs. A `message_post` can fail on a
+        # partner with no email, a mail server that is down or a deleted
+        # subtype, and none of those is a reason to undo the act. Logged,
+        # never silent.
+        except Exception:                      # noqa: BLE001
+            import logging
+            logging.getLogger(__name__).exception(
+                "Could not post the re-nomination note on %s.", self.name)
+            return False
+
     def _not_pending_message(self):
         self.ensure_one()
         return _(
@@ -753,7 +945,14 @@ class NRSAssetChangeRequest(models.Model):
                 if self.approved_by_name else ""))
 
     def _transition(self, vals):
-        """The only write to a request after it is created."""
+        """The only write to a request after it is created.
+
+        Its callers are the three decisions, `_stamp_premise` at creation and
+        — since handoff 45 — `action_renominate`, which moves `approver_id`
+        and nothing else, after writing the append-only row that says who
+        moved it. A fourth kind of change is a new action calling this, never
+        a relaxation of `write`.
+        """
         return self.with_context(**{TRANSITION_KEY: True}).write(vals)
 
     # ── Notification: Odoo's own, not a new one ──────────────────────

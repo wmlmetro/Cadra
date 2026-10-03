@@ -1,0 +1,34 @@
+........................................................................ [  5%]
+........................................................................ [ 11%]
+........................................................................ [ 17%]
+.............................................................s.......... [ 23%]
+........................................................................ [ 29%]
+........................................................................ [ 34%]
+........................................................................ [ 40%]
+.......................................s................................ [ 46%]
+........................................................................ [ 52%]
+........................................s..................ss.s......... [ 58%]
+........................................................................ [ 63%]
+..........................................................s............. [ 69%]
+........................................................................ [ 75%]
+........................................................................ [ 81%]
+........................................................................ [ 87%]
+........................................................................ [ 93%]
+..........ss.............s.............................................. [ 98%]
+..............                                                           [100%]
+============================ cadra api test report =============================
+Report: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-report.md
+Captured responses: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-responses/
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_barcode.py:397: the API cannot create an asset without a tag: `tag_source` and `asset_tag` are not in `_WRITABLE_FIELDS` and every `POST /api/v1/assets` mints one. The untagged-serial lookup is proved by the browser pass against a row created in Odoo.
+SKIPPED [1] tests/test_integrations.py:115: this tenant has no active workflow.config, so the v1 callback refuses 503 and the replay path is unreachable from here
+SKIPPED [1] tests/test_query_params.py:119: `is_tagged` published `null` as 'no filter' before this rule existed and keeps it — see the comment in v1_assets._list_domain
+SKIPPED [1] tests/test_query_params.py:195: no data to partition on this tenant: `has_sap_code=true` matched 0 rows and `has_sap_code=false` matched 8885. The refusal test above still covers the 400; this assertion needs both halves to exist.
+SKIPPED [1] tests/test_query_params.py:195: no data to partition on this tenant: `closed=true` matched 0 rows and `closed=false` matched 705. The refusal test above still covers the 400; this assertion needs both halves to exist.
+SKIPPED [1] tests/test_query_params.py:195: no data to partition on this tenant: `is_staff_bus=true` matched 0 rows and `is_staff_bus=false` matched 0. The refusal test above still covers the 400; this assertion needs both halves to exist.
+SKIPPED [1] tests/test_sap_reconciliation.py:325: no asset on this tenant carries a SAP asset number yet
+SKIPPED [1] tests/test_turnstile.py:125: Turnstile is not configured on this deployment
+SKIPPED [1] tests/test_turnstile.py:140: Turnstile is not configured on this deployment
+SKIPPED [1] tests/test_user_lifecycle.py:315: this tenant has 1 API credential(s) and the only one is this suite's
+1228 passed, 10 skipped in 2200.78s (0:36:40)
+EXIT=0

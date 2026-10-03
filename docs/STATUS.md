@@ -965,3 +965,44 @@ in-registry `myservice_api`, Playwright 41–43) and the fan-out.
 ### Verification
 
 Report 44 §H carries every suite's denominator.
+
+## 45 — The first five minutes (2026-10-02)
+
+### What was built
+
+- **The letter opens the app.** Invitation and reset letters link to
+  `/app/accept-invite?token=…` / `/app/reset-password?token=…` (core's token,
+  nothing else in the URL); `/web/signup?…token=…` from a letter sent earlier
+  redirects there with the same token. Three anonymous routes
+  (`controllers/v1_signup.py`): inspect a token (five states, said in words),
+  redeem it (core's `signup()` then `authenticate`, `/auth/login`'s payload),
+  and *Forgot password?* (one sentence either way).
+- **The back office is for system administrators** — by controller
+  (`controllers/backoffice.py`) for the doors a person walks through, and by
+  session (`models/backoffice_session.py`, `ir.http._authenticate`) for the
+  doors a session opens. The app's own requests to Odoo, measured by driving
+  it as a non-administrator: 46 distinct paths, one outside `/app` and
+  `/api/v1` — `/report/barcode`, the QR on the label printed in the drive.
+- **A stranded approval is re-pointed, recorded**; `approver.active` on the
+  queue and *"— X cannot sign in"* on the screen.
+- **Deactivation and reactivation on the access record and in the report**,
+  under every writer of `active`; an account's events causal within a second.
+- **The sender address** on the branding screen; the relay's plain-text part
+  behind a parameter its operator has to name.
+
+### Measured, not built
+
+- `auth_password_policy` installed on 0 of 9 local databases: Odoo enforces
+  no password minimum; whether Cadra should is §22.2.
+- An anonymous reset link is built on `web.base.url` — the install default
+  (`http://localhost:8069`) until an administrator signs into the back
+  office; 8 of 8 local tenants read it without the port.
+- `mail.default.from` unset on 8 of 8 local tenants: approval notifications
+  fail for an actor with no email address.
+- `nrs19` (local replica): 87 of 6,646 custodied assets held by 59 distinct
+  archived employees, 0 flagged for retrieval, 0 `exited` in SAP.
+
+### Verification
+
+Report 45 §H carries every suite's denominator and the screenshots of both
+tenants' journeys.

@@ -61,15 +61,22 @@ exception. 36 − 9 = **27**.
 
 ---
 
-## Two core routes Cadra changes the behaviour of — handoff 43
+## Core routes Cadra changes the behaviour of — handoffs 43 and 45
 
 Not first-party routes, so not in the inventory below, but a reader of
-this file would otherwise have to derive both.
+this file would otherwise have to derive them. Since handoff 45 every one of
+them is overridden in `myservice_api/controllers/backoffice.py` (one class,
+`CadraBackOfficeDoor`, a subclass of core's `AuthSignupHome`), and the rule
+they share is *the back office is for system administrators; everybody else
+is sent to the app*.
 
 | Route | What Cadra does to it | Where |
 |---|---|---|
 | `GET/POST /web/signup` | **Always 404 without an invitation token**, on every tenant, whatever `auth_signup.invitation_scope` or `website.auth_signup_uninvited` say. `res.users._get_signup_invitation_scope` returns `b2b` as a constant — the owner's ruling that nobody signs themselves up to a government asset register. With a token (the letter's link) the page works as before | `myservice_api/models/invitation.py` |
-| `GET/POST /web/reset_password` | The route is untouched; the **email it sends is Cadra's** (tenant brand, organisation name, link on the request's host) instead of Odoo's QWeb letter, because the one method every reset and invitation ends in, `res.users._action_reset_password`, is overridden | same file; `myservice_api/data/mail_templates.xml` |
+| `GET/POST /web/reset_password` | The **email it sends is Cadra's** (tenant brand, organisation name, link on the request's host) instead of Odoo's QWeb letter, because the one method every reset and invitation ends in, `res.users._action_reset_password`, is overridden | same file; `myservice_api/data/mail_templates.xml` |
+| `GET /web/signup?token=…`, `GET /web/reset_password?token=…` (handoff 45) | **303 to `/app/accept-invite?token=…` / `/app/reset-password?token=…`**, the same token — every letter sent before handoff 45 carries the old link. A token-less `GET /web/reset_password` goes to `/app/forgot-password`. POST is core's, untouched | `myservice_api/controllers/backoffice.py` |
+| `/web`, `/odoo`, `/odoo/<path>`, `/scoped_app/<path>` (handoff 45) | A signed-in **non-administrator** is signed out of Odoo and sent to `/app/`; an **anonymous** visitor is sent to `/app/`; a system administrator gets the back office as before | same file |
+| `POST /web/login` (handoff 45) | Core's login, then — for a **non-administrator** — the Odoo session is ended and the person is sent to `/app/`. `GET /web/login` is untouched (the administrators' door, and the k8s probes' target) | same file |
 
 Measured before the change, 2026-10-02: `/web/signup` already answered 404
 on all 4 cluster hosts and all 8 local tenants — not because of the

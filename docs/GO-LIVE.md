@@ -1825,3 +1825,94 @@ found is here.
   describe today: whatever ran `upgrade-19` last (five successful runs on
   2026-10-02) put the code there. `[verified]`
 
+
+## 22 · Handoff 45 — the first five minutes, 2026-10-02
+
+### 22.1 · What it closed — `[landed, keep it that way]`
+
+- **The letter's link opens the app**, not Odoo: `/app/accept-invite?token=…`
+  and `/app/reset-password?token=…`, the same core token. A letter sent
+  before this change (`/web/signup?…token=…`) is redirected to the same page
+  with the same token — nobody invited yesterday is stranded.
+- **Every state a link can be in is said in words** — outstanding, expired,
+  used, cancelled, never valid — with a way forward; `password_rules`
+  published and enforced by the server, the refusal shown verbatim.
+- ***Forgot password?*** on the sign-in page, answering the same sentence
+  whether or not an account matched.
+- **The back office is for system administrators.** The interface
+  redirects everybody else to the app; no non-administrator's Odoo session
+  is served on any `auth='user'` route (`models/backoffice_session.py`); the
+  app's own plumbing (`/api/v1`, `/report/barcode`, assets) is untouched.
+  The back-office barcode station is therefore an administrator's tool.
+- **Odoo's "Security Update: Password Changed" mail** no longer follows the
+  password a letter asked for (it did — an Odoo letter with an Odoo link,
+  in the middle of the journey).
+- **A stranded approval is fixed forward**: `approver.active` on the queue,
+  *"— X cannot sign in"* on the screen, and a recorded re-nomination.
+- **A deactivation and a reactivation are on the access record and in the
+  report**, under every writer of `active`.
+
+### 22.2 · Found — `[open]` unless it says otherwise
+
+- **No password minimum is enforced anywhere.** Odoo 19's `signup()` hashes
+  whatever it is given (the empty string included — the app's route refuses
+  that one); `auth_password_policy` is installed on 0 of 9 local databases.
+  The routes enforce what Odoo would if the module were installed, and
+  publish it. Whether Cadra should impose a minimum is a decision.
+  `[open]`, Architect.
+- **An anonymous reset link is only as right as `web.base.url`.** *Forgot
+  password?* is anonymous, and by handoff 43's rule an anonymous request does
+  not choose the host a victim's link points at — so the link is built on
+  `web.base.url`, which core rewrites when a system administrator signs in on
+  the back office. On a database no administrator has signed into it is the
+  install default: `boot44`'s first reset letter pointed at
+  `http://localhost:8069/app/reset-password?…` (measured, report 45 §B).
+  Locally 8 of 8 tenants read `http://<db>.localhost` without the port
+  (handoff 43's finding). **On each cluster tenant, read `web.base.url`
+  before telling anybody to use *Forgot password?*;** for a client's own
+  server, set it (and `web.base.url.freeze`) at deploy. `[open]`, owner.
+- **The relay's plain-text part is built and switched off.** The relay
+  service is not in this repository; `cadra.email_relay_text_field` names
+  the field once its operator confirms one. Until then, on the cluster, a
+  letter still has no plain-text part — H.3 is NOT done there. Locally
+  (SMTP to Mailpit) the text part is present (report 45 §B). `[open]`, owner.
+- **On the cluster the relay ignores our From**, so the new *Sender address*
+  changes the sender only where the tenant sends by SMTP. `[open]`, owner,
+  with the relay's operator.
+- **A tenant with no company address is not refused** — report 43 said it
+  was; the From falls back to the sender, then to the RECIPIENT's own
+  address. `nrs19` has none (0 of 1 companies). `[verified]`
+- **Approval notifications fail to send whenever the person (or credential)
+  acting has no email address.** Odoo's chatter mail takes its From from the
+  acting user, not the company, and `mail.default.from` is unset on 8 of 8
+  local tenants: *"You must either provide a sender address explicitly or
+  configure using the combination of `mail.catchall.domain` and
+  `mail.default.from`"*, logged on every `/move` the suite's credential
+  raised. The request itself is unaffected; the approver's email is not
+  sent. Since handoff 35. `[open]`
+- **A brand module cannot be installed on a tenant that bootstrap has
+  already touched.** `cadra_brand_jaiz` on `boot44` failed:
+  `duplicate key value violates unique constraint "ir_config_parameter_key_uniq"
+  … (cadra.brand_short_name)` — the module's data file creates rows that
+  already exist (empty). The branding API (`PATCH /settings/branding`) is the
+  path that works, and is how `boot44` was branded. `[open]`
+- ***Forgot password?* answers in about 60 ms for an unknown login and later
+  for a real one** (the letter is sent before the answer). The sentence is
+  the same; the timing is not. Turnstile, where configured, is the only
+  rate limit. `[open]`
+- **`test19` holds more accounts than an API credential may read in one
+  report** (103 against `EXTERNAL_TOTAL_CAP` = 100, announced in
+  `_warnings.truncated`). Four HTTP tests that looked for a fresh person in
+  the access report were taught to read the announcement instead, or to act
+  on a visible older fixture. `[landed]`
+- **System administrators lose the deep link back into the back office**
+  after a session expires: an anonymous `auth='user'` page now goes to the
+  app, not to `/web/login?redirect=…`. They sign in at `/web/login`. By
+  ruling. `[verified]`
+- **NRS's 87.** On the local `nrs19` replica, re-counted: **87 of 6,646**
+  custodied assets (of 11,951) are held by **59 distinct** archived
+  employees (of 207 archived, of 11,386); **0** of the 87 is flagged for
+  retrieval, **0** of the 59 is `exited` in SAP — every one still reads SAP
+  status `active`. The live tenant was NOT re-counted: the Builder's
+  permission layer refuses reads of the cluster's databases. `[open]`,
+  owner, before it is quoted.

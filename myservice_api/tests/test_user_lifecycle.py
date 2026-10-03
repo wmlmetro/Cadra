@@ -146,9 +146,25 @@ class TestUserLifecycle(CadraHttpCase, MockEmail):
         self.env["website"].sudo().search([]).write({"auth_signup_uninvited": "b2c"})
         self.assertEqual(self.env["res.users"]._get_signup_invitation_scope(), inv.SIGNUP_SCOPE)
         self.assertEqual(inv.SIGNUP_SCOPE, "b2b")
-        r = self.url_open("/web/signup")
-        self.assertEqual(r.status_code, 404,
-                         "free sign-up answered %s with both rows set to b2c" % r.status_code)
+        # Since handoff 45 Odoo's sign-up form is never served at all: a GET
+        # goes to the app's invitation page (which, with no token, says the
+        # link is not valid) — the 404 this asserted until then would now
+        # come from the test server having no `/app/`, a pass by accident.
+        r = self.url_open("/web/signup", allow_redirects=False)
+        self.assertIn(r.status_code, (301, 302, 303), r.status_code)
+        self.assertTrue(r.headers["Location"].endswith("/app/accept-invite"),
+                        r.headers.get("Location"))
+        # And a POST that tries to sign somebody up creates nobody.
+        login = "%s.stranger@example.invalid" % self.marker
+        page = self.url_open("/web/login")
+        csrf = page.text.split('name="csrf_token" value="')[1].split('"')[0]
+        self.url_open("/web/signup", data={
+            "login": login, "name": "Stranger", "password": "x" * 12,
+            "confirm_password": "x" * 12, "csrf_token": csrf},
+            allow_redirects=False)
+        self.assertFalse(self.env["res.users"].sudo().with_context(
+            active_test=False).search_count([("login", "=", login)]),
+            "a sign-up POST created an account")
         # and our override is the one the registry resolves to, not website's
         resolved = type(self.env["res.users"])._get_signup_invitation_scope
         self.assertTrue(resolved.__module__.startswith("odoo.addons.myservice_api"),
@@ -213,17 +229,23 @@ class TestUserLifecycle(CadraHttpCase, MockEmail):
         self.assertNotIn("data:image", body)
         self.assertNotRegex(self._prose(body), re.compile(r"odoo", re.I), "no Odoo anywhere in the letter")
         self.assertNotRegex(body, re.compile(r"password:\s*\S", re.I), "no secret in the body")
-        links = re.findall(r'href="([^"]+/web/signup\?[^"]+)"', body)
+        # Handoff 45: the link opens the APP's page, with only the token.
+        self.assertNotIn("/web/signup", body, "the letter still links into Odoo")
+        links = re.findall(r'href="([^"]+/app/accept-invite\?[^"]+)"', body)
         self.assertTrue(links, "the letter carries the sign-up link")
         for link in links:
-            self.assertTrue(link.startswith(self.base_url() + "/web/signup?"),
+            self.assertTrue(link.startswith(self.base_url() + "/app/accept-invite?token="),
                             "link %r is not on the request host %r" % (link, self.base_url()))
             self.assertNotIn("somewhere-else.invalid", link)
             self.assertIn("token=", link)
-            self.assertIn("redirect=%2Fapp%2F", link)
+            # Only the token travels since handoff 45 — no `redirect=`, no
+            # `db=`, no address in the URL (`invitation.app_password_path`).
+            self.assertNotIn("redirect=", link)
+            self.assertNotIn("signup_email", link)
         text = html2plaintext(body)
         self.assertIn("You have been given access", text)
-        self.assertIn("/web/signup?", text, "the plain-text part carries the link on its own")
+        self.assertIn("/app/accept-invite?token=", text,
+                      "the plain-text part carries the link on its own")
 
         # the logo route serves the image the letter points at
         r = self.url_open("/api/v1/brand/logo")
@@ -259,7 +281,9 @@ class TestUserLifecycle(CadraHttpCase, MockEmail):
         self.assertIn("reset your password", mail.subject)
         self.assertIn("A password reset was requested", mail.body_html)
         self.assertNotRegex(self._prose(mail.body_html), re.compile(r"odoo", re.I))
-        self.assertIn("/web/reset_password?", mail.body_html)
+        # Handoff 45: the reset letter opens the app's page too.
+        self.assertIn("/app/reset-password?token=", mail.body_html)
+        self.assertNotIn("/web/reset_password", mail.body_html)
         # a reset stamps no invitation
         self.assertFalse(self.admin.cadra_invitation_sent_at)
 
@@ -489,27 +513,29 @@ class TestUserLifecycle(CadraHttpCase, MockEmail):
             [("asset_id", "=", asset.id)]), "a request was raised on a refused nomination")
 
     def test_xi_an_anonymous_reset_does_not_take_its_host_from_the_request(self):
-        """`/web/reset_password` is public. Under `proxy_mode` the request
+        """The anonymous reset is public. Under `proxy_mode` the request
         host is whatever `X-Forwarded-Host` says, and a proxy that does not
         overwrite it passes the client's value through — so an anonymous
-        caller must never choose the host a victim's link points at."""
+        caller must never choose the host a victim's link points at.
+
+        Since handoff 45 the anonymous reset is the APP's *Forgot password?*
+        (`POST /api/v1/auth/password-reset`); Odoo's form redirects to it."""
         ICP = self.env["ir.config_parameter"].sudo()
         ICP.set_param("web.base.url", "http://the-real-tenant.invalid")
         self.admin.company_id.sudo().email = False
-        page = self.url_open("/web/reset_password")
-        self.assertEqual(page.status_code, 200)
-        m = re.search(r'csrf_token:\s*"([^"]+)"', page.text) or \
-            re.search(r'name="csrf_token"\s+value="([^"]+)"', page.text)
-        self.assertTrue(m, "no csrf token on the reset page")
+        page = self.url_open("/web/reset_password", allow_redirects=False)
+        self.assertTrue(page.headers.get("Location", "").endswith("/app/forgot-password"),
+                        "Odoo's reset form is still served")
         with self.mock_mail_gateway():
-            r = self.url_open("/web/reset_password", data={
-                "csrf_token": m.group(1), "login": self.admin.login},
-                headers={"X-Forwarded-Host": "attacker.invalid",
-                         "X-Forwarded-Proto": "https"})
+            r = self.url_open("/api/v1/auth/password-reset",
+                              data=json.dumps({"login": self.admin.login}),
+                              headers={"Content-Type": "application/json",
+                                       "X-Forwarded-Host": "attacker.invalid",
+                                       "X-Forwarded-Proto": "https"})
         self.assertEqual(r.status_code, 200, r.text[:300])
         mail = self._sent().filtered(lambda m_: m_.email_to == self.admin.email)
         self.assertEqual(len(mail), 1, "no reset letter went out")
-        links = re.findall(r'href="([^"]+/web/reset_password\?[^"]+)"', mail.body_html)
+        links = re.findall(r'href="([^"]+/app/reset-password\?[^"]+)"', mail.body_html)
         self.assertTrue(links)
         for link in links:
             self.assertNotIn("attacker.invalid", link)

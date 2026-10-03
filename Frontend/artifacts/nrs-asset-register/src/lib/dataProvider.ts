@@ -2215,16 +2215,19 @@ export interface TenantBranding {
   primary_dark: string;
   /** data: URI, or "" to fall back to the bundled mark. */
   logo: string;
+  /** The address invitations and password resets are sent from — the
+   *  company record's email. "" when the company has none (handoff 45). */
+  sender_email: string;
 }
 
 export const fetchBranding = async () =>
   (await apiGet<TenantBranding>("/api/v1/settings/branding")).data;
 
-/** `name` plus `_BRAND_PARAMS` in v1_settings.py — all five keys of
+/** `name`, `sender_email` plus `_BRAND_PARAMS` in v1_settings.py — all six keys of
  *  `TenantBranding`, today. The Branding screen saves the object it was given
  *  by the GET, edited; that worked because the GET returns exactly these five
  *  and would stop working the day it returned a sixth. See `pickSet`. */
-const BRANDING_KEYS = ["name", "short_name", "primary", "primary_dark", "logo"] as const;
+const BRANDING_KEYS = ["name", "short_name", "primary", "primary_dark", "logo", "sender_email"] as const;
 
 export const updateBranding = async (body: Partial<TenantBranding>) =>
   (await apiPatch<TenantBranding>("/api/v1/settings/branding",
@@ -2283,7 +2286,14 @@ export interface ApprovalRequest {
   requested_by: ApprovalRef | null;
   requested_by_name: string | null;
   requested_at: string | null;
-  approver: ApprovalRef | null;
+  /** WHO IS BEING ASKED, now. `active` since handoff 45 (G.1(a)): false when
+   *  that person's account has been deactivated, so the request is waiting
+   *  on somebody who cannot sign in. Additive — `id`/`name` are unchanged. */
+  approver: ApprovalApproverRef | null;
+  /** Every time the request was re-pointed at somebody else, OLDEST FIRST.
+   *  An append-only record on the server; `approver` is only who is asked
+   *  NOW. Handoff 45 (G.1(b)). */
+  renominations: ApprovalRenomination[];
   decided_by: ApprovalRef | null;
   decided_by_name: string | null;
   decided_at: string | null;
@@ -2300,6 +2310,30 @@ export interface ApprovalRequest {
    *  they could not have made the change for. */
   can_decide: boolean;
   can_withdraw: boolean;
+  /** Per CALLER: true for the person who raised it, or an administrator,
+   *  while it is pending. The model's own answer, so the button and the
+   *  route's 403 agree. Handoff 45. */
+  can_renominate: boolean;
+}
+
+/** The person a request is waiting on. See `ApprovalRequest.approver`. */
+export interface ApprovalApproverRef extends ApprovalRef {
+  active: boolean;
+}
+
+/**
+ * One re-pointing of a request at a different approver — handoff 45, G.1(b).
+ * `by` is the caller who did it, taken from their token; `from`/`to` carry
+ * the names as they were when the row was written. The row cannot be edited
+ * or deleted.
+ */
+export interface ApprovalRenomination {
+  id: number;
+  from: { id: number | null; name: string | null };
+  to: { id: number | null; name: string | null };
+  by: { id: number | null; name: string | null };
+  at: string | null;
+  reason: string | null;
 }
 
 /**
@@ -2447,6 +2481,29 @@ export const approveChangeRequest  = (id: number, reason?: string) => decide(id,
  *  and they will simply ask again. */
 export const rejectChangeRequest   = (id: number, reason: string)  => decide(id, "reject", reason);
 export const withdrawChangeRequest = (id: number, reason?: string) => decide(id, "withdraw", reason);
+
+/**
+ * Ask somebody else — re-point a PENDING request at a different approver
+ * (handoff 45, G.1(b)). Allowed to the person who raised it and to an
+ * administrator; `can_renominate` on the row says which in advance.
+ *
+ * `approver_id` and `reason` and NOTHING else: the route refuses any other
+ * key with a 400, and WHO re-pointed it is taken from the token. The reason
+ * is REQUIRED and is kept on an append-only row. Nothing about the asset
+ * changes, so only the approval queries need refreshing afterwards.
+ */
+export async function renominateChangeRequest(
+  id: number,
+  approverId: number,
+  reason: string,
+): Promise<{ request: ApprovalRequest; renomination: ApprovalRenomination }> {
+  const res = await apiPost<{ request: ApprovalRequest; renomination: ApprovalRenomination }>(
+    `/api/v1/approvals/${id}/renominate`,
+    { approver_id: approverId, reason },
+    { idempotencyKey: newIdempotencyKey() },
+  );
+  return res.data;
+}
 
 // ─── ADMINISTRATION — who has what (handoff 41) ──────────────────────────────
 // Reads only. The three routes scope `admin`; the report scopes

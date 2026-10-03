@@ -23,6 +23,9 @@
  *                    re-judging closed history, so this file never reads it
  *                    without checking the state first.
  *
+ *   `can_renominate` the requester or an administrator, while pending — who
+ *                    may re-point the request at somebody else (handoff 45).
+ *
  * The model remains the authority in every case; this only declines to offer.
  * A hidden button is a door closed on one screen, and report 30 found a
  * disposed asset being un-disposed through a route nobody had looked at.
@@ -47,18 +50,22 @@ import {
 } from "@/components/ui/dialog";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import RecordLink from "@/components/RecordLink";
+import RecordPicker from "@/components/RecordPicker";
 import {
   invalidateApprovalQueries, invalidateAssetQueries, useApprovalRequirement,
 } from "@/components/AssetActionDialogs";
 import { CadraApiError, apiConfigured } from "@/lib/api";
 import {
-  approveChangeRequest, fetchApprovalsPage, rejectChangeRequest, withdrawChangeRequest,
-  type ApprovalFilters, type ApprovalRequest, type ApprovalState, type ApprovalsPage,
+  approveChangeRequest, fetchApprovalsPage, fetchApprovers, rejectChangeRequest,
+  renominateChangeRequest, withdrawChangeRequest,
+  type ApprovalFilters, type ApprovalRef, type ApprovalRequest, type ApprovalState,
+  type ApprovalsPage,
 } from "@/lib/dataProvider";
 import { SCOPE, useScopes } from "@/hooks/use-scopes";
 import { cn } from "@/lib/utils";
 import {
-  AlertCircle, ArrowRight, CheckCircle2, Clock, Inbox, MapPin, Undo2, User, XCircle,
+  AlertCircle, ArrowRight, ArrowRightLeft, CheckCircle2, Clock, History, Inbox, MapPin,
+  Undo2, User, UserX, XCircle,
 } from "lucide-react";
 
 // ─── small shared bits ─────────────────────────────────────────────────────
@@ -314,11 +321,197 @@ function DecisionDialog({
   );
 }
 
+// ─── ask someone else (handoff 45, G.1(b)) ──────────────────────────────────
+
+/**
+ * Re-point a pending request at a different approver.
+ *
+ * WHY THIS EXISTS. Deactivating an account is never blocked — cutting
+ * somebody off happens the moment it is decided, and a queue must never be
+ * able to hold an account open. So a request left waiting on somebody who has
+ * left is fixed FORWARD, here, by the person who raised it or an
+ * administrator. The server records who did it, when, from whom, to whom and
+ * why on a row nobody can edit, and the row shows that history.
+ *
+ * The picker is the same search the Move dialog uses (`GET /approvals/
+ * approvers`, which already drops the caller). Two more names are dropped
+ * here because the server refuses them — the person who raised the request
+ * and the person already asked — and a picker offering a refused choice is an
+ * answer that looks like an answer. The server still checks everything.
+ */
+function RenominateDialog({
+  request, open, onOpenChange,
+}: {
+  request: ApprovalRequest;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const qc = useQueryClient();
+  const [target, setTarget] = useState<ApprovalRef | null>(null);
+  const [reason, setReason] = useState("");
+  const inactive = request.approver?.active === false;
+
+  const excluded = new Set<number>(
+    [request.requested_by?.id, request.approver?.id].filter((x): x is number => typeof x === "number"),
+  );
+  const search = async (q: string) => {
+    const users = await fetchApprovers(q, 10);
+    return users.filter(u => !excluded.has(u.id)).map(u => ({ id: u.id, label: u.name }));
+  };
+
+  const mutation = useMutation({
+    mutationFn: () => renominateChangeRequest(request.id, target!.id, reason.trim()),
+    // Nothing about the ASSET changes, so only the approval queries are
+    // refreshed — the queue, the badge, and the asset page's pending banner.
+    onSuccess: () => {
+      invalidateApprovalQueries(qc, request.asset?.id);
+      setOpen(false, true);
+    },
+    onError: (e) => {
+      if ((e as CadraApiError).status === 409) invalidateApprovalQueries(qc, request.asset?.id);
+    },
+  });
+  const err = mutation.error as CadraApiError | null;
+
+  const setOpen = (next: boolean, done = false) => {
+    if (!next && mutation.isPending && !done) return;
+    if (!next) {
+      setTarget(null);
+      setReason("");
+      mutation.reset();
+    }
+    onOpenChange(next);
+  };
+
+  const ready = !mutation.isPending && !!target && !!reason.trim();
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
+      <DialogContent className="sm:max-w-md" data-testid="dialog-approval-renominate">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ArrowRightLeft size={16} /> Ask someone else
+          </DialogTitle>
+          <DialogDescription>
+            {inactive
+              ? `${request.approver?.name ?? "The approver"} cannot sign in — their account has been deactivated — so nobody is going to answer this request where it is. Choose somebody else to ask.`
+              : "Send this request to a different approver. It stays pending, nothing about the asset changes, and the person you choose sees it in their queue."}
+            {" "}Your name, the time and your reason are recorded on the request, and that record cannot be changed afterwards.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+            <p className="text-[11px] font-mono font-semibold text-foreground">{request.reference}</p>
+            <p className="text-[12px] text-foreground mt-0.5">{request.asset?.name ?? "—"}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Waiting on <span className="font-semibold text-foreground">{request.approver?.name ?? "—"}</span>
+              {inactive && <span className="text-red-700 dark:text-red-400"> — cannot sign in</span>}
+            </p>
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Who should be asked instead?
+            </label>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Only people who could have made this change themselves are listed. The person who raised
+              the request cannot be asked, and nor can somebody whose account is deactivated.
+            </p>
+            <div className="mt-1.5" data-testid="renominate-approver-field">
+              <RecordPicker
+                value={target ? { id: target.id, label: target.name } : null}
+                onChange={opt => setTarget(opt ? { id: opt.id, name: opt.label } : null)}
+                search={search}
+                queryKey={`picker-renominate-${request.id}`}
+                placeholder="Search people who can approve…"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+          <div>
+            <label
+              htmlFor={`approval-renominate-reason-${request.id}`}
+              className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide"
+            >
+              Why are you asking someone else?
+            </label>
+            <textarea
+              id={`approval-renominate-reason-${request.id}`}
+              rows={3}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              className="mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder="Required — e.g. The approver has left the service."
+              data-testid="input-approval-renominate-reason"
+            />
+          </div>
+          {err && (
+            <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3" data-testid="approval-renominate-error">
+              <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <ApiErrorMessage err={err} />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={() => mutation.mutate()}
+            data-testid="button-confirm-approval-renominate"
+            className={cn(
+              "px-3 py-1.5 text-xs font-semibold rounded-xl text-white",
+              ready ? "bg-primary hover:opacity-90" : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
+          >
+            {mutation.isPending ? <Clock size={12} className="animate-pulse" /> : "Ask them instead"}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Who this request has been re-pointed at before, oldest first. The server
+ * keeps it on an append-only row; `approver` only ever says who is asked NOW,
+ * so without this a reader could not tell that somebody else was asked first,
+ * or who changed it.
+ */
+function RenominationHistory({ r }: { r: ApprovalRequest }) {
+  const trail = r.renominations ?? [];
+  if (trail.length === 0) return null;
+  return (
+    <ul className="space-y-0.5" data-testid="approval-renominations">
+      {trail.map(n => (
+        <li key={n.id} className="flex items-start gap-1.5 text-[11px] text-muted-foreground" data-testid="approval-renomination">
+          <History size={11} className="shrink-0 mt-0.5" />
+          <span>
+            Re-pointed from <span className="font-semibold text-foreground">{n.from.name ?? "—"}</span>
+            {" "}to <span className="font-semibold text-foreground">{n.to.name ?? "—"}</span>
+            {" "}by <span className="font-semibold text-foreground">{n.by.name ?? "—"}</span>
+            {" "}on {stamp(n.at)}
+            {n.reason && <> — “{n.reason}”</>}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // ─── one row ───────────────────────────────────────────────────────────────
 
 function ApprovalRow({ r }: { r: ApprovalRequest }) {
   const scopes = useScopes();
   const [mode, setMode] = useState<DecisionMode | null>(null);
+  const [renominating, setRenominating] = useState(false);
 
   const pending = r.state === "pending";
   // `premise_holds` is only computed for a pending row; the model answers
@@ -330,6 +523,12 @@ function ApprovalRow({ r }: { r: ApprovalRequest }) {
   // is what the two decision routes require, and an Auditor holds none of it.
   const mayDecide = pending && r.can_decide && !broken && scopes.has(SCOPE.approvalsWrite);
   const mayWithdraw = pending && r.can_withdraw && scopes.has(SCOPE.assetsWrite);
+  // `assets:write` is what the route requires — the same scope as raising a
+  // request. `can_renominate` is the server's answer per caller.
+  const mayRenominate = pending && r.can_renominate && scopes.has(SCOPE.assetsWrite);
+  // G.1(a): the person it is waiting on has had their account deactivated.
+  // Only said of a PENDING row — on a decided one nobody is waiting.
+  const approverGone = pending && r.approver?.active === false;
 
   return (
     <li className="px-5 py-3.5" data-testid="approval-row" data-reference={r.reference} data-state={r.state}>
@@ -359,8 +558,40 @@ function ApprovalRow({ r }: { r: ApprovalRequest }) {
               {r.requested_by_name ?? r.requested_by?.name ?? "—"}
             </span>
             {" "}on {stamp(r.requested_at)}
-            {r.approver && <> · waiting on <span className="font-semibold text-foreground">{r.approver.name}</span></>}
+            {r.approver && <>
+              {" · "}{pending ? "waiting on" : "asked"}{" "}
+              <span className="font-semibold text-foreground">{r.approver.name}</span>
+              {approverGone && (
+                <span className="font-semibold text-red-700 dark:text-red-400" data-testid="approval-approver-inactive">
+                  {" "}— {r.approver.name} cannot sign in
+                </span>
+              )}
+            </>}
           </p>
+
+          <RenominationHistory r={r} />
+
+          {/* WHY NOBODY IS GOING TO ANSWER THIS. Not a tooltip, for the reason
+              the premise note below gives. Anyone eligible can still decide
+              it, which is said, because the queue is not stuck for them. */}
+          {approverGone && (
+            <div
+              className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-2.5 mt-1"
+              data-testid="approval-approver-cannot-sign-in"
+              role="note"
+            >
+              <UserX size={13} className="text-red-700 dark:text-red-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-red-800 dark:text-red-300">
+                <span className="font-semibold">The approver cannot sign in.</span>{" "}
+                {r.approver?.name}'s account has been deactivated, so this request will wait for ever
+                where it is.{" "}
+                {mayRenominate
+                  ? "Ask someone else to approve it."
+                  : `${r.requested_by_name ?? r.requested_by?.name ?? "The person who raised it"}, or an administrator, can ask someone else.`}
+                {" "}Anybody else able to approve it can still decide it now.
+              </p>
+            </div>
+          )}
 
           {r.reason && (
             <p className="text-[12px] text-foreground/90" data-testid="approval-reason">
@@ -441,6 +672,21 @@ function ApprovalRow({ r }: { r: ApprovalRequest }) {
               <XCircle size={12} /> Reject
             </button>
           )}
+          {mayRenominate && (
+            <button
+              type="button"
+              onClick={() => setRenominating(true)}
+              data-testid="button-renominate"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium",
+                approverGone
+                  ? "border-red-200/70 dark:border-red-800/30 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-semibold"
+                  : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              <ArrowRightLeft size={12} /> Ask someone else
+            </button>
+          )}
           {mayWithdraw && (
             <button
               type="button"
@@ -454,6 +700,13 @@ function ApprovalRow({ r }: { r: ApprovalRequest }) {
         </div>
       </div>
 
+      {renominating && (
+        <RenominateDialog
+          request={r}
+          open
+          onOpenChange={(next) => { if (!next) setRenominating(false); }}
+        />
+      )}
       {mode && (
         <DecisionDialog
           request={r}

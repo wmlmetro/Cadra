@@ -6,7 +6,7 @@ import { CadraApiError } from "@/lib/api";
 import { applyBrand, getBrand } from "@/lib/brand";
 import BrandPill from "@/components/BrandPill";
 import {
-  AlertCircle, Clock, Check, Loader2, Upload, RotateCcw, Info, Image as ImageIcon,
+  AlertCircle, Clock, Check, Loader2, Upload, RotateCcw, Info, Image as ImageIcon, Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
@@ -14,6 +14,10 @@ import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 /** Keep in step with the API's guard — a logo rides in every page load. */
 const LOGO_MAX_CHARS = 262_144;
 const HEX = /^#[0-9A-Fa-f]{6}$/;
+/** The server's own test (`odoo.tools.mail.single_email_re`): one bare
+ *  address, no display name. The server refuses in words either way; this
+ *  only stops the Save button offering a save that would be refused. */
+const EMAIL = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$/;
 
 const inputCls =
   "w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-[12px] " +
@@ -95,6 +99,12 @@ export default function BrandingPage() {
     .some(k => draft[k] !== saved[k]);
   const colourOk = (!draft.primary || HEX.test(draft.primary)) &&
                    (!draft.primary_dark || HEX.test(draft.primary_dark));
+  const senderEmail = (draft.sender_email ?? "").trim();
+  // The address already stored is accepted as it stands, as the server does —
+  // an address saved before this check existed must not block a colour save.
+  const senderOk = !senderEmail || EMAIL.test(senderEmail) ||
+                   senderEmail === (saved.sender_email ?? "").trim();
+  const canSave = colourOk && senderOk;
 
   const onPickLogo = (file: File) => {
     setLocalErr(null);
@@ -195,6 +205,31 @@ export default function BrandingPage() {
         </div>
       </section>
 
+      {/* Letters */}
+      <section className="bg-card border border-border rounded-2xl p-5 space-y-4">
+        <h2 className="text-[13px] font-bold inline-flex items-center gap-1.5">
+          <Mail size={13} /> Letters
+        </h2>
+        <Field label="Sender address"
+               hint={"The address invitations and password resets give as their sender, " +
+                     "where the mail server lets us choose one. If it is empty, a letter " +
+                     "goes out from the address of whoever sent it, or failing that the " +
+                     "recipient's own, which many mail servers refuse to deliver. On the " +
+                     "hosted service the mail relay currently sends as its own address."}>
+          <input className={cn(inputCls, !senderOk && "border-red-400")}
+                 type="email" inputMode="email" autoComplete="off" spellCheck={false}
+                 value={draft.sender_email ?? ""} placeholder="assets@your-organisation.gov.ng"
+                 data-testid="brand-sender-email"
+                 onChange={e => setDraft({ ...draft, sender_email: e.target.value })} />
+        </Field>
+        {!senderOk && (
+          <p className="text-[11px] text-red-600 dark:text-red-400">
+            The sender address must be one email address, like assets@example.org,
+            with no name or spaces. Leave it empty to clear it.
+          </p>
+        )}
+      </section>
+
       {/* Colour */}
       <section className="bg-card border border-border rounded-2xl p-5 space-y-4">
         <h2 className="text-[13px] font-bold">Colour</h2>
@@ -273,12 +308,15 @@ export default function BrandingPage() {
 
       <div className="flex items-center gap-3">
         <button
-          disabled={!dirty || !colourOk || save.isPending}
-          onClick={() => { setLocalErr(null); save.mutate(draft); }}
+          disabled={!dirty || !canSave || save.isPending}
+          onClick={() => {
+            setLocalErr(null);
+            save.mutate({ ...draft, sender_email: (draft.sender_email ?? "").trim() });
+          }}
           data-testid="brand-save"
           className={cn(
             "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium border",
-            dirty && colourOk && !save.isPending
+            dirty && canSave && !save.isPending
               ? "border-primary text-primary hover:bg-primary/5"
               : "border-transparent text-muted-foreground/40 cursor-default",
           )}
