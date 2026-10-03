@@ -59,7 +59,9 @@ const PLAN: Record<string, Plan> = {
   // back (verification pass).
   test19: {
     groups: ["fleet_transport"], items: ["employees"],
-    hides: ["fleet", "staff_bus", "employees"],
+    // staff_bus left this list with handoff 47: the key is retired, the
+    // server refuses it, and the group now hides Fleet alone.
+    hides: ["fleet", "employees"],
     typed: { key: "employees", path: "/hr/employees", read: "/api/v1/identity/employees" },
   },
   // Three items, no group — one of them in the locked Settings group, which
@@ -338,7 +340,7 @@ test.describe("48 — what this tenant has", () => {
 
     // And the write is refused to her by the server, not by the menu.
     const w = await page.request.patch(`${ORIGIN}/api/v1/settings/sidebar`, {
-      headers: { Authorization: `Bearer ${token}` }, data: { items: { staff_bus: true } } });
+      headers: { Authorization: `Bearer ${token}` }, data: { items: { fleet: true } } });
     matrix.storekeeper_patch = w.status();
     expect(w.status()).toBe(403);
   });

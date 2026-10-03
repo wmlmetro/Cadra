@@ -93,7 +93,9 @@ def test_the_payload_says_it_is_not_a_permission(client, capture):
     assert data["default_when_unset"] is True
     assert data["parameter_prefix"] == "cadra.sidebar."
     keys = [it["key"] for g in data["groups"] for it in g["items"]]
-    assert len(keys) == len(set(keys)) == 28, keys
+    # 26 since handoff 47: Staff Bus and Identity (clearance) left the
+    # sidebar (§1b) — mock screens; their keys are retired, never reused.
+    assert len(keys) == len(set(keys)) == 26, keys
     assert len(data["groups"]) == 10
     hidden = [it["key"] for g in data["groups"] for it in g["items"]
               if not it["shown"]]
@@ -104,7 +106,7 @@ def test_anyone_signed_in_reads_it_and_only_admin_writes_it(tagger, unauthed_cli
     data = _read(tagger)
     assert data["is_a_permission"] is False
     body = assert_envelope_err(
-        tagger.patch(SIDEBAR, json={"items": {"staff_bus": True}}),
+        tagger.patch(SIDEBAR, json={"items": {"fleet": True}}),
         403, "forbidden")
     assert "admin" in body["error"].get("details", {}).get("required_scopes", [])
     assert_envelope_err(unauthed_client.get(SIDEBAR), 401)
@@ -115,7 +117,7 @@ def test_the_lockout_is_refused_and_nothing_is_written(client, admin_scope):
     for body in ({"groups": {"settings": False}},
                  {"items": {"sidebar_settings": False}},
                  # A legitimate switch in the same body is not written either.
-                 {"items": {"sidebar_settings": False, "staff_bus": False}},
+                 {"items": {"sidebar_settings": False, "fleet": False}},
                  {"groups": {"settings": False, "fleet_transport": False}}):
         err = assert_envelope_err(client.patch(SIDEBAR, json=body), 400,
                                   "invalid_request")["error"]
@@ -132,21 +134,21 @@ def test_the_lockout_is_refused_and_nothing_is_written(client, admin_scope):
 
 
 @pytest.mark.parametrize("body,needle", [
-    ({"items": {"staff_bus": False}, "colour": "red"}, "does not accept"),
+    ({"items": {"fleet": False}, "colour": "red"}, "does not accept"),
     ({}, "Name at least one"),
     ({"items": {}}, "Name at least one"),
     ({"items": {"no_such_item": False}}, "Unknown item: no_such_item"),
     ({"groups": {"no_such_group": False}}, "Unknown group: no_such_group"),
     # A group key is not an item key, and the other way round.
     ({"items": {"fleet_transport": False}}, "Unknown item"),
-    ({"items": {"staff_bus": "off"}}, "true (shown) or false"),
-    ({"items": {"staff_bus": 0}}, "true (shown) or false"),
-    ({"items": ["staff_bus"]}, "must be an object"),
+    ({"items": {"fleet": "off"}}, "true (shown) or false"),
+    ({"items": {"fleet": 0}}, "true (shown) or false"),
+    ({"items": ["fleet"]}, "must be an object"),
     # A FALSY non-object beside a valid switch is refused too — it was
     # dropped with a 200 and the valid switch written (verification pass).
-    ({"items": {"staff_bus": False}, "groups": False}, "must be an object"),
-    ({"items": {"staff_bus": False}, "groups": []}, "must be an object"),
-    ({"items": {"staff_bus": False}, "groups": ""}, "must be an object"),
+    ({"items": {"fleet": False}, "groups": False}, "must be an object"),
+    ({"items": {"fleet": False}, "groups": []}, "must be an object"),
+    ({"items": {"fleet": False}, "groups": ""}, "must be an object"),
     ({"groups": 0}, "must be an object"),
 ])
 def test_every_refusal_before_any_write(client, admin_scope, body, needle):
@@ -171,20 +173,23 @@ def test_a_group_is_a_master_switch(client, admin_scope, restore):
     data = assert_envelope_ok(client.patch(
         SIDEBAR, json={"groups": {"fleet_transport": True}}))["data"]
     assert [it["shown"] for it in _group(data, "fleet_transport")["items"]] \
-        == [True, True]
+        == [True]
 
 
 def test_an_item_off_under_a_group_off_stays_off_when_the_group_returns(
         client, admin_scope, restore):
-    restore["groups"].add("fleet_transport")
-    restore["items"].add("staff_bus")
+    # `hr_staff` since handoff 47 — the proof needs a group with two items
+    # (one stays off on its own switch, its sibling returns), and
+    # `fleet_transport` holds only Fleet now that Staff Bus left the table.
+    restore["groups"].add("hr_staff")
+    restore["items"].add("sap_sync")
     assert_envelope_ok(client.patch(SIDEBAR, json={
-        "items": {"staff_bus": False}, "groups": {"fleet_transport": False}}))
+        "items": {"sap_sync": False}, "groups": {"hr_staff": False}}))
     data = assert_envelope_ok(client.patch(
-        SIDEBAR, json={"groups": {"fleet_transport": True}}))["data"]
-    assert _item(data, "fleet")["shown"] is True
-    assert _item(data, "staff_bus")["shown"] is False
-    assert data["hidden_items"].count("staff_bus") == 1
+        SIDEBAR, json={"groups": {"hr_staff": True}}))["data"]
+    assert _item(data, "employees")["shown"] is True
+    assert _item(data, "sap_sync")["shown"] is False
+    assert data["hidden_items"].count("sap_sync") == 1
 
 
 def test_switching_on_what_nobody_switched_off_writes_nothing(client, admin_scope):
@@ -200,17 +205,17 @@ def test_switching_on_what_nobody_switched_off_writes_nothing(client, admin_scop
 
 def test_a_switch_names_who_changed_it_and_the_report_agrees(
         client, admin_scope, restore, suite_user):
-    restore["items"].add("staff_bus")
+    restore["items"].add("fleet")
     data = assert_envelope_ok(client.patch(
-        SIDEBAR, json={"items": {"staff_bus": False}}))["data"]
-    item = _item(data, "staff_bus")
+        SIDEBAR, json={"items": {"fleet": False}}))["data"]
+    item = _item(data, "fleet")
     assert item["enabled"] is False and item["configured"] is True
     assert item["changed_by"]["id"] == suite_user["id"], item
 
     # Back on: the row stays, reads `on`, and is still this caller's.
     data = assert_envelope_ok(client.patch(
-        SIDEBAR, json={"items": {"staff_bus": True}}))["data"]
-    item = _item(data, "staff_bus")
+        SIDEBAR, json={"items": {"fleet": True}}))["data"]
+    item = _item(data, "fleet")
     assert item["enabled"] is True and item["configured"] is True
     assert item["changed_by"]["id"] == suite_user["id"]
 
@@ -228,7 +233,7 @@ def test_a_switch_names_who_changed_it_and_the_report_agrees(
         cursor = (body.get("pagination") or {}).get("next_cursor")
         if not cursor:
             break
-    row = next((r for r in rows if r["key"] == "cadra.sidebar.item.staff_bus"),
+    row = next((r for r in rows if r["key"] == "cadra.sidebar.item.fleet"),
                None)
     assert row, "the switch is not in the configuration-change report"
     assert row["current_value"] == "on"

@@ -135,20 +135,24 @@ class TestUsersEndpoint(CadraHttpCase):
 
     # ── direct versus effective ──────────────────────────────────────
 
-    def test_an_asset_manager_is_a_member_of_one_role_and_holds_two(self):
+    def test_an_asset_manager_is_a_member_of_one_role_and_holds_three(self):
         """Handoff 41's trap, stated as an answer: direct `[asset_manager]`,
-        effective `[asset_user, asset_manager]`, in catalogue order."""
+        effective `[asset_user, asset_officer, asset_manager]` (the Officer
+        since handoff 47), in catalogue order."""
         row = self._row(self.manager)
         self.assertEqual(self._keys(row["roles_direct"]), ["asset_manager"])
         self.assertEqual(self._keys(row["roles_effective"]),
-                         ["asset_user", "asset_manager"])
+                         ["asset_user", "asset_officer", "asset_manager"])
         self.assertEqual(row["kind"], "person")
         self.assertEqual(row["scopes_source"], "roles")
         self.assertEqual(row["scopes"],
                          self.utils.scopes_for_user(self.manager.sudo()))
-        # The implication the row reports is the one `/roles` reports.
+        # The implication the row reports is the one `/roles` reports —
+        # the ladder User < Officer < Manager since handoff 47.
         roles = {r["key"]: r for r in self._ok("/api/v1/roles")["data"]}
-        self.assertEqual(roles["asset_manager"]["implies"], ["asset_user"])
+        self.assertEqual(roles["asset_manager"]["implies"],
+                         ["asset_user", "asset_officer"])
+        self.assertEqual(roles["asset_officer"]["implies"], ["asset_user"])
         self.assertEqual(roles["asset_user"]["implies"], [])
 
     def test_a_tagger_holds_exactly_tagging_write_from_its_roles(self):

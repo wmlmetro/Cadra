@@ -25,8 +25,8 @@ import { ORIGIN, appPath } from "../config";
  *
  * Writes probe with the body `{"h46_probe": true}` and id 0, so a holder of
  * the scope is answered 400 "Nothing was written" or 404 — never a write.
- * Two items read no API at all (Identity, Staff Bus: mock pages); they are
- * recorded as having nothing for the server to refuse, not asserted.
+ * (Identity and Staff Bus, the two mock pages this block used to carve out,
+ * left the sidebar in handoff 47 §1b and are no longer items.)
  *
  *   (cd e2e && E2E_ORIGIN=http://test19.localhost:8069 E2E_SHOTS=… \
  *      E2E_MATRIX=…/matrix.json npx playwright test 46-)
@@ -56,9 +56,7 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/hr/employees", probes: [G("/identity/employees?limit=1")] },
   { path: "/hr/sap-sync", probes: [G("/identity/employees?limit=1&sap_sync_status=synced")] },
   { path: "/hr/import", probes: [W("POST", "/integrations/employees/import")] },
-  { path: "/hr/identity", probes: [] },
   { path: "/fleet", probes: [G("/fleet?limit=1")] },
-  { path: "/fleet/staff-bus", probes: [] },
   { path: "/reports/fleet-roster", probes: [G("/fleet/dashboard")] },
   { path: "/reports/asset-inventory", probes: [G("/dashboard/kpis"), G("/dashboard/map")] },
   { path: "/reports/maintenance-readiness", probes: [G("/fleet/dashboard")] },
