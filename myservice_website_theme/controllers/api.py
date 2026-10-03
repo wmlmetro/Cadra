@@ -71,6 +71,22 @@ def quick_submit_rejected_keys(body):
     return [k for k in (body or {}) if k not in QUICK_SUBMIT_FIELDS]
 
 
+def _say_what_is_missing(keys):
+    """The sentence a person reads when the form sent no type or no text.
+
+    Held to the same rule as `_choose_from_the_list`: words, never field
+    names, because the live form enforces both fields in JavaScript and the
+    only person who can read this arrived through a stale tab or a modified
+    page — there is nothing of ours to name at them.
+    """
+    parts = []
+    if 'type_id' in keys:
+        parts.append('choose a request type from the list on the form')
+    if 'description' in keys:
+        parts.append('describe what you need')
+    return 'Please %s, then send your request again.' % ' and '.join(parts)
+
+
 def _choose_from_the_list(keys):
     """The sentence a person filling in the form reads when an id is unusable.
 
@@ -180,6 +196,26 @@ class NRSHomepageAPI(http.Controller):
                 'rejected_fields': rejected,
             }
 
+        # The schema has declared `type_id` and `description` required since
+        # the route was annotated; the route now does too (handoff 37,
+        # closing 33 §C). Before resolution, because presence comes before
+        # value: an absent type used to fall back to whichever request type
+        # happened to be first and active, and an absent description created
+        # a record titled "Quick facilities request" that says nothing — on
+        # the public twin, an unauthenticated way to create an empty record.
+        missing = []
+        if kwargs.get('type_id') in (None, '', False):
+            missing.append('type_id')
+        description = kwargs.get('description')
+        if not isinstance(description, str) or not description.strip():
+            missing.append('description')
+        if missing:
+            return {
+                'success': False,
+                'error': _say_what_is_missing(missing),
+                'missing_fields': missing,
+            }
+
         # The three ids, resolved before anything is created. A key that is
         # absent is not an error — only one that is present and unusable.
         resolved = {}
@@ -206,19 +242,16 @@ class NRSHomepageAPI(http.Controller):
                 'unusable_fields': unusable,
             }
 
-        type_id = resolved.get('type_id')
-        if not type_id:
-            # No type sent at all — fall back to the first active one. An
-            # UNUSABLE type was refused above; this branch is for a body that
-            # never named one, which the public form does not send.
-            first_type = env['request.type'].sudo().search(
-                [('active', '=', True)], limit=1)
-            if first_type:
-                type_id = first_type.id
-            else:
-                return {'success': False, 'error': 'No request type available'}
+        # Present (the required check above) and resolvable (the id check
+        # above), so this is a plain read. The fallback that stood here —
+        # no type sent, take the first active one — is gone with handoff 37:
+        # it is what let an empty body create a request against whichever
+        # type happened to sort first.
+        type_id = resolved['type_id']
 
-        # Build request text with reporter info
+        # Build request text with reporter info. `description` is required
+        # above, so the "Quick facilities request" placeholder title is gone
+        # too — every request now says what it is about.
         lines = []
         if kwargs.get('reporter_name'):
             lines.append('Reported by: %s' % kwargs['reporter_name'])
@@ -226,10 +259,9 @@ class NRSHomepageAPI(http.Controller):
             lines.append('Contact: %s' % kwargs['reporter_contact'])
         if lines:
             lines.append('')
-        if kwargs.get('description'):
-            lines.append(kwargs['description'])
+        lines.append(description)
 
-        req_text = '<br/>'.join(lines) if lines else 'Quick facilities request'
+        req_text = '<br/>'.join(lines)
 
         # Prepare creation data (mirrors WSD controller logic)
         vals = {

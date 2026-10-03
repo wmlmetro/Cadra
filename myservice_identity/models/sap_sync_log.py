@@ -114,10 +114,12 @@ class NRSSapSyncLog(models.Model):
     def unknown_payload_keys(self, payload):
         """The keys in `payload` this method does not read, in the order sent.
 
-        A caller that will not silently drop them asks BEFORE calling
-        `process_sap_payload`, because that method creates its log row and
-        its employee as it goes, and a refusal afterwards is a refusal after
-        the write.
+        A caller that wants to refuse a whole BATCH before any row is
+        touched asks this before calling `process_sap_payload` — the v1
+        route does, and its 400 names every bad key across the batch. Since
+        handoff 37 the method below also refuses a row's unknown keys
+        itself, so a caller that does not ask still cannot silently drop
+        them; what the pre-flight buys is batch atomicity, not the rule.
         """
         return [k for k in (payload or {}) if k not in SAP_PAYLOAD_KEYS]
 
@@ -127,6 +129,16 @@ class NRSSapSyncLog(models.Model):
 
         Returns ``(employee, log)`` where *employee* may be ``None``
         on error.
+
+        A payload carrying a key this method does not read is REFUSED whole
+        — an error log row naming the keys, nothing written to the employee
+        — rather than processed without it (handoff 37, closing 33 §A2/§A4).
+        The rule sits here, on the model, because six call sites hand a dict
+        in (the identity webhook, the v1 route, the `/test` route, the xlsx
+        import job, the CSV wizard, `scripts/load_employees_xlsx.py`) and a
+        guard in one door is how `status` went unread under a 200 for the
+        life of the feed. The refusal is a RETURN, not a raise: the webhook
+        has no row handler, so a raise there is an unhandled fault.
         """
         start = time.time()
 
@@ -135,6 +147,24 @@ class NRSSapSyncLog(models.Model):
             or payload.get('userId')
             or payload.get('personIdExternal')
         )
+
+        unknown = self.unknown_payload_keys(payload)
+        if unknown:
+            log = self.create({
+                'ir_number': ir_number or 'UNKNOWN',
+                'sync_type': sync_type,
+                'status': 'error',
+                'error_message': (
+                    'Unknown keys refused, nothing written: %s. '
+                    'This feed accepts: %s.'
+                    % (', '.join(unknown),
+                       ', '.join(self.accepted_payload_keys()))
+                ),
+                'payload': str(payload),
+                'sap_event': payload.get('event', ''),
+            })
+            return None, log
+
         if not ir_number:
             log = self.create({
                 'ir_number': 'UNKNOWN',
@@ -238,11 +268,15 @@ class NRSSapSyncLog(models.Model):
             # `log.status` off and got a MissingError from. Raising is the
             # honest answer.
             #
-            # Two of the three callers have a row handler that catches it —
-            # the xlsx import job and the SAP import wizard.
-            # `myservice_identity/controllers/sap_webhook.py` has none, so a
-            # raise there is an unhandled fault on the webhook. Still better
-            # than handing all five callers a recordset the rollback had
+            # Of the SIX callers (the identity webhook, its `/test` route,
+            # the v1 route, the xlsx import job, the CSV wizard and
+            # `scripts/load_employees_xlsx.py` — counted in handoff 37; an
+            # earlier draft of this comment said "three" and "five" in the
+            # same breath), the three bulk importers have a per-row handler
+            # that catches it, and the v1 route's envelope ladder renders it
+            # as a 500 envelope. `sap_webhook.py`'s two routes have none, so
+            # a raise there is an unhandled fault on the webhook. Still
+            # better than handing every caller a recordset the rollback had
             # already deleted, but it is a gap and it is written down here
             # rather than implied.
             log.write({

@@ -2,6 +2,10 @@ from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 from odoo.tools import config
 
+from odoo.addons.myservice_asset_register.models.asset_snapshot import (
+    snapshot_today,
+)
+
 from . import depreciation_engine as engine
 from .depreciation_engine import (
     COMPUTED_METHODS,
@@ -189,8 +193,20 @@ class NRSAsset(models.Model):
 
         ERP-managed assets are skipped entirely — Cadra reads but does not
         compute (NRS spec §6.2).
+
+        `as_of` defaults to the LAGOS day (`snapshot_today`), not
+        `context_today`, because it is compared with `disposal_date` — which
+        `nrs.asset._stamp_disposal` writes as a Lagos day, underneath every
+        writer of `state`. `context_today` is the UTC day for any user with
+        no timezone (every API credential, and the superuser the test runner
+        acts as), so between 23:00 and 24:00 UTC the stamp was TOMORROW
+        relative to `as_of`, the engine's `as_of >= disposal_date` check
+        missed, and a freshly disposed asset read `fully_depreciated` — the
+        two red tests of report 36, red for one hour a night and green the
+        other twenty-three. One definition of the day, used on both sides
+        of the comparison (`asset_snapshot.snapshot_today`'s own rule).
         """
-        as_of = as_of or fields.Date.context_today(self)
+        as_of = as_of or snapshot_today()
         for r in self:
             if r.depreciation_method == METHOD_ERP_MANAGED:
                 # Keep the externally-supplied figures; only label the state.

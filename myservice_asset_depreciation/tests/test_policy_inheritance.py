@@ -9,8 +9,11 @@ Run with:
     odoo -d <db> -u myservice_asset_depreciation --test-enable \\
          --test-tags /myservice_asset_depreciation --stop-after-init
 """
+from datetime import date
+
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
+from odoo.tests.common import freeze_time
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 
@@ -220,6 +223,34 @@ class TestPolicyInheritance(CadraTransactionCase):
         self.assertTrue(asset.disposal_date, "disposal_date must be stamped")
         self.assertLess(len(asset.get_depreciation_schedule()), before)
         self.assertEqual(asset.depreciation_state, "disposed")
+
+    def test_a_disposal_at_lagos_midnight_still_reads_disposed(self):
+        """The two tests above, pinned at the one hour a night they were red.
+
+        `nrs.asset._stamp_disposal` writes `disposal_date` as the LAGOS day
+        (`snapshot_today`); `_apply_depreciation` used to measure `as_of`
+        with `context_today` — the UTC day for a user with no timezone,
+        which every API credential's user and the test runner's superuser
+        are. Between 23:00 and 24:00 UTC the stamp is TOMORROW relative to
+        `as_of`, the engine's `as_of >= disposal_date` check misses, and —
+        because disposal truncates the schedule, so every remaining period
+        has already ended — the state falls through to `fully_depreciated`.
+        That is report 36's `'fully_depreciated' != 'disposed'`, red for
+        one hour a night and green the other twenty-three, which is how it
+        ran through six handoffs' suites unseen. The clock is frozen inside
+        the window so this cannot depend on when the suite runs.
+        """
+        cat = self._category(depreciation_method="straight_line",
+                             useful_life_months=600)
+        asset = self._asset(cat, acquisition_cost=1200000.0,
+                            acquisition_date="2020-01-31")
+        with freeze_time("2026-01-15 23:30:00"):
+            asset.action_condemn()
+            # The premise, asserted so it cannot rot: the register stamps
+            # the Lagos day, which at 23:30 UTC is already the 16th.
+            self.assertEqual(asset.disposal_date, date(2026, 1, 16))
+            self.assertEqual(asset.state, "disposed")
+            self.assertEqual(asset.depreciation_state, "disposed")
 
     # ── Report ───────────────────────────────────────────────────────────────
 

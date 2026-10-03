@@ -1109,3 +1109,57 @@ the per-tenant counts of who each split affects, the in-registry driving of
 each ruling (`myservice_api/tests/test_asset_officer_role.py`), the contract
 pins (`tests/test_role_is_a_job.py`, `tests/test_login_scopes.py` §47), and
 every suite's denominator.
+
+## 37 — The doors, and the two red tests nobody named (2026-10-03)
+
+Written 30 September, re-checked and run 3 October — after 38–48, which is
+why it lands out of sequence. The security-shaped half of handoff 33, plus
+the two red depreciation tests report 36 flagged.
+
+- **The naming convention ruled** (`docs/DECISIONS.md`): one name per
+  field, published and writable — handoff 34's convention over 33 §B2;
+  where they already differ, publish the writable name and keep the old one
+  as a read-only OUTPUT alias, never an accepted input. 33 §B2 can now be
+  re-queued honestly; nothing renamed in 37.
+- **The identity door ruled for retirement; the v1 route proved to be the
+  door that works.** Census re-taken 2026-10-03: 0 `webhook` rows of 287
+  across all eight tenants (the quoted figure had moved 163 → 179 → 286),
+  secret set on 0 of 8, provisioned by nothing — no caller can reach it.
+  Driven side by side with the same bodies: the old door cannot create OR
+  update an employee on Odoo 19 (`hr_version.last_modified_uid` NOT NULL
+  against an `auth='none'` environment, every write an error row under
+  `success: true`), and its documented list shape dies in the JSON-RPC
+  dispatcher. The v1 route answers every body the old door can actually
+  accept, same register, same per-row schema. Old door untouched, per the
+  handoff's own outage condition.
+- **The unvalidated dict closed on the model, for all six callers at
+  once** (`myservice_identity` 19.0.1.1.0): an unknown payload key is an
+  `error` log row naming the keys and the accepted set, nothing written —
+  a return, not a raise, because the webhook has no row handler. The CSV
+  wizard had passed every unrecognised spreadsheet column straight
+  through. The v1 route's whole-batch 400 stays and fires first.
+- **Quick-submit's `required` pair enforced** (`myservice_api` 19.0.3.22.0,
+  `myservice_website_theme` 19.0.1.1.0, BREAKING, announced): `type_id`
+  and a non-blank `description`, refused in the shared delegate before
+  anything is written — `details.missing_fields` on the v1 route, a
+  visitor's sentence on the public twin. The first-active-type fallback
+  and the *"Quick facilities request"* placeholder are deleted: an empty
+  body no longer creates an empty record on an unauthenticated door.
+- **The two red tests were the product, not the tests — and they were red
+  one hour a night** (`myservice_asset_depreciation` 19.0.1.1.0). The
+  register stamps a disposal with the LAGOS day; `_apply_depreciation`
+  measured today in UTC (`context_today` with no user timezone), so from
+  23:00 to 24:00 UTC a fresh disposal read `fully_depreciated`. Reports
+  31, 32 and 34 ran the suite green with these tests in the denominator —
+  which the frozen clock proves can only happen outside the window; report
+  35 never ran this module's suite; report 36's session brushed midnight
+  Lagos and was the first inside it — nothing read past a failure. Fixed with one
+  definition of the day on both sides (`snapshot_today`), pinned by a
+  frozen-clock regression test proved to fail first at any hour.
+
+### Verification
+
+Report 37 carries the equivalence drive (seven bodies, both doors, the
+sync-log rows read back), the census with its date and all eight
+denominators, the failing-then-passing assertion for §3 with the statement
+of which side was wrong, and every suite's denominator.

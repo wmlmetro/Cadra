@@ -1,6 +1,6 @@
 {
     'name': 'NRS Identity Management',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'SAP SuccessFactors employee sync, IR number as primary key, asset-employee binding',
     'category': 'Human Resources',
     'author': 'WestMetro Limited',
