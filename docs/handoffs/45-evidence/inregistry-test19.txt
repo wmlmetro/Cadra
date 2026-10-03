@@ -1,0 +1,4 @@
+myservice_api: 0 failed, 0 error(s) of 353 tests when loading database 'test19'  | CRITICAL=0 | 0 test FAIL/ERROR lines
+myservice_asset_register: 0 failed, 0 error(s) of 479 tests when loading database 'test19'  | CRITICAL=0 | 0 test FAIL/ERROR lines
+myservice_email_relay: 0 failed, 0 error(s) of 26 tests when loading database 'test19'  | CRITICAL=0 | 0 test FAIL/ERROR lines
+myservice_barcode_station: 0 failed, 0 error(s) of 20 tests when loading database 'test19'  | CRITICAL=0 | 0 test FAIL/ERROR lines

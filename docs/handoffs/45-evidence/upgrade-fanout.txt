@@ -1,0 +1,9 @@
+cadra19 exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0
+nrs19 exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0
+gtb19 exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0
+test19 exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0
+nrs exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0
+lasg exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0
+gtb exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0
+jaizbankplc exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0
+boot44 exit=0 errors=0 table=t api=19.0.3.18.0 ar=19.0.1.21.0

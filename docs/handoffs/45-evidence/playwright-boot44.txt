@@ -1,0 +1,14 @@
+
+[preflight] http://boot44.localhost:8069/app/ is up · tenant brand = "Jaiz Bank Plc"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 5 tests using 1 worker
+
+  ✓  1 [chromium] › tests/45-the-first-five-minutes.spec.ts:128:7 › handoff 45 — the first five minutes › a system administrator still reaches the back office (4.7s)
+  ✓  2 [chromium] › tests/45-the-first-five-minutes.spec.ts:140:7 › handoff 45 — the first five minutes › the letter → our page → a password → signed in, and Odoo never appears (7.5s)
+  ✓  3 [chromium] › tests/45-the-first-five-minutes.spec.ts:174:7 › handoff 45 — the first five minutes › every dead link says why, and offers a way forward (7.6s)
+  ✓  4 [chromium] › tests/45-the-first-five-minutes.spec.ts:204:7 › handoff 45 — the first five minutes › Forgot password? → the reset letter → a new password → signed in (11.0s)
+  ✓  5 [chromium] › tests/45-the-first-five-minutes.spec.ts:232:7 › handoff 45 — the first five minutes › a non-administrator uses the app, prints a label, and cannot reach the back office (14.8s)
+
+  5 passed (51.4s)
