@@ -18,6 +18,8 @@ import {
   AuthPageError, clearToken, hasLiveSession, inspectPasswordToken,
   redeemPasswordToken, type PasswordTokenStatus,
 } from "@/lib/auth";
+import { currentScopes } from "@/hooks/use-scopes";
+import { landingPath } from "@/lib/navigation";
 import { AuthError, AuthNotice, AuthShell, authButton, authInput, authLabel, authLink } from "@/components/auth/AuthShell";
 
 function tokenFromUrl(): string {
@@ -66,7 +68,9 @@ export default function SetPassword({ mode }: { mode: "invite" | "reset" }) {
       // person this link belongs to never sees that session's cached data.
       if (hasLiveSession()) clearToken();
       const result = await redeemPasswordToken(token, password, confirm);
-      if (result.signedIn) nav("/");
+      // Signed in: the same landing rule as the login form (handoff 46),
+      // judged from the scopes the redeem has just stored.
+      if (result.signedIn) nav(landingPath(currentScopes()));
       else setDoneWithoutSignIn(result.login ?? "");
     } catch (e) {
       if (e instanceof AuthPageError && e.code === "conflict" && typeof e.details.state === "string") {

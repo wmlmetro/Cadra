@@ -34,6 +34,8 @@ import type { ApiLocation } from "@/lib/adapters";
 import { ArrowLeft, AlertCircle, Loader2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
+import { ScopeRefusal } from "@/components/ScopeRefusal";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 interface ApiAssetRef { id: number; name: string; tag: string | null }
 interface ApiEmployeeRef { id: number; name: string; ir_number: string | null }
@@ -134,6 +136,7 @@ export default function RequestForm({ mode }: { mode: "create" | "edit" }) {
   const [, nav] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const qc = useQueryClient();
+  const scopes = useScopes();
 
   // The priority set is read from the model via GET /api/v1/meta/enums rather
   // than declared here; see lib/enums.ts for why the local copy had to go.
@@ -204,6 +207,13 @@ export default function RequestForm({ mode }: { mode: "create" | "edit" }) {
   const err = mutation.error as CadraApiError | null;
 
   const requiredOK = mode === "edit" || (form.type_id && form.request_text.trim());
+
+  // Handoff 46: `POST /requests` and `PATCH /requests/<id>` need
+  // `requests:write`. Reached by URL without it — an Auditor reads the
+  // service desk and raises nothing — the page says so. After every hook.
+  if (!scopes.has(SCOPE.requestsWrite)) {
+    return <ScopeRefusal scope={SCOPE.requestsWrite} />;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-5 py-5 space-y-5">

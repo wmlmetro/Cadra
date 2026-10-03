@@ -1,0 +1,1610 @@
+{
+  "administrator": {
+    "login": "oluwaseun.ajayi@demo.example",
+    "scope": "admin approvals:write assets:read assets:write dashboards:read identity:read ingestion:write integrations:write locations:read locations:write requests:read requests:write settings:read settings:write",
+    "landed": "/assets",
+    "drawn": [
+      "/",
+      "/dashboards/fleet",
+      "/dashboards/it",
+      "/assets",
+      "/assets/list",
+      "/approvals",
+      "/assets/new",
+      "/locations",
+      "/locations/new",
+      "/hr/employees",
+      "/hr/sap-sync",
+      "/hr/import",
+      "/hr/identity",
+      "/fleet",
+      "/fleet/staff-bus",
+      "/reports/fleet-roster",
+      "/reports/asset-inventory",
+      "/reports/maintenance-readiness",
+      "/reports/location-coverage",
+      "/reports/tag-adoption",
+      "/reports/depreciation",
+      "/settings/categories",
+      "/settings/branding",
+      "/settings/depreciation",
+      "/admin/access-changes",
+      "/admin/users",
+      "/tools/barcode"
+    ],
+    "items": [
+      {
+        "path": "/",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /locations?limit=1 → 200",
+          "GET /identity/employees?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/it",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/assets/list",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/approvals",
+        "drawn": true,
+        "probes": [
+          "GET /approvals?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets/new",
+        "drawn": true,
+        "probes": [
+          "POST /assets → 400"
+        ]
+      },
+      {
+        "path": "/locations",
+        "drawn": true,
+        "probes": [
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/locations/new",
+        "drawn": true,
+        "probes": [
+          "POST /locations → 400"
+        ]
+      },
+      {
+        "path": "/hr/employees",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/hr/sap-sync",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1&sap_sync_status=synced → 200"
+        ]
+      },
+      {
+        "path": "/hr/import",
+        "drawn": true,
+        "probes": [
+          "POST /integrations/employees/import → 400"
+        ]
+      },
+      {
+        "path": "/hr/identity",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/fleet/staff-bus",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/reports/fleet-roster",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/asset-inventory",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /dashboard/map → 200"
+        ]
+      },
+      {
+        "path": "/reports/maintenance-readiness",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/location-coverage",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/reports/tag-adoption",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      },
+      {
+        "path": "/reports/depreciation",
+        "drawn": true,
+        "probes": [
+          "GET /reports/depreciation → 200"
+        ]
+      },
+      {
+        "path": "/settings/categories",
+        "drawn": true,
+        "probes": [
+          "POST /asset-categories → 400"
+        ]
+      },
+      {
+        "path": "/settings/branding",
+        "drawn": true,
+        "probes": [
+          "PATCH /settings/branding → 400"
+        ]
+      },
+      {
+        "path": "/settings/depreciation",
+        "drawn": true,
+        "probes": [
+          "PATCH /settings/depreciation → 400"
+        ]
+      },
+      {
+        "path": "/admin/access-changes",
+        "drawn": true,
+        "probes": [
+          "GET /reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/admin/users",
+        "drawn": true,
+        "probes": [
+          "GET /users?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/tools/barcode",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      }
+    ],
+    "inPage": {
+      "asset_action_bar": true,
+      "settings_read_only": false
+    },
+    "job": [
+      "GET /users?limit=1 → 200",
+      "GET /meta/diagnostics → 200"
+    ]
+  },
+  "asset_manager": {
+    "login": "chukwudi.anyanwu@demo.example",
+    "scope": "approvals:write assets:read assets:write dashboards:read identity:read ingestion:write integrations:write locations:read locations:write requests:read requests:write settings:read settings:write",
+    "landed": "/assets",
+    "drawn": [
+      "/",
+      "/dashboards/fleet",
+      "/dashboards/it",
+      "/assets",
+      "/assets/list",
+      "/approvals",
+      "/assets/new",
+      "/locations",
+      "/locations/new",
+      "/hr/employees",
+      "/hr/sap-sync",
+      "/hr/import",
+      "/hr/identity",
+      "/fleet",
+      "/fleet/staff-bus",
+      "/reports/fleet-roster",
+      "/reports/asset-inventory",
+      "/reports/maintenance-readiness",
+      "/reports/location-coverage",
+      "/reports/tag-adoption",
+      "/reports/depreciation",
+      "/settings/categories",
+      "/settings/branding",
+      "/settings/depreciation",
+      "/admin/access-changes",
+      "/tools/barcode"
+    ],
+    "items": [
+      {
+        "path": "/",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /locations?limit=1 → 200",
+          "GET /identity/employees?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/it",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/assets/list",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/approvals",
+        "drawn": true,
+        "probes": [
+          "GET /approvals?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets/new",
+        "drawn": true,
+        "probes": [
+          "POST /assets → 400"
+        ]
+      },
+      {
+        "path": "/locations",
+        "drawn": true,
+        "probes": [
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/locations/new",
+        "drawn": true,
+        "probes": [
+          "POST /locations → 400"
+        ]
+      },
+      {
+        "path": "/hr/employees",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/hr/sap-sync",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1&sap_sync_status=synced → 200"
+        ]
+      },
+      {
+        "path": "/hr/import",
+        "drawn": true,
+        "probes": [
+          "POST /integrations/employees/import → 400"
+        ]
+      },
+      {
+        "path": "/hr/identity",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/fleet/staff-bus",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/reports/fleet-roster",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/asset-inventory",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /dashboard/map → 200"
+        ]
+      },
+      {
+        "path": "/reports/maintenance-readiness",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/location-coverage",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/reports/tag-adoption",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      },
+      {
+        "path": "/reports/depreciation",
+        "drawn": true,
+        "probes": [
+          "GET /reports/depreciation → 200"
+        ]
+      },
+      {
+        "path": "/settings/categories",
+        "drawn": true,
+        "probes": [
+          "POST /asset-categories → 400"
+        ]
+      },
+      {
+        "path": "/settings/branding",
+        "drawn": true,
+        "probes": [
+          "PATCH /settings/branding → 400"
+        ]
+      },
+      {
+        "path": "/settings/depreciation",
+        "drawn": true,
+        "probes": [
+          "PATCH /settings/depreciation → 400"
+        ]
+      },
+      {
+        "path": "/admin/access-changes",
+        "drawn": true,
+        "probes": [
+          "GET /reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/admin/users",
+        "drawn": false,
+        "probes": [
+          "GET /users?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/tools/barcode",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      }
+    ],
+    "inPage": {
+      "asset_action_bar": true,
+      "settings_read_only": false
+    },
+    "job": [
+      "POST /approvals/0/approve → 404",
+      "POST /tags/0/approve-replacement → 404"
+    ]
+  },
+  "auditor": {
+    "login": "zainab.garba@demo.example",
+    "scope": "assets:read dashboards:read identity:read locations:read requests:read settings:read",
+    "landed": "/assets",
+    "drawn": [
+      "/",
+      "/dashboards/fleet",
+      "/dashboards/it",
+      "/assets",
+      "/assets/list",
+      "/approvals",
+      "/locations",
+      "/hr/employees",
+      "/hr/sap-sync",
+      "/hr/identity",
+      "/fleet",
+      "/fleet/staff-bus",
+      "/reports/fleet-roster",
+      "/reports/asset-inventory",
+      "/reports/maintenance-readiness",
+      "/reports/location-coverage",
+      "/reports/tag-adoption",
+      "/reports/depreciation",
+      "/admin/access-changes",
+      "/tools/barcode"
+    ],
+    "items": [
+      {
+        "path": "/",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /locations?limit=1 → 200",
+          "GET /identity/employees?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/it",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/assets/list",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/approvals",
+        "drawn": true,
+        "probes": [
+          "GET /approvals?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets/new",
+        "drawn": false,
+        "probes": [
+          "POST /assets → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/locations",
+        "drawn": true,
+        "probes": [
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/locations/new",
+        "drawn": false,
+        "probes": [
+          "POST /locations → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/hr/employees",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/hr/sap-sync",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1&sap_sync_status=synced → 200"
+        ]
+      },
+      {
+        "path": "/hr/import",
+        "drawn": false,
+        "probes": [
+          "POST /integrations/employees/import → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/hr/identity",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/fleet/staff-bus",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/reports/fleet-roster",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/asset-inventory",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /dashboard/map → 200"
+        ]
+      },
+      {
+        "path": "/reports/maintenance-readiness",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/location-coverage",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/reports/tag-adoption",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      },
+      {
+        "path": "/reports/depreciation",
+        "drawn": true,
+        "probes": [
+          "GET /reports/depreciation → 200"
+        ]
+      },
+      {
+        "path": "/settings/categories",
+        "drawn": false,
+        "probes": [
+          "POST /asset-categories → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/asset-categories → 200"
+        ]
+      },
+      {
+        "path": "/settings/branding",
+        "drawn": false,
+        "probes": [
+          "PATCH /settings/branding → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/settings/branding → 200"
+        ]
+      },
+      {
+        "path": "/settings/depreciation",
+        "drawn": false,
+        "probes": [
+          "PATCH /settings/depreciation → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/settings/depreciation → 200"
+        ]
+      },
+      {
+        "path": "/admin/access-changes",
+        "drawn": true,
+        "probes": [
+          "GET /reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/admin/users",
+        "drawn": false,
+        "probes": [
+          "GET /users?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/tools/barcode",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      }
+    ],
+    "inPage": {
+      "asset_action_bar": false,
+      "settings_read_only": true
+    },
+    "job": [
+      "GET /reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1 → 200",
+      "GET /reports/configuration-changes?from=2026-10-01&to=2026-10-03&limit=1 → 200",
+      "GET /reports/disposals?from=2026-01-01&to=2026-10-03&limit=1 → 200",
+      "GET /reports/asset-register?as_of=2026-10-03&limit=1 → 200",
+      "GET /assets/export?limit=1 → 200"
+    ]
+  },
+  "storekeeper": {
+    "login": "halima.danjuma@demo.example",
+    "scope": "assets:read dashboards:read identity:read locations:read requests:read requests:write",
+    "landed": "/assets",
+    "drawn": [
+      "/",
+      "/dashboards/fleet",
+      "/dashboards/it",
+      "/assets",
+      "/assets/list",
+      "/approvals",
+      "/locations",
+      "/hr/employees",
+      "/hr/sap-sync",
+      "/hr/identity",
+      "/fleet",
+      "/fleet/staff-bus",
+      "/reports/fleet-roster",
+      "/reports/asset-inventory",
+      "/reports/maintenance-readiness",
+      "/reports/location-coverage",
+      "/reports/tag-adoption",
+      "/reports/depreciation",
+      "/admin/access-changes",
+      "/tools/barcode"
+    ],
+    "items": [
+      {
+        "path": "/",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /locations?limit=1 → 200",
+          "GET /identity/employees?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/it",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/assets/list",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/approvals",
+        "drawn": true,
+        "probes": [
+          "GET /approvals?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets/new",
+        "drawn": false,
+        "probes": [
+          "POST /assets → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/locations",
+        "drawn": true,
+        "probes": [
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/locations/new",
+        "drawn": false,
+        "probes": [
+          "POST /locations → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/hr/employees",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/hr/sap-sync",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1&sap_sync_status=synced → 200"
+        ]
+      },
+      {
+        "path": "/hr/import",
+        "drawn": false,
+        "probes": [
+          "POST /integrations/employees/import → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/hr/identity",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/fleet/staff-bus",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/reports/fleet-roster",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/asset-inventory",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /dashboard/map → 200"
+        ]
+      },
+      {
+        "path": "/reports/maintenance-readiness",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/location-coverage",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/reports/tag-adoption",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      },
+      {
+        "path": "/reports/depreciation",
+        "drawn": true,
+        "probes": [
+          "GET /reports/depreciation → 200"
+        ]
+      },
+      {
+        "path": "/settings/categories",
+        "drawn": false,
+        "probes": [
+          "POST /asset-categories → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/asset-categories → 200"
+        ]
+      },
+      {
+        "path": "/settings/branding",
+        "drawn": false,
+        "probes": [
+          "PATCH /settings/branding → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/settings/branding → 200"
+        ]
+      },
+      {
+        "path": "/settings/depreciation",
+        "drawn": false,
+        "probes": [
+          "PATCH /settings/depreciation → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/settings/depreciation → 200"
+        ]
+      },
+      {
+        "path": "/admin/access-changes",
+        "drawn": true,
+        "probes": [
+          "GET /reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/admin/users",
+        "drawn": false,
+        "probes": [
+          "GET /users?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/tools/barcode",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      }
+    ],
+    "inPage": {
+      "asset_action_bar": false,
+      "settings_read_only": true
+    },
+    "job": [
+      "POST /assets → 403",
+      "POST /assets/0/move → 403",
+      "POST /assets/0/verify → 403"
+    ]
+  },
+  "tag_unit": {
+    "login": "nkechi.obiora@demo.example",
+    "scope": "tagging:write",
+    "landed": "/no-access",
+    "drawn": [],
+    "items": [
+      {
+        "path": "/",
+        "drawn": false,
+        "probes": [
+          "GET /assets?limit=1 → 403",
+          "GET /locations?limit=1 → 403",
+          "GET /identity/employees?limit=1 → 403",
+          "GET /dashboard/kpis → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/fleet",
+        "drawn": false,
+        "probes": [
+          "GET /fleet/dashboard → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/fleet/dashboard → 403",
+          "GET /api/v1/dashboard/map → 403"
+        ]
+      },
+      {
+        "path": "/dashboards/it",
+        "drawn": false,
+        "probes": [
+          "GET /dashboard/kpis → 403",
+          "GET /assets?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/dashboard/kpis → 403",
+          "GET /api/v1/dashboard/map → 403"
+        ]
+      },
+      {
+        "path": "/assets",
+        "drawn": false,
+        "probes": [
+          "GET /assets?limit=1 → 403",
+          "GET /dashboard/kpis → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/barcode/recent-tags → 403",
+          "GET /api/v1/dashboard/map → 403",
+          "GET /api/v1/dashboard/kpis → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/assets → 403",
+          "GET /api/v1/barcode/recent-tags → 403",
+          "GET /api/v1/dashboard/map → 403",
+          "GET /api/v1/dashboard/kpis → 403"
+        ]
+      },
+      {
+        "path": "/assets/list",
+        "drawn": false,
+        "probes": [
+          "GET /assets?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/assets → 403"
+        ]
+      },
+      {
+        "path": "/approvals",
+        "drawn": false,
+        "probes": [
+          "GET /approvals?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/settings/approvals → 403",
+          "GET /api/v1/approvals → 403"
+        ]
+      },
+      {
+        "path": "/assets/new",
+        "drawn": false,
+        "probes": [
+          "POST /assets → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200"
+        ]
+      },
+      {
+        "path": "/locations",
+        "drawn": false,
+        "probes": [
+          "GET /locations?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/locations → 403"
+        ]
+      },
+      {
+        "path": "/locations/new",
+        "drawn": false,
+        "probes": [
+          "POST /locations → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200"
+        ]
+      },
+      {
+        "path": "/hr/employees",
+        "drawn": false,
+        "probes": [
+          "GET /identity/employees?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/identity/employees → 403"
+        ]
+      },
+      {
+        "path": "/hr/sap-sync",
+        "drawn": false,
+        "probes": [
+          "GET /identity/employees?limit=1&sap_sync_status=synced → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/identity/employees → 403",
+          "GET /api/v1/identity/employees → 403",
+          "GET /api/v1/identity/employees → 403",
+          "GET /api/v1/identity/employees → 403",
+          "GET /api/v1/identity/employees → 403",
+          "GET /api/v1/identity/employees → 403"
+        ]
+      },
+      {
+        "path": "/hr/import",
+        "drawn": false,
+        "probes": [
+          "POST /integrations/employees/import → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200"
+        ]
+      },
+      {
+        "path": "/hr/identity",
+        "drawn": false,
+        "probes": [],
+        "typed": [
+          "GET /api/v1/brand → 200"
+        ]
+      },
+      {
+        "path": "/fleet",
+        "drawn": false,
+        "probes": [
+          "GET /fleet?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/fleet → 403",
+          "GET /api/v1/fleet → 403"
+        ]
+      },
+      {
+        "path": "/fleet/staff-bus",
+        "drawn": false,
+        "probes": [],
+        "typed": [
+          "GET /api/v1/brand → 200"
+        ]
+      },
+      {
+        "path": "/reports/fleet-roster",
+        "drawn": false,
+        "probes": [
+          "GET /fleet/dashboard → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/fleet/dashboard → 403"
+        ]
+      },
+      {
+        "path": "/reports/asset-inventory",
+        "drawn": false,
+        "probes": [
+          "GET /dashboard/kpis → 403",
+          "GET /dashboard/map → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/dashboard/kpis → 403",
+          "GET /api/v1/dashboard/map → 403"
+        ]
+      },
+      {
+        "path": "/reports/maintenance-readiness",
+        "drawn": false,
+        "probes": [
+          "GET /fleet/dashboard → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/fleet/dashboard → 403"
+        ]
+      },
+      {
+        "path": "/reports/location-coverage",
+        "drawn": false,
+        "probes": [
+          "GET /dashboard/kpis → 403",
+          "GET /locations?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/dashboard/kpis → 403",
+          "GET /api/v1/locations → 403"
+        ]
+      },
+      {
+        "path": "/reports/tag-adoption",
+        "drawn": false,
+        "probes": [
+          "GET /barcode/kpis → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/barcode/recent-tags → 403",
+          "GET /api/v1/barcode/kpis → 403"
+        ]
+      },
+      {
+        "path": "/reports/depreciation",
+        "drawn": false,
+        "probes": [
+          "GET /reports/depreciation → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/reports/depreciation → 403"
+        ]
+      },
+      {
+        "path": "/settings/categories",
+        "drawn": false,
+        "probes": [
+          "POST /asset-categories → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/asset-categories → 403"
+        ]
+      },
+      {
+        "path": "/settings/branding",
+        "drawn": false,
+        "probes": [
+          "PATCH /settings/branding → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/settings/branding → 403"
+        ]
+      },
+      {
+        "path": "/settings/depreciation",
+        "drawn": false,
+        "probes": [
+          "PATCH /settings/depreciation → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/settings/depreciation → 403",
+          "GET /api/v1/asset-categories → 403"
+        ]
+      },
+      {
+        "path": "/admin/access-changes",
+        "drawn": false,
+        "probes": [
+          "GET /reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200"
+        ]
+      },
+      {
+        "path": "/admin/users",
+        "drawn": false,
+        "probes": [
+          "GET /users?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200"
+        ]
+      },
+      {
+        "path": "/tools/barcode",
+        "drawn": false,
+        "probes": [
+          "GET /barcode/kpis → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/tags/pending-replacements → 403",
+          "GET /api/v1/barcode/untagged → 403",
+          "GET /api/v1/barcode/kpis → 403",
+          "GET /api/v1/barcode/recent-tags → 403"
+        ]
+      }
+    ],
+    "inPage": {},
+    "job": [
+      "POST /assets/0/tag-affixed → 404",
+      "GET /barcode/lookup?q=x → 403",
+      "GET /barcode/untagged?limit=1 → 403"
+    ]
+  },
+  "tagger": {
+    "login": "babatunde.olaniyan@demo.example",
+    "scope": "assets:read dashboards:read identity:read locations:read requests:read requests:write tagging:write",
+    "landed": "/assets",
+    "drawn": [
+      "/",
+      "/dashboards/fleet",
+      "/dashboards/it",
+      "/assets",
+      "/assets/list",
+      "/approvals",
+      "/locations",
+      "/hr/employees",
+      "/hr/sap-sync",
+      "/hr/identity",
+      "/fleet",
+      "/fleet/staff-bus",
+      "/reports/fleet-roster",
+      "/reports/asset-inventory",
+      "/reports/maintenance-readiness",
+      "/reports/location-coverage",
+      "/reports/tag-adoption",
+      "/reports/depreciation",
+      "/admin/access-changes",
+      "/tools/barcode"
+    ],
+    "items": [
+      {
+        "path": "/",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /locations?limit=1 → 200",
+          "GET /identity/employees?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/dashboards/it",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200",
+          "GET /dashboard/kpis → 200"
+        ]
+      },
+      {
+        "path": "/assets/list",
+        "drawn": true,
+        "probes": [
+          "GET /assets?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/approvals",
+        "drawn": true,
+        "probes": [
+          "GET /approvals?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/assets/new",
+        "drawn": false,
+        "probes": [
+          "POST /assets → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/locations",
+        "drawn": true,
+        "probes": [
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/locations/new",
+        "drawn": false,
+        "probes": [
+          "POST /locations → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/hr/employees",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/hr/sap-sync",
+        "drawn": true,
+        "probes": [
+          "GET /identity/employees?limit=1&sap_sync_status=synced → 200"
+        ]
+      },
+      {
+        "path": "/hr/import",
+        "drawn": false,
+        "probes": [
+          "POST /integrations/employees/import → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/hr/identity",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/fleet",
+        "drawn": true,
+        "probes": [
+          "GET /fleet?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/fleet/staff-bus",
+        "drawn": true,
+        "probes": []
+      },
+      {
+        "path": "/reports/fleet-roster",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/asset-inventory",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /dashboard/map → 200"
+        ]
+      },
+      {
+        "path": "/reports/maintenance-readiness",
+        "drawn": true,
+        "probes": [
+          "GET /fleet/dashboard → 200"
+        ]
+      },
+      {
+        "path": "/reports/location-coverage",
+        "drawn": true,
+        "probes": [
+          "GET /dashboard/kpis → 200",
+          "GET /locations?limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/reports/tag-adoption",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      },
+      {
+        "path": "/reports/depreciation",
+        "drawn": true,
+        "probes": [
+          "GET /reports/depreciation → 200"
+        ]
+      },
+      {
+        "path": "/settings/categories",
+        "drawn": false,
+        "probes": [
+          "POST /asset-categories → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/asset-categories → 200"
+        ]
+      },
+      {
+        "path": "/settings/branding",
+        "drawn": false,
+        "probes": [
+          "PATCH /settings/branding → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/settings/branding → 200"
+        ]
+      },
+      {
+        "path": "/settings/depreciation",
+        "drawn": false,
+        "probes": [
+          "PATCH /settings/depreciation → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200",
+          "GET /api/v1/settings/depreciation → 200",
+          "GET /api/v1/asset-categories → 200"
+        ]
+      },
+      {
+        "path": "/admin/access-changes",
+        "drawn": true,
+        "probes": [
+          "GET /reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1 → 200"
+        ]
+      },
+      {
+        "path": "/admin/users",
+        "drawn": false,
+        "probes": [
+          "GET /users?limit=1 → 403"
+        ],
+        "typed": [
+          "GET /api/v1/brand → 200",
+          "GET /api/v1/approvals → 200"
+        ]
+      },
+      {
+        "path": "/tools/barcode",
+        "drawn": true,
+        "probes": [
+          "GET /barcode/kpis → 200"
+        ]
+      }
+    ],
+    "inPage": {
+      "asset_action_bar": false,
+      "settings_read_only": true
+    },
+    "job": [
+      "POST /assets/0/tag-affixed → 404",
+      "POST /barcode/generate → 403",
+      "POST /tags/0/request-replacement → 403"
+    ]
+  }
+}

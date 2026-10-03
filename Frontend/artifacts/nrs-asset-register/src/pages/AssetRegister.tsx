@@ -23,6 +23,7 @@ import {
 } from "@tanstack/react-table";
 import { cn, formatIsoDate } from "@/lib/utils";
 import { useEnum, useEnumLabel } from "@/hooks/useEnums";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 const CATEGORIES = ["IT Equipment", "Fleet / Vehicles", "Furniture & Fittings"] as const;
 // Three more used to be offered here — allottee not in nominal roll, VIN not
@@ -342,6 +343,10 @@ export default function AssetRegister() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [path, setNavLocation] = useLocation();
   const searchStr = useSearch();
+  // Handoff 46: *New Asset* is drawn only for `assets:write`, the scope
+  // `POST /assets` requires. Without it the button led to a form whose save
+  // the server refused with a 403.
+  const scopes = useScopes();
 
   const [view, setView] = useState<"kanban" | "list" | "map">("kanban");
   const [search, setSearch] = useState("");
@@ -585,13 +590,15 @@ export default function AssetRegister() {
 
         {/* New asset — pushed right */}
         <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setNavLocation("/assets/new")}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
-            data-testid="button-new-asset"
-          >
-            + New Asset
-          </button>
+          {scopes.has(SCOPE.assetsWrite) && (
+            <button
+              onClick={() => setNavLocation("/assets/new")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
+              data-testid="button-new-asset"
+            >
+              + New Asset
+            </button>
+          )}
           <SlidersHorizontal size={12} className="text-muted-foreground/60" />
           <span className="text-xs text-muted-foreground">Group:</span>
           <div className="relative">

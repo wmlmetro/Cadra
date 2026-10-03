@@ -581,15 +581,26 @@ class NRSAsset(models.Model):
         """Generate a new unique tag number, e.g. HQ-GF-MR-FF-001."""
         Tag = self.env['nrs.asset.tag.label']
         prefix = self._tag_prefix()
-        # `=like` anchors the match: a bare `like` is wrapped as %prefix% and
-        # would match the prefix appearing anywhere in the number.
-        existing = Tag.search(
-            [('name', '=like', prefix + '%')], order='name desc', limit=1)
-        seq = 1
-        if existing:
-            tail = existing.name[len(prefix):]
-            if tail.isdigit():
-                seq = int(tail) + 1
+        # The highest NUMBER issued under this prefix, compared as a number.
+        # This was `search(order='name desc', limit=1)` — a TEXT sort, under
+        # which `NRS-GEN-999` outranks `NRS-GEN-8305` — so past 999 tags of
+        # one prefix every new tag started at 1000 and the loop below walked
+        # every number already taken, one COUNT each: ~7,300 queries and ~11 s
+        # per asset on `test19` (8,237 such labels), and the same walk on the
+        # one `nrs19` prefix and eight `jaizbankplc` prefixes past 999. Found
+        # in handoff 46 by asking why the suite ran four times slower. Issued
+        # now: the number after the highest. Where numbers are contiguous that
+        # is what the walk reached; where a number above 999 was never used,
+        # the walk would have filled it and this does not — no number is ever
+        # issued twice either way, which is the rule the loop below enforces.
+        # The prefix is `[A-Z0-9-]` only (`_tag_prefix`), so LIKE is safe.
+        Tag.flush_model(['name'])
+        self.env.cr.execute(
+            "SELECT max(substr(name, %s)::bigint) FROM nrs_asset_tag_label "
+            "WHERE name LIKE %s AND substr(name, %s) ~ '^[0-9]+$'",
+            (len(prefix) + 1, prefix + '%', len(prefix) + 1))
+        highest = self.env.cr.fetchone()[0]
+        seq = (highest or 0) + 1
         tag_number = '%s%03d' % (prefix, seq)
         # Check every tag, not just the active ones. Reissuing a scrapped
         # tag's number would make the replacement history ambiguous — two

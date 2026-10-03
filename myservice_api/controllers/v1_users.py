@@ -419,6 +419,12 @@ def _user_row(user, resolved, client):
         "scopes_source": scopes_source,
         "last_login_at": _iso(user.login_date),
         "created_at": _iso(user.create_date),
+        # Handoff 46: the derived label, through `_inherits` from the
+        # partner. TRUE for an account a test credential created — the
+        # suites' officers and the demo personas — so the Users screen can
+        # tell an invented Store Officer from a real one without anybody
+        # reading the seed. Read-only and in no allow-list, as everywhere.
+        "is_test_fixture": bool(user.is_test_fixture),
         # Handoff 43: never / outstanding / expired / redeemed / cancelled,
         # with when and by whom. Derived on the model from the stamps
         # `_action_reset_password` writes and the partner's live token.

@@ -11,7 +11,10 @@
  * background — the "stale-while-revalidate" feel.
  */
 import { lazy, Suspense, useEffect, useState, type ReactElement } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
+import { currentScopes } from "@/hooks/use-scopes";
+import { getExpiry } from "@/lib/auth";
+import { canOpen, landingPath, requiredScopesFor } from "@/lib/navigation";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
@@ -58,6 +61,7 @@ const Identity                   = lazy(() => import("@/pages/Identity"));
 const AdminUsers                 = lazy(() => import("@/pages/admin/Users"));
 const AdminAccessChanges         = lazy(() => import("@/pages/admin/AccessChanges"));
 const NotFound                   = lazy(() => import("@/pages/not-found"));
+const NoAccess                   = lazy(() => import("@/pages/NoAccess"));
 
 const FleetRosterReport          = lazy(() => import("@/pages/reports/FleetRosterReport"));
 const AssetInventoryReport       = lazy(() => import("@/pages/reports/AssetInventoryReport"));
@@ -113,12 +117,38 @@ function RouteFallback() {
   );
 }
 
+/** `/` is the app's front door — a bookmark, a reload, the "Back to sign in"
+ *  link after a session already exists — not only a page. Sign-in sends a
+ *  person to `landingPath`, and so does this: somebody who cannot open the
+ *  Facility Command Center is sent to the best page they can, instead of a
+ *  dashboard of refusals (handoff 46's verification pass, R5). A HIDDEN page
+ *  typed by URL still renders and is refused — that is the proof that hiding
+ *  is not the permission; only the front door redirects. */
+function Home() {
+  // Read at render, not from the hook's state: on sign-in this renders in the
+  // same tick the token is stored, and the hook's copy was the signed-out
+  // one — the redirect went to /no-access for an instant before the sign-in
+  // page's own navigation corrected it (caught by the spec, handoff 46).
+  //
+  // And only for a session the app STORED. The dev build's `VITE_API_TOKEN`
+  // fallback (`lib/auth.ts`) makes a fresh browser count as signed in with
+  // no scopes at all; judging that session sent every visitor to
+  // /no-access before they had typed a password. A stored session always
+  // carries its expiry; the fallback never does.
+  const scopes = currentScopes();
+  const need = requiredScopesFor("/");
+  if (getExpiry() !== null && need && !canOpen(scopes, need)) {
+    return <Redirect to={landingPath(scopes)} replace />;
+  }
+  return <Dashboard />;
+}
+
 function AppRoutes() {
   return (
     <AppLayout>
       <Suspense fallback={<RouteFallback />}>
         <Switch>
-          <Route path="/"                    component={Dashboard}            />
+          <Route path="/"                    component={Home}                 />
           <Route path="/search"              component={GlobalSearch}         />
           <Route path="/dashboards/fm"       component={FMOperationsDashboard} />
           <Route path="/dashboards/fleet"    component={FleetCommandCenter}   />
@@ -170,6 +200,9 @@ function AppRoutes() {
           <Route path="/fleet/staff-bus"     component={StaffBus}       />
           <Route path="/fleet"               component={Fleet}          />
           <Route path="/fleet/:id"           component={FleetDetail}    />
+          {/* Where a sign-in lands when no page opens for the account
+              (handoff 46, `landingPath`). */}
+          <Route path="/no-access"           component={NoAccess}       />
           <Route component={NotFound} />
         </Switch>
       </Suspense>

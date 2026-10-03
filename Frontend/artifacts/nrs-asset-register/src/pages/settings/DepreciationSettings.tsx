@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import BrandPill from "@/components/BrandPill";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 
 const METHODS: { value: CategoryPolicy["method"]; label: string }[] = [
@@ -30,10 +31,13 @@ const inputCls =
 /** One editable row. Local draft state so a half-typed number never fires a
  *  request — policy changes restate every asset in the category. */
 function CategoryRow({
-  cat, disabled, onSave, saving,
+  cat, disabled, readOnly, onSave, saving,
 }: {
   cat: AssetCategoryConfig;
   disabled: boolean;
+  /** No `settings:write` (handoff 46): the policy is shown, the row's Save
+   *  is not drawn. `disabled` already greys the inputs. */
+  readOnly: boolean;
   saving: boolean;
   onSave: (id: number, body: Partial<CategoryPolicy>) => void;
 }) {
@@ -90,20 +94,22 @@ function CategoryRow({
         />
       </td>
       <td className="py-2 text-right">
-        <button
-          disabled={!dirty || disabled || saving}
-          onClick={() => onSave(cat.id, draft)}
-          data-testid={`save-category-${cat.id}`}
-          className={cn(
-            "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border",
-            dirty && !disabled
-              ? "border-primary text-primary hover:bg-primary/5"
-              : "border-transparent text-muted-foreground/40 cursor-default",
-          )}
-        >
-          {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-          Save
-        </button>
+        {!readOnly && (
+          <button
+            disabled={!dirty || disabled || saving}
+            onClick={() => onSave(cat.id, draft)}
+            data-testid={`save-category-${cat.id}`}
+            className={cn(
+              "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border",
+              dirty && !disabled
+                ? "border-primary text-primary hover:bg-primary/5"
+                : "border-transparent text-muted-foreground/40 cursor-default",
+            )}
+          >
+            {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+            Save
+          </button>
+        )}
       </td>
     </tr>
   );
@@ -114,6 +120,12 @@ export default function DepreciationSettingsPage() {
   const qc = useQueryClient();
   const [savingId, setSavingId] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Handoff 46: every write on this page — the mode, the two conventions, a
+  // category's policy, *Recompute now* — is a `settings:write` route.
+  // Somebody who reaches it without that scope sees the settings as they
+  // are, every control disabled, and one sentence where Recompute would be.
+  const scopes = useScopes();
+  const readOnly = !scopes.has(SCOPE.settingsWrite);
 
   useEffect(() => {
     setTitle("Settings — Depreciation");
@@ -220,15 +232,21 @@ export default function DepreciationSettingsPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => recompute.mutate()}
-          disabled={busy || erpManaged}
-          data-testid="button-recompute"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border border-border hover:bg-accent disabled:opacity-40"
-        >
-          <RefreshCw size={12} className={cn(recompute.isPending && "animate-spin")} />
-          Recompute now
-        </button>
+        {readOnly ? (
+          <p className="text-[11px] text-muted-foreground" data-testid="settings-read-only">
+            Changing this needs the settings:write scope.
+          </p>
+        ) : (
+          <button
+            onClick={() => recompute.mutate()}
+            disabled={busy || erpManaged}
+            data-testid="button-recompute"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border border-border hover:bg-accent disabled:opacity-40"
+          >
+            <RefreshCw size={12} className={cn(recompute.isPending && "animate-spin")} />
+            Recompute now
+          </button>
+        )}
       </div>
 
       {err && (
@@ -246,6 +264,10 @@ export default function DepreciationSettingsPage() {
         </div>
       )}
 
+      {/* `disabled` on a fieldset disables every control inside it — the mode
+          choice and both conventions each save on click — and `contents`
+          keeps it out of the layout. */}
+      <fieldset disabled={readOnly} className="contents">
       {/* ── Who owns book values (PRD §8.6's two operating modes) ── */}
       <section className="bg-card border border-border rounded-2xl p-5">
         <h2 className="text-[13px] font-bold mb-1">Who calculates book value</h2>
@@ -346,6 +368,7 @@ export default function DepreciationSettingsPage() {
           </p>
         )}
       </section>
+      </fieldset>
 
       {/* ── Data quality ── */}
       {dq && (dq.missing_cost > 0 || dq.needs_start_date > 0 || dq.not_configured > 0) && (
@@ -398,7 +421,7 @@ export default function DepreciationSettingsPage() {
             <tbody>
               {(categories.data ?? []).map(c => (
                 <CategoryRow
-                  key={c.id} cat={c} disabled={erpManaged || busy}
+                  key={c.id} cat={c} disabled={erpManaged || busy || readOnly} readOnly={readOnly}
                   saving={savingId === c.id}
                   onSave={(id, body) => { setSavingId(id); saveCategory.mutate({ id, body }); }}
                 />

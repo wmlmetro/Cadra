@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { useEnum } from "@/hooks/useEnums";
 import { withCurrent } from "@/lib/enums";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
+import { ScopeRefusal } from "@/components/ScopeRefusal";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 
 type FormShape = {
@@ -118,6 +120,7 @@ export default function LocationForm({ mode }: Props) {
   const [, nav] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const qc = useQueryClient();
+  const scopes = useScopes();
 
   const [form, setForm] = useState<FormShape>(blank);
   const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) => setForm(s => ({ ...s, [k]: v }));
@@ -196,6 +199,13 @@ export default function LocationForm({ mode }: Props) {
   const previewPin: MapPinData[] = Number.isFinite(lat) && Number.isFinite(lng) && form.latitude !== "" && form.longitude !== ""
     ? [{ id: "preview", lat, lng, label: form.name || "New location" }]
     : [];
+
+  // Handoff 46: `POST /locations` and `PATCH /locations/<id>` need
+  // `locations:write`. Reached by URL without it, the page says so instead
+  // of drawing a form whose save the server refuses. After every hook.
+  if (!scopes.has(SCOPE.locationsWrite)) {
+    return <ScopeRefusal scope={SCOPE.locationsWrite} />;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-5 py-5 space-y-5">

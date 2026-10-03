@@ -6,9 +6,10 @@ import {
   getDashboardStats, getReviewQueueAssets,
   getAssetsByCategory, getAssetsByStatus,
   fetchTotals, fetchAssetsPage, fetchDashboardKpis, fetchDashboardMap,
-  fetchAssetStatusCounts,
+  fetchAssetStatusCounts, fetchWhoAmI,
 } from "@/lib/dataProvider";
-import { apiConfigured } from "@/lib/api";
+import { apiConfigured, type CadraApiError } from "@/lib/api";
+import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import AssetStatusPills from "@/components/AssetStatusPills";
 import {
@@ -183,11 +184,12 @@ export default function Dashboard() {
 
   const mockStats = getDashboardStats();
   // Real totals from the API (cheap — uses total_estimate).
-  const { data: totals } = useQuery({
+  const totalsQ = useQuery<Awaited<ReturnType<typeof fetchTotals>>, CadraApiError>({
     queryKey: ["dashboard", "totals"],
     queryFn: fetchTotals,
     staleTime: 60_000,
   });
+  const totals = totalsQ.data;
   // Review queue sample = first page of ACTIVE, unverified assets. The status
   // filter carries `state=active` (see `statusToServerFilter`), so a missing
   // or disposed asset cannot be listed here as awaiting review — and this
@@ -196,25 +198,40 @@ export default function Dashboard() {
   // verified", and that is exactly what the request asks for — so an asset
   // that is unverified AND an SAP exception is listed here, correctly, wearing
   // the exception's pill (`deriveStatus` ranks it first).
-  const { data: reviewPage } = useQuery({
+  const reviewQ = useQuery<Awaited<ReturnType<typeof fetchAssetsPage>>, CadraApiError>({
     queryKey: ["dashboard", "review-queue"],
     queryFn: () => fetchAssetsPage(undefined, { status: "Review — data quality" }),
     staleTime: 60_000,
   });
+  const reviewPage = reviewQ.data;
   // Server-aggregated KPIs — replaces hardcoded fleet/locations/requests
-  // counts. Cheap single round-trip via /api/v1/dashboard/kpis.
-  const { data: realKpis } = useQuery({
+  // counts. Cheap single round-trip via /api/v1/dashboard/kpis. Not asked
+  // without a session: it has no mock branch of its own.
+  const kpisQ = useQuery<Awaited<ReturnType<typeof fetchDashboardKpis>>, CadraApiError>({
     queryKey: ["dashboard", "kpis"],
     queryFn: fetchDashboardKpis,
     staleTime: 30_000,
+    enabled: apiConfigured,
   });
+  const realKpis = kpisQ.data;
 
+  // With a session, a tile shows the server's number, "…" while it is being
+  // asked, and "—" once the asking failed — NEVER the mock figure. Every tile
+  // here used to fall back to `mockStats`, so a refused read (a role without
+  // `identity:read`, say) rendered as 13,150 assets: the instrument reporting
+  // success while measuring nothing (handoff 46). The refusal is said once,
+  // in the banner below the header. Mock numbers remain for the no-session
+  // demo build only, which is the one place nobody can mistake them for a
+  // measurement.
+  const tile = (live: number | null | undefined, loading: boolean, mock: number): string => {
+    if (!apiConfigured) return mock.toLocaleString();
+    if (live != null) return live.toLocaleString();
+    return loading ? "…" : "—";
+  };
   const stats = {
-    ...mockStats,
-    totalAssets:   totals?.assets             ?? mockStats.totalAssets,
-    locations:     realKpis?.locations.total  ?? totals?.locations  ?? mockStats.locations,
-    employees:     totals?.employees          ?? mockStats.employees,
-    fleetVehicles: realKpis?.fleet.total      ?? mockStats.fleetVehicles,
+    totalAssets: tile(totals?.assets, totalsQ.isLoading, mockStats.totalAssets),
+    locations:   tile(realKpis?.locations.total ?? totals?.locations, totalsQ.isLoading || kpisQ.isLoading, mockStats.locations),
+    employees:   tile(totals?.employees, totalsQ.isLoading, mockStats.employees),
   };
   // The card says "Assets pending data quality review" and the table says
   // "Showing 8 of N". N was `realKpis.requests.open` — OPEN SERVICE-DESK
@@ -224,7 +241,8 @@ export default function Dashboard() {
   // never shown in its place.
   const reviewQueue: number | null =
     reviewPage?.totalEstimate ?? (apiConfigured ? null : mockStats.reviewQueue);
-  const reviewQueueText = reviewQueue == null ? "—" : reviewQueue.toLocaleString();
+  const reviewQueueText = reviewQueue != null ? reviewQueue.toLocaleString()
+    : apiConfigured && reviewQ.isLoading ? "…" : "—";
   // Mock rows ONLY when there is no API. With one, an unloaded or failed
   // queue is an empty table — the first version listed invented assets under
   // the live heading for as long as the request took, or for ever if it failed.
@@ -232,10 +250,11 @@ export default function Dashboard() {
     ?? (apiConfigured ? [] : getReviewQueueAssets());
   // Real per-tenant asset-category breakdown from /api/v1/dashboard/kpis
   // (assets.categories, sorted desc). Top 3 to match the palette/legend.
-  // Falls back to mock only if the API didn't carry the assets block.
-  const categoryData = (realKpis?.assets?.categories?.length ?? 0) > 0
-    ? realKpis!.assets!.categories.slice(0, 3).map(c => ({ name: c.name, value: c.count }))
-    : getAssetsByCategory();
+  // Mock categories ONLY with no session: with one, a failed or empty
+  // breakdown is an empty chart, not three invented bars (handoff 46).
+  const categoryData = !apiConfigured
+    ? getAssetsByCategory()
+    : (realKpis?.assets?.categories ?? []).slice(0, 3).map(c => ({ name: c.name, value: c.count }));
   // The status breakdown, from REAL counts. This plotted five hard-coded mock
   // numbers (10,842 / 985 / …) as percentages of the LIVE total — invented
   // figures beside real ones, on the first screen a client sees. Four slices
@@ -251,12 +270,14 @@ export default function Dashboard() {
   // legend reads as a check that was run and passed.
   // Mock mode keeps mock numbers. With an API configured and no counts yet,
   // there are NO slices — never the mock ones.
-  const { data: statusCounts, isError: statusCountsFailed } = useQuery({
+  const statusQ = useQuery<Awaited<ReturnType<typeof fetchAssetStatusCounts>>, CadraApiError>({
     queryKey: ["dashboard", "status-counts"],
     queryFn: fetchAssetStatusCounts,
     staleTime: 60_000,
     enabled: apiConfigured,
   });
+  const statusCounts = statusQ.data;
+  const statusCountsFailed = statusQ.isError;
   const statusData: { name: string; value: number }[] =
     !apiConfigured ? getAssetsByStatus() :
     statusCounts ? (() => {
@@ -277,11 +298,13 @@ export default function Dashboard() {
 
   // Map pins from /api/v1/dashboard/map.locations — already deduped & geocoded
   // server-side, way cheaper than walking every Location record.
-  const { data: mapData } = useQuery({
+  const mapQ = useQuery<Awaited<ReturnType<typeof fetchDashboardMap>>, CadraApiError>({
     queryKey: ["dashboard", "map"],
     queryFn: fetchDashboardMap,
     staleTime: 60_000,
+    enabled: apiConfigured,
   });
+  const mapData = mapQ.data;
   const officePins = useMemo<MapPinData[]>(() => {
     return (mapData?.locations ?? [])
       .filter(l => Number.isFinite(l.lat) && Number.isFinite(l.lng))
@@ -295,6 +318,13 @@ export default function Dashboard() {
       }));
   }, [mapData]);
 
+  // The first refusal among the page's reads, said once. One banner rather
+  // than one per card: the cause is nearly always the same (a scope the
+  // session lacks), and the server's sentence names it.
+  const firstError: CadraApiError | null = apiConfigured
+    ? (totalsQ.error ?? kpisQ.error ?? reviewQ.error ?? statusQ.error ?? mapQ.error ?? null)
+    : null;
+
   useEffect(() => {
     setTitle("Facility Command Center");
     setSearchHandler(undefined);
@@ -304,6 +334,17 @@ export default function Dashboard() {
   const dateStr = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  // The person signed in, from the same query the top bar holds — not
+  // "Admin" for everybody. Handoff 46's demo signs in as a Store Officer
+  // and an auditor; a greeting that calls each of them Admin says the
+  // opposite of the sidebar beside it. No name read, no name printed.
+  const { data: me } = useQuery({
+    queryKey: ["whoami"],
+    queryFn: fetchWhoAmI,
+    staleTime: 30 * 60_000,
+    retry: false,
+  });
+  const firstName = me?.name?.trim().split(/\s+/)[0];
 
   return (
     <div className="p-6 space-y-6 max-w-[1440px] mx-auto">
@@ -311,7 +352,7 @@ export default function Dashboard() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-foreground">{greeting}, Admin</h1>
+          <h1 className="text-xl font-bold text-foreground">{firstName ? `${greeting}, ${firstName}` : greeting}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">{dateStr} — Asset Register overview</p>
         </div>
         <div className="flex items-center gap-2">
@@ -321,6 +362,18 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {firstError && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3" data-testid="dashboard-error" role="alert">
+          <AlertTriangle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <ApiErrorMessage err={firstError} stacked />
+            <p className="text-[11px] text-red-700/80 dark:text-red-400/80 mt-1">
+              A figure that could not be read is shown as —, not as a number.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -340,7 +393,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-4xl font-bold tracking-tight text-foreground tabular-nums leading-none">
-              {stats.totalAssets.toLocaleString()}
+              {stats.totalAssets}
             </p>
             {/* Top-3 real asset categories (per-tenant) from the kpis payload. */}
             <div className="flex gap-4 mt-3 pt-3 border-t border-border">
@@ -361,15 +414,17 @@ export default function Dashboard() {
 
         <StatCard
           label="Locations"
-          value={stats.locations.toLocaleString()}
-          sub="7 zones · 38 states · 857 offices"
+          value={stats.locations}
+          // The breakdown under the count is mock text; with a session it is
+          // not drawn rather than drawn beside a real total (handoff 46).
+          sub={apiConfigured ? undefined : "7 zones · 38 states · 857 offices"}
           accent="#3b82f6"
           icon={MapPin}
           onClick={() => setLocation("/locations")}
         />
         <StatCard
           label="Employees"
-          value={stats.employees.toLocaleString()}
+          value={stats.employees}
           sub="Registered across all zones"
           accent="#10b981"
           icon={Users}
@@ -406,7 +461,9 @@ export default function Dashboard() {
       <div className="bg-card border border-border rounded-2xl p-5">
         <SectionHeader
           title="NRS Office Locations"
-          sub={`${officePins.length} distinct sites across Nigeria`}
+          sub={apiConfigured && !mapData
+            ? (mapQ.isError ? "The sites could not be read" : "Reading the sites…")
+            : `${officePins.length} distinct sites across Nigeria`}
         />
         <NigeriaMap pins={officePins} height={380} />
       </div>
@@ -419,6 +476,13 @@ export default function Dashboard() {
             title="Assets by Category"
             sub="Top asset categories by count"
           />
+          {categoryData.length === 0 ? (
+            // Only reachable with a session: the no-session build always has
+            // its mock categories. Said in words, not drawn as empty axes.
+            <div className="h-[220px] flex items-center justify-center text-[12px] text-muted-foreground" data-testid="category-chart-empty">
+              {kpisQ.isLoading ? "Counting…" : kpisQ.isError ? "The categories could not be read" : "No categories in the register"}
+            </div>
+          ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={categoryData} barSize={52} barGap={12}>
               <XAxis
@@ -442,6 +506,7 @@ export default function Dashboard() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          )}
 
           {/* Mini category legend */}
           <div className="flex gap-6 mt-1 pt-4 border-t border-border">

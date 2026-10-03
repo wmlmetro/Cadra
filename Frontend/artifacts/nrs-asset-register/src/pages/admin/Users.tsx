@@ -79,6 +79,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmUserActionDialog, CreatePersonDialog } from "@/components/admin/UserDialogs";
+import { ScopeRefusal } from "@/components/ScopeRefusal";
 
 // ─── SCOPES IN PLAIN WORDS ────────────────────────────────────────────────────
 /** The sixteen scopes `myservice_api/controllers/utils.py` knows, in words a
@@ -184,6 +185,26 @@ function InvitationPill({ u }: { u: AdminUser }) {
         : "bg-muted border-border text-muted-foreground")}
     >
       {state === "outstanding" ? "Invited" : "Invitation expired"}
+    </span>
+  );
+}
+
+/**
+ * Handoff 46: an account a test or a demo seed created, from the server's
+ * derived `is_test_fixture` — never from the name. The demo personas have
+ * realistic names on purpose, and on a client tenant they sit beside real
+ * staff, so the name is exactly what cannot tell them apart. Nothing for a
+ * real person, and nothing when the server has not said (an older server).
+ */
+function FixturePill({ u }: { u: AdminUser }) {
+  if (u.is_test_fixture !== true) return null;
+  return (
+    <span
+      data-testid="user-fixture-badge"
+      title="Created by a test or demo seed — not a real person"
+      className={cn(pillBase, "bg-violet-50 border-violet-200/70 text-violet-700 dark:bg-violet-950/30 dark:border-violet-800/30 dark:text-violet-400")}
+    >
+      Demo / test account
     </span>
   );
 }
@@ -646,7 +667,10 @@ function DetailPanel({ user: fromList, roles, onClose }: { user: AdminUser; role
           {isCredential ? <KeyRound size={18} className="text-amber-600 dark:text-amber-400" /> : <UserIcon size={18} className="text-muted-foreground" />}
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-[15px] font-bold text-foreground truncate" data-testid="user-detail-name">{user.name}</h2>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h2 className="text-[15px] font-bold text-foreground truncate min-w-0" data-testid="user-detail-name">{user.name}</h2>
+            <span className="shrink-0"><FixturePill u={user} /></span>
+          </div>
           <p className="text-[11px] text-muted-foreground font-mono truncate" data-testid="user-detail-login">{user.login}</p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             <ActivePill active={user.active} />
@@ -726,19 +750,15 @@ function DetailPanel({ user: fromList, roles, onClose }: { user: AdminUser; role
 }
 
 // ─── REFUSAL ──────────────────────────────────────────────────────────────────
+/** The generic `ScopeRefusal` since handoff 46, keeping this page's testid
+ *  and its sentence about who holds the scope. */
 export function AdminScopeRefusal() {
   return (
-    <div className="p-8 max-w-xl mx-auto" data-testid="admin-scope-refusal">
-      <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3">
-        <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-[13px] font-semibold text-red-700 dark:text-red-400">This page needs the admin scope</p>
-          <p className="text-[12px] text-red-700 dark:text-red-400 mt-0.5">
-            Your session does not hold it. Who holds which role is read by system administrators only.
-          </p>
-        </div>
-      </div>
-    </div>
+    <ScopeRefusal
+      scope="admin"
+      testId="admin-scope-refusal"
+      detail="Who holds which role is read by system administrators only."
+    />
   );
 }
 
@@ -915,7 +935,7 @@ export default function AdminUsers() {
                             !u.active && "opacity-60")}
                         >
                           <td className="px-3 sm:px-4 py-2.5">
-                            <p className="text-[12px] font-semibold text-foreground">{u.name}</p>
+                            <p className="text-[12px] font-semibold text-foreground inline-flex items-center gap-1.5 flex-wrap">{u.name}<FixturePill u={u} /></p>
                             <p className="text-[10px] text-muted-foreground font-mono">{u.login}</p>
                           </td>
                           <td className="px-3 sm:px-4 py-2.5 hidden md:table-cell"><span className="block text-[12px] text-muted-foreground whitespace-nowrap max-w-[16rem] truncate" title={u.email ?? undefined}>{u.email ?? "—"}</span></td>

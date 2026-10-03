@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnumLabel } from "@/hooks/useEnums";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 const WORKFLOW_STEPS = ["Cleared", "In Review", "Disposed"];
 
@@ -97,6 +98,13 @@ export default function AssetDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setNavLocation] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
+  // Handoff 46: every button in the action bar is a write that needs
+  // `assets:write` — Edit, Move, Transfer, Mark verified, Mark found, Mark
+  // missing, Condemn — so the bar is drawn only for somebody who holds it.
+  // Hidden, not greyed: a greyed button says "not now", and for a reader it
+  // is "never". The record, its history and the approval notice stay.
+  const scopes = useScopes();
+  const canWrite = scopes.has(SCOPE.assetsWrite);
 
   const qc = useQueryClient();
   // `asset.condition` is the model's key (`good`, `decommissioned`), not a
@@ -303,7 +311,8 @@ export default function AssetDetail() {
           ))}
 
           {/* Action bar */}
-          <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+          {canWrite && (
+          <div className="ml-auto flex items-center gap-1.5 flex-wrap" data-testid="asset-action-bar">
             <button
               onClick={() => setNavLocation(`/assets/${id}/edit`)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -381,6 +390,7 @@ export default function AssetDetail() {
               <Trash2 size={12} /> Condemn
             </button>
           </div>
+          )}
         </div>
 
         {/* WHY four of the buttons above are grey, on the page. `role="note"`
@@ -393,8 +403,10 @@ export default function AssetDetail() {
               <p className="text-[12px] text-slate-800 dark:text-slate-200">
                 <span className="font-semibold">This asset has been disposed of, and disposal is the end of an asset's record.</span>{" "}
                 It cannot be marked missing, moved, handed to another custodian or returned to service, so those actions are switched off.
-                It can still be marked verified: if it is physically found on the premises, that sighting is worth recording.
-                Its other details can still be corrected with Edit.
+                {/* Only to somebody who has the buttons (handoff 46): the
+                    action bar is hidden without assets:write. */}
+                {canWrite && <>It can still be marked verified: if it is physically found on the premises, that sighting is worth recording.
+                Its other details can still be corrected with Edit.</>}
               </p>
             </div>
           </div>
@@ -430,8 +442,8 @@ export default function AssetDetail() {
                     : <> to hand it to <span className="font-semibold">{blockedBy.to_custodian_name ?? blockedBy.to_custodian?.name ?? "somebody else"}</span></>}.
                 </p>
                 <p className="mt-1 opacity-90">
-                  Nothing has changed yet, and nothing will until it is decided. Move and
-                  Transfer are switched off meanwhile — one request at a time per asset.
+                  Nothing has changed yet, and nothing will until it is decided.
+                  {canWrite && <> Move and Transfer are switched off meanwhile — one request at a time per asset.</>}
                 </p>
                 <button
                   type="button"

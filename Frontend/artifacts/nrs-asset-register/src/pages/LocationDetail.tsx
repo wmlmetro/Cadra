@@ -10,6 +10,7 @@ import {
 } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import type { Location } from "@/types";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import {
   ArrowLeft, MapPin, Edit3, AlertCircle, Clock, ChevronRight, Globe,
 } from "lucide-react";
@@ -18,6 +19,9 @@ export default function LocationDetail() {
   const { id } = useParams<{ id: string }>();
   const [, nav] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
+  // Handoff 46: *Edit* leads to `PATCH /locations/<id>`, which needs
+  // `locations:write`; it is drawn only for somebody who holds it.
+  const scopes = useScopes();
 
   const { data: loc, isLoading, error } = useQuery<Location | null, CadraApiError>({
     queryKey: ["location", id],
@@ -106,12 +110,14 @@ export default function LocationDetail() {
                 {loc.zoneCode && <span className="ml-2 font-mono">{loc.zoneCode}</span>}
               </p>
             </div>
-            <button
-              onClick={() => nav(`/locations/${id}/edit`)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-accent"
-            >
-              <Edit3 size={12} /> Edit
-            </button>
+            {scopes.has(SCOPE.locationsWrite) && (
+              <button
+                onClick={() => nav(`/locations/${id}/edit`)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-accent"
+              >
+                <Edit3 size={12} /> Edit
+              </button>
+            )}
           </div>
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-[12px]">
             {loc.street && <div><span className="text-muted-foreground">Street: </span>{loc.street}</div>}

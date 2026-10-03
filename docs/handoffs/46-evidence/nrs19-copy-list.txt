@@ -1,0 +1,115 @@
+# nrs19_h46copy = pg_dump of nrs19 at 2026-10-03T09:16:07Z, classified 'client' ON THE COPY ONLY (nrs19 itself is unclassified and the seed refuses it). Dropped after this run.
+database   : nrs19_h46copy
+class      : client
+seeder     : created cadra_demo_personas (archived, no secret, no scopes)
+created    : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+updated    : 0 
+unchanged  : 0 
+passwords  : 6 written to docs/api/.personas.nrs19_h46copy (mode 600)
+
+database   : nrs19_h46copy
+class      : client
+
+DEMO ACCOUNTS (all three marks: __cadra_demo__.persona_*, @demo.example, is_test_fixture)
+  persona         login                                name                 active roles                      last sign-in
+  tagger          babatunde.olaniyan@demo.example      Babatunde Olaniyan   yes    asset_user + tag_issuing_unit never
+  asset_manager   chukwudi.anyanwu@demo.example        Chukwudi Anyanwu     yes    asset_user + asset_manager never
+  storekeeper     halima.danjuma@demo.example          Halima Danjuma       yes    asset_user                 never
+  tag_unit        nkechi.obiora@demo.example           Nkechi Obiora        yes    tag_issuing_unit           never
+  administrator   oluwaseun.ajayi@demo.example         Oluwaseun Ajayi      yes    asset_user + asset_manager + system never
+  auditor         zainab.garba@demo.example            Zainab Garba         yes    auditor                    never
+
+ON THE DEMO DOMAIN OR CLAIMED, BUT NOT ALL THREE MARKS: 0
+
+seeding credential        : cadra_demo_personas (archived, inert)
+
+ACCOUNTS ON THIS TENANT
+  all accounts (any state)          : 18
+  of which internal (not portal)    : 16
+  of which demo personas            : 6
+  of which labelled is_test_fixture : 6   (demo personas + accounts the test suites created)
+  of which the seeding credential   : 1   (cadra_client_cadra_demo_personas; labelled through its credential)
+  real-looking (internal, unlabelled): 9
+
+EMPLOYEES — a persona is never one
+  employees (any state)             : 11386
+  linked to a demo persona          : 0
+  carrying a persona's name         : 0
+
+WHAT THE PERSONAS HAVE DONE
+  assets created                    : 0
+  custody rows recorded by them     : 0
+  change requests raised            : 0
+  change requests asked of them     : 0
+  change requests decided by them   : 0
+=== nrs19_h46copy remove (dry run) ===
+database   : nrs19_h46copy
+class      : client
+mode       : DRY RUN — nothing will change
+accounts   : 18, of which on @demo.example: 6
+  delete   oluwaseun.ajayi@demo.example         Oluwaseun Ajayi
+  delete   chukwudi.anyanwu@demo.example        Chukwudi Anyanwu
+  delete   zainab.garba@demo.example            Zainab Garba
+  delete   halima.danjuma@demo.example          Halima Danjuma
+  delete   babatunde.olaniyan@demo.example      Babatunde Olaniyan
+  delete   nkechi.obiora@demo.example           Nkechi Obiora
+  delete   seeding credential cadra_demo_personas and its user
+
+DRY RUN — would delete 6, archive 0, refuse 0. Nothing changed. Re-run with --apply.
+
+=== nrs19_h46copy remove --apply ===
+database   : nrs19_h46copy
+class      : client
+mode       : APPLY — personas will be removed
+accounts   : 18, of which on @demo.example: 6
+  delete   oluwaseun.ajayi@demo.example         Oluwaseun Ajayi
+  delete   chukwudi.anyanwu@demo.example        Chukwudi Anyanwu
+  delete   zainab.garba@demo.example            Zainab Garba
+  delete   halima.danjuma@demo.example          Halima Danjuma
+  delete   babatunde.olaniyan@demo.example      Babatunde Olaniyan
+  delete   nkechi.obiora@demo.example           Nkechi Obiora
+  delete   seeding credential cadra_demo_personas and its user
+
+APPLIED — deleted 6, archived 0, refused 0.
+accounts   : 18 → 11, of which on @demo.example: 6 → 0 (archived ones remain, unable to sign in)
+
+=== nrs19_h46copy list after ===
+DEMO ACCOUNTS (all three marks: __cadra_demo__.persona_*, @demo.example, is_test_fixture)
+  persona         login                                name                 active roles                      last sign-in
+  (none)
+
+ON THE DEMO DOMAIN OR CLAIMED, BUT NOT ALL THREE MARKS: 0
+
+seeding credential        : absent
+
+ACCOUNTS ON THIS TENANT
+  all accounts (any state)          : 11
+  of which internal (not portal)    : 9
+  of which demo personas            : 0
+  of which labelled is_test_fixture : 0   (demo personas + accounts the test suites created)
+  of which the seeding credential   : 0   (cadra_client_cadra_demo_personas; labelled through its credential)
+  real-looking (internal, unlabelled): 9
+
+=== nrs19 (the real one, read-only; unclassified) ===
+class      : (not set)
+
+DEMO ACCOUNTS (all three marks: __cadra_demo__.persona_*, @demo.example, is_test_fixture)
+  persona         login                                name                 active roles                      last sign-in
+  (none)
+
+ON THE DEMO DOMAIN OR CLAIMED, BUT NOT ALL THREE MARKS: 0
+
+seeding credential        : absent
+
+ACCOUNTS ON THIS TENANT
+  all accounts (any state)          : 11
+  of which internal (not portal)    : 9
+  of which demo personas            : 0
+  of which labelled is_test_fixture : 0   (demo personas + accounts the test suites created)
+  of which the seeding credential   : 0   (cadra_client_cadra_demo_personas; labelled through its credential)
+  real-looking (internal, unlabelled): 9
+
+EMPLOYEES — a persona is never one
+  employees (any state)             : 11386
+  linked to a demo persona          : 0
+  carrying a persona's name         : 0

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getScope } from "@/lib/auth";
 
 /**
@@ -30,6 +30,27 @@ export interface Scopes {
   isAdmin: boolean;
 }
 
+/** The same answers as `useScopes`, for a list in hand. */
+export function scopesOf(scopes: string[]): Scopes {
+  const isAdmin = scopes.some((s) => WILDCARDS.includes(s));
+  return {
+    has: (scope: string) => isAdmin || scopes.includes(scope),
+    hasAll: (...wanted: string[]) => wanted.every((s) => isAdmin || scopes.includes(s)),
+    all: scopes,
+    isAdmin,
+  };
+}
+
+/**
+ * The stored scopes NOW, outside React. For the moment straight after a
+ * sign-in, when the page decides where to go before any component has
+ * re-rendered on the new token (handoff 46's landing rule). Wildcards count
+ * exactly as they do in `useScopes`.
+ */
+export function currentScopes(): Scopes {
+  return scopesOf(readScopes());
+}
+
 export function useScopes(): Scopes {
   const [scopes, setScopes] = useState<string[]>(readScopes);
 
@@ -42,17 +63,7 @@ export function useScopes(): Scopes {
     return () => window.removeEventListener("cadra:auth-changed", sync);
   }, []);
 
-  const isAdmin = scopes.some((s) => WILDCARDS.includes(s));
-  const has = useCallback(
-    (scope: string) => isAdmin || scopes.includes(scope),
-    [scopes, isAdmin],
-  );
-  const hasAll = useCallback(
-    (...wanted: string[]) => wanted.every((s) => isAdmin || scopes.includes(s)),
-    [scopes, isAdmin],
-  );
-
-  return { has, hasAll, all: scopes, isAdmin };
+  return useMemo(() => scopesOf(scopes), [scopes]);
 }
 
 /** Scope names, kept in step with myservice_api/controllers/utils.py. */
@@ -66,6 +77,12 @@ export const SCOPE = {
   approvalsWrite: "approvals:write",
   dashboardsRead: "dashboards:read",
   identityRead: "identity:read",
+  /** `POST /assets/<id>/tag-affixed` — the Tag-Issuing Unit's one write. */
+  taggingWrite: "tagging:write",
+  /** Categories, branding and the depreciation settings. */
+  settingsWrite: "settings:write",
+  /** The employee import and the SAP employee sync. */
+  integrationsWrite: "integrations:write",
   /** The wildcard. Pages under Administration require it (handoff 41). */
   admin: "admin",
 } as const;

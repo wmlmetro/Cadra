@@ -2,96 +2,14 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard, MapPin, Bus, Car, BookOpen,
-  Fingerprint, Users, Activity, ShieldAlert,
-  Inbox, Briefcase, ScanBarcode, Upload, RefreshCw,
-  Wrench, Tag, ChevronDown, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
-  LogOut, Hourglass, ShieldCheck, History,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { logout, getScope, getExpiry } from "@/lib/auth";
 import { useScopes } from "@/hooks/use-scopes";
 import { brandLogoSrc, getBrand } from "@/lib/brand";
-import { fetchApprovalsWaitingCount } from "@/lib/dataProvider";
-
-interface NavItem {
-  name: string;
-  path: string;
-  icon: LucideIcon;
-  /** Draws a live count beside the label. One value today; it is a named
-   *  marker rather than a number on the item so the count stays a query and
-   *  not a constant somebody forgets to update. */
-  badge?: "approvals";
-  /** Shown only to a session holding this scope (or the wildcard). Nav
-   *  items were not scope-gated before handoff 41; the Administration
-   *  entries are, because a page that opens on a refusal panel is a
-   *  door drawn for somebody who cannot open it. The server still decides. */
-  scope?: string;
-}
-
-interface NavGroup { label: string; items: NavItem[] }
-
-const ALL_NAV_GROUPS: NavGroup[] = [
-  { label: "Dashboards", items: [
-    { name: "Facility Command Center", path: "/",                     icon: LayoutDashboard },
-    // Hidden for now (routes still work via direct URL):
-    // { name: "FM Operations",           path: "/dashboards/fm",        icon: Activity        },
-    { name: "Fleet Command",           path: "/dashboards/fleet",     icon: Car             },
-    { name: "IT Assets Command",       path: "/dashboards/it",        icon: Monitor         },
-    // { name: "Security Operations",     path: "/dashboards/security",  icon: ShieldAlert     },
-  ]},
-  // Service Desk group hidden in its entirety for now. Routes (/service-desk,
-  // /service-desk/triage, /service-desk/new, /service-desk/:id) still resolve
-  // via direct URL — only the sidebar entries are gone.
-  { label: "Asset Register", items: [
-    { name: "Dashboard",               path: "/assets",               icon: LayoutDashboard },
-    { name: "All Assets",              path: "/assets/list",          icon: BookOpen        },
-    // Under the register rather than in a group of its own: an approval here
-    // is always about an asset, and a person who has just been asked to agree
-    // to a move looks where the assets are. The badge is what makes it a
-    // queue rather than a page — an approval nobody notices is a move that
-    // never happens (handoff 35).
-    { name: "Approvals",               path: "/approvals",            icon: Hourglass, badge: "approvals" },
-    { name: "+ New Asset",             path: "/assets/new",           icon: BookOpen        },
-  ]},
-  { label: "Operations", items: [
-    { name: "Locations",               path: "/locations",            icon: MapPin         },
-    { name: "+ New Location",          path: "/locations/new",        icon: MapPin         },
-  ]},
-  { label: "HR & Staff", items: [
-    { name: "Employees",               path: "/hr/employees",         icon: Users          },
-    { name: "SAP Sync",                path: "/hr/sap-sync",          icon: RefreshCw      },
-    { name: "Bulk Import",             path: "/hr/import",            icon: Upload         },
-    { name: "Identity (clearance)",    path: "/hr/identity",          icon: Fingerprint    },
-  ]},
-  { label: "Fleet & Transport", items: [
-    { name: "Fleet",                   path: "/fleet",                icon: Car            },
-    { name: "Staff Bus",               path: "/fleet/staff-bus",      icon: Bus            },
-  ]},
-  { label: "Reports", items: [
-    { name: "Fleet Roster",            path: "/reports/fleet-roster",          icon: Car      },
-    { name: "Asset Inventory",         path: "/reports/asset-inventory",       icon: BookOpen },
-    { name: "Maintenance Readiness",   path: "/reports/maintenance-readiness", icon: Wrench   },
-    { name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin   },
-    { name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag      },
-    { name: "Depreciation",            path: "/reports/depreciation",          icon: TrendingDown },
-  ]},
-  { label: "Settings", items: [
-    { name: "Asset Categories",        path: "/settings/categories",   icon: Layers },
-    { name: "Branding",                path: "/settings/branding",     icon: Palette },
-    { name: "Depreciation",            path: "/settings/depreciation", icon: SlidersHorizontal },
-  ]},
-  // Read only, end to end (handoff 41): who holds which role, and the record
-  // of grants and removals. Nothing under it changes anything — that is 42.
-  { label: "Administration", items: [
-    { name: "Users",                   path: "/admin/users",           icon: ShieldCheck, scope: "admin" },
-    { name: "Access changes",          path: "/admin/access-changes",  icon: History,     scope: "admin" },
-  ]},
-  { label: "Tools", items: [
-    { name: "Barcode Station",         path: "/tools/barcode",        icon: ScanBarcode    },
-  ]},
-];
+import { fetchApprovalsWaitingCount, fetchWhoAmI } from "@/lib/dataProvider";
+// The table moved to lib/navigation.ts in handoff 46, so the landing rule
+// reads the same scopes the sidebar filters by.
+import { ALL_NAV_GROUPS, canOpen } from "@/lib/navigation";
 
 // localStorage key for per-group collapse state. Survives reloads so users
 // don't have to re-collapse every time.
@@ -133,26 +51,31 @@ function NrsLogoImg() {
  * in the app, and it must never be the reason a page makes three requests.
  * It comes up to date the moment anything is decided —
  * `invalidateApprovalQueries` invalidates the `approval-count` prefix.
+ *
+ * Not asked at all without `assets:read` (handoff 46): the queue is served
+ * under it, and a session that cannot read it made a request on every screen
+ * only to be refused — the Approvals item it would sit beside is not drawn.
  */
-function useApprovalsWaiting(): number | null {
+function useApprovalsWaiting(enabled: boolean): number | null {
   const { data } = useQuery<number | null>({
     queryKey: ["approval-count", "waiting-on-me"],
     queryFn: fetchApprovalsWaitingCount,
     staleTime: 60_000,
     retry: false,
+    enabled,
   });
-  return typeof data === "number" ? data : null;
+  return enabled && typeof data === "number" ? data : null;
 }
 
 export default function Sidebar() {
   const [location, navigate] = useLocation();
-  const waiting = useApprovalsWaiting();
   const scopes = useScopes();
+  const waiting = useApprovalsWaiting(scopes.has("assets:read"));
 
-  // Items the session cannot act on are not drawn; a group left with no
-  // items is not drawn either.
+  // Items the session cannot open are not drawn; a group left with no items
+  // is not drawn either. Every item declares its scope (handoff 46).
   const navGroups = ALL_NAV_GROUPS
-    .map(g => ({ ...g, items: g.items.filter(it => !it.scope || scopes.has(it.scope)) }))
+    .map(g => ({ ...g, items: g.items.filter(it => canOpen(scopes, it.scope)) }))
     .filter(g => g.items.length > 0);
 
   // Pick the single best-matching nav item rather than highlighting every
@@ -202,7 +125,7 @@ export default function Sidebar() {
       </div>
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2.5" aria-label="Primary navigation">
+      <nav className="flex-1 overflow-y-auto py-2 px-2.5" aria-label="Primary navigation" data-testid="sidebar-nav">
         {navGroups.map((group, gi) => {
           // The active group is always open regardless of the user's saved
           // preference — never hide where they currently are.
@@ -244,6 +167,10 @@ export default function Sidebar() {
                         key={item.path}
                         onClick={() => navigate(item.path)}
                         data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+                        // The path is unique where the name is not (two
+                        // "Depreciation" items) — what handoff 46's spec
+                        // reads to know exactly which items were drawn.
+                        data-nav-path={item.path}
                         aria-current={active ? "page" : undefined}
                         className="nav-item-hover w-full flex items-center gap-2.5 px-2.5 py-[7px] mb-px rounded-xl text-[13px] font-medium transition-colors duration-100 text-left"
                         style={
@@ -303,8 +230,21 @@ export default function Sidebar() {
 
 function SessionChip() {
   const expiry = getExpiry();
-  const scope  = getScope() ?? "*";
+  // Absent means NO scope, not every scope. This read `?? "*"` and so told a
+  // person whose token carried nothing that they were an administrator
+  // (handoff 46). The wildcard is said only when the token says it.
+  const scope  = (getScope() ?? "").trim();
   const expiresIn = expiry ? Math.max(0, Math.round((expiry - Date.now()) / 60_000)) : null;
+  // The same query the top bar holds. The avatar read "A" for everybody —
+  // Admin — which a demo that signs in as four different people shows four
+  // times (handoff 46). No name read, no initial drawn.
+  const { data: me } = useQuery({
+    queryKey: ["whoami"],
+    queryFn: fetchWhoAmI,
+    staleTime: 30 * 60_000,
+    retry: false,
+  });
+  const initial = (me?.name ?? me?.login ?? "").trim().charAt(0).toUpperCase();
 
   return (
     <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl">
@@ -312,14 +252,14 @@ function SessionChip() {
         className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold text-white"
         style={{ background: getBrand().primary }}
       >
-        A
+        {initial}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[12px] font-semibold truncate leading-tight" style={{ color: "hsl(var(--sidebar-foreground))" }}>
-          Signed in
+          {me?.name ?? "Signed in"}
         </p>
         <p className="text-[10px] truncate" style={{ color: "hsl(var(--sidebar-foreground) / 0.45)" }}>
-          {scope === "*" ? "admin scope" : `scope: ${scope}`}{expiresIn != null && ` · ${expiresIn}m left`}
+          {!scope ? "no scope" : scope === "*" ? "admin scope" : `scope: ${scope}`}{expiresIn != null && ` · ${expiresIn}m left`}
         </p>
       </div>
       <button

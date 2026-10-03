@@ -1916,3 +1916,103 @@ found is here.
   status `active`. The live tenant was NOT re-counted: the Builder's
   permission layer refuses reads of the cluster's databases. `[open]`,
   owner, before it is quoted.
+
+## 23 · Handoff 46 — everyone sees their own job, 2026-10-03
+
+### 23.1 · What it closed — `[landed, keep it that way]`
+
+- **Six demo personas, one per role and two combinations**, on every
+  classified local tenant (`test19`, `boot44`, `nrs`, `lasg`, `gtb`,
+  `jaizbankplc`): Halima Danjuma (Store Officer — Asset User), Chukwudi
+  Anyanwu (Asset Manager), Nkechi Obiora (Tag-Issuing Unit alone),
+  Babatunde Olaniyan (Tagging Officer — Asset User + Tag-Issuing Unit),
+  Zainab Garba (Internal Auditor — Auditor), Oluwaseun Ajayi (Systems
+  Administrator — system + Asset Manager). Logins `first.last@demo.example`;
+  passwords in `docs/api/.personas.<db>` (gitignored, mode 600) and nowhere
+  else. Marked three ways — `is_test_fixture` derived from an inert test
+  credential, the reserved domain, an `__cadra_demo__` external id — and a
+  persona is never an employee.
+- **The three commands**, all through one wrapper:
+  ```
+  scripts/demo_personas.sh <db> seed             # re-runnable; twice changes nothing
+  scripts/demo_personas.sh <db> list             # which accounts here are demo accounts
+  scripts/demo_personas.sh <db> remove           # dry run: the database's own answer
+  scripts/demo_personas.sh <db> remove --apply
+  ```
+- **What a persona does is labelled too**: an account that is a fixture is
+  a test actor (`is_test_fixture` / `source='test'` on what it creates).
+- **Every sidebar item declares the scope the server requires; hidden ⇔
+  refused**, proved per persona per item by signing in.
+- **Landing**: the asset register dashboard, or the best page the person
+  can open; `/no-access` says so in words when there is none.
+- **Write controls on a page are hidden without their scope**; a settings
+  screen reached without `settings:write` shows its values read-only.
+- **The dashboard never shows mock numbers to a signed-in person**; it
+  showed 13,150 assets to a refused one.
+
+### 23.2 · Found — `[open]` unless it says otherwise
+
+- **At go-live, the personas come off every client tenant.**
+  `scripts/demo_personas.sh <db> remove`, read the dry run, then
+  `--apply`. A persona named on a move request (requester, approver or
+  decider) cannot be deleted and is archived instead — it can no longer sign
+  in. `[open]`, owner, at go-live.
+- **`cadra19`, `nrs19` and `gtb19` have no personas**: they are still
+  unclassified (§7's marks are ruled and not applied), and the seed refuses
+  an unclassified database like every writing script. After the owner runs
+  §7's three commands, `scripts/demo_personas.sh <db> seed` on each.
+  `[open]`, owner.
+- **The cluster has no personas.** Nothing here reaches it. The wrapper is
+  local-only (it calls `docker compose`); on the cluster the three scripts
+  are piped into `odoo shell` in the Odoo pod the same way
+  (`kubectl exec -i … -- odoo shell -c /etc/odoo/odoo.conf -d <db> --no-http
+  < scripts/seed_demo_personas.py`), and the seed's password block — the
+  lines between `CADRA_PERSONAS_BEGIN` and `CADRA_PERSONAS_END` — has to be
+  lifted out of that output by hand. `[open]`, owner.
+- **Do not create a real person from a persona's session.** A persona is a
+  test actor, so an account it creates is labelled `is_test_fixture` for
+  good, and everything that person then does is labelled too. The listing
+  names any such account (`ACCOUNTS created by them`); the remover does not
+  touch it. `[open]`, Architect — whether that is acceptable or the label
+  should stop at accounts.
+- **The access record keeps the personas' role grants for good** — 14 rows
+  per seeded tenant, including a System Administrator grant. Append-only by
+  design; the `@demo.example` login on each row says what it was. After
+  removal the rows remain. `[open]`, Architect, to accept as written.
+- **The roles do not fit the people** — report 46 §E, the evidence measured
+  by signing in as each persona:
+  - *Asset User cannot change the register.* A Store Officer can register
+    nothing, request no move and verify nothing (`POST /assets`, `/move`,
+    `/verify` → 403). The smallest role that can is Asset Manager, which
+    also approves other people's moves and changes settings, branding,
+    depreciation and integrations. There is no role between reading the
+    register and running it.
+  - *The tagger cannot issue or replace a tag.* Asset User + Tag-Issuing
+    Unit confirms a label (`tag-affixed`) but `POST /barcode/generate` and
+    `/tags/<id>/request-replacement` need `assets:write`.
+  - *`dashboards:read` admits Fleet, Staff Bus, Fleet Roster, Maintenance
+    Readiness (and the hidden FM and Security dashboards) to every Asset
+    User and Auditor* — the same scope as the asset dashboard's KPIs.
+  - *`identity:read` admits the access-change record to every Asset User*
+    — the same scope as the employee picker a custodian needs.
+  - *The Auditor has reports with no screen*: configuration changes,
+    disposals and the asset-register export answer 200 over the API and
+    the app has no page for them.
+  `[open]`, Architect — a role-model decision, not a string to add.
+- **For the per-tenant toggles handoff — screens no current role maps
+  onto:** Fleet Command, Fleet, Staff Bus, Fleet Roster, Maintenance
+  Readiness, FM Operations and Security Operations (hidden), all on
+  `dashboards:read`; Identity (clearance) and Staff Bus read no API at all
+  (mock pages, nothing for a server to refuse); the Facility Command Center
+  is cross-domain and still carries a hardcoded *All systems operational*
+  pill. `[open]`, Architect.
+- **Three write routes have no screen**: `POST /assets/<id>/approve-disposal`,
+  `POST /home/quick-submit`, `POST /integrations/sap/employee-sync`.
+  `[verified]`
+- **Tag numbering walked every issued number past 999** — ~11 s per
+  registration on `test19`, and one `nrs19` and eight `jaizbankplc` prefixes
+  past 999. Fixed (numeric maximum); `[landed, keep it that way]`. Numbers
+  above 999 that were never used are no longer back-filled.
+- **A local `.env.local` bakes an expired token into the local bundle**
+  (`VITE_API_TOKEN`), so a fresh local browser is briefly "signed in" with no
+  scopes. Harmless once known; the owner's file. `[verified]`

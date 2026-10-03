@@ -10,6 +10,7 @@ import {
   ArrowUpRight, ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 // PRIORITY_LABEL used to be declared here as
 // {"0":"Low","1":"Normal","2":"Normal","3":"High","4":"Urgent"} — two entries
@@ -66,6 +67,9 @@ export default function RequestsList({
 }: RequestsListProps = {}) {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useLocation();
+  // Handoff 46: *New Request* opens a form whose one purpose is
+  // `POST /requests`, which needs `requests:write`.
+  const scopes = useScopes();
   const [search, setSearch] = useState("");
   const [priority, setPriority] = useState("");
   const [closedFilter, setClosedFilter] = useState<"open" | "closed" | "">("open");
@@ -125,12 +129,14 @@ export default function RequestsList({
           <h1 className="text-[14px] font-bold text-foreground">{title}</h1>
           <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
         </div>
-        <button
-          onClick={() => nav("/service-desk/new")}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
-        >
-          + New Request
-        </button>
+        {scopes.has(SCOPE.requestsWrite) && (
+          <button
+            onClick={() => nav("/service-desk/new")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
+          >
+            + New Request
+          </button>
+        )}
       </div>
 
       {/* Toolbar */}

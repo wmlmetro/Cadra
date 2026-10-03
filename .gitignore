@@ -32,6 +32,8 @@ docs/upgrade/archive/*.dump
 # Smoke-test API credentials written by docs/api/setup_api_smoke.py
 docs/api/.creds
 docs/api/.creds.*
+# Demo-persona passwords written by scripts/demo_personas.sh (handoff 46)
+docs/api/.personas.*
 
 # pytest virtualenv + generated test artifacts
 tests/.venv/

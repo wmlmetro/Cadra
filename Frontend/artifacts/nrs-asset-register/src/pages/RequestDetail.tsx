@@ -16,6 +16,7 @@ import {
   UserPlus, MessageCircle, Edit3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 interface ApiUserRef { id: number; name: string; login?: string }
 
@@ -40,6 +41,12 @@ export default function RequestDetail() {
   const [, nav] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const qc = useQueryClient();
+  // Handoff 46: every control on this page that changes the request —
+  // priority, assign, edit, post a message, move it to the next stage — is a
+  // `requests:write` route. Somebody who only reads the desk (an Auditor)
+  // sees the request, its conversation and where it can go next, as text.
+  const scopes = useScopes();
+  const canWrite = scopes.has(SCOPE.requestsWrite);
 
   // Top-level, not inside the option map: useEnum is a hook.
   const priorityOpts = useEnum("priority");
@@ -122,16 +129,22 @@ export default function RequestDetail() {
                   ? "bg-muted border-border text-muted-foreground"
                   : "bg-blue-50 dark:bg-blue-950/30 border-blue-200/70 text-blue-700 dark:text-blue-400",
               )}>{req.stageName}</span>
-              <select
-                value={req.priority}
-                onChange={e => updatePriorityMut.mutate(e.target.value)}
-                disabled={updatePriorityMut.isPending}
-                className="text-[11px] font-semibold border border-border rounded-lg px-2 py-0.5 bg-background"
-              >
-                {priorityOpts.map(o => (
-                  <option key={o.value} value={o.value}>Priority: {o.label}</option>
-                ))}
-              </select>
+              {canWrite ? (
+                <select
+                  value={req.priority}
+                  onChange={e => updatePriorityMut.mutate(e.target.value)}
+                  disabled={updatePriorityMut.isPending}
+                  className="text-[11px] font-semibold border border-border rounded-lg px-2 py-0.5 bg-background"
+                >
+                  {priorityOpts.map(o => (
+                    <option key={o.value} value={o.value}>Priority: {o.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-[11px] font-semibold border border-border rounded-lg px-2 py-0.5" data-testid="request-priority">
+                  Priority: {priorityOpts.find(o => o.value === req.priority)?.label ?? req.priority}
+                </span>
+              )}
             </div>
             <p className="text-[13px] text-muted-foreground mt-2">
               {req.typeName} {req.categoryName && <>· {req.categoryName}</>}
@@ -198,6 +211,7 @@ export default function RequestDetail() {
         </div>
 
         {/* Action bar */}
+        {canWrite && (
         <div className="mt-5 pt-5 border-t border-border flex flex-wrap gap-2">
           <button
             onClick={() => setAssigneeOpen(o => !o)}
@@ -212,9 +226,10 @@ export default function RequestDetail() {
             <Edit3 size={12} /> Edit details
           </button>
         </div>
+        )}
 
         {/* Assignee picker */}
-        {assigneeOpen && (
+        {canWrite && assigneeOpen && (
           <div className="mt-3 p-3 bg-muted/30 border border-border rounded-xl space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Assign to</p>
             <RecordPicker
@@ -283,6 +298,7 @@ export default function RequestDetail() {
           )}
 
           {/* Comment box */}
+          {canWrite && (
           <div className="pt-3 border-t border-border space-y-2">
             <textarea
               rows={3}
@@ -309,6 +325,7 @@ export default function RequestDetail() {
               </button>
             </div>
           </div>
+          )}
         </div>
 
         {/* Routes / transitions */}
@@ -320,6 +337,7 @@ export default function RequestDetail() {
             <ul className="space-y-2">
               {req.routes.map(r => (
                 <li key={r.id}>
+                  {canWrite ? (
                   <button
                     onClick={() => { setTransitionId(r.id); transitionMut.mutate(); }}
                     disabled={transitionMut.isPending}
@@ -333,6 +351,12 @@ export default function RequestDetail() {
                     <span>{r.name}</span>
                     <span className="text-[10px] text-muted-foreground">→ {r.to_stage_name}</span>
                   </button>
+                  ) : (
+                    <div className="w-full px-3 py-2 rounded-xl border border-border text-[12px] font-medium flex items-center justify-between gap-2" data-testid="request-route">
+                      <span>{r.name}</span>
+                      <span className="text-[10px] text-muted-foreground">→ {r.to_stage_name}</span>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,0 +1,15 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 7 tests using 1 worker
+
+[1/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:121:7 › 46 — everyone sees their own job › the personas file exists for this tenant
+[2/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › administrator: lands, sees, and is refused what it does not see
+[3/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › asset_manager: lands, sees, and is refused what it does not see
+[4/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › auditor: lands, sees, and is refused what it does not see
+[5/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › storekeeper: lands, sees, and is refused what it does not see
+[6/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see
+[7/7] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:127:9 › 46 — everyone sees their own job › tagger: lands, sees, and is refused what it does not see
+  7 passed (2.3m)

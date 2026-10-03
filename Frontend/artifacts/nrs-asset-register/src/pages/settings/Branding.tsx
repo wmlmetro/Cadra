@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 /** Keep in step with the API's guard — a logo rides in every page load. */
 const LOGO_MAX_CHARS = 262_144;
@@ -52,6 +53,12 @@ export default function BrandingPage() {
   const [draft, setDraft] = useState<TenantBranding | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [localErr, setLocalErr] = useState<string | null>(null);
+  // Handoff 46: `PATCH /settings/branding` needs `settings:write`. Somebody
+  // who reaches this page without it sees the tenant's branding as it is —
+  // the fields drawn, disabled — and a sentence where Save would be, rather
+  // than a Save the server refuses.
+  const scopes = useScopes();
+  const readOnly = !scopes.has(SCOPE.settingsWrite);
 
   useEffect(() => {
     setTitle("Settings — Branding");
@@ -189,6 +196,9 @@ export default function BrandingPage() {
         </div>
       </section>
 
+      {/* `disabled` on a fieldset disables every control inside it; `contents`
+          keeps it out of the layout, so the sections space as they did. */}
+      <fieldset disabled={readOnly} className="contents">
       {/* Identity */}
       <section className="bg-card border border-border rounded-2xl p-5 space-y-4">
         <h2 className="text-[13px] font-bold">Identity</h2>
@@ -305,7 +315,13 @@ export default function BrandingPage() {
           </span>
         </div>
       </section>
+      </fieldset>
 
+      {readOnly ? (
+        <p className="text-[11px] text-muted-foreground" data-testid="settings-read-only">
+          Changing this needs the settings:write scope.
+        </p>
+      ) : (
       <div className="flex items-center gap-3">
         <button
           disabled={!dirty || !canSave || save.isPending}
@@ -336,6 +352,7 @@ export default function BrandingPage() {
           Other signed-in users pick this up within about five minutes.
         </span>
       </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,16 @@
  * the events, because on a tenant whose record has not begun an empty
  * table and "nothing happened" are different facts and only the statement
  * tells them apart.
+ *
+ * WHO MAY OPEN IT
+ * ---------------
+ * Since handoff 46, whoever holds `identity:read` — what the server route
+ * requires — not `admin`. Reading the access record is the Auditor's job, and
+ * the Auditor is not a system administrator: the screen refused the one role
+ * it is for while the API answered that role 200. Two things on the page are
+ * still administrators' only, because their routes are `admin`: the name in
+ * the user filter chip (`GET /users/<id>`) and the link from a row to the
+ * Users page. Without `admin` the chip shows the id and the row the login.
  */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -34,7 +44,7 @@ import { formatIsoDateTime } from "@/lib/utils";
 import type { AccessChangeEvent, AdminUser } from "@/types";
 import { AlertCircle, Clock, History, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AdminScopeRefusal } from "./Users";
+import { ScopeRefusal } from "@/components/ScopeRefusal";
 
 /** The events the model emits (`access_change_report` in `audit_access.py`
  *  and the `event` selection in `access_change.py`), in words. Anything else
@@ -102,6 +112,8 @@ export default function AdminAccessChanges() {
   const userQuery = useQuery<AdminUser, CadraApiError>({
     queryKey: ["user", userId],
     queryFn: () => fetchUser(userId as number),
+    // `GET /users/<id>` is `admin`; anybody else would get a 403 drawn as
+    // "(not found)".
     enabled: scopes.isAdmin && userId != null,
     staleTime: 30_000,
   });
@@ -113,7 +125,7 @@ export default function AdminAccessChanges() {
     queryFn: ({ pageParam }) => fetchAccessChanges(from, to, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    enabled: scopes.isAdmin && validPeriod,
+    enabled: scopes.has("identity:read") && validPeriod,
     staleTime: 30_000,
   });
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = report;
@@ -141,7 +153,9 @@ export default function AdminAccessChanges() {
     return [...rows].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
   }, [allEvents, userId]);
 
-  if (!scopes.isAdmin) return <AdminScopeRefusal />;
+  if (!scopes.has("identity:read")) return (
+    <ScopeRefusal scope="identity:read" detail="The access record is read by the roles that read the staff roster — the Auditor among them." />
+  );
 
   const walking = hasNextPage || isFetchingNextPage;
   const error = report.error;
@@ -265,7 +279,9 @@ export default function AdminAccessChanges() {
                       </span>
                     </td>
                     <td className="px-3 sm:px-4 py-2.5 text-[12px] font-mono text-foreground">
-                      <Link href={`/admin/users/${e.user_id}`} className="hover:text-primary" data-testid="event-user-link">{e.login}</Link>
+                      {scopes.isAdmin
+                        ? <Link href={`/admin/users/${e.user_id}`} className="hover:text-primary" data-testid="event-user-link">{e.login}</Link>
+                        : <span data-testid="event-user-login">{e.login}</span>}
                     </td>
                     <td className="px-3 sm:px-4 py-2.5 text-[12px] text-foreground" data-testid="event-group">{e.group ?? <span className="text-muted-foreground">{e.event === "deactivated" || e.event === "reactivated" ? "whole account" : "—"}</span>}</td>
                     <td className="px-3 sm:px-4 py-2.5 text-[12px] text-foreground" data-testid="event-actor">{actorWords(e)}</td>

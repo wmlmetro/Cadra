@@ -5,6 +5,8 @@ import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { brandLogoSrc, getBrand } from "@/lib/brand";
 import { useTurnstile } from "@/lib/useTurnstile";
+import { currentScopes } from "@/hooks/use-scopes";
+import { landingPath } from "@/lib/navigation";
 
 export default function Login() {
   const [, nav] = useLocation();
@@ -23,8 +25,10 @@ export default function Login() {
     try {
       await login(username.trim(), password, challenge.token || undefined);
       // App.tsx auth-gate listens for the auth-changed event and re-renders
-      // into the authenticated shell. Redirect to / for a clean entry point.
-      nav("/");
+      // into the authenticated shell. Where to: the best page this person can
+      // open, from the scopes login() has just stored (handoff 46) — not `/`,
+      // which a tagger alone would open on a refusal.
+      nav(landingPath(currentScopes()));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
       challenge.reset();

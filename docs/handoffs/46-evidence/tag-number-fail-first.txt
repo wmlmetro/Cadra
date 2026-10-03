@@ -1,0 +1,6 @@
+=== OLD code (HEAD asset_tag.py) ===
+2026-10-03 09:59:42,100 1224 ERROR test19 odoo.addons.myservice_asset_register.tests.test_tag_number: FAIL: TestTagNumber.test_past_999_the_next_number_follows_the_highest_numerically
+AssertionError: 410 not less than 120 : creating one asset spent 410 queries with 401 labels past 999 under its prefix — the tag number is being found by walking every number already issued
+2026-10-03 09:59:42,110 1224 ERROR test19 odoo.tests.result: 1 failed, 0 error(s) of 3 tests when loading database 'test19' 
+=== NEW code ===
+2026-10-03 09:59:59,667 1247 INFO test19 odoo.tests.result: 0 failed, 0 error(s) of 3 tests when loading database 'test19' 

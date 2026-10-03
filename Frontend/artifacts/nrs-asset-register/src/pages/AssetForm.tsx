@@ -31,6 +31,8 @@ import { cn, addMonthsIso, formatIsoDate } from "@/lib/utils";
 import { useEnum } from "@/hooks/useEnums";
 import { ENUM_DEFAULT, withCurrent } from "@/lib/enums";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
+import { ScopeRefusal } from "@/components/ScopeRefusal";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 
 type FormShape = {
@@ -258,6 +260,7 @@ export default function AssetForm({ mode }: Props) {
   const [, nav] = useLocation();
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const qc = useQueryClient();
+  const scopes = useScopes();
 
   const [form, setForm] = useState<FormShape>(blank);
   // The form as the server sent it, for `toBody` to tell a cleared warranty
@@ -424,6 +427,14 @@ export default function AssetForm({ mode }: Props) {
       set("warranty_months", v);
     }
   };
+
+  // Handoff 46: this page's one purpose is `POST /assets` or
+  // `PATCH /assets/<id>`, both `assets:write`. Reached by URL without it, the
+  // page says so instead of drawing a form whose save the server refuses.
+  // After every hook, so the hook order never depends on the token.
+  if (!scopes.has(SCOPE.assetsWrite)) {
+    return <ScopeRefusal scope={SCOPE.assetsWrite} detail="Registering and editing assets is done by the people who hold it — an Asset Manager among them." />;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-5 py-5 space-y-5">

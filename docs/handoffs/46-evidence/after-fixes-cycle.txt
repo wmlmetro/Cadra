@@ -1,0 +1,39 @@
+=== boot44 remove --apply (fixed remover) ===
+database   : boot44
+class      : test
+mode       : APPLY — personas will be removed
+accounts   : 43, of which on @demo.example: 6
+  delete   oluwaseun.ajayi@demo.example         Oluwaseun Ajayi
+  delete   chukwudi.anyanwu@demo.example        Chukwudi Anyanwu
+  delete   zainab.garba@demo.example            Zainab Garba
+  delete   halima.danjuma@demo.example          Halima Danjuma
+  delete   nkechi.obiora@demo.example           Nkechi Obiora
+  delete   babatunde.olaniyan@demo.example      Babatunde Olaniyan
+  delete   seeding credential cadra_demo_personas and its user
+
+APPLIED — deleted 6, archived 0, refused 0.
+accounts   : 43 → 36, of which on @demo.example: 6 → 0 (archived ones remain, unable to sign in)
+
+=== boot44 seed from scratch (seeder user archived at birth) ===
+database   : boot44
+class      : test
+seeder     : created cadra_demo_personas (archived, no secret, no scopes)
+created    : 6 storekeeper asset_manager tag_unit tagger auditor administrator
+updated    : 0 
+unchanged  : 0 
+passwords  : 6 written to docs/api/.personas.boot44 (mode 600)
+
+=== test19 remove dry run (fixed remover) ===
+database   : test19
+class      : test
+mode       : DRY RUN — nothing will change
+accounts   : 222, of which on @demo.example: 6
+  ARCHIVE  oluwaseun.ajayi@demo.example         Oluwaseun Ajayi — cannot be deleted: named as the actor on 1 a movement row(s) (nrs.asset.movement)
+  ARCHIVE  chukwudi.anyanwu@demo.example        Chukwudi Anyanwu — cannot be deleted: ForeignKeyViolation: update or delete on table "res_users" violates foreign key constraint "nrs_asset_change_request_requested_by_id_fkey" on table "nrs_asset_change_request" DETAIL
+  delete   zainab.garba@demo.example            Zainab Garba
+  delete   halima.danjuma@demo.example          Halima Danjuma
+  delete   nkechi.obiora@demo.example           Nkechi Obiora
+  delete   babatunde.olaniyan@demo.example      Babatunde Olaniyan
+  keep     seeding credential cadra_demo_personas and its user
+
+DRY RUN — would delete 4, archive 2, refuse 0. Nothing changed. Re-run with --apply.

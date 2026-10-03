@@ -14,12 +14,18 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BrandPill from "@/components/BrandPill";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 const PAGE_SIZE = 25;
 
 export default function LocationCoverageReport() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useLocation();
+  // Handoff 46: *Add coordinates* opens the location's edit form, a
+  // `PATCH /locations/<id>` that needs `locations:write`. Without it the
+  // report is still the report; the Action column is simply not drawn.
+  const scopes = useScopes();
+  const canEditLocations = scopes.has(SCOPE.locationsWrite);
 
   useEffect(() => {
     setTitle("Location Coverage Report");
@@ -184,7 +190,7 @@ export default function LocationCoverageReport() {
               <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Name", "Type", "City", "State", "Action"].map(h => (
+                    {["Name", "Type", "City", "State", ...(canEditLocations ? ["Action"] : [])].map(h => (
                       <th key={h} className="text-left px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{h}</th>
                     ))}
                   </tr>
@@ -196,14 +202,16 @@ export default function LocationCoverageReport() {
                       <td className="px-3 py-2 text-[12px] text-muted-foreground">{l.locationType ?? "—"}</td>
                       <td className="px-3 py-2 text-[12px] truncate max-w-[140px]">{l.city ?? <span className="text-muted-foreground">—</span>}</td>
                       <td className="px-3 py-2 text-[12px] truncate max-w-[140px]">{l.state ?? <span className="text-muted-foreground">—</span>}</td>
-                      <td className="px-3 py-2">
-                        <button
-                          onClick={() => nav(`/locations/${l.id}/edit`)}
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:opacity-80"
-                        >
-                          Add coordinates <ArrowUpRight size={10} />
-                        </button>
-                      </td>
+                      {canEditLocations && (
+                        <td className="px-3 py-2">
+                          <button
+                            onClick={() => nav(`/locations/${l.id}/edit`)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:opacity-80"
+                          >
+                            Add coordinates <ArrowUpRight size={10} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
