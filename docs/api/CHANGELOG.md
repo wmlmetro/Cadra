@@ -33,6 +33,16 @@ live at was never the point.
 
 ---
 
+## 2026-10-03 — handoff 49: the auditor's own screens · `myservice_api` 19.0.3.23.0
+
+- **Additive: four new sidebar item keys** in `GET /api/v1/settings/sidebar`
+  and writable through its PATCH — `configuration_changes`,
+  `disposals_report`, `register_snapshot`, `register_export`, all in the
+  `audit` group, default on. Published item keys 26 → 30; nothing retired,
+  nothing renamed, every existing key and its stored switch untouched. No
+  other route changed: the four report/export routes the new screens read
+  are exactly as published.
+
 ## 2026-10-03 — handoff 37: the doors, and the red tests · `myservice_api` 19.0.3.22.0, `myservice_website_theme` 19.0.1.1.0, `myservice_identity` 19.0.1.1.0, `myservice_asset_depreciation` 19.0.1.1.0
 
 (Numbered 37 and landing after 48: it was written on 30 September, held while

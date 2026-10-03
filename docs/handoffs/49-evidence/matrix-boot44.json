@@ -1,0 +1,285 @@
+{
+  "tenant": "boot44",
+  "baseline": {
+    "sidebar_rows": 7,
+    "of_parameters": 32,
+    "switches": 40,
+    "configured": 7,
+    "hidden_items": [],
+    "is_a_permission": false
+  },
+  "admin_drawn_before": [
+    "facility_command_center",
+    "fleet_command",
+    "it_assets_command",
+    "asset_dashboard",
+    "all_assets",
+    "approvals",
+    "new_asset",
+    "locations",
+    "new_location",
+    "employees",
+    "sap_sync",
+    "bulk_import",
+    "fleet",
+    "fleet_roster",
+    "asset_inventory",
+    "maintenance_readiness",
+    "location_coverage",
+    "tag_adoption",
+    "depreciation_report",
+    "asset_categories",
+    "branding",
+    "depreciation_settings",
+    "sidebar_settings",
+    "access_changes",
+    "configuration_changes",
+    "disposals_report",
+    "register_snapshot",
+    "register_export",
+    "users",
+    "barcode_station"
+  ],
+  "patch": {
+    "status": 200,
+    "body": {
+      "items": {
+        "all_assets": false,
+        "maintenance_readiness": false,
+        "asset_categories": false
+      }
+    }
+  },
+  "admin_drawn_after": [
+    "facility_command_center",
+    "fleet_command",
+    "it_assets_command",
+    "asset_dashboard",
+    "approvals",
+    "new_asset",
+    "locations",
+    "new_location",
+    "employees",
+    "sap_sync",
+    "bulk_import",
+    "fleet",
+    "fleet_roster",
+    "asset_inventory",
+    "location_coverage",
+    "tag_adoption",
+    "depreciation_report",
+    "branding",
+    "depreciation_settings",
+    "sidebar_settings",
+    "access_changes",
+    "configuration_changes",
+    "disposals_report",
+    "register_snapshot",
+    "register_export",
+    "users",
+    "barcode_station"
+  ],
+  "admin_typed": [
+    "GET /api/v1/brand → 200",
+    "GET /api/v1/settings/sidebar → 200",
+    "GET /api/v1/auth/whoami → 200",
+    "GET /api/v1/approvals → 200",
+    "GET /api/v1/assets → 200 · rows 200 of ?"
+  ],
+  "lockout": {
+    "{\"groups\":{\"settings\":false}}": {
+      "status": 400,
+      "message": "The group `settings` cannot be switched off. The Sidebar screen is where these switches are changed. With it, or the group it sits in, switched off, nothing could be switched back on from the app. Nothing was written."
+    },
+    "{\"items\":{\"sidebar_settings\":false}}": {
+      "status": 400,
+      "message": "The item `sidebar_settings` cannot be switched off. The Sidebar screen is where these switches are changed. With it, or the group it sits in, switched off, nothing could be switched back on from the app. Nothing was written."
+    },
+    "{\"items\":{\"sidebar_settings\":false,\"barcode_station\":false}}": {
+      "status": 400,
+      "message": "The item `sidebar_settings` cannot be switched off. The Sidebar screen is where these switches are changed. With it, or the group it sits in, switched off, nothing could be switched back on from the app. Nothing was written."
+    }
+  },
+  "rows": [
+    "cadra.sidebar.item.all_assets|off|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.asset_categories|off|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.configuration_changes|on|admin",
+    "cadra.sidebar.item.disposals_report|on|admin",
+    "cadra.sidebar.item.maintenance_readiness|off|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.register_export|on|admin",
+    "cadra.sidebar.item.register_snapshot|on|admin"
+  ],
+  "storekeeper_drawn": [
+    "facility_command_center",
+    "it_assets_command",
+    "asset_dashboard",
+    "approvals",
+    "locations",
+    "employees",
+    "sap_sync",
+    "asset_inventory",
+    "location_coverage",
+    "tag_adoption",
+    "depreciation_report",
+    "disposals_report",
+    "register_snapshot",
+    "register_export",
+    "barcode_station"
+  ],
+  "storekeeper_typed": [
+    "GET /api/v1/brand → 200",
+    "GET /api/v1/auth/whoami → 200",
+    "GET /api/v1/settings/sidebar → 200",
+    "GET /api/v1/approvals → 200",
+    "GET /api/v1/assets → 200 · rows 200 of ?"
+  ],
+  "storekeeper_patch": 403,
+  "configuration_report": [
+    {
+      "id": 27,
+      "key": "cadra.sidebar.item.all_assets",
+      "current_value": "off",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 12:19:28.791975",
+      "created_by": {
+        "id": 52,
+        "name": "Oluwaseun Ajayi"
+      },
+      "last_written_at": "2026-10-03 18:21:27.300092",
+      "last_written_by": {
+        "id": 52,
+        "name": "Oluwaseun Ajayi"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 28,
+      "key": "cadra.sidebar.item.maintenance_readiness",
+      "current_value": "off",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 12:19:28.791975",
+      "created_by": {
+        "id": 52,
+        "name": "Oluwaseun Ajayi"
+      },
+      "last_written_at": "2026-10-03 18:21:27.300092",
+      "last_written_by": {
+        "id": 52,
+        "name": "Oluwaseun Ajayi"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 29,
+      "key": "cadra.sidebar.item.asset_categories",
+      "current_value": "off",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 12:19:28.791975",
+      "created_by": {
+        "id": 52,
+        "name": "Oluwaseun Ajayi"
+      },
+      "last_written_at": "2026-10-03 18:21:27.300092",
+      "last_written_by": {
+        "id": 52,
+        "name": "Oluwaseun Ajayi"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 30,
+      "key": "cadra.sidebar.item.configuration_changes",
+      "current_value": "on",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 18:16:00.394596",
+      "created_by": {
+        "id": 2,
+        "name": "Administrator"
+      },
+      "last_written_at": "2026-10-03 18:16:06.910812",
+      "last_written_by": {
+        "id": 2,
+        "name": "Administrator"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 31,
+      "key": "cadra.sidebar.item.disposals_report",
+      "current_value": "on",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 18:16:00.394596",
+      "created_by": {
+        "id": 2,
+        "name": "Administrator"
+      },
+      "last_written_at": "2026-10-03 18:16:06.910812",
+      "last_written_by": {
+        "id": 2,
+        "name": "Administrator"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 32,
+      "key": "cadra.sidebar.item.register_snapshot",
+      "current_value": "on",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 18:16:00.394596",
+      "created_by": {
+        "id": 2,
+        "name": "Administrator"
+      },
+      "last_written_at": "2026-10-03 18:16:06.910812",
+      "last_written_by": {
+        "id": 2,
+        "name": "Administrator"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    },
+    {
+      "id": 33,
+      "key": "cadra.sidebar.item.register_export",
+      "current_value": "on",
+      "value_is_redacted": false,
+      "changed_after_create": true,
+      "created_at": "2026-10-03 18:16:00.394596",
+      "created_by": {
+        "id": 2,
+        "name": "Administrator"
+      },
+      "last_written_at": "2026-10-03 18:16:06.910812",
+      "last_written_by": {
+        "id": 2,
+        "name": "Administrator"
+      },
+      "evidence": "ir_config_parameter.write_date / write_uid",
+      "precision": "last_write_only"
+    }
+  ],
+  "restored": {
+    "status": 200,
+    "hidden_items": []
+  },
+  "rows_after_restore": [
+    "cadra.sidebar.item.all_assets|on|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.asset_categories|on|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.configuration_changes|on|admin",
+    "cadra.sidebar.item.disposals_report|on|admin",
+    "cadra.sidebar.item.maintenance_readiness|on|oluwaseun.ajayi@demo.example",
+    "cadra.sidebar.item.register_export|on|admin",
+    "cadra.sidebar.item.register_snapshot|on|admin"
+  ]
+}
