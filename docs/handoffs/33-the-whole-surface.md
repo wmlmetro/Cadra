@@ -11,6 +11,16 @@
 >
 > Your closing line is the ruling for everything below: *"Nothing in this report was caught by reading the code carefully, and that is the argument for the guard rather than for the afternoon."*
 
+> ## SUPERSEDED — 3 October. Do not run this file.
+>
+> **Three of its four sections are already executed.** Handoff 37 did §A (the identity door — and found it had never worked at all), §C (quick-submit's required fields) and §D's unvalidated-dict half. Report 36 §4 assessed the rest and found three of its instructions now conflict with decisions 34 and 35 made deliberately.
+>
+> **What remained — §B1 (publish the three write-only keys), §D1 (widen the census) and §D3 (the words guard) — is now §5 of `50-the-consequences.md`.** It is three items, not a handoff, and keeping it listed as one is why it was deferred seven times.
+>
+> Left in place because two reports cite it by section number.
+
+---
+
 ## Step 0
 
 ```bash
