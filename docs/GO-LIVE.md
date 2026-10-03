@@ -2020,3 +2020,66 @@ found is here.
 - **A local `.env.local` bakes an expired token into the local bundle**
   (`VITE_API_TOKEN`), so a fresh local browser is briefly "signed in" with no
   scopes. Harmless once known; the owner's file. `[verified]`
+
+## 24 · Handoff 48 — what this tenant has, 2026-10-03
+
+### 24.1 · What it closed — `[landed, keep it that way]`
+
+- **Settings → Sidebar**, administrator only: which of the 28 sidebar items
+  and 10 groups this tenant shows. A person is drawn an item only when the
+  tenant shows it AND their role opens it.
+- **It is presentation, not permission, and says so** — first thing on the
+  screen, in the API payload (`is_a_permission: false`), and by a guard that
+  fails if anything on the server but its own route reads a switch or if the
+  app's routes consult one. An item switched off still opens by its address
+  and its data comes back. **A tenant that must not have a module needs it
+  uninstalled, not switched off.**
+- **Everything is on by default**, including any item added later; 0 rows on
+  9 of 9 local databases before the first switch.
+- **The Sidebar screen and the Settings group cannot be switched off**
+  (refused before anything is written; ignored on read if a row says so).
+- **Every switch is a row in the configuration-change report**, under its own
+  key, naming who last changed it.
+
+### 24.2 · Found — `[open]` unless it says otherwise
+
+- **Screens that have no business in the sidebar for most tenants — not
+  "switchable", absent until there is something behind them.** Putting all
+  28 items in one list with a default made this plain:
+  - **Staff Bus** and **Identity (clearance)** read no API: both render
+    built-in sample data (`MockDataBanner`, `mockIdentityRecords`). Default
+    on means every new client is shown two screens of invented data. Remove
+    them from the sidebar until there is a model behind them.
+  - **The fleet line — Fleet Command, Fleet, Fleet Roster, Maintenance
+    Readiness** — reads a real model (`fleet.vehicle`), but the real NRS
+    register (`nrs19`) holds **0 vehicles**, and on every other local tenant
+    every vehicle row came from one superuser load on one day (`cadra19`
+    1,609 and `nrs` 1,609; `gtb19`, `gtb`, `lasg`, `jaizbankplc` 30 each;
+    `test19` 0). No client has put a vehicle in Cadra. It is the textbook
+    case for the tenant switch today, and a question for NRS before it is
+    one for engineering: is fleet in scope for any client?
+  - **IT Assets Command** is the register filtered to one domain: 69 IT
+    assets of 11,951 on `nrs19`, 13 of 1,335 on `cadra19`, 1 of 4,164 on
+    `jaizbankplc`, 0 on the other five. A saved filter on *All Assets*, not
+    a product line.
+  - **The Facility Command Center** (the `/` front door) is cross-domain and
+    still carries a hardcoded *All systems operational* pill — an instrument
+    reporting something it does not measure. Fix it or drop the pill.
+  - **SAP Sync** is real but empty where it matters: `nrs19` has 11,386 of
+    11,386 employees at `never`. It earns its place when the SAP employee
+    feed is live, not before.
+  `[open]`, Architect.
+- **Who changed a switch is the LAST write only** — the configuration report's
+  standing limit (handoff 23, `myservice_api/models/audit_configuration.py`): a switch turned off by one person and back on by
+  another names only the second. One row per switch keeps that as narrow as
+  this storage allows. `[verified]`
+- **Other people's sidebars catch up within five minutes or on reload**: the
+  sidebar re-reads the switches every five minutes; the administrator's own
+  sidebar changes at once. Presentation, so not a gap. `[verified]`
+- **A frontend rolled out ahead of its backend shows everything**: the
+  sidebar treats an unreadable answer (a 404 from an Odoo without the route)
+  as nothing hidden, and the Sidebar screen shows the error. On the cluster a
+  push rolls the frontend only; the route needs `myservice_api` 19.0.3.20.0
+  loaded (the `cadra-upgrade` Job). `[open]`, owner, at the next cluster
+  upgrade.
+
