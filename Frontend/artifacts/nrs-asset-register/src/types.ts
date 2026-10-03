@@ -718,6 +718,10 @@ export interface AdminUser {
   /** Handoff 43. Always present; `state: "never"` for an account nobody has
    *  invited, a credential's user included. */
   invitation: AdminUserInvitation;
+  /** Handoff 46, additive. True for an account a test or a demo seed
+   *  created (the same derived self-label as handoff 26's fixtures); absent
+   *  from an older server, which reads as "not said", not as false. */
+  is_test_fixture?: boolean;
 }
 
 /** One row of `data.events` on the access-changes report. The first six

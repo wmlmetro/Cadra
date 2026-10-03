@@ -19,6 +19,7 @@ import {
   RequestTagReplacementDialog, ApproveTagReplacementDialog, RejectTagReplacementDialog,
 } from "@/components/TagReplacementDialogs";
 import { ConfirmAffixedDialog } from "@/components/ConfirmAffixedDialog";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import {
   ScanBarcode, AlertCircle, Tag, Package, AlertTriangle, XCircle,
   ArrowRight, Search, Printer, Keyboard, Camera, SearchX, Sparkles, Check,
@@ -38,6 +39,18 @@ type Notice = { kind: "error" | "warn" | "ok"; text: string } | null;
 export default function BarcodeStation() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useLocation();
+  // Handoff 46: the station is three jobs held by different people, and each
+  // control is drawn only for the scope its route requires. Minting a barcode
+  // and asking for a replacement are `assets:write`; confirming a label on
+  // the asset is `tagging:write`, the Tag-Issuing Unit's ONE write — so a
+  // tagger without `assets:write` still sees *Confirm affixed*; deciding a
+  // replacement is `approvals:write`. Looking up, reading and printing are
+  // reads, and stay for everybody who reaches the page.
+  const scopes = useScopes();
+  const canGenerate = scopes.has(SCOPE.assetsWrite);
+  const canRequestReplacement = scopes.has(SCOPE.assetsWrite);
+  const canDecideReplacement = scopes.has(SCOPE.approvalsWrite);
+  const canTag = scopes.has(SCOPE.taggingWrite);
 
   useEffect(() => {
     setTitle("Barcode Station");
@@ -150,7 +163,7 @@ export default function BarcodeStation() {
     hit && tagging.data && tagging.data.label_id !== null && tagging.data.label_id !== hit.tag_id,
   );
   const canConfirmAffixed = Boolean(
-    label && hit?.tag_state === "active"
+    canTag && label && hit?.tag_state === "active"
       && label.label_state !== "affixed" && label.label_state !== "scrapped",
   );
   const [affixOpen, setAffixOpen] = useState(false);
@@ -566,18 +579,20 @@ export default function BarcodeStation() {
                 <p className="text-[12px] text-amber-700 dark:text-amber-400 inline-flex items-center gap-1.5">
                   <AlertTriangle size={13} /> No active tag on this asset.
                 </p>
-                <button
-                  type="button"
-                  disabled={generate.isPending}
-                  onClick={() => void generateForHit()}
-                  data-testid="button-generate-for-hit"
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold",
-                    generate.isPending ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-white hover:opacity-90",
-                  )}
-                >
-                  <Tag size={12} /> {generate.isPending ? "Generating…" : "Generate barcode"}
-                </button>
+                {canGenerate && (
+                  <button
+                    type="button"
+                    disabled={generate.isPending}
+                    onClick={() => void generateForHit()}
+                    data-testid="button-generate-for-hit"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold",
+                      generate.isPending ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-primary text-white hover:opacity-90",
+                    )}
+                  >
+                    <Tag size={12} /> {generate.isPending ? "Generating…" : "Generate barcode"}
+                  </button>
+                )}
               </div>
             )}
 
@@ -596,6 +611,7 @@ export default function BarcodeStation() {
                 loading={pendingTag.isLoading}
                 error={pendingTag.error as CadraApiError | null}
                 reasonLabelOf={replacementReasonLabelOf}
+                mayDecide={canDecideReplacement}
                 onApprove={(t) => setDeciding({ tag: t, action: "approve" })}
                 onReject={(t) => setDeciding({ tag: t, action: "reject" })}
               />
@@ -620,7 +636,7 @@ export default function BarcodeStation() {
                   <Check size={12} /> Confirm affixed
                 </button>
               )}
-              {hit.tag_state === "active" && hit.tag_id && (
+              {canRequestReplacement && hit.tag_state === "active" && hit.tag_id && (
                 <button
                   type="button"
                   onClick={() => setReplaceOpen(true)}
@@ -685,6 +701,7 @@ export default function BarcodeStation() {
                     key={t.id}
                     tag={t}
                     reasonLabelOf={replacementReasonLabelOf}
+                    mayDecide={canDecideReplacement}
                     onOpen={() => nav(`/assets/${t.asset.id}`)}
                     onApprove={() => setDeciding({ tag: t, action: "approve" })}
                     onReject={() => setDeciding({ tag: t, action: "reject" })}
@@ -701,7 +718,7 @@ export default function BarcodeStation() {
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div>
             <h2 className="text-[13px] font-bold inline-flex items-center gap-1.5">
-              <Sparkles size={13} className="text-primary" /> Generate barcodes
+              <Sparkles size={13} className="text-primary" /> {canGenerate ? "Generate barcodes" : "Untagged assets"}
             </h2>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               Assets with an asset code but no barcode yet.
@@ -709,6 +726,10 @@ export default function BarcodeStation() {
               {pickedRows.length > 0 && ` · ${pickedRows.length} picked`}
             </p>
           </div>
+          {/* Without `assets:write` the list stays — which assets have no
+              barcode is a read — and the two buttons and the pick boxes
+              that only feed them are not drawn (handoff 46). */}
+          {canGenerate && (
           <div className="flex flex-wrap items-center gap-2">
             <SizePicker value={size} onChange={setSize} />
             <button
@@ -741,6 +762,7 @@ export default function BarcodeStation() {
                 : "Generate & print"}
             </button>
           </div>
+          )}
         </div>
 
         <form
@@ -780,15 +802,17 @@ export default function BarcodeStation() {
             <table className="w-full min-w-[620px]">
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b border-border">
-                  <th className="w-8 px-3 py-2">
-                    <input
-                      type="checkbox"
-                      aria-label="Select all untagged assets shown"
-                      checked={allPicked}
-                      onChange={togglePickAll}
-                      className="accent-primary cursor-pointer"
-                    />
-                  </th>
+                  {canGenerate && (
+                    <th className="w-8 px-3 py-2">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all untagged assets shown"
+                        checked={allPicked}
+                        onChange={togglePickAll}
+                        className="accent-primary cursor-pointer"
+                      />
+                    </th>
+                  )}
                   {["Asset code", "Asset", "Category", "Location", "Condition"].map((h) => (
                     <th key={h} className="text-left px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{h}</th>
                   ))}
@@ -799,6 +823,7 @@ export default function BarcodeStation() {
                   <UntaggedRow
                     key={a.asset_id}
                     asset={a}
+                    pickable={canGenerate}
                     checked={pickedAssets.has(a.asset_id)}
                     onToggle={() => togglePicked(a.asset_id)}
                     onOpen={() => nav(`/assets/${a.asset_id}`)}
@@ -1004,11 +1029,15 @@ function LabelStatePanel({ label, mismatch, loading, error }: {
  * decide (`can_decide`), which is false for the requester — the refusal is
  * in the model, and the screen simply does not offer it.
  */
-function PendingTagPanel({ tag, loading, error, reasonLabelOf, onApprove, onReject }: {
+function PendingTagPanel({ tag, loading, error, reasonLabelOf, mayDecide, onApprove, onReject }: {
   tag: TagLabel | null;
   loading: boolean;
   error: CadraApiError | null;
   reasonLabelOf: (v: string | null | undefined) => string;
+  /** `approvals:write`, what the two decision routes require (handoff 46).
+   *  `can_decide` is the server's answer about THIS tag; the scope is the
+   *  session's answer about every tag. Both have to be yes. */
+  mayDecide: boolean;
   onApprove: (t: TagLabel) => void;
   onReject: (t: TagLabel) => void;
 }) {
@@ -1036,7 +1065,7 @@ function PendingTagPanel({ tag, loading, error, reasonLabelOf, onApprove, onReje
               </div>
             )}
           </div>
-          {tag.can_decide ? (
+          {tag.can_decide && mayDecide ? (
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <button
                 type="button"
@@ -1066,9 +1095,11 @@ function PendingTagPanel({ tag, loading, error, reasonLabelOf, onApprove, onReje
   );
 }
 
-function PendingRow({ tag, reasonLabelOf, onOpen, onApprove, onReject }: {
+function PendingRow({ tag, reasonLabelOf, mayDecide, onOpen, onApprove, onReject }: {
   tag: TagLabel;
   reasonLabelOf: (v: string | null | undefined) => string;
+  /** `approvals:write` — see PendingTagPanel. */
+  mayDecide: boolean;
   onOpen: () => void;
   onApprove: () => void;
   onReject: () => void;
@@ -1081,7 +1112,7 @@ function PendingRow({ tag, reasonLabelOf, onOpen, onApprove, onReject }: {
       <td className="px-3 py-2 text-[12px] text-muted-foreground">{tag.requested_by?.name ?? "—"}</td>
       <td className="px-3 py-2 text-[12px] text-muted-foreground">{tag.approver?.name ?? "—"}</td>
       <td className="px-3 py-2 text-[11px]">
-        {tag.can_decide ? (
+        {tag.can_decide && mayDecide ? (
           <div className="flex items-center gap-1.5 justify-end">
             <button
               type="button"
@@ -1159,22 +1190,24 @@ function Notice({ notice }: { notice: NonNullable<Notice> }) {
   );
 }
 
-function UntaggedRow({ asset, checked, onToggle, onOpen }: {
-  asset: UntaggedAsset; checked: boolean; onToggle: () => void; onOpen: () => void;
+function UntaggedRow({ asset, pickable, checked, onToggle, onOpen }: {
+  asset: UntaggedAsset; pickable: boolean; checked: boolean; onToggle: () => void; onOpen: () => void;
 }) {
   const domainLabelOf = useEnumLabel("domain");
   const conditionLabelOf = useEnumLabel("condition");
   return (
     <tr className={cn("border-b border-border/40 hover:bg-muted/20", checked && "bg-primary/5")}>
-      <td className="px-3 py-2">
-        <input
-          type="checkbox"
-          aria-label={`Select ${asset.asset_code || asset.asset_name}`}
-          checked={checked}
-          onChange={onToggle}
-          className="accent-primary cursor-pointer"
-        />
-      </td>
+      {pickable && (
+        <td className="px-3 py-2">
+          <input
+            type="checkbox"
+            aria-label={`Select ${asset.asset_code || asset.asset_name}`}
+            checked={checked}
+            onChange={onToggle}
+            className="accent-primary cursor-pointer"
+          />
+        </td>
+      )}
       <td onClick={onOpen} className="px-3 py-2 text-[12px] font-mono cursor-pointer">{asset.asset_code || "—"}</td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[220px] cursor-pointer">{asset.asset_name}</td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] text-muted-foreground truncate max-w-[140px] cursor-pointer">{asset.category || domainLabelOf(asset.domain)}</td>

@@ -95,7 +95,14 @@ export function storeToken(
   const expiresAt = Date.now() + Math.max(0, expiresIn - 30) * 1000;  // 30s safety margin
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(EXPIRY_KEY, String(expiresAt));
-  if (scope) localStorage.setItem(SCOPE_KEY, scope);
+  // Always written: removed when the token carries no scope. This was
+  // `if (scope) set`, so a sign-in whose scope string was empty kept the
+  // PREVIOUS account's scopes, and the sidebar drew that account's job for
+  // the new one (handoff 46). The server refused them either way; the screen
+  // said otherwise.
+  const scopeText = (scope ?? "").trim();
+  if (scopeText) localStorage.setItem(SCOPE_KEY, scopeText);
+  else localStorage.removeItem(SCOPE_KEY);
   if (refreshToken) {
     localStorage.setItem(REFRESH_KEY, refreshToken);
     // No safety-margin shave here — the refresh endpoint is the authority on

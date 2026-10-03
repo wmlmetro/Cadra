@@ -25,6 +25,7 @@ import {
 import { cn, formatIsoDate } from "@/lib/utils";
 import { useEnumLabel } from "@/hooks/useEnums";
 import BrandPill from "@/components/BrandPill";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 // There were four filter tabs over the map — All / Active / Repair /
 // Unverified — setting a `pinFilter` that nothing read. They could not have
@@ -36,6 +37,11 @@ import BrandPill from "@/components/BrandPill";
 export default function AssetRegisterDashboard() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useLocation();
+  // Handoff 46: a control is drawn only for somebody who can use it. *New
+  // Asset* opens a form whose one purpose is `POST /assets`, which needs
+  // `assets:write` — a Store Officer reads the register and was offered a
+  // button the server then refused with a 403.
+  const scopes = useScopes();
 
   useEffect(() => {
     setTitle("Asset Register");
@@ -146,12 +152,14 @@ export default function AssetRegisterDashboard() {
           >
             <ListChecks size={12} /> All Assets
           </button>
-          <button
-            onClick={() => nav("/assets/new")}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
-          >
-            <Plus size={12} /> New Asset
-          </button>
+          {scopes.has(SCOPE.assetsWrite) && (
+            <button
+              onClick={() => nav("/assets/new")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
+            >
+              <Plus size={12} /> New Asset
+            </button>
+          )}
         </div>
       </div>
 

@@ -8,10 +8,14 @@ import {
   ShieldCheck, Clock, AlertCircle, CircleSlash, Upload, ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 export default function SAPSyncStatus() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useLocation();
+  // Handoff 46: *Bulk import* opens a page whose one purpose is
+  // `POST /integrations/employees/import`, which needs `integrations:write`.
+  const scopes = useScopes();
 
   useEffect(() => {
     setTitle("SAP Sync Status");
@@ -52,12 +56,14 @@ export default function SAPSyncStatus() {
             )}
           </p>
         </div>
-        <button
-          onClick={() => nav("/hr/import")}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
-        >
-          <Upload size={12} /> Bulk import
-        </button>
+        {scopes.has(SCOPE.integrationsWrite) && (
+          <button
+            onClick={() => nav("/hr/import")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
+          >
+            <Upload size={12} /> Bulk import
+          </button>
+        )}
       </div>
 
       {counts.error && (

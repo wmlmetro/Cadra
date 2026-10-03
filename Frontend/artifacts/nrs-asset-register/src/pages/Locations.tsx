@@ -11,6 +11,7 @@ import {
   X, Package, ChevronRight as Chevron, Clock, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 // ─── ICON + TILE CONFIG ───────────────────────────────────────────────────────
 type LocType = Location["locationType"];
@@ -242,6 +243,10 @@ type GroupBy = "zone" | "type";
 export default function Locations() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useWouterLocation();
+  // Handoff 46: *New Location* opens a form whose one purpose is
+  // `POST /locations`, which needs `locations:write`. Somebody who only
+  // reads locations is not offered it.
+  const scopes = useScopes();
   const [view, setView] = useState<View>("cards");
   const [groupBy, setGroupBy] = useState<GroupBy>("type");
   const [selected, setSelected] = useState<Location | null>(null);
@@ -457,13 +462,15 @@ export default function Locations() {
             </span>
           )}
         </p>
-        <button
-          onClick={() => nav("/locations/new")}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
-          data-testid="button-new-location"
-        >
-          + New Location
-        </button>
+        {scopes.has(SCOPE.locationsWrite) && (
+          <button
+            onClick={() => nav("/locations/new")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-90"
+            data-testid="button-new-location"
+          >
+            + New Location
+          </button>
+        )}
       </div>
 
       {/* ── BODY ────────────────────────────────────────────────────────────── */}

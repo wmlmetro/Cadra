@@ -10,11 +10,14 @@ import {
   Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Clock, RotateCcw, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScopeRefusal } from "@/components/ScopeRefusal";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 export default function EmployeeBulkImport() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const [, nav] = useLocation();
   const qc = useQueryClient();
+  const scopes = useScopes();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -68,6 +71,13 @@ export default function EmployeeBulkImport() {
   const pct = job?.rows_total && job.rows_processed != null
     ? Math.round((job.rows_processed / job.rows_total) * 100)
     : null;
+
+  // Handoff 46: the upload is `POST /integrations/employees/import`, which
+  // needs `integrations:write`. Reached by URL without it, the page says so
+  // instead of offering a file picker whose upload the server refuses.
+  if (!scopes.has(SCOPE.integrationsWrite)) {
+    return <ScopeRefusal scope={SCOPE.integrationsWrite} />;
+  }
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">

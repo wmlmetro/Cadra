@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
+import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
 const inputCls =
   "w-full rounded-lg border border-border bg-background px-2 py-1 text-[12px] " +
@@ -28,10 +29,13 @@ const inputCls =
 
 /** One row, with a local draft so a half-typed value never fires a request. */
 function Row({
-  cat, busy, onSave, onDelete, saving, deleting,
+  cat, busy, readOnly, onSave, onDelete, saving, deleting,
 }: {
   cat: AssetCategoryConfig;
   busy: boolean;
+  /** No `settings:write` (handoff 46): the row's fields are disabled by
+   *  `busy` and its Save and Delete are not drawn. */
+  readOnly: boolean;
   saving: boolean;
   deleting: boolean;
   onSave: (id: number, body: Partial<CategoryIdentity>) => void;
@@ -81,6 +85,7 @@ function Row({
         {cat.asset_count.toLocaleString()}
       </td>
       <td className="py-2 text-right whitespace-nowrap">
+        {!readOnly && (<>
         <button
           disabled={!dirty || busy}
           onClick={() => onSave(cat.id, draft)}
@@ -113,6 +118,7 @@ function Row({
         >
           {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
         </button>
+        </>)}
       </td>
     </tr>
   );
@@ -127,6 +133,12 @@ export default function AssetCategoriesPage() {
   const [adding, setAdding] = useState(false);
   const [draftNew, setDraftNew] = useState<Partial<CategoryIdentity>>({ name: "" });
   const domains = useEnum("domain");
+  // Handoff 46: creating, saving and deleting a category are `settings:write`
+  // routes. Somebody who reaches this page without that scope sees the
+  // categories, every field disabled, and one sentence where *New category*
+  // would be — not three controls the server refuses.
+  const scopes = useScopes();
+  const readOnly = !scopes.has(SCOPE.settingsWrite);
 
   useEffect(() => {
     setTitle("Settings — Asset Categories");
@@ -215,14 +227,20 @@ export default function AssetCategoriesPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setAdding(v => !v)}
-          disabled={busy}
-          data-testid="button-add-category"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border border-border hover:bg-accent disabled:opacity-40"
-        >
-          {adding ? <X size={12} /> : <Plus size={12} />} {adding ? "Cancel" : "New category"}
-        </button>
+        {readOnly ? (
+          <p className="text-[11px] text-muted-foreground" data-testid="settings-read-only">
+            Changing this needs the settings:write scope.
+          </p>
+        ) : (
+          <button
+            onClick={() => setAdding(v => !v)}
+            disabled={busy}
+            data-testid="button-add-category"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border border-border hover:bg-accent disabled:opacity-40"
+          >
+            {adding ? <X size={12} /> : <Plus size={12} />} {adding ? "Cancel" : "New category"}
+          </button>
+        )}
       </div>
 
       {err && (
@@ -251,7 +269,7 @@ export default function AssetCategoriesPage() {
         </p>
       </div>
 
-      {adding && (
+      {!readOnly && adding && (
         <section className="bg-card border border-border rounded-2xl p-5">
           <h2 className="text-[13px] font-bold mb-3">New category</h2>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -311,7 +329,7 @@ export default function AssetCategoriesPage() {
           <tbody>
             {(categories.data ?? []).map(c => (
               <Row
-                key={c.id} cat={c} busy={busy}
+                key={c.id} cat={c} busy={busy || readOnly} readOnly={readOnly}
                 saving={savingId === c.id}
                 deleting={deletingId === c.id}
                 onSave={(id, body) => { setSavingId(id); save.mutate({ id, body }); }}
@@ -320,9 +338,11 @@ export default function AssetCategoriesPage() {
             ))}
           </tbody>
         </table>
-        <p className="text-[10px] text-muted-foreground mt-3">
-          A category holding assets cannot be deleted — reassign them first.
-        </p>
+        {!readOnly && (
+          <p className="text-[10px] text-muted-foreground mt-3">
+            A category holding assets cannot be deleted — reassign them first.
+          </p>
+        )}
       </section>
 
       <Dialog open={deleteOpen} onOpenChange={(next) => { if (!next && remove.isPending) return; setDeleteOpen(next); }}>
