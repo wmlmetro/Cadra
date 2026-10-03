@@ -4,6 +4,18 @@
 **Report:** `docs/handoffs/37-REPORT.md`
 **Runs after** `fix/the-control-we-cannot-prove` is merged.
 
+> ## RUN THIS ONE. Premises re-checked 3 October.
+>
+> This was written on 30 September and **eleven handoffs have landed since** (38–48). I re-checked its three load-bearing premises today before handing it over:
+>
+> - **`myservice_asset_depreciation` is untouched since this was written** — no commits — and both named tests are still in `test_policy_inheritance.py`. §3 stands.
+> - **`myservice_identity` has one commit since**, handoff 42's role guard, which does not touch the webhook. The door is still `auth='none'` with the `X-SAP-Webhook-Secret` header, exactly as report 36 described it.
+> - **The authenticated sibling still exists** at `POST /api/v1/integrations/sap/employee-sync`. §A's ruling is still available.
+>
+> **Anything else in here that smells stale, verify before obeying and report the drift.** Five weeks is long enough for a premise to rot, and this programme's worst instructions have all been ones nobody re-measured.
+>
+> One thing that did change and that §A and §B must not fight: handoff 42 added `access_guard.py`, which refuses any `base.*` group over the API and refuses self-granting, under every writer. If the identity work creates or alters users, it meets that guard. That is intended — do not go round it.
+
 ---
 
 ## 0 · Report 36, accepted — and three of my premises were wrong
