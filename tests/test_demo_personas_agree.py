@@ -157,3 +157,36 @@ def test_the_remover_accepts_production_and_refuses_absent():
     assert guard, "remove_demo_personas.py has no class guard"
     assert set(x.strip() for x in guard.group(1).split(",")) == {
         "TEST", "CLIENT", "PRODUCTION"}
+
+
+CI = SCRIPTS / "demo_personas_ci.sh"
+RECIPIENT = SCRIPTS / "demo_personas_recipient.pem"
+
+
+def test_the_cluster_path_strips_exactly_the_seeds_sentinels():
+    """`.github/workflows/demo-personas.yml` prints the seed's output through
+    `demo_personas_ci.sh`; if its markers drift from the seed's, every
+    password on a live tenant is printed into a GitHub log."""
+    consts = _constants(SEED)
+    ci = CI.read_text()
+    for name in ("SENTINEL_BEGIN", "SENTINEL_END"):
+        value = consts[name]
+        assert len(re.findall(r"\^%s\$" % re.escape(value), ci)) >= 2, (
+            "demo_personas_ci.sh does not match %s=%r as a whole line in both "
+            "the extract and the strip" % (name, value))
+
+
+def test_the_committed_key_is_public_and_no_private_key_is_tracked():
+    """The cluster's passwords are encrypted to this key; its private half
+    lives only on the owner's machine (docs/api/.personas.key.pem)."""
+    text = RECIPIENT.read_text()
+    assert "BEGIN PUBLIC KEY" in text and "PRIVATE" not in text, (
+        "scripts/demo_personas_recipient.pem is not a bare public key")
+    tracked = subprocess.run(["git", "ls-files"], cwd=REPO_ROOT, check=True,
+                             capture_output=True, text=True).stdout.split()
+    leaked = [p for p in tracked if p.endswith((".pem", ".key"))
+              and "PRIVATE KEY" in (REPO_ROOT / p).read_text(errors="ignore")]
+    assert not leaked, "a private key is tracked: %s" % leaked
+    result = subprocess.run(["git", "check-ignore", "-q", "docs/api/.personas.key.pem"],
+                            cwd=REPO_ROOT, check=False)
+    assert result.returncode == 0, "the private key's path is not gitignored"

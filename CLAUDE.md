@@ -236,7 +236,12 @@ Second, a persona named on a move request cannot be deleted (the request
 holds requester, approver and decider with `ondelete='restrict'`), so the
 remover ARCHIVES it — run the dry run first; it is the database's own answer.
 The seed refuses an unclassified database and `production`; the remover
-accepts `production`, because at go-live these come off.
+accepts `production`, because at go-live these come off. **On the cluster**
+the same scripts run through `.github/workflows/demo-personas.yml`; the
+passwords leave the runner only encrypted to a key whose private half is on
+the owner's machine (`scripts/demo_personas_fetch.sh <run-id>` decrypts them
+into `docs/api/.personas.cluster.<db>`). The four cluster tenants are
+`client` by the owner's ruling of 2026-10-03.
 
 **A sidebar item declares the scope the SERVER requires for what the page is
 for** (`lib/navigation.ts`, `scope` required, all-of), and the landing page
