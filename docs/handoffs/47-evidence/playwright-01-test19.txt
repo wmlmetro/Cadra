@@ -1,0 +1,6 @@
+  ✓  28 [chromium] › tests/01-navigation.spec.ts:66:7 › dynamic detail routes (real IDs) › location detail /locations/:id (1.5s)
+  ✓  29 [chromium] › tests/01-navigation.spec.ts:74:7 › dynamic detail routes (real IDs) › employee detail /hr/employees/:id (1.5s)
+  ✓  30 [chromium] › tests/01-navigation.spec.ts:82:7 › dynamic detail routes (real IDs) › request detail /service-desk/:id (1.5s)
+  ✓  31 [chromium] › tests/01-navigation.spec.ts:114:7 › sidebar navigation › every visible nav item navigates to its route (1.5s)
+
+  31 passed (52.2s)

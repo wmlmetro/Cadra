@@ -1,0 +1,14 @@
+2026-10-03 14:29:13,781 1262 INFO test19 odoo.tests.stats: myservice_api: 472 tests 89.90s 74619 queries 
+2026-10-03 14:29:13,781 1262 INFO test19 odoo.tests.stats: myservice_asset_depreciation: 17 tests 6.84s 610 queries 
+2026-10-03 14:29:13,781 1262 INFO test19 odoo.tests.stats: myservice_asset_register: 630 tests 177.09s 154411 queries 
+2026-10-03 14:29:13,781 1262 INFO test19 odoo.tests.stats: myservice_barcode_station: 26 tests 7.01s 2141 queries 
+2026-10-03 14:29:13,781 1262 INFO test19 odoo.tests.stats: myservice_dashboard: 13 tests 0.40s 341 queries 
+2026-10-03 14:29:13,781 1262 INFO test19 odoo.tests.stats: myservice_fleet_maintenance: 21 tests 1.44s 1035 queries 
+2026-10-03 14:29:13,781 1262 INFO test19 odoo.tests.stats: myservice_fm_dashboard: 10 tests 2.21s 2002 queries 
+2026-10-03 14:29:13,782 1262 INFO test19 odoo.tests.stats: myservice_identity: 30 tests 4.87s 2029 queries 
+2026-10-03 14:29:13,782 1262 INFO test19 odoo.tests.stats: myservice_nrs_base: 10 tests 0.14s 176 queries 
+2026-10-03 14:29:13,782 1262 INFO test19 odoo.tests.stats: myservice_request_core: 10 tests 0.23s 282 queries 
+2026-10-03 14:29:13,782 1262 INFO test19 odoo.tests.stats: myservice_request_fields: 15 tests 0.56s 349 queries 
+2026-10-03 14:29:13,782 1262 INFO test19 odoo.tests.stats: myservice_security: 14 tests 0.41s 320 queries 
+2026-10-03 14:29:13,782 1262 INFO test19 odoo.tests.stats: myservice_workflow: 106 tests 7.61s 6559 queries 
+2026-10-03 14:29:13,782 1262 INFO test19 odoo.tests.result: 0 failed, 0 error(s) of 1066 tests when loading database 'test19' 
