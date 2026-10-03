@@ -53,6 +53,9 @@ _USER_KEYS = frozenset({
     "last_login_at", "created_at",
     # Handoff 43: whether a link to set a password is outstanding, and since when.
     "invitation",
+    # Handoff 46: created by a test credential (a suite's officer, a demo
+    # persona) — derived, read-only, never a real person.
+    "is_test_fixture",
 })
 _ROLE_KEYS = frozenset({
     "key", "name", "xmlid", "scopes", "description", "installed", "implies",
@@ -240,6 +243,19 @@ def test_system_is_published_as_system_administrator(roles_by_key):
     assert roles_by_key["system"]["xmlid"] == "base.group_system"
     assert roles_by_key["system"]["name"] == "System Administrator"
     assert roles_by_key["system"]["scopes"] == ["admin"]
+
+
+def test_the_fixture_label_is_a_boolean_and_a_demo_persona_carries_it(everyone):
+    """Handoff 46. `is_test_fixture` is derived from the partner; a persona
+    on `@demo.example` that the seed created is always labelled. Rows past the
+    record cap are not read; the assertion is over the rows that are."""
+    rows, _total, _truncated = everyone
+    for row in rows:
+        assert isinstance(row["is_test_fixture"], bool), row
+    for row in rows:
+        if (row["login"] or "").endswith("@demo.example") and row["kind"] == "person":
+            assert row["is_test_fixture"] is True, (
+                "%s is on the demo domain and published as a real person" % row["login"])
 
 
 def test_every_user_row_carries_every_key(everyone):
