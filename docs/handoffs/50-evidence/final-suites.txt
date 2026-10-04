@@ -1,0 +1,29 @@
+=== FINAL pytest full suite, test19, 2026-10-04T06:04:58Z ===
+============================ cadra api test report =============================
+Report: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-report.md
+Captured responses: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-responses/
+1294 passed, 9 skipped in 377.83s (0:06:17)
+=== FINAL playwright whole suite, test19 ===
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/00-auth-authenticated-sess-36aab--chip-shows-signed-in-state-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/00-auth-authenticated-sess-36aab--chip-shows-signed-in-state-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/00-auth-authenticated-sess-36aab--chip-shows-signed-in-state-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/00-auth-authenticated-sess-36aab--chip-shows-signed-in-state-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests/13-asset-depreciation.spec.ts:68:5 › a computed asset charts its value over time 
+    [chromium] › tests/14-settings-depreciation.spec.ts:36:7 › /settings/depreciation › the straight-line switch persists across a reload 
+  1 flaky
+    [chromium] › tests/00-auth.spec.ts:68:7 › authenticated session › sidebar session chip shows signed-in state 
+  12 skipped
+  190 passed (12.6m)
+SUITES-DONE

@@ -1224,3 +1224,80 @@ of which side was wrong, and every suite's denominator.
 - Specs 46 + 48 re-run on both tenants: **11 passed of 11** each.
 - Found by the spec's first run and fixed: a null `value.book_value`
   white-screened the app (no error boundary — `docs/GO-LIVE.md` §26).
+
+## 50 — The consequences (2026-10-04)
+
+### Built
+
+- **`export:read`** (ruling 1, BREAKING): both export routes
+  (`GET /assets/export`, `GET /assets/export.csv`) off `assets:read` onto a
+  new scope granted by exactly the Auditor (`admin` wildcard covers
+  administrators). Named `export:read`, not `assets:export`, so the pin
+  "every Auditor scope ends `:read`" (test_auditor_access.py) holds without
+  an allow-list hole. Sidebar item `register_export` declares it; the
+  Export page's gate and refusal say it; `myservice_api` 19.0.3.24.0.
+- **`RouteErrorBoundary`** (ruling 2): one boundary inside the shell, keyed
+  on location, plus the shell-less public pages — any render error is a
+  sentence, what-you-can-do, the error's message, and a live sidebar,
+  instead of a blank page.
+- **The attribution trailer is refused by machinery** (ruling 3):
+  `scripts/check_commit_messages.sh` (message-file mode for the committed
+  `scripts/git-hooks/commit-msg` hook, range mode for the new CI job
+  `commit-messages`, fetch-depth 0, new commits only — 206 of 209 commits
+  reachable from dev predate the rule and stay).
+- **The map leak closed** (§2.1, BREAKING): `GET /dashboard/map` returns
+  `locations` only; the vehicle rows (plate, driver) moved to new
+  `GET /fleet/map` under `operations:read`; `recent_requests` (read by
+  nothing, documented wrongly) removed; the back-office twin keeps the full
+  shape for administrators. Fleet Command Center reads the new route;
+  persisted-cache version bumped v4 → v5 so no browser keeps the old
+  payload. `myservice_dashboard` 19.0.1.1.0.
+- **§5 (the three absorbed handoff-33 items):** `salvage_rate` and
+  `verification_notes` published on the asset GET (their `_WRITE_ONLY`
+  waivers removed, so the read-back guard enforces them); `mobile` removed
+  from the employee-sync accepted set for all six callers (BREAKING,
+  `myservice_identity` 19.0.1.2.0); the published-names census widened to
+  every first-party `controllers/*.py` — 73 body routes of 142 first-party
+  routed declarations (48 in `/api/v1`, 25 outside, 4 back-office overrides
+  named separately), two-way equality so door #14 cannot land unlisted; the
+  words guard's two string classes separated in
+  `myservice_api/tests/test_words_classes.py` (composed statements guarded
+  across five report endpoints; refusals exempt with `mark_command`'s
+  reasoning pinned so the ruling cannot be silently reversed).
+
+### Measured
+
+- Credentials (all nine local tenants, 2026-10-03): 8 active non-admin
+  credentials of 21 hold `assets:read` and lose the export routes; the
+  handoff-47 leftovers re-confirmed (5 × `test_client` + 2 × `vendra`);
+  counts in `docs/handoffs/50-evidence/credential-scopes.txt`.
+- Session users who lose the export screen (direct memberships): test19
+  9 of 11 register holders, boot44 4 of 7, jaizbankplc 5 of 7, gtb/lasg/nrs
+  4 of 6 each, gtb19 1 of 2, nrs19 2 of 4, cadra19 0 of 2.
+- The map: 0 geocoded vehicles of 3,338 vehicles on all nine tenants — the
+  leak was the shape; proved live with a seeded evidence vehicle on test19,
+  read as a Store Officer before (plate + driver in the body) and after
+  (gone; `/fleet/map` 403).
+- `mobile`: 0 of 15,780 employees, 0 of 321 sync payloads, nine tenants.
+- The two red browser specs named with their first recorded failure texts
+  (`50-evidence/red-specs-13-14.md`): spec 13 a fixture-selection defect in
+  the spec; spec 14 matches the persisted-cache hypothesis; neither is
+  handoff 37's defect.
+
+### Verification
+
+- pytest on `test19`: **1293 passed, 9 skipped of 1303** (one transient
+  30 s ReadTimeout on an untouched approvals test, passed alone in 3.4 s;
+  final whole-suite re-run below). In-registry: `myservice_api` **0 failed,
+  0 error(s) of 371**; `myservice_identity` **of 30**; `myservice_dashboard`
+  **of 9** — all three denominator lines printed.
+- Spec 50 (new): **3 passed of 3** on `test19` AND `boot44` — the deliberate
+  throw renders the boundary with the sidebar alive and the next page
+  drawing; the Store Officer refused the export in the browser and by probe
+  while the Auditor passes; the map carries no `fleet`/`plate`/`driver` and
+  `/fleet/map` is 403/200 by scope.
+- Persona matrix re-run (§4): specs 46 + 48 + 49 — **15 passed of 15** on
+  `test19`, **18 passed of 18** (incl. spec 50) on `boot44`.
+- The trailer guard: a live `git commit` carrying the trailer REFUSED (no
+  commit created); the historical range flags (exit 1), the clean Step-0
+  range passes (exit 0).

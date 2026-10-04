@@ -562,17 +562,17 @@ Audit is a read role that must see everything and change nothing, across tenants
 
 ### 4.1 The scopes that exist
 
-Eighteen since handoff 47, of which **eight are read scopes**: `assets:read`, `locations:read`, `requests:read`, `dashboards:read`, `operations:read`, `identity:read`, `access:read`, `settings:read`. The others are `assets:write`, `locations:write`, `requests:write`, `approvals:write`, `ingestion:write`, `integrations:write`, `tagging:write`, `settings:write`, `webhooks:admin` and `admin`. Handoff 47 split two names that each carried two meanings: `access:read` (the access-changes report) out of `identity:read`, and `operations:read` (the fleet/FM/security dashboards) out of `dashboards:read`.
+Nineteen since handoff 50, of which **nine are read scopes**: `assets:read`, `export:read`, `locations:read`, `requests:read`, `dashboards:read`, `operations:read`, `identity:read`, `access:read`, `settings:read`. The others are `assets:write`, `locations:write`, `requests:write`, `approvals:write`, `ingestion:write`, `integrations:write`, `tagging:write`, `settings:write`, `webhooks:admin` and `admin`. Handoff 47 split two names that each carried two meanings: `access:read` (the access-changes report) out of `identity:read`, and `operations:read` (the fleet/FM/security dashboards) out of `dashboards:read`. Handoff 50 split a third the same way: `export:read` (the two whole-register export routes) out of `assets:read`, granted by the Auditor — the audit credential gains the bulk export and a register reader loses only the copy.
 
 **`admin` is a wildcard.** In `require_jwt`, `admin` (or the literal `"*"`) satisfies every route including `tagging:write` — an accepted, documented posture, "absolute below system-administrator". **An audit credential must never hold it**, and this is the one thing most likely to be got wrong when someone provisions the credential in a hurry.
 
 ### 4.2 What an auditor's credential should be
 
 ```
-assets:read  locations:read  identity:read  access:read  dashboards:read  requests:read  settings:read
+assets:read  export:read  locations:read  identity:read  access:read  dashboards:read  requests:read  settings:read
 ```
 
-Seven scopes, no writes (the last two added by handoffs 23 and 47; without `access:read` the credential cannot open the access-changes report). As an **API client** this works today and is genuinely read-only: scope enforcement is declarative and per-route, `assets:read` is not in the required list of any POST, PATCH or DELETE, and unknown scopes are rejected on save so a typo cannot mint a token that 403s indistinguishably from a real permission decision.
+Eight scopes, no writes (`access:read` added by handoff 47 — without it the credential cannot open the access-changes report; `export:read` by handoff 50 — without it the credential cannot take the whole-register export, which is an audit act if anything is). As an **API client** this works today and is genuinely read-only: scope enforcement is declarative and per-route, `assets:read` is not in the required list of any POST, PATCH or DELETE, and unknown scopes are rejected on save so a typo cannot mint a token that 403s indistinguishably from a real permission decision.
 
 As a **human session** it does not work. Session scopes derive from Odoo groups, and the group that grants the five read scopes — `group_asset_user` — **also grants `requests:write`**, because the group's own description is "view assets, log verifications, raise requests" and raising one is a write. So an auditor logging in through the SPA cannot currently be given read-only.
 

@@ -1167,7 +1167,14 @@ was seen by acting on `test19` and reading the row, not by reading the code.
 13. **Two depreciation e2e specs fail on `test19`, on `dev` as well as on
     handoff 29's branch** — *"a computed asset charts its value over time"*
     and *"the straight-line switch persists across a reload"*. Established by
-    building `dev`'s front end and running them against it; NOT investigated.
+    building `dev`'s front end and running them against it; named by handoff
+    50 §3 with the first recorded failure texts
+    (`docs/handoffs/50-evidence/red-specs-13-14.md`): spec 13 is a
+    fixture-selection defect in the spec (the first computed-method asset
+    has no cost/useful life, so the product's honest empty state fails the
+    spec's assumption); spec 14 matches §16.3 item 8's persisted-cache
+    hypothesis point for point. Neither is handoff 37's defect. Fixes not
+    applied — a spec fixture and a cache-policy decision respectively.
 14. **On a tenant with `transferred` assets the KPI strip will not add up.**
     Its tiles are Active, Under Repair, Missing and Condemned; the enum has a
     fifth state. None of the eight local tenants holds one. Measured, not
@@ -2125,7 +2132,12 @@ found is here.
   the locations. So an Asset User refused `/fleet` still reads the fleet
   through the map. Splitting the payload is a BREAKING serializer change
   and a question about what the register dashboard's map is FOR; not
-  decided here. `[open]`, Architect.
+  decided here. `[landed]` — handoff 50 §2.1: the map sends `locations`
+  only (every register-side consumer read nothing else); the vehicle rows
+  moved to `GET /fleet/map` under `operations:read`, where the one screen
+  that read them lives. Driven as a Store Officer before and after on
+  `test19` (`docs/handoffs/50-evidence/`); measured 0 geocoded vehicles of
+  3,338 on all nine local tenants, so the shape leaked, never yet a row.
 - **The Auditor's four reports still have no screen** — configuration
   changes, disposals, the register snapshot, the export all answer the
   auditor 200 over the API and the app draws no page for any of them
@@ -2139,8 +2151,19 @@ found is here.
   needs `access:read`; one holding `dashboards:read` for the fleet/FM/
   security endpoints now needs `operations:read`; one holding `assets:write`
   to mint or replace labels now needs `tagging:write`. Per-tenant counts of
-  who is actually affected are in report 47 §B. `[open]`, owner, before
-  the next demo that uses a non-admin credential on those routes.
+  who is actually affected are in report 47 §B, re-taken 2026-10-03 by
+  handoff 50 §2.2 (report 50 §D, `50-evidence/credential-scopes.txt`):
+  unchanged in substance — the affected non-admin active credentials are
+  `test_client` on gtb, gtb19, jaizbankplc, lasg and nrs (5, each holding
+  `identity:read` + `dashboards:read` + `assets:write`, none holding any
+  new-name scope) and `vendra` on nrs19 and boot44 (`assets:write`, never
+  minted a label). Handoff 50 adds a fourth row to the same decision: the
+  8 active non-admin credentials holding `assets:read` lose the two export
+  routes unless given `export:read` — none is known to call them, and an
+  API credential's export was already capped at 100 rows. The fix remains
+  a credential's scope row and a named decision per credential. `[open]`,
+  owner, before the next demo that uses a non-admin credential on those
+  routes.
 
 ## 26 · Handoff 49 — the auditor's own screens, 2026-10-03
 
@@ -2158,7 +2181,13 @@ found is here.
   disposals report, the register snapshot and the whole-register export.
   Whether the audit reports should be the Auditor's alone (a `reports:read`
   or wider `access:read`) is a role-model question, the same shape as the
-  §25 map finding. `[open]`, Architect.
+  §25 map finding. `[ruled, half landed]` — handoff 50 ruling 1 ruled the
+  EXPORT: it moved to its own `export:read` (Auditor + Administrator),
+  driven refused-as-Store-Officer and answered-as-Auditor on `test19` and
+  `boot44`. The disposals report and register snapshot stay on
+  `assets:read` — the ruling drew the line at taking a copy; whether a
+  page-read of those two reports is also the Auditor's alone was not
+  ruled and remains `[open]`, Architect.
 - **87 of 6,646 held assets, 59 departed holders — now on a screen.** The
   register snapshot carries a card computed from
   `GET /identity/employees?active=false` (no new endpoint): how many assets
@@ -2175,8 +2204,11 @@ found is here.
   that has not computed it) threw in render and React unmounted everything —
   no error boundary anywhere in the tree, so a blank page with no words. The
   row is fixed (a null prints as a dash); the missing boundary is the
-  finding. `[open]`, Architect — one boundary at the route level would turn
-  any future render bug from a blank page into a sentence.
+  finding. `[landed]` — handoff 50 ruling 2: `RouteErrorBoundary` wraps the
+  page area inside the shell (and the shell-less public pages), keyed on
+  the location so navigating clears it; a deliberate bad payload on
+  `/assets` rendered the sentence with the sidebar alive and the next page
+  drew (spec 50, both tenants).
 - **The export is uncapped only for frontend sessions.** An API credential
   gets 100 rows plus `X-Cadra-Truncated`; the screen says so in amber if it
   ever sees it. On `nrs19` the page's count (11,951), the file's rows

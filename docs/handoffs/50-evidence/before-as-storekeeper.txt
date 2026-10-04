@@ -1,0 +1,9 @@
+=== BEFORE (old code still served) — Store Officer halima.danjuma, test19, 2026-10-03T19:21:46Z ===
+--- GET /api/v1/dashboard/map ---
+keys: ['fleet', 'locations', 'recent_requests']
+fleet rows: 1
+  the leak: {'name': 'Evidence Brand (handoff 50)/Evidence Model/EV50-TEST', 'plate': 'EV50-TEST', 'driver': 'Evidence Driver (handoff 50)'}
+--- GET /api/v1/assets/export (JSON) ---
+HTTP 200
+--- GET /api/v1/assets/export.csv ---
+HTTP 200

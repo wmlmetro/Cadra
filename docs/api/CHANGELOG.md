@@ -33,6 +33,55 @@ live at was never the point.
 
 ---
 
+## 2026-10-04 — handoff 50: the consequences · `myservice_api` 19.0.3.24.0, `myservice_dashboard` 19.0.1.1.0, `myservice_identity` 19.0.1.2.0
+
+- **BREAKING: `GET /assets/export` and `GET /assets/export.csv` take
+  `export:read`** (new scope), not `assets:read`. Reading a page of the
+  register and taking a copy of all of it are different acts, and one name
+  carried both — the same defect handoff 47 split twice. The Auditor group
+  grants the new scope; the `admin` wildcard covers administrators; no other
+  group or scope changed, so every Asset User, Officer and Manager keeps
+  every page read and loses only the whole-register copy. A non-admin
+  credential that calls either export route needs `export:read` added to
+  its row (8 active non-admin credentials across the nine local tenants
+  hold `assets:read` today; for an API credential the export was already
+  capped at 100 rows, so the register-sized loss is session-only).
+- **BREAKING: `GET /dashboard/map` returns `locations` only.** The `fleet`
+  and `recent_requests` keys are gone. The fleet rows carried one row per
+  geocoded vehicle — license plate and driver's name — to every holder of
+  `dashboards:read`, which handoff 47 split precisely so a person refused
+  `/fleet` could not read the fleet (GO-LIVE §25: found by 47's own
+  verification pass, left as the open hole in its fix). `recent_requests`
+  was read by nothing first-party and its documented shape had already
+  drifted from what the server sent. Measured before changing: 0 geocoded
+  vehicles exist on all nine local tenants, so no live payload shrank —
+  the shape did.
+- **Additive: `GET /fleet/map`** (`operations:read`) — the geocoded vehicle
+  rows, exactly as `/dashboard/map` used to shape them, on the scope that
+  already gates every other fleet read. The fleet map is a fleet screen;
+  it now wears the fleet's scope.
+- **BREAKING: the employee-sync feed no longer accepts `mobile`.** Removed
+  from the model-level accepted set (`nrs.sap.sync.log`), so all six
+  callers — `POST /api/v1/integrations/sap/employee-sync`, the legacy door
+  and its `/test` twin, the xlsx job, the CSV wizard, the loader script —
+  now refuse a body carrying it (the v1 route's whole-batch 400 with
+  `details.rejected_fields`; the model's per-row error elsewhere). Measured
+  before removing (2026-10-03): 0 of 15,780 employees across all nine local
+  tenants hold a mobile number — nrs19's real 11,386-employee extract
+  included — and 0 of 321 sync payloads ever carried the key. A key that
+  is accepted, never stored anywhere a reader can see, and never sent is
+  not a contract, it is a trap (an accepted key nobody can read back is
+  unverifiable by construction); the feed is live on no tenant (secret set
+  on 0 of 8, report 37), so no caller can hit the refusal today.
+- **Additive: two write-only keys are now readable.** `salvage_rate` is
+  published in the asset's `financial.depreciation` block beside the
+  `salvage_value` it derives, and `verification_notes` on the asset GET
+  beside the verification fields. Both were writable since their routes
+  opened and readable nowhere; a round-trip can now verify what it wrote
+  (the third of the three, `mobile`, went the other way — above).
+- `/auth/login` tokens: an Auditor's token now carries `export:read`. No
+  other role's token changed.
+
 ## 2026-10-03 — handoff 49: the auditor's own screens · `myservice_api` 19.0.3.23.0
 
 - **Additive: four new sidebar item keys** in `GET /api/v1/settings/sidebar`
@@ -87,6 +136,11 @@ the demo handoffs ran, and re-checked by the Architect on 3 October.)
   `status: "error"` under a top-level `"success": true`, and the list shape
   its own documentation promises is refused by Odoo 19's JSON-RPC
   dispatcher (`Invalid JSON-RPC data`) before the route runs.
+
+## 2026-10-03 — handoff 47: a role is a job · `myservice_api` 19.0.3.21.0, `myservice_asset_register` 19.0.1.22.0
+
+(Heading restored by handoff 50: report 37's commit `eb52157` deleted it,
+leaving the bullets below reading as part of the handoff 37 section above.)
 
 Three scope moves, each **BREAKING** for a credential provisioned under the
 old scope. No route, field, enum or status code changed — only which scope a
