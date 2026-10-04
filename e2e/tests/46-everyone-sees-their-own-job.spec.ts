@@ -43,11 +43,17 @@ const G = (path: string): Probe => ({ method: "GET", path });
 const W = (method: "POST" | "PATCH", path: string): Probe => ({ method, path });
 
 /** Every sidebar item and what its page asks the server for. */
+// The map probes landed with handoff 50 §2.1, closing a recorded gap: the
+// pages that call `/dashboard/map` (the front door, the register dashboard,
+// IT Assets Command) and the one that now calls `/fleet/map` (Fleet Command)
+// were never probing them. The matrix derives drawn/hidden from the real
+// sidebar, so a route whose scope changes moves rows on its own — what these
+// lines pin is that a hidden page's map read really is refused.
 const ITEMS: { path: string; probes: Probe[] }[] = [
-  { path: "/", probes: [G("/assets?limit=1"), G("/locations?limit=1"), G("/identity/employees?limit=1"), G("/dashboard/kpis")] },
-  { path: "/dashboards/fleet", probes: [G("/fleet/dashboard")] },
-  { path: "/dashboards/it", probes: [G("/dashboard/kpis"), G("/assets?limit=1")] },
-  { path: "/assets", probes: [G("/assets?limit=1"), G("/dashboard/kpis")] },
+  { path: "/", probes: [G("/assets?limit=1"), G("/locations?limit=1"), G("/identity/employees?limit=1"), G("/dashboard/kpis"), G("/dashboard/map")] },
+  { path: "/dashboards/fleet", probes: [G("/fleet/dashboard"), G("/fleet/map")] },
+  { path: "/dashboards/it", probes: [G("/dashboard/kpis"), G("/assets?limit=1"), G("/dashboard/map")] },
+  { path: "/assets", probes: [G("/assets?limit=1"), G("/dashboard/kpis"), G("/dashboard/map")] },
   { path: "/assets/list", probes: [G("/assets?limit=1")] },
   { path: "/approvals", probes: [G("/approvals?limit=1")] },
   { path: "/assets/new", probes: [W("POST", "/assets")] },
