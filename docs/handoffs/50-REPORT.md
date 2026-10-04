@@ -370,5 +370,19 @@ Report 36's ruling implemented rather than re-argued, in
 
 ## L · Commits
 
-Listed in the PR; every one made with the commit-msg hook active, none
-carrying a trailer.
+Every one made with the commit-msg hook active; none carries a trailer.
+
+- `d9bd730` — docs: handoff 50 instruction file; handoff 33 marked
+  superseded (Step 0, on `dev`)
+- `2a34ad3` — feat(api): export:read, the map split, and handoff 33's
+  three keys
+- `c7a585a` — test: the export refused by scope, the widened census, the
+  words classes
+- `3eeefe9` — feat(app): the route error boundary, export:read on the
+  screen, the fleet map moves
+- `2350a92` — test(e2e): spec 50 — the throw, the refused copy, the
+  shrunk map
+- `3259571` — ci: the attribution trailer refused by machinery
+- `393680b` — docs: report 50, evidence, CHANGELOG (47's heading
+  restored), DECISIONS, GO-LIVE, STATUS, references, CLAUDE.md row 50
+- the commit carrying this §L
