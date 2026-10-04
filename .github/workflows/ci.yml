@@ -241,6 +241,40 @@ jobs:
           fi
           echo "All in-house addons are present in Dockerfile.odoo.19.k8s."
 
+  commit-messages:
+    # No commit carries an AI-attribution trailer (CLAUDE.md, "Git &
+    # attribution policy"). Twice — reports 37 and 49 — a Step-0 commit went
+    # out with the tool's default trailer before the rule was consulted;
+    # handoff 50 ruling 3 made the rule mechanical. Only the NEW commits are
+    # checked: 206 of the 209 commits reachable from dev predate the
+    # mechanism and stay as the owner ruled, which is why this job must
+    # never scan full history. The local half is scripts/git-hooks/commit-msg
+    # (activated per clone with `git config core.hooksPath scripts/git-hooks`);
+    # this job is the half that cannot be skipped.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: No new commit message carries an AI-attribution line
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            range="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          else
+            before="${{ github.event.before }}"
+            if [ -z "$before" ] || ! git cat-file -e "$before" 2>/dev/null; then
+              # A new branch's push event has no usable `before`; compare
+              # against dev, the branch every feature branch leaves from.
+              git fetch origin dev --quiet || true
+              range="origin/dev..HEAD"
+            else
+              range="$before..${{ github.sha }}"
+            fi
+          fi
+          echo "checking commit messages in $range"
+          ./scripts/check_commit_messages.sh --range "$range"
+
   prod-compose-lint:
     # Validate that the prod compose file is syntactically correct (cheap).
     # Doesn't actually bring it up — needs a real domain for Caddy.
