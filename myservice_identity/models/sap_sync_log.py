@@ -21,7 +21,16 @@ SAP_FIELD_MAP = {
     'managerIR': 'sap_manager_ir',
     'email': 'work_email',
     'phone': 'work_phone',
-    'mobile': 'mobile_phone',
+    # `mobile` REMOVED (handoff 50 §5 B1, measured 2026-10-03): 0 of 15,780
+    # employees across all nine local tenants hold a `mobile_phone` and 0 of
+    # 321 sync-log payloads ever carried the key — an accepted key nobody can
+    # read back is unverifiable by construction, and nothing ever sent this
+    # one. `SAP_PAYLOAD_KEYS` below is DERIVED from this map, so the key left
+    # the accepted set with this line; the route refuses unknown keys with a
+    # 400 naming them in `details.rejected_fields`, so a future sender is
+    # told loudly rather than dropped silently — that is the design
+    # (CLAUDE.md rule 3). BREAKING on the employee-sync contract, which is
+    # live on no tenant (report 37: secret set on 0 of 8).
     'hireDate': 'employment_start_date',
     'terminationDate': 'employment_end_date',
 }

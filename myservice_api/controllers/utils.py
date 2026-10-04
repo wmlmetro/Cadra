@@ -199,6 +199,14 @@ from odoo.addons.myservice_nrs_base.caller_ip import (  # noqa: E402,F401
 
 SCOPE_ASSETS_READ        = "assets:read"
 SCOPE_ASSETS_WRITE       = "assets:write"
+# Taking a copy of the whole register (`/assets/export`, `/assets/export.csv`)
+# and reading a page of it are different acts, and until handoff 50
+# `assets:read` meant both — the same one-name-two-meanings defect handoff 47
+# split twice for (ruling 1 there, ruling 1 here). Named `export:read` rather
+# than `assets:export` because the Auditor is pinned read-only — every scope
+# the Auditor holds ends `:read` (`test_auditor_access.py`) — and an export
+# changes nothing about the register; it only copies it.
+SCOPE_EXPORT_READ        = "export:read"
 SCOPE_LOCATIONS_READ     = "locations:read"
 SCOPE_LOCATIONS_WRITE    = "locations:write"
 SCOPE_REQUESTS_READ      = "requests:read"
@@ -208,12 +216,11 @@ SCOPE_INGESTION_WRITE    = "ingestion:write"
 SCOPE_INTEGRATIONS_WRITE = "integrations:write"
 SCOPE_WEBHOOKS_ADMIN     = "webhooks:admin"
 # The asset register's own figures: `/dashboard/kpis`, `/dashboard/map`,
-# `/reports/depreciation`. kpis and the depreciation report are aggregates;
-# the MAP is not entirely — its payload carries one row per geocoded
-# vehicle (plate, driver) beside the locations, because it backs the
-# register dashboard's map. That fleet half riding the register's scope is
-# a recorded Architect finding (report 47), not a license to widen this
-# side of the split.
+# `/reports/depreciation`. Until handoff 50 §2.1 the MAP was not entirely an
+# aggregate — its payload carried one row per geocoded vehicle (plate,
+# driver) beside the locations, a recorded Architect finding (report 47,
+# GO-LIVE §25). 50 closed it: the vehicle rows moved to `/fleet/map` under
+# `operations:read`, and this scope's map answers locations only.
 # Until handoff 47 this one name also opened every fleet, staff-bus, FM and
 # security screen; that half is `operations:read` below. One name was
 # carrying two meanings, which is the defect this API keeps finding in
@@ -253,6 +260,7 @@ SCOPE_ADMIN              = "admin"
 
 ALL_SCOPES = frozenset({
     SCOPE_ASSETS_READ, SCOPE_ASSETS_WRITE,
+    SCOPE_EXPORT_READ,
     SCOPE_LOCATIONS_READ, SCOPE_LOCATIONS_WRITE,
     SCOPE_REQUESTS_READ, SCOPE_REQUESTS_WRITE,
     SCOPE_APPROVALS_WRITE,
@@ -371,6 +379,11 @@ GROUP_SCOPES = (
         # could NOT find while every Asset User could read it — both halves
         # of the same defect, fixed by the `identity:read` split (ruling 1).
         SCOPE_ACCESS_READ,
+        # Taking a copy of the whole register (handoff 50, ruling 1). Held
+        # by the Auditor and, through the `admin` wildcard in
+        # `_missing_scopes`, the Administrator — and by nobody else: a Store
+        # Officer, Asset User, Officer or Manager reads pages, not copies.
+        SCOPE_EXPORT_READ,
     )),
 
     # The employee roster and the SAP/spreadsheet imports that feed it.
@@ -466,6 +479,10 @@ SCOPE_GROUPS = {
     # (GROUP_SCOPES above), so it is what the group is FOR — same shape as
     # `settings:read` above it.
     SCOPE_ACCESS_READ:        ("myservice_api.group_auditor",),
+    # Same shape again (handoff 50, ruling 1): the Auditor is the one
+    # non-wildcard group that grants `export:read`, so it is what the group
+    # is FOR.
+    SCOPE_EXPORT_READ:        ("myservice_api.group_auditor",),
     SCOPE_INTEGRATIONS_WRITE: ("myservice_identity.group_identity_manager",),
     SCOPE_TAGGING_WRITE:      ("myservice_asset_register.group_tag_issuing_unit",),
     # SCOPE_WEBHOOKS_ADMIN and SCOPE_ADMIN map to nothing on purpose — see the

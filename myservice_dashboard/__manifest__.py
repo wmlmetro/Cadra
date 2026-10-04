@@ -1,6 +1,6 @@
 {
     'name': 'myservice Operations Dashboard',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'Interactive map dashboard — Fleet, Locations, KPIs',
     'author': 'WestMetro Limited',
     'category': 'Dashboard',
