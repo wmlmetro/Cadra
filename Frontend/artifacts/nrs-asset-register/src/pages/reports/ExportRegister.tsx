@@ -64,6 +64,9 @@ export default function ExportRegister() {
     return () => { if (objectUrl.current) URL.revokeObjectURL(objectUrl.current); };
   }, [setTitle, setSearchHandler]);
 
+  // The count reads `GET /assets`, which stays `assets:read` — every holder
+  // of `export:read` (the Auditor, an administrator) also holds
+  // `assets:read`, so the size renders for everyone this page admits.
   const total = useQuery<number | null, CadraApiError>({
     queryKey: ["register-total"],
     queryFn: fetchRegisterTotal,
@@ -71,8 +74,11 @@ export default function ExportRegister() {
     staleTime: 60_000,
   });
 
-  if (!scopes.has(SCOPE.assetsRead)) return (
-    <ScopeRefusal scope="assets:read" detail="The export is the register, every asset of it, as a file." />
+  // `export:read`, not `assets:read`, since handoff 50 ruling 1: both export
+  // routes refuse anything less, and this panel must name the scope the
+  // server actually requires.
+  if (!scopes.has(SCOPE.exportRead)) return (
+    <ScopeRefusal scope="export:read" detail="The export is the register, every asset of it, as a file — the Auditor's scope, not every reader's." />
   );
 
   const download = async () => {

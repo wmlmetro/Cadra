@@ -22,6 +22,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppLayout from "@/components/layout/AppLayout";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { hasLiveSession, onLogout } from "@/lib/auth";
 import { Clock } from "lucide-react";
 
@@ -149,10 +150,17 @@ function Home() {
 }
 
 function AppRoutes() {
+  // Handoff 50 ruling 2: a page that throws renders a sentence inside the
+  // page area, never a blank screen — the boundary sits INSIDE AppLayout so
+  // the shell and sidebar survive, and it is keyed on the location so
+  // navigating away clears the error. It wraps the Suspense, not just the
+  // Switch, so a lazy chunk that fails to load after a deploy is caught too.
+  const [location] = useLocation();
   return (
     <AppLayout>
-      <Suspense fallback={<RouteFallback />}>
-        <Switch>
+      <RouteErrorBoundary key={location}>
+        <Suspense fallback={<RouteFallback />}>
+          <Switch>
           <Route path="/"                    component={Home}                 />
           <Route path="/search"              component={GlobalSearch}         />
           <Route path="/dashboards/fm"       component={FMOperationsDashboard} />
@@ -215,8 +223,9 @@ function AppRoutes() {
               (handoff 46, `landingPath`). */}
           <Route path="/no-access"           component={NoAccess}       />
           <Route component={NotFound} />
-        </Switch>
-      </Suspense>
+          </Switch>
+        </Suspense>
+      </RouteErrorBoundary>
     </AppLayout>
   );
 }
@@ -253,16 +262,23 @@ function AuthGate() {
     queryClient.clear();
   }, [signedIn]);
 
+  // Handoff 50 ruling 2, same rule outside the shell: the letter's pages and
+  // the sign-in page have no sidebar to survive, but a sentence still beats
+  // a white screen.
   const publicPage = PUBLIC_PATHS[location.replace(/\/$/, "")];
   if (publicPage) return (
-    <Suspense fallback={<RouteFallback />}>
-      {publicPage()}
-    </Suspense>
+    <RouteErrorBoundary key={location}>
+      <Suspense fallback={<RouteFallback />}>
+        {publicPage()}
+      </Suspense>
+    </RouteErrorBoundary>
   );
   if (!signedIn) return (
-    <Suspense fallback={<RouteFallback />}>
-      <Login />
-    </Suspense>
+    <RouteErrorBoundary key={location}>
+      <Suspense fallback={<RouteFallback />}>
+        <Login />
+      </Suspense>
+    </RouteErrorBoundary>
   );
   return <AppRoutes />;
 }
@@ -349,7 +365,12 @@ function App() {
           // the block" and draws no verdict from. Honest, but wrong about the
           // server for as long as the copy is fresh, and the register's
           // warranty filter would sit over rows that cannot show one.
-          buster: "v4",
+          //
+          // v4 → v5 in handoff 50 §2.1: `/dashboard/map` lost `fleet` and
+          // `recent_requests` — the persisted cache must not outlive the
+          // serializer, or a browser restores vehicle rows the server no
+          // longer hands over.
+          buster: "v5",
         }}
       >
         <TooltipProvider>

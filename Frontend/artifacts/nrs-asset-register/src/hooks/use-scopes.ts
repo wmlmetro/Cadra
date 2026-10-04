@@ -93,6 +93,11 @@ export const SCOPE = {
    *  49). Held by the Auditor and the Asset Manager; `settings:write` does
    *  not imply it on the token, the two are granted side by side. */
   settingsRead: "settings:read",
+  /** Taking a copy of the register — both export routes (handoff 50 ruling
+   *  1). The Auditor's alone (plus the `admin` wildcard): reading the
+   *  register is not the same act as walking out with a file of it. Kept in
+   *  step with myservice_api/controllers/utils.py, like every entry here. */
+  exportRead: "export:read",
   /** The employee import and the SAP employee sync. */
   integrationsWrite: "integrations:write",
   /** The wildcard. Pages under Administration require it (handoff 41). */

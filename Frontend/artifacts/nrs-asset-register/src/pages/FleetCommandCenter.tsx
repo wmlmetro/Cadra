@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
-import { fetchFleetDashboard, fetchDashboardMap, type FleetDashboard } from "@/lib/dataProvider";
+import { fetchFleetDashboard, fetchFleetMap, type FleetDashboard } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import NigeriaMap, { type MapPinData } from "@/components/NigeriaMap";
 import {
@@ -24,9 +24,11 @@ export default function FleetCommandCenter() {
     queryFn: fetchFleetDashboard,
     staleTime: 60_000,
   });
+  // `GET /fleet/map` since handoff 50 §2.1 — the vehicle rows left
+  // `/dashboard/map`, which now carries locations only.
   const map = useQuery({
-    queryKey: ["dashboard-map-for-fleet"],
-    queryFn: fetchDashboardMap,
+    queryKey: ["fleet-map"],
+    queryFn: fetchFleetMap,
     staleTime: 60_000,
   });
 
