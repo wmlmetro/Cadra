@@ -53,6 +53,10 @@ OPERATIONS_ROUTES = [
     ("/api/v1/fleet", "get"),
     ("/api/v1/fleet/{id}", "get"),
     ("/api/v1/fleet/dashboard", "get"),
+    # Handoff 50 §2.1: the vehicle rows (plate, driver — identified personal
+    # data) came OFF /dashboard/map and onto this route, behind the fleet's
+    # own scope. It landing anywhere but [operations:read] reopens the leak.
+    ("/api/v1/fleet/map", "get"),
     ("/api/v1/fm/dashboard", "get"),
     ("/api/v1/security/kpis", "get"),
     ("/api/v1/security/map-data", "get"),

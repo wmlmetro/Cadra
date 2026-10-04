@@ -495,3 +495,27 @@ def test_dashboards_and_operations_are_two_scopes_held_by_different_jobs():
             f"{xmlid} grants {sorted(scopes)} — its job is the operational "
             "dashboards, not the asset register's figures"
         )
+
+
+# ─── handoff 50: taking a copy of the register is its own act ────────
+
+
+def test_export_read_is_granted_by_exactly_the_auditor():
+    """Ruling 1: reading a page of the register and taking a copy of all of
+    it are different acts — the export is the Auditor's (and the
+    administrator's, via the wildcard), not every Asset User's.
+
+    `export:read` reaching a second group quietly reopens what the split
+    closed: under `assets:read`, every holder of the register's list
+    screens could pull the whole register through `/assets/export`.
+    """
+    granting = [xmlid for xmlid, scopes in _group_scopes()
+                if "export:read" in scopes]
+    assert granting == [AUDITOR], (
+        f"`export:read` is granted by {granting or 'nothing'}; it must be "
+        f"granted by exactly one group, `{AUDITOR}`"
+    )
+    assert "export:read" not in _scopes_for_group(ASSET_USER), (
+        "Asset User holds `export:read` — the assets:read split is undone: "
+        "a store officer can take a copy of the register again"
+    )

@@ -50,22 +50,30 @@ mechanical one, in the file written against exactly that. And a route
 declaring no `methods` was read as GET, when Odoo accepts every method on
 one; such a route is now reported as `ANY` and must be classified.
 
-**Where it stops.** The census is `/api/v1/*` on this addon's controllers.
-It does not see the first-party routes outside that prefix
-(`docs/api/EXTERNAL-SURFACES.md`), and in particular not the public twin
-`POST /api/myservice/quick-submit` — which is the same Python function as
-the v1 route and declares its accepted keys in the addon that owns the form,
-so the two are checked here THROUGH that shared declaration rather than by
-being routes. A published name added to a surface outside `/api/v1` is not
-watched by anything here.
+**Where it stops.** Since handoff 50 §5 (closing 33 §D1) the ROUTE census is
+every `controllers/*.py` of every first-party addon — `myservice_*` and
+`cadra_brand_*`, found by globbing the addons root — not only this addon's,
+and not only `/api/v1/*`: the twelfth and thirteenth doors were both outside
+that prefix, which is exactly where the fourteenth would have been written.
+Routes outside the prefix are classified in `_BODY_ROUTES_OUTSIDE_V1`, and a
+first-party method that overrides an INHERITED route without declaring a
+path of its own (the four back-office doors) is named in
+`_INHERITED_ROUTE_OVERRIDES`. What is still outside the census, named so the
+edge is usable: core Odoo's own routes (we census our overrides of them, not
+the originals); `dist/`, which is on no addons path and is loaded by
+nothing; raw model methods, which are not routes; and the READ side — the
+guarded-read and serializer parses — which still covers `myservice_api`'s
+controllers only, because that is where the published envelope is composed.
 
 Run with:
     odoo -d <db> -u myservice_api --test-enable \\
          --test-tags /myservice_api --stop-after-init
 """
 import ast
+import glob
 import importlib
 import inspect
+import logging
 import os
 
 from odoo import http
@@ -74,7 +82,14 @@ from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 from ..controllers import v1
 
+_logger = logging.getLogger(__name__)
+
 _CONTROLLER_DIR = os.path.dirname(inspect.getfile(v1))
+
+#: The addons root, derived from this file's own location rather than from a
+#: hardcoded path — `myservice_api/controllers/..` twice up is the directory
+#: every first-party addon sits in, on the host and in the container alike.
+_ADDONS_ROOT = os.path.dirname(os.path.dirname(_CONTROLLER_DIR))
 
 
 def _controller_modules():
@@ -91,6 +106,14 @@ def _controller_modules():
     into the file itself.
 
     Both halves read the same directory now.
+
+    Since handoff 50 §5 this is the READ side's census and `_resolve`'s
+    short-name table only; the ROUTE census walks
+    `_first_party_controller_modules()` below, which sees every addon. Two
+    functions rather than one widened one, because the keys cannot be
+    shared: short stems collide across addons (`main.py` exists in both
+    `myservice_barcode_station` and `myservice_security`), and
+    `_BODY_ROUTES` refers to this addon's modules by their stems.
     """
     package = v1.__name__.rsplit(".", 1)[0]
     out = {}
@@ -99,6 +122,33 @@ def _controller_modules():
             continue
         stem = name[:-3]
         out[stem] = importlib.import_module("%s.%s" % (package, stem))
+    return out
+
+
+def _first_party_controller_modules():
+    """Every module in every first-party addon's `controllers/`, found by
+    GLOBBING THE ADDONS ROOT — handoff 50 §5, closing 33 §D1.
+
+    The `/api/v1/` census missed `POST /api/myservice/quick-submit` and
+    `POST /api/sap/employee-sync` for the same reason the hand-written dict
+    missed new files: the boundary was a convention, and both doors handoff
+    32 closed were outside it. The glob is mechanical — a new first-party
+    addon, or a new controller file in an old one, is imported and walked
+    the day it lands, and its body routes FAIL until classified.
+
+    Keyed `"<addon>/<stem>"` because stems collide across addons.
+    """
+    out = {}
+    for pattern in ("myservice_*", "cadra_brand_*"):
+        for path in sorted(glob.glob(os.path.join(
+                _ADDONS_ROOT, pattern, "controllers", "*.py"))):
+            name = os.path.basename(path)
+            if name == "__init__.py":
+                continue
+            addon = os.path.basename(os.path.dirname(os.path.dirname(path)))
+            stem = name[:-3]
+            out["%s/%s" % (addon, stem)] = importlib.import_module(
+                "odoo.addons.%s.controllers.%s" % (addon, stem))
     return out
 
 
@@ -287,6 +337,160 @@ _BODY_ROUTES = {
                      "`active = True`"),
 }
 
+#: Every first-party route OUTSIDE `/api/v1/` that can carry a body —
+#: handoff 50 §5, closing 33 §D1. Same triple as `_BODY_ROUTES`: a model and
+#: a resolvable gate where the body's keys are a model's fields, or `(None,
+#: None, reason)` where the key-level check cannot or need not apply. The
+#: REASON is the point: the route is NAMED, so door #14 cannot land
+#: unlisted, and the next person reads why the check stops here instead of
+#: rediscovering it.
+#:
+#: Two recurring reasons, stated once:
+#:
+#: - **`type='json'` with named parameters**: Odoo's JSON-RPC dispatch binds
+#:   the body's `params` onto the method signature, so a key the signature
+#:   does not name fails the call loudly — the shape is pinned by the
+#:   signature itself. These are also back-office surfaces: `auth='user'`
+#:   plus handoff 45's session guard makes them administrators-only.
+#: - **"ANY"**: the route declares no `methods`, so Odoo accepts every verb
+#:   on it (the rule the walker has enforced since its first draft).
+_BODY_ROUTES_OUTSIDE_V1 = {
+    # ── the public twins: same declarations as their v1 routes ──
+    # The same Python function as `POST /api/v1/home/quick-submit`; the
+    # gate is the one declaration in the addon that owns the form.
+    ("POST", "/api/myservice/quick-submit"):
+        ("request.request",
+         ("odoo.addons.myservice_website_theme.controllers.api",
+          "QUICK_SUBMIT_FIELDS"), None),
+    # The identity door, ruled for retirement (report 37) and still
+    # standing: both routes hand the dict to `process_sap_payload`, whose
+    # gate is the model's own `SAP_PAYLOAD_KEYS` — checked here through
+    # that shared declaration, exactly as the v1 route is.
+    ("POST", "/api/sap/employee-sync"):
+        ("hr.employee",
+         ("odoo.addons.myservice_identity.models.sap_sync_log",
+          "SAP_PAYLOAD_KEYS"), None),
+    ("POST", "/api/sap/employee-sync/test"):
+        ("hr.employee",
+         ("odoo.addons.myservice_identity.models.sap_sync_log",
+          "SAP_PAYLOAD_KEYS"), None),
+
+    # ── myservice_website_theme ──
+    ("ANY", "/a/<string:asset_code>"):
+        (None, None, "a 301 redirect for printed QR codes; reads only the "
+                     "path segment, no body key"),
+    ("POST", "/api/myservice/form-data"):
+        (None, None, "type='json' answering the public form's dropdown "
+                     "data; `**kwargs` is accepted and IGNORED — it reads "
+                     "no body key, so there is no key to check"),
+
+    # ── myservice_identity (the Redhubs outbound) ──
+    ("POST", "/api/myservice/assets/export"):
+        (None, None, "authenticated by the X-API-Key header; reads no body "
+                     "key — the answer is the whole register, the body is "
+                     "ignored"),
+
+    # ── myservice_workflow ──
+    ("POST", "/myservice/workflow/callback"):
+        (None, None, "the external engine's DECISION, authenticated by "
+                     "X-Callback-Token; the same `outcome` / `comment` / "
+                     "`reference` keys as its v1 twin (classified in "
+                     "`_BODY_ROUTES`), applied by `myservice_workflow` and "
+                     "pinned by its own tests"),
+
+    # ── myservice_barcode_station: the administrators' station ──
+    # All type='json' with named parameters (see above); administrators-only
+    # since handoff 45. The two `/tags*` portal routes declare no methods.
+    ("ANY", "/barcode/lookup"):
+        (None, None, "type='json': `query` on the signature"),
+    ("ANY", "/barcode/kpis"):
+        (None, None, "type='json': no parameters at all"),
+    ("ANY", "/barcode/recent_tags"):
+        (None, None, "type='json': `domain_filter` and `limit` on the "
+                     "signature"),
+    ("ANY", "/barcode/untagged"):
+        (None, None, "type='json': `q` and `limit` on the signature"),
+    ("ANY", "/barcode/generate"):
+        (None, None, "type='json': `asset_ids` on the signature"),
+    ("ANY", "/barcode/print_url"):
+        (None, None, "type='json': `tag_id`, `tag_ids` and `size` on the "
+                     "signature"),
+    ("ANY", "/tags"):
+        (None, None, "the public portal PAGE (type='http', website=True): "
+                     "renders a template, reads no body key"),
+    ("ANY", "/tags/lookup"):
+        (None, None, "type='json', public: `query` on the signature; "
+                     "publishes no ids"),
+
+    # ── the back-office dashboards (all administrators-only, handoff 45) ──
+    ("POST", "/myservice/dashboard/kpis"):
+        (None, None, "type='json': no parameters at all"),
+    ("POST", "/myservice/dashboard/map"):
+        (None, None, "type='json': no parameters at all"),
+    ("POST", "/myservice/dashboard/fleet_command"):
+        (None, None, "type='json': no parameters at all"),
+    ("POST", "/myservice/fleet_dashboard/data"):
+        (None, None, "type='json': `**kwargs` accepted and IGNORED — reads "
+                     "no body key"),
+    ("ANY", "/myservice/fm_dashboard/data"):
+        (None, None, "type='json': `**kw` accepted and IGNORED — reads no "
+                     "body key"),
+    ("POST", "/myservice/security/kpis"):
+        (None, None, "type='json': no parameters at all"),
+    ("POST", "/myservice/security/map_data"):
+        (None, None, "type='json': no parameters at all"),
+    ("POST", "/myservice/security/trend"):
+        (None, None, "type='json': no parameters at all"),
+    ("POST", "/myservice/security/recent"):
+        (None, None, "type='json': no parameters at all"),
+
+    # ── the one public HTML form ──
+    ("POST", "/security/incident/report"):
+        (None, None, "a public WEBSITE form (auth='public', website=True): "
+                     "the body is the rendered form's own fields, read by "
+                     "name into `security.incident` inside a savepoint; "
+                     "HTML in, HTML out — not a JSON contract a machine "
+                     "repairs itself from, so `rejected_fields` has no "
+                     "reader here"),
+}
+
+#: First-party methods that override an INHERITED route without declaring a
+#: path of their own (`@http.route()` with no arguments — the routing is the
+#: parent's). The walker cannot read a path off them, so they are censused
+#: by name instead: one keyed on (module key, class, method), each with the
+#: reason a body-key check does not apply. A new bare override FAILS until
+#: it is named here.
+_INHERITED_ROUTE_OVERRIDES = {
+    # Handoff 45: the four back-office doors. None reads a body key of its
+    # own — each decides from the session and redirects, or hands the body
+    # to core unchanged.
+    ("myservice_api/backoffice", "CadraBackOfficeDoor", "web_client"):
+        "core /web and /odoo: a non-administrator is signed out and sent "
+        "to the app; no body",
+    ("myservice_api/backoffice", "CadraBackOfficeDoor", "web_login"):
+        "core /web/login, kept for administrators; the POST body is core's "
+        "own login form, handed to super() unchanged — a non-administrator "
+        "who signs in is signed out and sent to the app",
+    ("myservice_api/backoffice", "CadraBackOfficeDoor", "web_auth_signup"):
+        "core /web/signup, GET and POST both answered with a redirect to "
+        "the app's page carrying the same token; no body key is read",
+    ("myservice_api/backoffice", "CadraBackOfficeDoor",
+     "web_auth_reset_password"):
+        "core /web/reset_password, GET and POST both redirected to the "
+        "app's pages, token preserved; no body key is read",
+}
+
+
+def _classified_body_routes():
+    """Both tables as one dict: the field-resolution and read-back checks
+    below apply the same rule to a gate wherever its route lives — the two
+    outside-v1 doors with resolvable gates share their declarations with
+    their v1 twins, so checking them costs nothing and skipping them is a
+    boundary again."""
+    out = dict(_BODY_ROUTES)
+    out.update(_BODY_ROUTES_OUTSIDE_V1)
+    return out
+
 #: A published key whose model field has a different name. **The published
 #: key is the contract and translating it is the controller's job** — but a
 #: translation nobody has written down is indistinguishable from a key that
@@ -471,22 +675,15 @@ _SERIALIZERS = {
 #: writable and not published at all — and each is here with the reason, so a
 #: new one has to be argued for rather than noticed three years later.
 _WRITE_ONLY = {
-    ("nrs.asset", "salvage_rate"):
-        "published as the derived amount `financial.depreciation."
-        "salvage_value`, not as the rate; a caller can see the effect of "
-        "what it sent but not the figure",
-    ("nrs.asset", "verification_notes"):
-        "published only in the response to `POST /assets/<id>/verify`, "
-        "never on a GET of the asset",
+    # Handoff 50 §5 (closing 33 §B1) EMPTIED this waiver list down to the one
+    # recorded false positive below. `salvage_rate` and `verification_notes`
+    # are published now, so their entries are gone and the read-back test
+    # REQUIRES them — the guard proves the fix. `mobile` is no longer
+    # accepted at all (0 of 15,780 employees held one, 0 of 321 payloads
+    # ever sent it, 2026-10-03), so there is nothing left to waive.
     ("request.request", "generic_location_id"):
         "read through `_location_field(r)` at runtime, so no parser sees "
         "the name here; `GET /requests/<id>` publishes it as `location`",
-    ("hr.employee", "mobile_phone"):
-        "SAP sends `mobile` and the sync stores it; `serialize_employee` "
-        "publishes `work_phone` and not this one, so an integration can "
-        "set a mobile number and never read it back. Found by this test on "
-        "the day the SAP route was given an allow-list (handoff 32 §A); "
-        "publishing it would be additive and is not this handoff's",
 }
 
 
@@ -626,24 +823,42 @@ def _scan_controllers():
     return rows
 
 
-def _routes_with_a_body():
-    """Every non-GET route on our controllers, read off the routing attribute
-    Odoo stamps on the method — so a route cannot hide by declining a
-    decorator of ours."""
-    out = {}
-    for stem, mod in _controller_modules().items():
+def _route_walk():
+    """Every route declared in a first-party `controllers/*.py`, read off
+    the routing attribute Odoo stamps on the method — so a route cannot
+    hide by declining a decorator of ours.
+
+    Returns `(routes, overrides)`:
+
+    - `routes` — {(method, path): "addon/stem.fname"} for every declared
+      path, GET included (GET is the body census' denominator, not its
+      subject).
+    - `overrides` — {(module key, class, method name)} for every routed
+      method that declares NO path of its own: a bare `@http.route()` whose
+      routing is the parent's. The old walker skipped these in silence,
+      which is how four back-office doors could have gone uncensused.
+
+    Only classes DEFINED in the file are walked (`__module__` must match):
+    `backoffice.py` imports core's `AuthSignupHome`, and walking an imported
+    core class would census core's own routes as ours.
+    """
+    routes, overrides = {}, set()
+    for key, mod in _first_party_controller_modules().items():
         for obj in vars(mod).values():
             if not (inspect.isclass(obj) and issubclass(obj, http.Controller)
-                    and obj is not http.Controller):
+                    and obj is not http.Controller
+                    and obj.__module__ == mod.__name__):
                 continue
             for fname, fn in vars(obj).items():
                 routing = (getattr(fn, "original_routing", None)
                            or getattr(fn, "routing", None))
                 if not routing:
                     continue
-                for path in routing.get("routes") or ():
-                    if not path.startswith("/api/v1/"):
-                        continue
+                paths = routing.get("routes") or ()
+                if not paths:
+                    overrides.add((key, obj.__name__, fname))
+                    continue
+                for path in paths:
                     # A route that declares no `methods` accepts ALL of them
                     # in Odoo, so it takes a body. Reading the absence as GET
                     # would let the next one be written outside this census —
@@ -651,12 +866,19 @@ def _routes_with_a_body():
                     # which is exactly where it would be written.
                     methods = routing.get("methods")
                     if not methods:
-                        out[("ANY", path)] = "%s.%s" % (stem, fname)
+                        routes[("ANY", path)] = "%s.%s" % (key, fname)
                         continue
                     for method in methods:
-                        if method != "GET":
-                            out[(method, path)] = "%s.%s" % (stem, fname)
-    return out
+                        routes[(method, path)] = "%s.%s" % (key, fname)
+    return routes, overrides
+
+
+def _routes_with_a_body():
+    """Every first-party non-GET route, wherever it lives. `/api/v1/` is no
+    longer a boundary of the census — only of which table classifies the
+    route."""
+    routes, _overrides = _route_walk()
+    return {k: v for k, v in routes.items() if k[0] != "GET"}
 
 
 def _resolve(ref):
@@ -696,14 +918,25 @@ class TestPublishedNamesResolve(CadraTransactionCase):
 
         Driven by the routing attribute rather than by `_ROUTE_REGISTRY`,
         which the nine pre-envelope routes never joined, or by a search for
-        allow-lists, which `POST /home/quick-submit` does not have.
+        allow-lists, which `POST /home/quick-submit` does not have. Since
+        handoff 50 §5 the walk is every first-party addon, and the prefix
+        decides only WHICH table must carry the route — a body route under
+        `/api/v1/` belongs in `_BODY_ROUTES`, one outside it in
+        `_BODY_ROUTES_OUTSIDE_V1`, and the wrong table is as unclassified
+        as no table.
         """
         live = _routes_with_a_body()
-        unclassified = {k: v for k, v in live.items() if k not in _BODY_ROUTES}
+        unclassified = {}
+        for (method, path), fn in live.items():
+            table = (_BODY_ROUTES if path.startswith("/api/v1/")
+                     else _BODY_ROUTES_OUTSIDE_V1)
+            if (method, path) not in table:
+                unclassified[(method, path)] = fn
         self.assertFalse(
             unclassified,
             "These routes accept a body and this test does not know what "
-            "its keys are. Add each to `_BODY_ROUTES` with the model whose "
+            "its keys are. Add each to `_BODY_ROUTES` (under /api/v1) or "
+            "`_BODY_ROUTES_OUTSIDE_V1` (anywhere else) with the model whose "
             "fields they name, or with None and the reason they name "
             "none:\n  " + "\n  ".join(
                 "%s %s  (%s)" % (m, p, fn)
@@ -717,6 +950,53 @@ class TestPublishedNamesResolve(CadraTransactionCase):
         self.assertFalse(
             stale, "`_BODY_ROUTES` names routes that no longer exist: %s"
             % (stale,))
+        stale = sorted(k for k in _BODY_ROUTES_OUTSIDE_V1 if k not in live)
+        self.assertFalse(
+            stale, "`_BODY_ROUTES_OUTSIDE_V1` names routes that no longer "
+            "exist: %s" % (stale,))
+
+    def test_the_census_states_its_denominator(self):
+        """How many body routes, OF how many first-party routes — the
+        handoff 50 rule: the census' number moved three times (163, 179,
+        286) because nobody stated what it was counted over. The count
+        itself is deliberately NOT pinned (it is a function of the tree,
+        not a constant); what is asserted is that the denominator is
+        nonempty and the split sums, and the line below is logged so every
+        run leaves a quotable figure with a date attached."""
+        routes, overrides = _route_walk()
+        body = {k: v for k, v in routes.items() if k[0] != "GET"}
+        inside = [k for k in body if k[1].startswith("/api/v1/")]
+        outside = [k for k in body if not k[1].startswith("/api/v1/")]
+        line = (
+            "route census: %d body routes of %d first-party routed "
+            "declarations (%d under /api/v1, %d outside), plus %d "
+            "inherited-route overrides with no path of their own"
+            % (len(body), len(routes), len(inside), len(outside),
+               len(overrides)))
+        _logger.info(line)
+        self.assertTrue(routes, line)
+        self.assertEqual(len(body), len(inside) + len(outside), line)
+
+    def test_every_bare_override_of_an_inherited_route_is_named(self):
+        """`@http.route()` with no arguments carries its PARENT's routing,
+        so the path walk cannot see it — which is a hole exactly the shape
+        of the back-office doors. Two-way, like every table here: a bare
+        override the table does not name fails, and a named override the
+        code no longer makes fails as stale."""
+        _routes, overrides = _route_walk()
+        unnamed = sorted(k for k in overrides
+                         if k not in _INHERITED_ROUTE_OVERRIDES)
+        self.assertFalse(
+            unnamed,
+            "These methods override an inherited route and declare no path "
+            "of their own; the census cannot read their paths, so each must "
+            "be named in `_INHERITED_ROUTE_OVERRIDES` with the reason a "
+            "body-key check does not apply: %s" % (unnamed,))
+        stale = sorted(k for k in _INHERITED_ROUTE_OVERRIDES
+                       if k not in overrides)
+        self.assertFalse(
+            stale, "`_INHERITED_ROUTE_OVERRIDES` names overrides that no "
+            "longer exist: %s" % (stale,))
 
     # ── the write side ───────────────────────────────────────────────
 
@@ -729,7 +1009,8 @@ class TestPublishedNamesResolve(CadraTransactionCase):
         """
         broken = []
         translated = _translations()
-        for (method, path), (model, ref, _why) in sorted(_BODY_ROUTES.items()):
+        for (method, path), (model, ref, _why) in sorted(
+                _classified_body_routes().items()):
             if not model:
                 continue
             fields = self.env[model]._fields
@@ -781,7 +1062,8 @@ class TestPublishedNamesResolve(CadraTransactionCase):
         callers following our own specification."""
         registry = {(e["method"], e["path"]): e for e in v1._ROUTE_REGISTRY}
         broken = []
-        for (method, path), (model, ref, _why) in sorted(_BODY_ROUTES.items()):
+        for (method, path), (model, ref, _why) in sorted(
+                _classified_body_routes().items()):
             if not model:
                 continue
             entry = registry.get((method, path))
@@ -820,7 +1102,8 @@ class TestPublishedNamesResolve(CadraTransactionCase):
         read, _seen = _fields_read_by_serializers()
         translated = _translations()
         blind = []
-        for (method, path), (model, ref, _why) in sorted(_BODY_ROUTES.items()):
+        for (method, path), (model, ref, _why) in sorted(
+                _classified_body_routes().items()):
             if not model:
                 continue
             published = read.get(model, set())

@@ -55,16 +55,18 @@ class TestPaginationCap(CadraHttpCase):
             for i in range(cls.ASSET_COUNT)
         ])
 
+        # `export:read` beside `assets:read` since handoff 50 ruling 1 moved
+        # the two export routes these probes drive onto their own scope.
         cls.client_default = cls.create_api_client({
             "name": "cap probe default", "client_id": "capprobe_default",
-            "scopes": "assets:read"})
+            "scopes": "assets:read export:read"})
         cls.client_uncapped = cls.create_api_client({
             "name": "cap probe uncapped", "client_id": "capprobe_uncapped",
-            "scopes": "assets:read", "total_record_cap": -1,
+            "scopes": "assets:read export:read", "total_record_cap": -1,
             "max_page_limit": -1})
         cls.client_500 = cls.create_api_client({
             "name": "cap probe 500", "client_id": "capprobe_500",
-            "scopes": "assets:read", "max_page_limit": 500,
+            "scopes": "assets:read export:read", "max_page_limit": 500,
             "total_record_cap": 500})
         cls.secrets = {}
         for rec in (cls.client_default, cls.client_uncapped, cls.client_500):

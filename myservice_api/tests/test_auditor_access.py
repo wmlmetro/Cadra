@@ -5,7 +5,8 @@ Handoff 23. Specification §3 names an `Auditor` / `audit_viewer` with
 group at all, so the five §13.4 standard reports were reachable only by
 somebody who could also change the register they were reporting on. The group
 now exists (`myservice_api/security/api_groups.xml`) and
-`utils.GROUP_SCOPES` maps it to six read scopes.
+`utils.GROUP_SCOPES` maps it to read scopes alone — the exact set is pinned
+in EXPECTED_AUDITOR_SCOPES below.
 
 **Why this suite does not read permission rows.**
 
@@ -96,6 +97,11 @@ EXPECTED_AUDITOR_SCOPES = frozenset({
     # Auditor's job by definition, split out of `identity:read` so holding
     # the employee picker no longer opens it. docs/DECISIONS.md, 2026-10-03.
     "access:read",
+    # Handoff 50, ruling 1: reading a page of the register and taking a copy
+    # of all of it are different acts, split out of `assets:read` so holding
+    # the register's list screens no longer opens /assets/export. The export
+    # is the Auditor's. docs/DECISIONS.md, 2026-10-03.
+    "export:read",
 })
 
 AUDITOR_GROUP_XMLID = "myservice_api.group_auditor"
@@ -255,7 +261,7 @@ class TestAuditorAccess(CadraHttpCase):
     # ── 1. the configuration half, and it is only half ───────────────
 
     def test_the_auditor_group_derives_exactly_the_read_scopes(self):
-        """`scopes_for_user` gives an auditor the six reads and nothing else.
+        """`scopes_for_user` gives an auditor the pinned reads and nothing else.
 
         **This test is NOT sufficient on its own and must never be treated as
         the acceptance criterion.** It reads the group→scope table through
@@ -271,7 +277,8 @@ class TestAuditorAccess(CadraHttpCase):
         self.assertEqual(
             derived, set(EXPECTED_AUDITOR_SCOPES),
             "a user holding base.group_user + group_auditor and nothing else "
-            "must derive exactly the six read scopes the five reports need")
+            "must derive exactly the read scopes pinned in "
+            "EXPECTED_AUDITOR_SCOPES")
 
         writes = sorted(s for s in derived if s.endswith(":write"))
         self.assertEqual(
