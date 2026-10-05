@@ -1547,6 +1547,8 @@ acurl -X POST $API/api/v1/assets/124/tag-affixed \
 |---|---|---|
 | `tag_number` | yes | The number **read off the label on the asset**. Checked against the tag Cadra issued rather than trusted. |
 | `serial_number` | no | The manufacturer serial **read off the asset**. When supplied it is checked against the serial on the record. |
+| `scanned_format` | no | How `tag_number` was read, when the client knows — the app's camera passes the symbology up with every decode; a typed or keyboard-wedge entry omits it. One of `code_128`, `code_39`, `code_93`, `codabar`, `ean_13`, `ean_8`, `upc_a`, `upc_e`, `itf`, `qr_code`, `data_matrix`, `pdf417`, `aztec`; anything else is a `400 invalid_request` naming `allowed_values`, and nothing is written. Recorded **only when the confirmation is refused**, beside the refused value, so an auditor can tell a number read off Cadra's own label (`code_128` / `qr_code`) from a manufacturer's. A successful affix stores nothing new. |
+| `serial_format` | no | How `serial_number` was read — same enum, same semantics. Recorded only on a refused serial check. |
 | `affixed_by_name` | no | The Tag-Issuing Unit operative who fitted it. Free text — they are not Cadra users. |
 | `affixed_at` | no | ISO 8601, with or without an offset. Defaults to now; supply it when confirming work recorded offline. A future timestamp is refused. |
 

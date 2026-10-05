@@ -44,13 +44,15 @@ def _date(value):
 class NRSAssetTagLabel(models.Model):
     _inherit = 'nrs.asset.tag.label'
 
-    def _mark_affixed(self, scanned_tag_number, affixed_by_name=None,
-                      affixed_date=None):
-        """Capture first, then queue the event on a genuine transition."""
+    def _mark_affixed(self, scanned_tag_number, *args, **kwargs):
+        """Capture first, then queue the event on a genuine transition.
+
+        The base method's keyword arguments pass through unnamed — see the
+        INT-06 twin in `sap_asset_events.py` for why naming them here is a
+        trap.
+        """
         was_affixed = self.label_state == 'affixed'
-        result = super()._mark_affixed(
-            scanned_tag_number, affixed_by_name=affixed_by_name,
-            affixed_date=affixed_date)
+        result = super()._mark_affixed(scanned_tag_number, *args, **kwargs)
 
         if not was_affixed and self.label_state == 'affixed':
             self._queue_tag_affixed_event()
