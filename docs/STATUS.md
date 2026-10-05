@@ -1301,3 +1301,90 @@ of which side was wrong, and every suite's denominator.
 - The trailer guard: a live `git commit` carrying the trailer REFUSED (no
   commit created); the historical range flags (exit 1), the clean Step-0
   range passes (exit 0).
+
+## Handoff 51 — the queue and the refusal (2026-10-05)
+
+The last Cadra handoff before the demo: the two rulings built, two specs
+settled by measurement, two of the Architect's rulings withdrawn in the
+repository, and the §4 check that caught a crash reading could not.
+
+### Built
+
+- **`GET /api/v1/tags/replacements`** (`assets:read`) — every tag
+  replacement REQUEST, decided ones included: `state` (the label's own
+  lifecycle: `pending` waiting, `scrapped` approved/replaced, `active`
+  rejected/back in service), `waiting_on_me`, `raised_by_me`, standard
+  pagination. The sibling of `pending-replacements`, which stays
+  pending-only by its published name. Base set: labels that have ever had a
+  replacement requested — approval and rejection both preserve
+  `requested_by`, so the requester's question ("what happened to mine") is
+  answerable after the decision, which a pending-only route never can.
+- **`/approvals` shows both kinds** — tag replacements beside
+  asset-movement requests, two clearly-headed sections under the same four
+  tabs, each kind its own query, cursor, honest count and per-tab empty
+  sentence; decide buttons only where `can_decide` AND `approvals:write`;
+  the requester's row carries the you-asked sentence instead of a button
+  the server would refuse. The Barcode Station panel stays.
+- **A refused affix leaves a record**: the number-mismatch refusal in
+  `_mark_affixed` writes an append-only `nrs.asset.event` of the new type
+  `affix_refused` (payload: the scanned number as entered) BEFORE the
+  raise, on the recorder's OWN cursor — measured both ways on `test19`:
+  the same-cursor row reaches the database on flush and vanishes on the
+  decorator's rollback; the own-cursor row (id 10764) survives the real
+  400 into a separate read. Refusal text byte-identical (handoff 39's
+  ruling stands); the wrong-then-right sequence reads in order with the
+  gap visible; ranked before `tag_affixed` so a same-second pair still
+  reads refusal-first. Under a running test the row goes on the test's own
+  cursor (`current_test`), because a plain TransactionCase handed a real
+  second connection would deadlock on the uncommitted asset row.
+
+### Measured
+
+- **Spec 13 green for the first time since report 29** — the spec now
+  selects the first CHARTABLE asset (every `build_schedule` gate) and
+  skips loudly when none exists; the no-chartable case contrived and
+  shown skipping with the stated reason (no local tenant lacks one:
+  1,310 / 156 / 2 / 157 chartable on cadra19/gtb19/boot44/test19).
+- **Spec 14's persisted-cache hypothesis CONFIRMED by its first mid-test
+  dump** (after a first misreading of an un-contexted dump, owned in the
+  report): in the failing attempt the persisted `depreciation-settings`
+  entry held the PRE-click payload — the 1 s write throttle had not
+  flushed the post-click write — and the reload restored that same entry
+  (identical `dataUpdatedAt`) with no refetch inside `staleTime`; the
+  passing retry had no persisted entry and fetched fresh, which is why
+  the spec is intermittent. Cache policy untouched — the Architect rules
+  from the measurement (GO-LIVE §13.5/§16.3 updated).
+- **§4's page load caught `ITAssetsCommand` dead on every tenant WITH an
+  IT category** — a hook below three early returns (React error 310),
+  invisible on `test19` whose no-IT-category return always won, a white
+  screen before handoff 50's boundary. One hook moved; the page draws on
+  `jaizbankplc` with 150 pins. And the screenshot showed the next defect:
+  the IT category regex (`/IT|computer|laptop|server/i`) matched the "it"
+  in *Furniture* — named in report 51 §H, not fixed.
+- **The three unclassified tenants' numbers** (report 51 §G): cadra19
+  1,335 assets / 754 locations / 2 employees; nrs19 11,951 / 1,154 /
+  11,386; gtb19 156 / 149 / 61 — classification stays the owner's.
+- **Named for the Architect**: the approvals badge counts none of 194
+  pending replacements on `test19`; the station's pending panel truncates
+  at 100 silently; the endpoint-reference index carried none of handoff
+  38's five tag routes (the tags block fixed, the guard gap named).
+
+### Verification
+
+- pytest on `test19`: first run **1 failed, 1299 passed, 9 skipped of
+  1309** — the failure was the query-param guard demanding INVENTORY rows
+  for the new route's filters (added); final whole-suite re-run:
+  **1300 passed, 9 skipped of 1309, 0 failed** in 416 s (run after the fan-out's container restart; no post-restart transient this time).
+- In-registry, `--workers=0`: `myservice_asset_register` **0 failed, 0
+  error(s) of 482** · `myservice_api` **0 failed, 0 error(s) of 372**
+  (its one first-run failure was the new test's own `assertRaises`
+  savepoint unwinding the recorder — the production defect in miniature,
+  fixed in the test) · `myservice_workflow` **0 failed, 0 error(s) of
+  96** (the deadlock-risk suite; no hang).
+- The census: **73 body routes of 143 first-party routed declarations**
+  (+1 = this handoff's route, resolving), printed with its date.
+- Spec 51: **6 passed of 6** on `test19`. Whole browser suite: **198
+  passed, 1 failed (spec 14 — the standing red, now measured), 12
+  skipped of 211** in 13.4 m; the suite grew 205 → 211 (spec 51's six).
+- Fan-out: `-u myservice_asset_register,myservice_api` on all 9 local
+  databases — **0 ERROR/CRITICAL lines on each of the 9** (cadra19, nrs19, gtb19, test19, nrs, lasg, gtb, jaizbankplc, boot44), container restarted after.

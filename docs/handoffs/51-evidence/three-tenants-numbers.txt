@@ -1,0 +1,22 @@
+# Handoff 51 §7 — the three unclassified tenants, measured 2026-10-05.
+# Read-only SQL on the local databases. The credential column (any
+# authentication in the last 30 days) is NOT here: the permission layer
+# refused the credential-table read across tenants in this session, and it
+# is listed in the report as owner-blocked rather than guessed at.
+
+tenant   | assets | locations | employees | active users | newest nrs_asset create_date
+cadra19  |  1,335 |       754 |         2 |            2 | 2026-09-05 20:38
+nrs19    | 11,951 |     1,154 |    11,386 |            5 | 2026-09-25 11:30
+gtb19    |    156 |       149 |        61 |            9 | 2026-08-06 13:25
+
+# Active users holding first-party groups (distinct active users per group):
+cadra19: Asset Manager 2 · Asset User 1 · Identity Manager 1 ·
+         Security Administrator 1 · Security Officer 2 ·
+         WorkSpace Integration Admin 1
+nrs19:   Asset Manager 4 · Asset User 3 · Identity Manager 1 ·
+         Security Administrator 1 · Security Manager 1 ·
+         Security Officer 1 · Tag-Issuing Unit 2 ·
+         WorkSpace Integration Admin 1
+gtb19:   Asset Manager 2 · Asset User 1 · Identity Manager 1 ·
+         Security Administrator 1 · Security Officer 1 ·
+         WorkSpace Integration Admin 1

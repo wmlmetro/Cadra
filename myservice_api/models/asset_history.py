@@ -111,8 +111,8 @@ NOT_RECORDED = (
     ("deleted_records",
      "Anything whose record has since been deleted. A change of custodian, "
      "a move, a verification, a change of status, a change to the GRN, "
-     "purchase order or SAP asset number and a change to the warranty are "
-     "protected from deletion, each "
+     "purchase order or SAP asset number, a change to the warranty and a "
+     "refused affix confirmation are protected from deletion, each "
      "from the date this history gives for it. Every other record here, and "
      "every one of those made before its date, can be removed without "
      "trace, so this history is a lower bound on what happened, never a "
@@ -123,6 +123,11 @@ _EVENT_TITLES = {
     "registered": "Registered",
     "tag_issued": "Tag issued",
     "tag_printed": "Tag printed",
+    # Handoff 51. BEFORE `tag_affixed` on purpose: `_RANK` breaks same-second
+    # ties in this order, and the sequence this event exists to make visible
+    # — a refusal, then a confirmation with the number the refusal revealed,
+    # seconds apart — must read refusal-first when both land in one second.
+    "affix_refused": "Affix confirmation refused",
     "tag_affixed": "Tag affixed",
     "tag_scrapped": "Tag scrapped",
     "custody_changed": "Custodian changed",
@@ -541,6 +546,16 @@ class NRSAssetHistory(models.Model):
                 detail.update({"from": ev.from_value or None,
                                "to": ev.to_value or None,
                                "reason": ev.reason or None})
+            elif etype == "affix_refused":
+                # Handoff 51. The scanned number as entered; nothing about
+                # the label changed, which is the point — the row exists so
+                # that a refusal followed seconds later by a confirmation
+                # is a sequence anybody reading this history can see.
+                published = "affix_refused"
+                summary = ("Affix confirmation refused — the number read "
+                           "off the asset (%s) is not the label issued "
+                           "for it" % (ev.to_value or "—"))
+                detail.update(scanned=ev.to_value or None)
             else:
                 # A reference or a warranty field: the same shape, a field
                 # with a before and an after. The warranty fields carry no
@@ -584,6 +599,8 @@ class NRSAssetHistory(models.Model):
              "or the SAP asset number"),
             ("warranty_changed", "warranty_changed",
              "a change to the warranty"),
+            ("affix_refused", "affix_refused",
+             "a refused affix confirmation"),
         )
         out = []
         for stored, published, what in kinds:
@@ -604,6 +621,20 @@ class NRSAssetHistory(models.Model):
                     "to the warranty is recorded so that nobody can edit or "
                     "delete it. There is no earlier record to look for: a "
                     "warranty was never recorded any other way." % _when(began))
+            elif stored == "affix_refused":
+                # Also no message-log fallback — a refusal used to leave
+                # NOTHING behind, not even a deletable line, which is the
+                # defect handoff 51 closed. The generic sentence would send
+                # a reader looking for an earlier record that never existed.
+                statement = (
+                    "No affix confirmation has been refused on this system "
+                    "yet, for any asset. Every refusal is recorded so that "
+                    "nobody can edit or delete it." if not began else
+                    "From %s, when the first one happened here, a refused "
+                    "affix confirmation is recorded so that nobody can edit "
+                    "or delete it. There is no earlier record to look for: "
+                    "before then a refusal left nothing behind at all."
+                    % _when(began))
             elif not began:
                 statement = (
                     "No record of this kind has been written on this system "

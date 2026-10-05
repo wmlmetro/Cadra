@@ -36,6 +36,7 @@ import uuid
 # that turns the rule off.
 
 
+from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import freeze_time
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
@@ -751,7 +752,7 @@ class TestAssetHistoryRecordedEvents(AssetHistoryCase):
         self.assertEqual(
             [k["event"] for k in kinds],
             ["verified", "verification_date_set", "status_changed",
-             "provenance_changed", "warranty_changed"],
+             "provenance_changed", "warranty_changed", "affix_refused"],
             "by the name the EVENT is published under, not the stored type")
         for kind in kinds:
             self.assertEqual(
@@ -800,6 +801,13 @@ class TestAssetHistoryRecordedEvents(AssetHistoryCase):
             self.assertIsNone(kinds[other]["recording_began_at"])
             self.assertTrue(kinds[other]["statement"].startswith(
                 "No record of this kind has been written"), other)
+        # The refusal has its own empty wording, like the warranty's: there
+        # is no message-log line to send a reader looking for — a refusal
+        # used to leave nothing at all.
+        self.assertIsNone(kinds["affix_refused"]["recording_began_at"])
+        self.assertTrue(kinds["affix_refused"]["statement"].startswith(
+            "No affix confirmation has been refused"))
+        self.assertNotIn("message log", kinds["affix_refused"]["statement"])
 
     def test_what_is_never_recorded_no_longer_claims_these_leave_nothing(
             self):
@@ -841,6 +849,46 @@ class TestAssetHistoryTags(AssetHistoryCase):
         self.assertEqual(affixed["detail"]["fitted_by_name"],
                          "A Tag Unit Operative")
         self.assertNotEqual(affixed["actor_name"], "A Tag Unit Operative")
+
+    def test_a_refused_affix_is_a_line_before_the_confirmation(self):
+        """Handoff 51: the wrong-then-right sequence is visible, in order.
+
+        Both acts land in ONE frozen second, which is the hard case: the
+        refusal must still read first, and that is `_RANK` — the refusal is
+        deliberately ranked above `tag_affixed` in `_EVENT_TITLES`. The
+        refusal recorder writes on its own cursor; under the test registry
+        that cursor is a TestCursor over this very transaction, so the row
+        is visible here and rolled back with the test.
+        """
+        asset = self._asset()
+        tag = asset.tag_ids[:1]
+        with freeze_time("2031-03-02 09:00:00"):
+            # A bare try/except, NOT `assertRaises`: Odoo's `assertRaises`
+            # wraps its block in a savepoint and rolls back to it, which
+            # unwound the recorder's same-cursor test-mode write — the
+            # production defect in miniature, caught by this test's own
+            # first run (report 51 §2). The exception here is pure Python,
+            # raised before any failing SQL, so the cursor needs no
+            # savepoint to stay usable.
+            try:
+                tag._mark_affixed("NOT-THE-TAG")
+                self.fail("a wrong number must be refused")
+            except ValidationError as caught:
+                # The refusal text is handoff 39's ruling, verbatim: it
+                # names the expected number. Unchanged by the recording.
+                self.assertIn("NOT-THE-TAG", str(caught))
+                self.assertIn(tag.name, str(caught))
+            self.assertEqual(tag.label_state, "issued",
+                             "a refusal moves nothing on the label")
+            tag._mark_affixed(tag.name, affixed_by_name="Second Try")
+        later = self._later(asset.asset_history(newest_first=False))
+        self.assertEqual([e["type"] for e in later],
+                         ["affix_refused", "tag_affixed"])
+        refusal = later[0]
+        self.assertEqual(refusal["evidence"], "append_only")
+        self.assertEqual(refusal["detail"]["scanned"], "NOT-THE-TAG")
+        self.assertIn("NOT-THE-TAG", refusal["summary"])
+        self.assertEqual(refusal["actor"]["id"], self.env.uid)
 
     def test_a_same_day_scrap_does_not_sort_before_the_tags_own_issue(self):
         """A bare date sorts at midnight — before the tag existed."""

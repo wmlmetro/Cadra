@@ -40,10 +40,30 @@
  * page is not a count of the register and printing it as one is how
  * *"1,146 tracked moves"* got into a report. The row counter under that tab
  * names its denominator; a state picked explicitly goes back to the server.
+ *
+ * TWO KINDS IN THE SAME TABS, TWO QUERIES (handoff 51 §1b)
+ * --------------------------------------------------------
+ * Tag replacements are the SAME two-person pattern on the tag model's own
+ * state machine, and until handoff 51 they were displayed only on a tagging
+ * console an Asset Manager has no reason to open. They now share these tabs
+ * — but as a second SECTION under the movement list, fed by
+ * `GET /api/v1/tags/replacements` through its own infinite query, its own
+ * cursor and its own count. Never interleaved: the two routes' cursors mean
+ * nothing to each other, and a second source threaded behind one list is
+ * the obvious way to break the single-`state` structure above by accident.
+ *
+ * The decided picker's outcomes map onto the label's own lifecycle —
+ * approved → `scrapped` (the number is dead, a successor was minted),
+ * rejected → `active` (back in service). "Withdrawn" has no tag meaning: a
+ * tag replacement cannot be withdrawn, and the section says that in a
+ * sentence rather than presenting an empty table as a fact about the world.
+ * With no outcome picked the section fetches every state and drops the
+ * pending rows in the browser, naming its denominator the same way the
+ * movement counter does.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -54,13 +74,17 @@ import RecordPicker from "@/components/RecordPicker";
 import {
   invalidateApprovalQueries, invalidateAssetQueries, useApprovalRequirement,
 } from "@/components/AssetActionDialogs";
+import {
+  ApproveTagReplacementDialog, RejectTagReplacementDialog,
+} from "@/components/TagReplacementDialogs";
 import { CadraApiError, apiConfigured } from "@/lib/api";
 import {
-  approveChangeRequest, fetchApprovalsPage, fetchApprovers, rejectChangeRequest,
-  renominateChangeRequest, withdrawChangeRequest,
+  approveChangeRequest, fetchApprovalsPage, fetchApprovers, fetchTagReplacementsPage,
+  fetchWhoAmI, rejectChangeRequest, renominateChangeRequest, withdrawChangeRequest,
   type ApprovalFilters, type ApprovalRef, type ApprovalRequest, type ApprovalState,
-  type ApprovalsPage,
+  type ApprovalsPage, type TagLabel, type TagReplacementFilters, type TagReplacementsPage,
 } from "@/lib/dataProvider";
+import { useEnumLabel } from "@/hooks/useEnums";
 import { SCOPE, useScopes } from "@/hooks/use-scopes";
 import { cn } from "@/lib/utils";
 import {
@@ -719,6 +743,156 @@ function ApprovalRow({ r }: { r: ApprovalRequest }) {
   );
 }
 
+// ─── one tag-replacement row (handoff 51 §1b) ──────────────────────────────
+
+/**
+ * The label's lifecycle in words a person reads without the state machine in
+ * hand. `scrapped` IS the approval — the old number is dead and a successor
+ * was minted — and `active` after a request is usually a rejection, but the
+ * record is the authority: a row with no `rejected_by` is only "active
+ * again", because claiming "rejected" over a field that does not say so is
+ * the quiet untruth this screen exists to stop.
+ */
+function replacementStateWord(t: TagLabel): string {
+  if (t.state === "pending") return "Waiting";
+  if (t.state === "scrapped") return "Approved — replaced";
+  return t.rejected_by ? "Rejected" : "Active again";
+}
+
+function replacementStateStyle(t: TagLabel): string {
+  if (t.state === "pending") return STATE_STYLE.pending;
+  if (t.state === "scrapped") return STATE_STYLE.approved;
+  return t.rejected_by ? STATE_STYLE.rejected : STATE_STYLE.withdrawn;
+}
+
+function ReplacementRow({ t, meId }: { t: TagLabel; meId: number | null | undefined }) {
+  const scopes = useScopes();
+  const reasonLabelOf = useEnumLabel("tag_replacement_reason");
+  const [deciding, setDeciding] = useState<"approve" | "reject" | null>(null);
+
+  const pending = t.state === "pending";
+  // The same pair `ApprovalRow` reads: `can_decide` is the server's answer
+  // about THIS label per caller, the scope is the session's answer about
+  // every label. Both have to be yes, or the button is one the decision
+  // routes would refuse.
+  const mayDecide = pending && t.can_decide && scopes.has(SCOPE.approvalsWrite);
+  // `can_decide: false` does not say WHY it is not yours, and the two
+  // reasons deserve different sentences. The requester is recognised by
+  // comparing `requested_by` with the shared `whoami` query; when that id
+  // has not arrived the row falls back to the general sentence rather than
+  // claiming an authorship it cannot show.
+  const mine = meId != null && t.requested_by?.id === meId;
+
+  return (
+    <li className="px-5 py-3.5" data-testid="replacement-row" data-tag={t.tag_number} data-state={t.state}>
+      <div className="flex items-start gap-3 flex-wrap">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px] font-mono font-semibold text-foreground">{t.tag_number}</span>
+            <span
+              className={cn("text-[10px] font-bold px-2 py-0.5 rounded-lg border", replacementStateStyle(t))}
+              data-testid="replacement-state-pill"
+              data-state={t.state}
+            >
+              {replacementStateWord(t)}
+            </span>
+            {/* The kind, said on the row — two kinds share these tabs now,
+                and a row that does not say which it is reads as the other. */}
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground border border-border">
+              Tag replacement
+            </span>
+            {t.asset && (
+              <RecordLink to={`/assets/${t.asset.id}`} subtle>
+                <span className="text-[12px] font-semibold">{t.asset.name}</span>
+              </RecordLink>
+            )}
+            {t.asset_code && <span className="text-[11px] font-mono text-muted-foreground">{t.asset_code}</span>}
+          </div>
+
+          {/* WHO ASKED and WHO WAS ASKED, never folded together — the same
+              sentence shape as the movement rows above. */}
+          <p className="text-[11px] text-muted-foreground" data-testid="replacement-who">
+            Asked by <span className="font-semibold text-foreground">{t.requested_by?.name ?? "—"}</span>
+            {" "}on {stamp(t.requested_at)}
+            {t.approver && <>
+              {" · "}{pending ? "waiting on" : "asked"}{" "}
+              <span className="font-semibold text-foreground">{t.approver.name}</span>
+            </>}
+          </p>
+
+          <p className="text-[12px] text-foreground/90" data-testid="replacement-reason">
+            <span className="text-muted-foreground">Reason given: </span>
+            {reasonLabelOf(t.replacement_reason)}
+            {t.replacement_notes && <> — {t.replacement_notes}</>}
+          </p>
+
+          {/* The decision, once there is one. `approved_by` / `rejected_by`
+              is WHO CLICKED, a different field from `approver` on purpose —
+              anyone eligible may decide any pending replacement. A scrapped
+              row also names its successor, because the whole point of the
+              chain is that the old number leads to the new. */}
+          {t.state === "scrapped" && (
+            <p className="text-[11px] text-muted-foreground" data-testid="replacement-decision">
+              Approved by <span className="font-semibold text-foreground">{t.approved_by?.name ?? "—"}</span>
+              {" "}on {stamp(t.approved_at)}
+              {t.decision_reason && <> — “{t.decision_reason}”</>}
+              {t.replaced_by && <>
+                {" · "}replaced by{" "}
+                <span className="font-mono font-semibold text-foreground">{t.replaced_by.tag_number}</span>
+              </>}
+            </p>
+          )}
+          {t.state === "active" && t.rejected_by && (
+            <p className="text-[11px] text-muted-foreground" data-testid="replacement-decision">
+              Rejected by <span className="font-semibold text-foreground">{t.rejected_by.name}</span>
+              {" "}on {stamp(t.rejected_at)}
+              {t.decision_reason && <> — “{t.decision_reason}”</>}
+            </p>
+          )}
+
+          {pending && !t.can_decide && (
+            <p className="text-[11px] text-muted-foreground italic" data-testid="replacement-not-yours">
+              {mine
+                ? "You asked for this replacement, so you cannot decide it — ask an approver to reject it, or let it stand."
+                : "Not yours to decide — an approver must hold the Asset Manager role."}
+            </p>
+          )}
+        </div>
+
+        {mayDecide && (
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setDeciding("approve")}
+              data-testid="button-approve-replacement"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-200/70 dark:border-emerald-800/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+            >
+              <CheckCircle2 size={12} /> Approve
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeciding("reject")}
+              data-testid="button-reject-replacement"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200/70 dark:border-red-800/30 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+            >
+              <XCircle size={12} /> Reject
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* The station's own dialogs, unchanged — their success handler runs
+          `invalidateTagQueries`, which now refetches this queue too. */}
+      {deciding === "approve" && (
+        <ApproveTagReplacementDialog tag={t} open onOpenChange={(next) => { if (!next) setDeciding(null); }} />
+      )}
+      {deciding === "reject" && (
+        <RejectTagReplacementDialog tag={t} open onOpenChange={(next) => { if (!next) setDeciding(null); }} />
+      )}
+    </li>
+  );
+}
+
 // ─── the page ──────────────────────────────────────────────────────────────
 
 type TabKey = "waiting" | "pending" | "mine" | "decided";
@@ -779,6 +953,54 @@ export default function Approvals() {
   );
   const total = data?.pages[0]?.totalEstimate ?? null;
 
+  /**
+   * The tag-replacement section's own filters (handoff 51 §1b). The same
+   * tab means the same question, translated onto the label's lifecycle —
+   * and `null` means the question has no tag answer at all: a replacement
+   * cannot be withdrawn, so the *Decided → Withdrawn* view says that in a
+   * sentence instead of running a query that can only come back empty.
+   */
+  const tagFilters: TagReplacementFilters | null = useMemo(() => {
+    if (tab === "waiting") return { waiting_on_me: true, state: "pending" };
+    if (tab === "pending") return { state: "pending" };
+    if (tab === "mine") return { raised_by_me: true };
+    if (decidedState === "approved") return { state: "scrapped" };
+    if (decidedState === "rejected") return { state: "active" };
+    if (decidedState === "withdrawn") return null;
+    return {}; // any outcome: every state, pending dropped in the browser
+  }, [tab, decidedState]);
+
+  /** Mirrors `clientFiltered` for the tag section — same tab, same rule. */
+  const tagClientFiltered = tab === "decided" && !decidedState;
+
+  // A SECOND query with a SECOND cursor, never interleaved into the one
+  // above — see the file docstring for why that is a rule and not a style.
+  const tagQuery = useInfiniteQuery<TagReplacementsPage, CadraApiError>({
+    queryKey: ["tag-replacements", tagFilters],
+    queryFn: ({ pageParam }) => fetchTagReplacementsPage(pageParam as string | undefined, tagFilters ?? undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    staleTime: 30_000,
+    enabled: tagFilters !== null,
+  });
+  const tagLoaded = useMemo(() => (tagQuery.data?.pages ?? []).flatMap(p => p.tags), [tagQuery.data]);
+  const tagRows = useMemo(
+    () => (tagClientFiltered ? tagLoaded.filter(t => t.state !== "pending") : tagLoaded),
+    [tagLoaded, tagClientFiltered],
+  );
+  const tagTotal = tagQuery.data?.pages[0]?.totalEstimate ?? null;
+
+  // The same query the top bar and the sidebar hold. `ReplacementRow` needs
+  // it to tell the requester's own pending row from somebody else's — the
+  // tag record carries no `can_withdraw` to read that off, the way the
+  // movement rows do.
+  const { data: me } = useQuery({
+    queryKey: ["whoami"],
+    queryFn: fetchWhoAmI,
+    staleTime: 30 * 60_000,
+    retry: false,
+  });
+
   // Infinite-scroll sentinel — the same shape as `RequestsList`.
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -800,8 +1022,8 @@ export default function Approvals() {
           <div>
             <h1 className="text-[14px] font-bold text-foreground">Approvals</h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Moves and custody changes waiting for a second person. Nothing on this
-              list has happened yet.
+              Moves, custody changes and tag replacements waiting for a second person.
+              Nothing on this list has happened yet.
             </p>
           </div>
           {/* WHETHER THE CONTROL IS EVEN ON, said on the screen that exists
@@ -898,6 +1120,12 @@ export default function Approvals() {
       )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {/* Two kinds, two SECTIONS, each under a heading saying which it is
+            (handoff 51 §1b). The movement list keeps its structure, its
+            query and its cursor exactly as they were. */}
+        <h2 className="px-5 pt-4 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          Moves and custody changes
+        </h2>
         {isLoading && rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Clock size={20} className="text-muted-foreground/40 animate-pulse" />
@@ -956,6 +1184,79 @@ export default function Approvals() {
             )}
           </div>
         )}
+
+        {/* ── Tag replacements (handoff 51 §1b) ─────────────────────────── */}
+        <div className="border-t border-border mt-2">
+          <div className="px-5 pt-4 pb-1 flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Tag replacements
+            </h2>
+            {tagFilters !== null && (
+              <p className="text-[11px] text-muted-foreground" data-testid="replacement-count">
+                {/* The same honesty rule as the movement counter above:
+                    `total_estimate` on the any-outcome view counts EVERY
+                    state including pending, because that is the domain that
+                    was asked for, so the denominator is named. */}
+                {tagClientFiltered
+                  ? <>{tagRows.length.toLocaleString()} decided, out of {tagLoaded.length.toLocaleString()} loaded{tagTotal != null && <> of {tagTotal.toLocaleString()} in every state</>}</>
+                  : <><span className="font-bold text-foreground">{tagRows.length.toLocaleString()}</span>{tagTotal != null && <> of <span className="font-bold text-foreground">{tagTotal.toLocaleString()}</span></>}</>}
+              </p>
+            )}
+          </div>
+
+          {tagFilters === null ? (
+            // *Decided → Withdrawn*. An empty table here would read as "no
+            // withdrawn replacements yet", which implies one could exist.
+            <p className="px-5 py-4 text-[11px] text-muted-foreground italic" data-testid="replacements-withdrawn-note">
+              A tag replacement cannot be withdrawn — it is approved or rejected, nothing
+              else — so there is nothing this outcome could list.
+            </p>
+          ) : tagQuery.error ? (
+            <div className="px-5 py-2 bg-red-50 dark:bg-red-950/30 border-b border-red-200/70 dark:border-red-800/30 flex items-start gap-2" data-testid="replacements-error">
+              <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <ApiErrorMessage err={tagQuery.error} />
+            </div>
+          ) : tagQuery.isLoading && tagRows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-3">
+              <Clock size={16} className="text-muted-foreground/40 animate-pulse" />
+              <p className="text-sm text-muted-foreground">Loading tag replacements…</p>
+            </div>
+          ) : tagRows.length === 0 ? (
+            // Report 49's rule, unchanged: an empty section says it is
+            // empty, and says WHICH emptiness, never a stopped spinner.
+            <div className="flex flex-col items-center justify-center py-10 gap-2 px-6 text-center" data-testid="replacements-empty">
+              <Inbox size={20} className="text-muted-foreground/30" />
+              <p className="text-sm font-semibold">
+                {tab === "waiting" ? "No tag replacements are waiting on you."
+                  : tab === "pending" ? "No tag replacements are waiting on anybody."
+                  : tab === "mine" ? "You have not asked for any tag replacements."
+                  : "No tag replacement has been decided yet."}
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border" data-testid="replacements-list">
+              {tagRows.map(t => <ReplacementRow key={t.id} t={t} meId={me?.id} />)}
+            </ul>
+          )}
+
+          {tagFilters !== null && tagQuery.hasNextPage && (
+            <div className="py-5 text-center">
+              {tagQuery.isFetchingNextPage ? (
+                <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock size={12} className="animate-pulse" /> Loading more…
+                </div>
+              ) : (
+                <button
+                  onClick={() => tagQuery.fetchNextPage()}
+                  className="text-xs text-primary hover:opacity-80"
+                  data-testid="button-load-more-replacements"
+                >
+                  Load more
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

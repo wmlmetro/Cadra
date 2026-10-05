@@ -1,0 +1,22 @@
+# Handoff 51 §8 item 5 — spec 13 both ways, 2026-10-05, test19.
+
+## Green: the fixed spec, natural data
+In the targeted run (13-asset-depreciation.spec.ts, E2E_ORIGIN=test19):
+"a computed asset charts its value over time" PASSED — the predicate now
+selects the first CHARTABLE asset (computed method AND depreciable_cost > 0
+AND useful_life_months > 0 AND start_date AND salvage < cost AND, for
+declining balance, a rate), mirroring every gate the engine's own
+build_schedule applies.
+
+## Red-or-loudly-skipped: the contrived case
+No local tenant genuinely lacks a chartable asset — measured:
+  cadra19 1,310 · gtb19 156 · boot44 2 · test19 157 chartable computed
+  assets (SQL approximation of the engine's gates, 2026-10-05)
+— so the case was CONTRIVED with a scratch copy of the spec whose
+chartable predicate can match nothing (method name that does not exist).
+Result: the test SKIPS LOUDLY with the stated reason
+  "no CHARTABLE asset on this tenant: nothing has a computed method with
+   a cost, a useful life and a start date, so there is no schedule for the
+   product to draw and nothing for this spec to assert"
+and the file's other three tests still run (3 passed, 1 skipped). The
+scratch copy was deleted after the run; it never ships.

@@ -1,9 +1,12 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.modules import module as odoo_module
 from odoo.modules.registry import Registry
 import base64
 import logging
 import re
+
+from .asset_event import EVENT_AFFIX_REFUSED
 
 _logger = logging.getLogger(__name__)
 
@@ -366,6 +369,64 @@ class NRSAssetTag(models.Model):
             })
         return to_mark
 
+    def _record_affix_refusal(self, scanned_tag_number):
+        """Append the refused affix to `nrs.asset.event`, on its own cursor.
+
+        ON ITS OWN CURSOR because the `ValidationError` this precedes does
+        not stay here: the API decorator turns it into the 400 and calls
+        `request.env.cr.rollback()` on the whole request transaction
+        (`myservice_api/controllers/utils.py`), so a row written on the
+        request's cursor is unwound with everything else — measured on
+        `test19` before this shape was chosen (report 51 §2). The separate
+        cursor commits independently, which is the honest boundary: the
+        refusal is final the moment it is raised, whatever happens to the
+        request afterwards. Nothing written here can outlive a SUCCESSFUL
+        affix being rolled back, because a successful affix writes nothing
+        here.
+
+        UNDER A RUNNING TEST the row goes on the CURRENT cursor instead,
+        and the branch is on `current_test`, not on taste: only `HttpCase`
+        patches `registry.cursor` to hand back a `TestCursor` over the test
+        transaction — a plain `TransactionCase` (which is what calls
+        `_mark_affixed` with a wrong number in `myservice_workflow`'s
+        suites) gets a REAL second connection, whose insert then waits on
+        the test's own uncommitted asset row at the foreign-key check and
+        never returns. Same-cursor under a test means the row is visible
+        to the test that provoked it and rolled back with it, which is
+        what a suite write should do.
+
+        The payload is the scanned number AS ENTERED; the expected number
+        is on this label row and is not copied. The event's `source` is
+        whatever the caller declared through the context (`api_affix` from
+        the affix route) and `direct` otherwise, exactly as every other
+        event source is resolved. A failure to record is an ERROR line and
+        never blocks the refusal itself — but unlike the print stamp this
+        is a control's record, so the line is the alarm, not an apology.
+        """
+        self.ensure_one()
+        # As entered, which is the evidence; '(none)' mirrors the refusal
+        # text when nothing was sent at all.
+        scanned = scanned_tag_number or '(none)'
+        try:
+            if odoo_module.current_test:
+                self.env['nrs.asset.event']._record(
+                    self.asset_id, EVENT_AFFIX_REFUSED, to_value=scanned)
+                return
+            with Registry(self.env.cr.dbname).cursor() as cr:
+                env = api.Environment(cr, self.env.uid, self.env.context)
+                env['nrs.asset.event']._record(
+                    env['nrs.asset'].browse(self.asset_id.id),
+                    EVENT_AFFIX_REFUSED, to_value=scanned)
+                cr.commit()
+        except Exception:   # noqa: BLE001
+            # catch-all: reported — the refusal below must reach the
+            # operative whatever went wrong with its own bookkeeping, and
+            # an unrecorded refusal must leave an ERROR line behind rather
+            # than nothing (the print funnel's lesson, handoff 10).
+            _logger.exception(
+                "could not record the refused affix for tag %s (asset %s)",
+                self.name, self.asset_id.id)
+
     def _mark_affixed(self, scanned_tag_number, affixed_by_name=None,
                       affixed_date=None):
         """Record the serial-to-tag match at the point of physical tagging.
@@ -381,6 +442,15 @@ class NRSAssetTag(models.Model):
                 'Tag %s has been scrapped and cannot be confirmed as affixed.'
             ) % self.name)
         if (scanned_tag_number or '').strip() != self.name:
+            # The refusal leaves a record BEFORE it is raised — handoff 51.
+            # The refusal text below names the expected number (ruled in
+            # handoff 39: a person holding the wrong label must be told
+            # which label is wanted), which means one wrong entry reveals
+            # the right answer and a second attempt with it will pass. The
+            # event row is what makes that sequence visible to anybody
+            # reading the history: a refusal and a confirmation seconds
+            # apart, same asset, same operative.
+            self._record_affix_refusal(scanned_tag_number)
             raise ValidationError(_(
                 'Scanned tag %(scanned)s does not match the tag issued for '
                 'this asset (%(expected)s). The label on the asset is not the '

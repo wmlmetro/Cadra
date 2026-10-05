@@ -2587,10 +2587,16 @@ class CadraAssetsV1(http.Controller):
 
         # A mismatch raises ValidationError, which the endpoint decorator turns
         # into a 400 `validation_failed` carrying the model's message — which
-        # names both the scanned and the expected tag.
-        label._mark_affixed(tag_number,
-                            affixed_by_name=body.get("affixed_by_name"),
-                            affixed_date=affixed_at)
+        # names both the scanned and the expected tag. Since handoff 51 the
+        # refusal also leaves an `affix_refused` event behind, written by the
+        # model on its own cursor so the decorator's rollback cannot unwind
+        # it; `api_affix` is this route declaring where that row came from,
+        # the same way `/verify` declares `api_verify`.
+        label.with_context(
+            cadra_event_source="api_affix",
+        )._mark_affixed(tag_number,
+                        affixed_by_name=body.get("affixed_by_name"),
+                        affixed_date=affixed_at)
 
         return {
             "asset": serialize_asset(rec),

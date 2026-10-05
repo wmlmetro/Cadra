@@ -1164,17 +1164,26 @@ was seen by acting on `test19` and reading the row, not by reading the code.
 12. **The IT dashboard's condition tiles count across every state.** *Needs
     service* includes missing and disposed assets in poor condition, and that
     page has no *Missing* tile. Its *Verified*/*Unverified* were fixed.
-13. **Two depreciation e2e specs fail on `test19`, on `dev` as well as on
-    handoff 29's branch** — *"a computed asset charts its value over time"*
-    and *"the straight-line switch persists across a reload"*. Established by
-    building `dev`'s front end and running them against it; named by handoff
-    50 §3 with the first recorded failure texts
-    (`docs/handoffs/50-evidence/red-specs-13-14.md`): spec 13 is a
-    fixture-selection defect in the spec (the first computed-method asset
-    has no cost/useful life, so the product's honest empty state fails the
-    spec's assumption); spec 14 matches §16.3 item 8's persisted-cache
-    hypothesis point for point. Neither is handoff 37's defect. Fixes not
-    applied — a spec fixture and a cache-policy decision respectively.
+13. **One depreciation e2e spec still fails on `test19`, and its cause is
+    now measured, not hypothesised.** Spec 13 (*"a computed asset charts
+    its value over time"*) was a fixture-selection defect in the SPEC and
+    is FIXED in handoff 51: it selects the first CHARTABLE asset (every
+    gate the engine's `build_schedule` applies) and skips loudly when none
+    exists; green on `test19`. Spec 14 (*"the straight-line switch persists
+    across a reload"*) still fails intermittently, and handoff 51 §3b read
+    the persisted payload mid-test for the first time
+    (`docs/handoffs/51-evidence/spec14-persisted-cache.jsonl`, reading in
+    `spec14-reading.md`): in the failing attempt the persisted
+    `cadra.queryCache` entry held the PRE-click payload between the click
+    and the reload (the persister's 1 s write throttle had not flushed the
+    post-click write) and the same entry, identical `dataUpdatedAt`, after
+    the reload — restored, not refetched inside `staleTime` — and the
+    screen rendered pre-click for the full 30 s. In the passing retry the
+    entry was absent and the page fetched fresh. §16.3 item 8's hypothesis
+    is CONFIRMED point for point; the fix is a `staleTime`/throttle policy
+    decision across every screen that uses them, the Architect's call from
+    the measurement; not touched. Neither spec was ever handoff 37's
+    defect.
 14. **On a tenant with `transferred` assets the KPI strip will not add up.**
     Its tiles are Active, Under Repair, Missing and Condemned; the enum has a
     fifth state. None of the eight local tenants holds one. Measured, not
@@ -1399,9 +1408,14 @@ written, because how a thing stood is part of the record.
 8. **A full page reload inside a query's five-minute stale window restores
    the PERSISTED copy and does not refetch** — so a reload straight after a
    change can show the page as it was before. It made one new browser spec
-   flaky and is the front-end author's suspected cause of the long-standing
-   failure *"the straight-line switch persists across a reload"* (§13.5 item
-   13). A hypothesis; not proven, not touched.
+   flaky. **As the cause of the depreciation-switch reload failure it is
+   now CONFIRMED, point for point** (handoff 51 §3b, the first time anybody
+   read the payload mid-test): the failing attempt restored a PRE-click
+   payload the 1 s write throttle had preserved and never refetched it; the
+   passing retry had no persisted entry and fetched fresh — which is why
+   the spec is intermittent. No longer a hypothesis; still not fixed — see
+   §13.5 item 13. The decision it needs is a `staleTime`/persister-throttle
+   policy across every screen that uses them.
 9. **`condition_at_disposal` in the `asset.disposed` event to SAP has never
    carried the condition at disposal.** Disposing sets `condition =
    decommissioned` in the same write the event is built from, so the key has

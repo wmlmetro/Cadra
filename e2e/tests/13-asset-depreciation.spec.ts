@@ -66,10 +66,31 @@ test("asset detail has a Depreciation tab", async ({ page, api }) => {
 });
 
 test("a computed asset charts its value over time", async ({ page, api }) => {
-  const asset = await findAsset(
-    api, d => d.method === "straight_line" || d.method === "declining_balance",
+  // The first COMPUTED asset is not the first CHARTABLE asset — handoff 51
+  // §3a, after this spec spent its life red on test19 because the first
+  // straight-line asset there has neither a cost nor a useful life, and the
+  // product rendered its honest "No schedule yet" empty state. The engine
+  // (depreciation_engine.build_schedule) returns an empty schedule unless
+  // the method is computed AND there is a start date AND cost > 0 AND the
+  // useful life > 0 AND salvage < cost AND (declining balance only) a rate;
+  // selecting on fewer of those just moves the same fixture defect onto the
+  // next field. A tenant with no such asset SKIPS LOUDLY below — a spec
+  // that quietly finds nothing to assert and goes green is the same defect
+  // class wearing a test's clothing.
+  const asset = await findAsset(api, d =>
+    (d.method === "straight_line" || d.method === "declining_balance") &&
+    (d.depreciable_cost ?? 0) > 0 &&
+    (d.useful_life_months ?? 0) > 0 &&
+    !!d.start_date &&
+    (d.salvage_value ?? 0) < (d.depreciable_cost ?? 0) &&
+    (d.method !== "declining_balance" || (d.declining_rate ?? 0) > 0),
   );
-  test.skip(!asset, "no asset uses a computed depreciation method");
+  test.skip(
+    !asset,
+    "no CHARTABLE asset on this tenant: nothing has a computed method with " +
+    "a cost, a useful life and a start date, so there is no schedule for " +
+    "the product to draw and nothing for this spec to assert",
+  );
 
   await openDepreciationTab(page, asset.id);
 

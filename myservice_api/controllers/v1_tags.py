@@ -70,6 +70,7 @@ from .utils import (
     refuse_unwritable,
     selection_values,
 )
+from .query_params import BadFilter, parse_bool, parse_enum
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 # `_ref` and `_dt` are IMPORTED rather than copied. `v1_approvals.py` is the
 # fourth file carrying a three-line `_ref`, and the published-names guard
@@ -323,10 +324,107 @@ class CadraTagsAPI(http.Controller):
         queue gives: an Auditor must be able to read what is waiting and on
         whom without being able to decide any of it. `can_decide` on each
         row says whether THIS caller may.
+
+        PENDING ONLY, by its published name, and deliberately without a
+        `state` filter: a route published as *pending* that can be made to
+        return decided rows is one published name carrying two meanings.
+        A requester asking *what happened to mine* — which a pending-only
+        list answers with *"nothing"* the moment their request is decided —
+        reads `GET /api/v1/tags/replacements` below, which takes `state`,
+        `waiting_on_me` and `raised_by_me`. This route stays what it says:
+        the whole pending queue. (Handoff 51.)
         """
         limit = parse_limit(kwargs)
         page, next_cursor, total = paginate(
             request.env[MODEL].sudo(), [("state", "=", "pending")],
+            limit=limit, cursor=kwargs.get("cursor"), descending=True)
+        return ok(
+            data=[serialize_tag(t) for t in page],
+            pagination={
+                "next_cursor": next_cursor,
+                "previous_cursor": None,
+                "total_estimate": total,
+            },
+        )
+
+    # ── The record: GET /api/v1/tags/replacements ────────────────────
+
+    @cadra_route("/api/v1/tags/replacements", method="GET",
+                 summary="Tag replacement requests — waiting and decided, "
+                         "filterable by state and by the caller's part in "
+                         "them",
+                 scopes=[SCOPE_ASSETS_READ],
+                 response_schema={"type": "array", "items": _TAG_SCHEMA},
+                 query_params=[
+                     {"name": "state",
+                      "schema": {"type": "string", "enum": list(STATES)},
+                      "description": "The LABEL's own lifecycle state — "
+                                     "`pending` is waiting for a decision, "
+                                     "`scrapped` was approved and replaced, "
+                                     "`active` was rejected (who refused and "
+                                     "why are on the row). Omitted returns "
+                                     "every state."},
+                     {"name": "waiting_on_me",
+                      "schema": {"type": "boolean"},
+                      "description": "Only requests NAMING the caller as the "
+                                     "approver — *what is waiting on me*. "
+                                     "Anyone eligible may decide any pending "
+                                     "request, so this is a convenience and "
+                                     "not a boundary."},
+                     {"name": "raised_by_me",
+                      "schema": {"type": "boolean"},
+                      "description": "Only requests the caller raised — how "
+                                     "a requester finds out what happened to "
+                                     "theirs, decided ones included."},
+                     *PAGINATION_QUERY_PARAMS])
+    def list_replacements(self, **kwargs):
+        """Every REPLACEMENT REQUEST the caller can see, newest first.
+
+        The sibling of `pending-replacements`, not a widening of it
+        (handoff 51): that route stays pending-only by its published name;
+        this one answers the requester's question, which is not *"what is
+        pending"* but *"what happened to mine"* — a question a pending-only
+        list answers with *"nothing"* an hour after the decision.
+
+        A label that has never had a replacement asked about it is not a
+        replacement request, so the base domain is `requested_by` set —
+        which an approval (label `scrapped`) and a rejection (label back to
+        `active`) both preserve, and which the next request on the same
+        label overwrites. The rows are labels, serialized exactly as the
+        pending queue serializes them, `can_decide` computed per caller.
+
+        `assets:read`, for `pending-replacements`'s reason: an Auditor must
+        be able to read what is waiting and on whom without being able to
+        decide any of it. One consequence worth a sentence (handoff 51 §1c):
+        the Tag-Issuing Unit's own credential holds `tagging:write` and
+        nothing else, so a TAGGING-ONLY caller cannot read this route or the
+        pending queue — a human tagger reads them through the Asset User
+        pairing (`docs/DECISIONS.md`, 2026-10-01), which is the ruled answer
+        and not a bug.
+        """
+        try:
+            state = parse_enum("state", kwargs.get("state"), STATES)
+            waiting_on_me = parse_bool("waiting_on_me",
+                                       kwargs.get("waiting_on_me"))
+            raised_by_me = parse_bool("raised_by_me",
+                                      kwargs.get("raised_by_me"))
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
+        domain = [("requested_by", "!=", False)]
+        if state:
+            domain.append(("state", "=", state))
+        # `is True`, not truthiness: `parse_bool` answers None for absent and
+        # False for an explicit `false`, and `?waiting_on_me=false` must mean
+        # "do not filter", not "filter on nothing" (handoff 22's lesson, the
+        # same line `list_approvals` carries).
+        if waiting_on_me is True:
+            domain.append(("approver_id", "=", request.env.uid))
+        if raised_by_me is True:
+            domain.append(("requested_by", "=", request.env.uid))
+
+        limit = parse_limit(kwargs)
+        page, next_cursor, total = paginate(
+            request.env[MODEL].sudo(), domain,
             limit=limit, cursor=kwargs.get("cursor"), descending=True)
         return ok(
             data=[serialize_tag(t) for t in page],

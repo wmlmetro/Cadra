@@ -31,13 +31,17 @@ import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 
 /** Every query a tag write can change: the station's tiles and tables, the
  *  pending list, any fetched tag — and the asset's history, which the
- *  station's generate path already invalidates when a tag is issued. */
+ *  station's generate path already invalidates when a tag is issued. Since
+ *  handoff 51 the Approvals queue lists replacements too, so its own query
+ *  is on the list: a decision taken from either screen must leave both
+ *  telling the truth. */
 export function invalidateTagQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["barcode-kpis"] });
   qc.invalidateQueries({ queryKey: ["barcode-recent"] });
   qc.invalidateQueries({ queryKey: ["tag-pending"] });
   qc.invalidateQueries({ queryKey: ["tag"] });
   qc.invalidateQueries({ queryKey: ["asset-history"] });
+  qc.invalidateQueries({ queryKey: ["tag-replacements"] });
 }
 
 /** The approver picker's search — a copy of `searchApprovers` in
