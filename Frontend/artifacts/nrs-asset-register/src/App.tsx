@@ -339,11 +339,11 @@ function App() {
               && q.queryKey[0] !== "departed-holders",
           },
           // BUMP THIS whenever an adapter changes what a cached object MEANS.
-          // The persisted cache holds objects AFTER `lib/adapters.ts` has run,
-          // and a restored one is shown as it was stored for as long as it is
-          // fresh: `refetchOnMount: true` (above) refetches only what is STALE,
-          // and `staleTime` is five minutes — so a browser reopened inside
-          // that window paints the old objects and asks nobody.
+          // The persisted cache holds objects AFTER `lib/adapters.ts` has run.
+          // Since handoff 52 §5 a restored object is painted and REFETCHED
+          // (see `onSuccess` below), so a wrong restored object now lasts one
+          // round trip rather than `staleTime` — but one round trip of a
+          // green pill that should be red is still the buster's to prevent.
           //
           // v1 → v2 in handoff 29: `deriveStatus` used to turn a missing or
           // disposed asset into "Cleared", and every browser that had opened
@@ -370,7 +370,38 @@ function App() {
           // `recent_requests` — the persisted cache must not outlive the
           // serializer, or a browser restores vehicle rows the server no
           // longer hands over.
-          buster: "v5",
+          //
+          // v5 → v6 in handoff 52 §2: `fetchPendingTagReplacements` stopped
+          // returning a bare array (`tag-pending` now caches `{ tags,
+          // totalEstimate, nextCursor }`), and a restored v5 array has no
+          // `.tags` — the panel would read it as empty and say "Nothing
+          // waiting" over a queue of 214 until the refetch landed.
+          buster: "v6",
+        }}
+        // THE RULING of handoff 52 §5: whatever is restored from the
+        // persisted cache paints immediately and is refetched immediately —
+        // restored data is NEVER fresh. `onSuccess` fires once, when the
+        // restore completes, and at that moment the cache holds exactly the
+        // restored entries; invalidating marks every one stale, the mounted
+        // ones refetch at once and the rest refetch as they mount
+        // (`refetchOnMount: true`, above). Instant paint from cache is kept —
+        // that is what the persister is for — and the server's answer
+        // replaces it within one round trip. The five-minute `staleTime`
+        // still applies to what the RUNNING session fetched itself; it just
+        // no longer applies to data that crossed a reload.
+        //
+        // Why: spec 14's intermittence, measured in report 51 §3b and ruled
+        // here. The persister's 1 s write throttle means the copy on disk
+        // can be the PRE-click payload with the post-click `dataUpdatedAt`'s
+        // sibling intact; restored inside `staleTime`, react-query treated
+        // it as fresh and the screen showed a switch the user had flipped as
+        // unflipped for the full 30 s, fetching nothing. The throttle is not
+        // the defect and is deliberately untouched — a restored copy is a
+        // sketch, not a fact, however it got stale. This is handoff 29's
+        // family: the cost (a refetch burst on every reload) is measured in
+        // report 52 §5.
+        onSuccess={() => {
+          queryClient.invalidateQueries();
         }}
       >
         <TooltipProvider>

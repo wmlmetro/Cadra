@@ -708,7 +708,18 @@ async function fetchCategoryDashboard(categoryRegex: RegExp): Promise<CategoryDa
   };
 }
 
-export const fetchITAssetsDashboard = () => fetchCategoryDashboard(/IT|computer|laptop|server/i);
+// Word boundaries, not substrings — handoff 52 §3. The unanchored
+// case-insensitive `/IT|.../i` was satisfied by the "it" inside
+// "Furn**it**ure" and "Secur**it**y/CCTV", and on jaizbankplc the page
+// titled IT Assets Command reported 21 Furniture records. Matching on a
+// stable key was measured and lost: `nrs.asset.category` carries `code`
+// and `domain`, but both are SEED values — on jaizbankplc the one
+// IT-populated category, "IT Equipment" (21 assets), has neither, so a
+// `domain = 'it'` match would have missed every real IT asset on the one
+// tenant that showed the defect. The category's name is the only key every
+// tenant fills in; `\b` is what keeps it from matching the inside of a word.
+export const fetchITAssetsDashboard = () =>
+  fetchCategoryDashboard(/\b(IT|computer|laptop|server)\b/i);
 
 // NOT a PATCH, and it used to be one. `PATCH {last_verified_date}` records a
 // date and NO PERSON — `last_verified_by` is deliberately not writable, because
@@ -1378,10 +1389,28 @@ export interface TagLabel {
 export const fetchTag = async (id: number): Promise<TagLabel> =>
   (await apiGet<TagLabel>(`/api/v1/tags/${id}`)).data;
 
-/** Every tag in `pending`, newest first. One page — the station lists what
- *  is waiting, it is not a register. */
-export const fetchPendingTagReplacements = async (): Promise<TagLabel[]> =>
-  (await apiGet<TagLabel[]>("/api/v1/tags/pending-replacements", { limit: 100 })).data;
+export interface PendingTagReplacements {
+  tags: TagLabel[];
+  /** The server's count of EVERYTHING pending, not of this page. */
+  totalEstimate: number | null;
+  /** Non-null means the page below is not the whole queue. */
+  nextCursor: string | null;
+}
+
+/** The 100 most recent tags in `pending`, WITH the server's own total —
+ *  handoff 52 §2. This used to return `.data` alone, which threw the
+ *  pagination block away: the station rendered one page as if it were the
+ *  queue, and on a tenant with more than 100 pending (test19 held 214) the
+ *  panel ended without saying whether it was the end. The panel now reads
+ *  `totalEstimate`/`nextCursor` and says what it is showing. */
+export const fetchPendingTagReplacements = async (): Promise<PendingTagReplacements> => {
+  const res = await apiGet<TagLabel[]>("/api/v1/tags/pending-replacements", { limit: 100 });
+  return {
+    tags: res.data,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+    nextCursor: res.pagination?.next_cursor ?? null,
+  };
+};
 
 /**
  * Filters for `GET /api/v1/tags/replacements` — the SIBLING of
@@ -2527,13 +2556,31 @@ export async function fetchApprovalsPage(
  * Null rather than 0 when the server sends no total: a badge reading "0" and
  * a badge that could not be computed are different facts, and the sidebar
  * draws nothing for the second.
+ *
+ * BOTH kinds of waiting work since handoff 52 §1: the movement queue and the
+ * pending tag replacements naming the caller as approver. The Approvals page
+ * has shown the two side by side since handoff 51; the number beside the menu
+ * item counted only the first (test19: 214 pending replacements, badge 0 of
+ * them). Both routes are `assets:read` and both answer the cheap-count idiom
+ * above. If EITHER total is missing — a failed call rejects the whole
+ * Promise.all, a null total nulls the sum — the badge shows nothing rather
+ * than half: "3" when the truth is "3 plus an unknown" is the same
+ * under-report with a confident face.
  */
 export async function fetchApprovalsWaitingCount(): Promise<number | null> {
   if (!apiConfigured) return null;
-  const res = await apiGet<ApprovalRequest[]>("/api/v1/approvals", {
-    state: "pending", waiting_on_me: true, limit: 1,
-  });
-  return res.pagination?.total_estimate ?? null;
+  const [moves, tags] = await Promise.all([
+    apiGet<ApprovalRequest[]>("/api/v1/approvals", {
+      state: "pending", waiting_on_me: true, limit: 1,
+    }),
+    apiGet<TagLabel[]>("/api/v1/tags/replacements", {
+      state: "pending", waiting_on_me: true, limit: 1,
+    }),
+  ]);
+  const movesTotal = moves.pagination?.total_estimate ?? null;
+  const tagsTotal = tags.pagination?.total_estimate ?? null;
+  if (movesTotal == null || tagsTotal == null) return null;
+  return movesTotal + tagsTotal;
 }
 
 /**

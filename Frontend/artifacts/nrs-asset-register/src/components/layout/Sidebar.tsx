@@ -51,7 +51,11 @@ function NrsLogoImg() {
  * `retry: false` and a minute of `staleTime`: this is chrome on every screen
  * in the app, and it must never be the reason a page makes three requests.
  * It comes up to date the moment anything is decided —
- * `invalidateApprovalQueries` invalidates the `approval-count` prefix.
+ * `invalidateApprovalQueries` AND `invalidateTagQueries` both invalidate the
+ * `approval-count` prefix, because since handoff 52 §1 the number is the SUM
+ * of both kinds of waiting work: movement requests and pending tag
+ * replacements naming this user. The Approvals page it opens has shown both
+ * since handoff 51; the badge was still counting one of them.
  *
  * Not asked at all without `assets:read` (handoff 46): the queue is served
  * under it, and a session that cannot read it made a request on every screen

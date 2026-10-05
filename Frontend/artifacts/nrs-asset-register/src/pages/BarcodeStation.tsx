@@ -684,7 +684,7 @@ export default function BarcodeStation() {
 
         {pendingList.isLoading ? (
           <p className="text-[12px] text-muted-foreground py-4 text-center">Loading…</p>
-        ) : (pendingList.data ?? []).length === 0 ? (
+        ) : (pendingList.data?.tags ?? []).length === 0 ? (
           <p className="text-[12px] text-muted-foreground py-4 text-center inline-flex items-center gap-1.5 w-full justify-center" data-testid="pending-replacements-empty">
             <Check size={12} className="text-green-600 dark:text-green-400" /> Nothing waiting.
           </p>
@@ -699,7 +699,7 @@ export default function BarcodeStation() {
                 </tr>
               </thead>
               <tbody>
-                {(pendingList.data ?? []).map((t) => (
+                {(pendingList.data?.tags ?? []).map((t) => (
                   <PendingRow
                     key={t.id}
                     tag={t}
@@ -712,6 +712,21 @@ export default function BarcodeStation() {
                 ))}
               </tbody>
             </table>
+            {/* A list that ends says whether it is the end — handoff 52 §2.
+                This panel rendered one page of 100 as the whole of what was
+                waiting (test19 held 214, the panel showed 100, nothing said
+                so). The station is a scan console, not the decision queue:
+                the full, paged record lives on the Approvals page, so the
+                honest cap — the real remainder, from the server's own
+                `total_estimate` — was chosen over paging a glance-list. */}
+            {pendingList.data?.nextCursor != null && (
+              <p className="text-[11px] text-muted-foreground pt-3 px-3" data-testid="pending-replacements-truncated">
+                Showing the {(pendingList.data?.tags ?? []).length} most recent
+                {pendingList.data?.totalEstimate != null
+                  ? ` — ${(pendingList.data.totalEstimate - (pendingList.data?.tags ?? []).length).toLocaleString()} more on the Approvals page.`
+                  : " — more are waiting; the full queue is on the Approvals page."}
+              </p>
+            )}
           </div>
         )}
       </div>

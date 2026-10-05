@@ -34,7 +34,10 @@ import { ApiErrorMessage } from "@/components/ApiErrorMessage";
  *  station's generate path already invalidates when a tag is issued. Since
  *  handoff 51 the Approvals queue lists replacements too, so its own query
  *  is on the list: a decision taken from either screen must leave both
- *  telling the truth. */
+ *  telling the truth. And since handoff 52 §1 the sidebar badge counts
+ *  pending replacements beside movement requests, so deciding one must
+ *  refresh the badge too — the movement dialogs' `invalidateApprovalQueries`
+ *  has always done this for its half. */
 export function invalidateTagQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["barcode-kpis"] });
   qc.invalidateQueries({ queryKey: ["barcode-recent"] });
@@ -42,6 +45,7 @@ export function invalidateTagQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["tag"] });
   qc.invalidateQueries({ queryKey: ["asset-history"] });
   qc.invalidateQueries({ queryKey: ["tag-replacements"] });
+  qc.invalidateQueries({ queryKey: ["approval-count"] });
 }
 
 /** The approver picker's search — a copy of `searchApprovers` in

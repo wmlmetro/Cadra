@@ -120,8 +120,17 @@ export default function ITAssetsCommand() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-foreground">IT Assets Command</h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            {d.total.toLocaleString()} {d.categoryName} records · {d.active.toLocaleString()} active — {verifiedShare.toLocaleString()} verified, {d.unverified.toLocaleString()} not yet
+          {/* The matched category, SAID — handoff 52 §3. "21 Furniture
+              records" was on this page for anyone to read and nobody did,
+              because the heading said IT and the eye believed the heading.
+              A page that names its own denominator cannot do that to the
+              next reader, so the category this screen actually counts leads
+              the line, every time. */}
+          <p className="text-xs font-semibold text-foreground mt-1" data-testid="it-dashboard-category">
+            Showing: {d.categoryName} ({d.total.toLocaleString()} {d.total === 1 ? "asset" : "assets"})
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {d.active.toLocaleString()} active — {verifiedShare.toLocaleString()} verified, {d.unverified.toLocaleString()} not yet
           </p>
         </div>
         <div className="flex items-center gap-2">
