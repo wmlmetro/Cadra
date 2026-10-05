@@ -1458,3 +1458,74 @@ defects, the cache ruling, and two drift guards.
 - Guards red-once-then-green: `52-evidence/guards-red-once.txt`
 - Fan-out: no selection, source or stored-field change — none required;
   manifests bumped for the deploy Job.
+
+## Handoff 54 — every time (2026-10-05)
+
+The owner tested the camera on the Barcode Station and some barcodes
+scanned while some did not — the first act of every tagging operation,
+failing silently, depending on whose phone it was. The engine changed.
+
+### Built
+
+- **One decoder, every device.** `zxing-wasm` 3.1.4 (reader build) behind
+  `src/lib/scanEngine.ts` IS the engine — the platform's `BarcodeDetector`
+  is gone, not demoted to a fallback. Evaluated against the
+  `barcode-detector` ponyfill; direct won (one dependency, same core,
+  and the component was being rewritten anyway — report §1). The wasm
+  (953.53 KB, 413.61 KB gzip) is served from our own origin and loads when
+  the camera starts, never on boot — proved by network trace (spec 54).
+  Bundle: 2,076 KB → 3,060 KB on disk, all of the growth in the two lazy
+  assets; the boot path is unchanged.
+- **Thirteen formats** (Code 128, Code 39, Code 93, Codabar, EAN-13,
+  EAN-8, UPC-A, UPC-E, ITF, QR, Data Matrix, PDF417, Aztec), published as
+  BarcodeDetector-style names from `src/lib/scanFormats.ts` (no zxing
+  import — naming a format costs no bundle).
+- **The reticle is true.** Each frame is cropped to the reticle rectangle
+  (one constant drives the overlay and the crop) and decoded there first;
+  full frame only when the crop reads nothing. ~10 decodes/s, one in
+  flight at a time.
+- **Acceptance that does not misread** (`src/lib/scanDecision.ts`, pure,
+  unit-driven by spec 54): 1D accepted on two consecutive agreeing decodes
+  (value AND symbology), 2D on one, several distinct values a tap-to-choose
+  chooser — never a guess; the reticle's single find wins without asking.
+- **Silence ends.** 4 s without a decode: *"Nothing read yet — move
+  closer, hold steady, or try the light."*; 10 s: *"— or type the code."*
+  with the typed field focused and the camera left running; a 1D read
+  waiting for its twin says *"Reading…"*. Timed in spec 54.
+- **The camera is asked for what the label needs:** 1920×1080 ideal,
+  continuous focus where offered, a zoom slider where `getCapabilities()`
+  has one, a camera picker when `enumerateDevices()` lists several
+  (remembered per browser), and the granted `getSettings()` printed on the
+  preview for §6c's owner-run device table.
+- **`onDetected(value, format)`** — the symbology rides up; the station
+  shows it (*Camera read: QR code.*), the affix dialog sends it:
+  `POST /assets/<id>/tag-affixed` accepts `scanned_format`/`serial_format`
+  (enum-validated, refused outside it with `allowed_values` and nothing
+  written; `serial_format` without a serial refused as contradictory), and
+  the `affix_refused` event records it beside the refused value —
+  `nrs.asset.event.scanned_format`, allowed in that payload only. A
+  successful affix stores nothing new, pinned from outside by pytest.
+- **The corpus** (`e2e/corpus/run54.mjs`, `npm run corpus:54`): 408
+  offline decodes through the same package/version/options — every
+  symbology, Cadra's three label sizes from the REAL renderer at the
+  template's source resolutions and physical mm, 3 rotations × 2 scales ×
+  4 degradations, N of M everywhere
+  (`docs/handoffs/54-evidence/corpus-table.md`), a committed
+  regression baseline (201 passing cells) and an invariant: every label
+  size readable on at least one side as printed. Deterministic across
+  runs. Its first pipeline (`<img>` + screenshot) was measured to lose
+  decodes canvas compositing keeps — fixed before the table was committed.
+
+### Found
+
+- **The small and standard labels' Code 128 side is below any camera
+  pipeline's floor** — 0 of 24 cells each, straight-on undegraded
+  included: a 15-character tag at ≤ 28.6 mm is ≈ 5 mil per module. The QR
+  side reads 3 of 3 as printed on every size; the large Code 128 reads as
+  printed, not at arm's length. Every printed label is phone-readable by
+  its QR. Template question (grow the small QR?) open for the Architect —
+  DECISIONS 2026-10-05.
+- **§6c's real-device table is owner-blocked** (a Builder session cannot
+  hold a printed label in front of a camera) and the handoff carried no
+  "Needs the owner" block naming it — a handoff defect per the authoring
+  rules. The procedure and fill-in table are in report §6c.

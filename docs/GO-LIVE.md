@@ -2280,3 +2280,32 @@ trace surfaced, none fixed here because none was in the list:
   currently wrong, which is exactly when nobody would notice it starting
   to be. ("Last updated" beside it is the counts query's clock alone,
   standing for a five-query page — same family, smaller.)
+
+## 28 · Handoff 54 — every time, 2026-10-05
+
+### 28.1 · The §6c real-device table — `[open]`, owner-blocked
+
+The scanner's engine is bundled and proved through the fake capture device
+and the offline corpus, but §6c's table — the demo MacBook's built-in camera
+(Chrome and Safari), one Android Chrome phone, one iPhone Safari, each with
+printed labels at measured distances — needs hands holding paper. The
+procedure and fill-in table are in `docs/handoffs/54-REPORT.md` §6c; the
+preview prints what `getSettings()` granted so each row can be read off the
+screen. The handoff ruled "no real device, no done" and carried no *Needs
+the owner* block naming it — recorded there as a handoff defect. **The demo
+distance bands (which label size, at what distance, on the MacBook) come out
+of this table and nowhere else.**
+
+### 28.2 · The small and standard labels' Code 128 side — `[open]`, a template question for the Architect
+
+Measured in `docs/handoffs/54-evidence/corpus-table.md`: a 15-character tag
+in Code 128 at the small label's 28.6 mm (and the standard's 25.0 mm) is
+≈ 0.13 mm — ≈ 5 mil — per module: 0 of 24 corpus cells decode, straight-on
+undegraded at 300-dpi-equivalent density included, and a clean 1200 px
+source downsampled to the same density fails the same way. The QR side
+reads 3 of 3 as printed on every size. Every printed label is
+phone-readable — by its QR; the two smaller Code 128s serve only handheld
+scanners, and 5 mil is at the floor of common lasers too. The decision —
+grow the QR at the Code 128's expense on `small` (and possibly `standard`),
+or leave the artwork — is a one-file template change
+(`asset_tag_report.xml` cfg) the owner can make before the demo.
