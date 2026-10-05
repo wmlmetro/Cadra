@@ -2561,6 +2561,22 @@ class CadraAssetsV1(http.Controller):
                            details={"asset_id": rec.id,
                                     "scanned_serial": scanned_serial})
             if scanned_serial.casefold() != expected_serial.casefold():
+                # This refusal leaves a record too — handoff 52 §4, and the
+                # exact *label going onto the wrong box* event an auditor
+                # wants: the cheaper tell, since unlike the number refusal
+                # below it reveals nothing to the person refused. This is
+                # the `err(...)` path, not a raise — no exception, no
+                # decorator rollback, the request cursor survives — so the
+                # placement question is DIFFERENT from the raise's and was
+                # measured again rather than assumed (report 52 §4): a
+                # same-cursor write here would in fact commit with the
+                # request. The shared recorder is used anyway — one
+                # mechanism, one test-mode branch, and a row that stays
+                # final if this err is ever turned into a raise.
+                label.with_context(
+                    cadra_event_source="api_affix",
+                )._record_affix_refusal(scanned_serial,
+                                        reason='serial_mismatch')
                 return err(ERR_VALIDATION_FAILED,
                            "Scanned serial %s does not match the serial on "
                            "this asset (%s) — the label may be going onto the "

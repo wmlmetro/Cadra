@@ -250,9 +250,74 @@ def test_affix_rejects_a_serial_that_does_not_match(client, capture):
         "the error must name both serials — an operative holding the wrong "
         "box needs to know which one they should be holding"
     )
-    # And nothing is recorded.
+    # And nothing on the label moved. (The refusal itself IS recorded since
+    # handoff 52 §4 — the test below owns that.)
     after = assert_envelope_ok(client.get(f"/api/v1/assets/{data['id']}"))
     assert after["data"]["tagging"]["is_tagged"] is False
+
+
+def test_a_serial_mismatch_leaves_a_record_the_response_cannot_erase(
+        client, capture):
+    """Handoff 52 §4: the serial refusal is recorded, with its own reason.
+
+    This is the exact *label going onto the wrong box* event an auditor
+    wants, and the cheaper tell: unlike the number refusal, it reveals
+    nothing to the person being refused that they did not already know.
+    It is also the `err(...)` path, not a raise — no exception, no
+    decorator rollback — so its placement was measured separately from
+    handoff 51's (report 52 §4): a same-cursor write here would survive,
+    and the shared own-cursor recorder is used anyway, one mechanism for
+    all three refusals. The read below is still a SEPARATE request after
+    the 400, the 51 §2b discipline, so this test cannot be fooled by a
+    row that only existed inside the refused request's transaction.
+    """
+    serial = f"SN-{_uniq()}"
+    wrong = f"SN-WRONG-{_uniq()}"
+    data = _asset_with_serial(client, serial)
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": data["tag"], "serial_number": wrong})
+    capture("tagging/serial_refusal_recorded", r)
+    body = assert_envelope_err(r, 400, "validation_failed")
+    # The refusal text is unchanged by the recording.
+    message = body["error"]["message"]
+    assert wrong in message and serial in message
+    assert "does not match the serial on this asset" in message
+
+    # The separate read.
+    history = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}/history"))["data"]
+    refusals = [e for e in history["events"] if e["type"] == "affix_refused"]
+    assert len(refusals) == 1, (
+        "exactly one refusal was made and exactly one must be recorded; "
+        "got %d" % len(refusals))
+    refusal = refusals[0]
+    assert refusal["detail"]["reason"] == "serial_mismatch"
+    assert refusal["detail"]["scanned"] == wrong, (
+        "the payload is the scanned SERIAL as entered")
+    assert "serial" in refusal["summary"]
+    assert "wrong asset" in refusal["summary"], (
+        "the history sentence must differ per reason — this one is the "
+        "label going onto the wrong box")
+    assert refusal["evidence"] == "append_only"
+    assert refusal["source"] == "test"
+    assert refusal["record"]["model"] == "nrs.asset.event"
+
+    # The label did not move.
+    tagging = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}"))["data"]["tagging"]
+    assert tagging["is_tagged"] is False
+    assert tagging["label_state"] == "issued"
+
+    # The wrong-then-right sequence reads in order, like the number's.
+    assert_envelope_ok(client.post(
+        f"/api/v1/assets/{data['id']}/tag-affixed",
+        json={"tag_number": data["tag"], "serial_number": serial}))
+    history = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}/history", params={"sort": "oldest"})
+    )["data"]
+    sequence = [e["type"] for e in history["events"]
+                if e["type"] in ("affix_refused", "tag_affixed")]
+    assert sequence == ["affix_refused", "tag_affixed"]
 
 
 def test_affix_accepts_a_matching_serial(client):

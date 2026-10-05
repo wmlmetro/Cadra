@@ -547,15 +547,34 @@ class NRSAssetHistory(models.Model):
                                "to": ev.to_value or None,
                                "reason": ev.reason or None})
             elif etype == "affix_refused":
-                # Handoff 51. The scanned number as entered; nothing about
+                # Handoff 51. The scanned value as entered; nothing about
                 # the label changed, which is the point — the row exists so
                 # that a refusal followed seconds later by a confirmation
                 # is a sequence anybody reading this history can see.
+                #
+                # One sentence PER REASON since handoff 52 §4, so a reader
+                # can tell a wrong label from a dead one from a label going
+                # onto the wrong box. A row with no reason predates the
+                # reasons and is handoff 51's number mismatch — the only
+                # kind that was recorded then.
                 published = "affix_refused"
-                summary = ("Affix confirmation refused — the number read "
-                           "off the asset (%s) is not the label issued "
-                           "for it" % (ev.to_value or "—"))
-                detail.update(scanned=ev.to_value or None)
+                reason = ev.reason or "number_mismatch"
+                if reason == "scrapped":
+                    summary = ("Affix confirmation refused — the label "
+                               "presented (%s) has been scrapped and is no "
+                               "longer valid for any asset"
+                               % (ev.to_value or "—"))
+                elif reason == "serial_mismatch":
+                    summary = ("Affix confirmation refused — the serial "
+                               "read off the asset (%s) is not the serial "
+                               "on record for it; the label may have been "
+                               "going onto the wrong asset"
+                               % (ev.to_value or "—"))
+                else:
+                    summary = ("Affix confirmation refused — the number "
+                               "read off the asset (%s) is not the label "
+                               "issued for it" % (ev.to_value or "—"))
+                detail.update(scanned=ev.to_value or None, reason=reason)
             else:
                 # A reference or a warranty field: the same shape, a field
                 # with a before and an after. The warranty fields carry no

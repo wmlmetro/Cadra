@@ -889,6 +889,73 @@ class TestAssetHistoryTags(AssetHistoryCase):
         self.assertEqual(refusal["detail"]["scanned"], "NOT-THE-TAG")
         self.assertIn("NOT-THE-TAG", refusal["summary"])
         self.assertEqual(refusal["actor"]["id"], self.env.uid)
+        # Since handoff 52 §4 the row says WHICH refusal it was, and a
+        # number mismatch says so explicitly rather than by omission.
+        self.assertEqual(refusal["detail"]["reason"], "number_mismatch")
+
+    def test_a_scrapped_label_refusal_is_recorded_with_its_reason(self):
+        """Handoff 52 §4: the scrapped-label refusal leaves a record too.
+
+        Unreachable through the API route (which confirms against
+        `active_tag_id`, and a scrapped label no longer is one — report
+        39), but every caller of the CHECK passes here: the Odoo form, a
+        script, a shell. The label is scrapped the only way a label is —
+        through the two-person replacement flow — and then presented for
+        confirmation.
+        """
+        asset = self._asset()
+        tag = asset.tag_ids[:1]
+        requester = self.env["res.users"].create({
+            "name": "Scrapped Refusal Requester",
+            "login": "scrapped-refusal-%s" % uuid.uuid4().hex[:8],
+            "email": "scrapped-refusal@example.com"})
+        tag.with_user(requester).sudo().action_request_replacement(
+            reason="damaged", approver=self.env.user)
+        tag.action_approve_replacement()
+        self.assertEqual(tag.state, "scrapped")
+        # Bare try/except for the 51 test's reason: `assertRaises` is a
+        # savepoint and unwinds the recorder's same-cursor test-mode write.
+        try:
+            tag._mark_affixed(tag.name)
+            self.fail("a scrapped label must be refused")
+        except ValidationError as caught:
+            self.assertIn("has been scrapped", str(caught))
+        refusals = [e for e in asset.asset_history()["events"]
+                    if e["type"] == "affix_refused"]
+        self.assertEqual(len(refusals), 1)
+        refusal = refusals[0]
+        self.assertEqual(refusal["detail"]["reason"], "scrapped")
+        self.assertEqual(refusal["detail"]["scanned"], tag.name)
+        self.assertIn("scrapped", refusal["summary"])
+        self.assertNotIn("not the label issued", refusal["summary"],
+                         "a dead label must not read as a wrong one")
+
+    def test_each_refusal_reason_has_its_own_sentence(self):
+        """Handoff 52 §4: a reader tells a wrong label from a dead one from
+        a label going onto the wrong box, and a pre-52 row (no reason) is
+        handoff 51's number mismatch — the only kind recorded then."""
+        asset = self._asset()
+        tag = asset.tag_ids[:1]
+        Event = self.env["nrs.asset.event"]
+        tag._record_affix_refusal("A-1", reason="number_mismatch")
+        tag._record_affix_refusal("A-2", reason="scrapped")
+        tag._record_affix_refusal("SER-9", reason="serial_mismatch")
+        # The pre-52 shape: a row with no reason at all.
+        Event._record(asset, "affix_refused", to_value="A-0")
+        events = [e for e in asset.asset_history(newest_first=False)["events"]
+                  if e["type"] == "affix_refused"]
+        self.assertEqual(len(events), 4)
+        by_scanned = {e["detail"]["scanned"]: e for e in events}
+        self.assertIn("not the label issued", by_scanned["A-1"]["summary"])
+        self.assertIn("scrapped", by_scanned["A-2"]["summary"])
+        self.assertIn("serial", by_scanned["SER-9"]["summary"])
+        self.assertIn("wrong asset", by_scanned["SER-9"]["summary"])
+        self.assertEqual(by_scanned["A-0"]["detail"]["reason"],
+                         "number_mismatch")
+        self.assertIn("not the label issued", by_scanned["A-0"]["summary"])
+        self.assertEqual(
+            len({e["summary"].split("(")[0] for e in events}), 3,
+            "three reasons, three sentences")
 
     def test_a_same_day_scrap_does_not_sort_before_the_tags_own_issue(self):
         """A bare date sorts at midnight — before the tag existed."""
