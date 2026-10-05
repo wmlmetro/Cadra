@@ -239,6 +239,132 @@ def test_the_pending_queue_lists_it_newest_first(client, requester,
     assert body["pagination"]["total_estimate"] >= 2
 
 
+def test_what_happened_to_mine_is_answerable_after_the_decision(
+        client, requester, requester_id, approver_id, capture):
+    """Handoff 51 §1a, the reason the sibling route exists.
+
+    The requester's question is not "what is pending", it is "what
+    happened to mine" — and a pending-only endpoint answers "nothing" the
+    moment the request is decided, however many filters it grows. So:
+    request, decide, then ask both routes.
+    """
+    asset = _tagged_asset(client, "mine-decided")
+    tag_id = asset["tagging"]["label_id"]
+    assert_envelope_ok(_request(requester, tag_id, approver_id))
+    assert_envelope_ok(client.post(
+        f"/api/v1/tags/{tag_id}/approve-replacement", json={}))
+
+    # The pending queue now honestly answers "nothing" about it.
+    pending = assert_envelope_ok(client.get(
+        "/api/v1/tags/pending-replacements", params={"limit": 100}))["data"]
+    assert tag_id not in [row["id"] for row in pending]
+
+    # The record answers the requester.
+    r = requester.get("/api/v1/tags/replacements",
+                      params={"raised_by_me": "true", "limit": 100})
+    capture("tags/replacements_raised_by_me", r)
+    rows = assert_envelope_ok(r)["data"]
+    mine = [row for row in rows if row["id"] == tag_id]
+    assert len(mine) == 1, (
+        "the decided request must still be on the requester's own list")
+    row = mine[0]
+    assert row["state"] == "scrapped", "approved means replaced"
+    assert row["requested_by"]["id"] == requester_id
+    assert row["approved_by"]["id"] == approver_id
+    assert row["replaced_by"]["id"], "the successor label is on the row"
+    assert row["can_decide"] is False, "nothing left to decide"
+    # And every row on the requester's list is genuinely theirs.
+    assert all(x["requested_by"]["id"] == requester_id for x in rows)
+
+
+def test_the_replacements_record_lists_requests_not_labels(
+        client, requester, approver_id, capture):
+    """A label nobody has asked about is not a replacement request.
+
+    Every asset mints a label at creation, so without the base domain this
+    route would be a label list wearing a replacement route's name — one
+    published name carrying two meanings, the defect class §1a names.
+    """
+    fresh = _tagged_asset(client, "never-asked")
+    asked = _tagged_asset(client, "asked")
+    assert_envelope_ok(_request(requester, asked["tagging"]["label_id"],
+                                approver_id))
+
+    r = client.get("/api/v1/tags/replacements", params={"limit": 100})
+    capture("tags/replacements_base_domain", r)
+    rows = assert_envelope_ok(r)["data"]
+    ids = [row["id"] for row in rows]
+    assert asked["tagging"]["label_id"] in ids
+    assert fresh["tagging"]["label_id"] not in ids, (
+        "a never-requested label leaked onto the replacements record")
+    assert all(row["requested_by"] for row in rows)
+
+
+def test_the_replacements_filters_are_the_approvals_filters(
+        client, requester, approver_id, capture):
+    """`state` (the model's own values), `waiting_on_me`, `raised_by_me`.
+
+    `waiting_on_me` is the approver's queue — requests NAMING the caller.
+    The suite's user is the nominated approver here, so its own
+    `waiting_on_me` must carry the pending row, and `state=pending` must
+    agree with the pending-only route about what is pending.
+    """
+    asset = _tagged_asset(client, "filters")
+    tag_id = asset["tagging"]["label_id"]
+    assert_envelope_ok(_request(requester, tag_id, approver_id))
+
+    waiting = assert_envelope_ok(client.get(
+        "/api/v1/tags/replacements",
+        params={"waiting_on_me": "true", "limit": 100}))["data"]
+    assert tag_id in [row["id"] for row in waiting]
+    assert all(row["approver"]["id"] == approver_id for row in waiting)
+
+    by_state = assert_envelope_ok(client.get(
+        "/api/v1/tags/replacements",
+        params={"state": "pending", "limit": 100}))["data"]
+    assert tag_id in [row["id"] for row in by_state]
+    assert all(row["state"] == "pending" for row in by_state)
+
+    # An explicit false means "do not filter", not "filter on nothing" —
+    # handoff 22's lesson, held here as it is on /approvals.
+    unfiltered = assert_envelope_ok(client.get(
+        "/api/v1/tags/replacements",
+        params={"waiting_on_me": "false", "limit": 100}))["data"]
+    assert tag_id in [row["id"] for row in unfiltered]
+
+    r = client.get("/api/v1/tags/replacements", params={"state": "bogus"})
+    capture("tags/replacements_bad_state", r)
+    details = assert_envelope_err(
+        r, 400, "invalid_request")["error"].get("details") or {}
+    assert "allowed_values" in details, (
+        "a refused filter names the values it accepts")
+    assert sorted(details["allowed_values"]) == \
+        sorted(["active", "pending", "scrapped"])
+
+
+def test_a_rejected_request_stays_on_the_record_as_active_with_who_refused(
+        client, requester, requester_id, approver_id, capture):
+    """The third outcome: rejected goes back to `active`, and the row says
+    who refused and why — which is how the requester finds out."""
+    asset = _tagged_asset(client, "rejected-record")
+    tag_id = asset["tagging"]["label_id"]
+    assert_envelope_ok(_request(requester, tag_id, approver_id))
+    assert_envelope_ok(client.post(
+        f"/api/v1/tags/{tag_id}/reject-replacement",
+        json={"reason": "The label is legible — clean it instead."}))
+
+    r = requester.get("/api/v1/tags/replacements",
+                      params={"raised_by_me": "true", "state": "active",
+                              "limit": 100})
+    capture("tags/replacements_rejected", r)
+    rows = assert_envelope_ok(r)["data"]
+    mine = [row for row in rows if row["id"] == tag_id]
+    assert len(mine) == 1
+    assert mine[0]["rejected_by"]["id"] == approver_id
+    assert mine[0]["decision_reason"] == \
+        "The label is legible — clean it instead."
+
+
 def test_a_second_request_on_a_pending_label_is_refused_naming_the_first(
         client, requester, requester_id, approver_id, capture):
     asset = _tagged_asset(client, "twice")

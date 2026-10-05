@@ -188,6 +188,15 @@ INVENTORY = {
     ("v1_approvals", "raised_by_me"): ("bool", ""),
     ("v1_approvals", "q"): ("text", "free-text on an approver candidate's name; the set is the tenant's user list itself"),
 
+    # ── v1_tags.py — handoff 51, the replacements record ──────────────
+    #
+    # The approvals trio, on the label's own lifecycle. Same stakes:
+    # `?waiting_on_me=nonsense` answering with every replacement request on
+    # the tenant would read as the caller's queue.
+    ("v1_tags", "state"): ("enum", ""),
+    ("v1_tags", "waiting_on_me"): ("bool", ""),
+    ("v1_tags", "raised_by_me"): ("bool", ""),
+
     # ── v1_fleet.py ───────────────────────────────────────────────────
     ("v1_fleet", "q"): ("text", "free-text across plate, VIN, name, driver, model, brand, home location"),
     ("v1_fleet", "state_id"): ("int", ""),

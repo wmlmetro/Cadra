@@ -115,6 +115,91 @@ def test_affix_rejects_a_tag_number_that_does_not_match(client, capture):
     assert body["data"]["tagging"]["is_tagged"] is False
 
 
+def test_a_refused_affix_leaves_a_record_the_rollback_cannot_unwind(
+        client, capture):
+    """Handoff 51 §2: a refusal is recorded, and the 400 cannot erase it.
+
+    The refusal text names the expected number (handoff 39's ruling), so
+    one wrong entry reveals the right answer and a second attempt with it
+    will pass. Before this, that sequence left exactly one trace — a clean
+    affix record saying a human verified the label. The event row is what
+    makes it visible.
+
+    The 400 path rolls the request transaction back (`cadra_endpoint`
+    calls `cr.rollback()` on a `ValidationError`), so this test is only
+    evidence because the read below is a SEPARATE request after the
+    response: a row that had gone on the request's own cursor would be
+    gone by then — measured, report 51 §2.
+    """
+    data = _new_asset(client)
+    wrong = f"WRONG-{_uniq()}"
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed",
+                    json={"tag_number": wrong})
+    capture("tagging/affix_refusal_recorded", r)
+    assert_envelope_err(r, 400, "validation_failed")
+    message = r.json()["error"]["message"]
+    # The refusal text is unchanged and still names both numbers.
+    assert wrong in message and data["tag"] in message
+    assert "does not match the tag issued" in message
+
+    # The separate read. The refusal row, by its own id, with its payload.
+    history = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}/history"))["data"]
+    refusals = [e for e in history["events"] if e["type"] == "affix_refused"]
+    assert len(refusals) == 1, (
+        "exactly one refusal was made and exactly one must be recorded; "
+        "got %d" % len(refusals))
+    refusal = refusals[0]
+    assert refusal["record"]["model"] == "nrs.asset.event"
+    assert refusal["record"]["id"], "the row exists under its own id"
+    assert refusal["detail"]["scanned"] == wrong, (
+        "the payload is the scanned value as entered")
+    assert refusal["evidence"] == "append_only"
+    # Written while a test credential was acting, so labelled as such —
+    # the same relabel every append-only row gets, reaching through the
+    # recorder's own cursor.
+    assert refusal["source"] == "test"
+
+    # The label did not move and no field on it changed.
+    tagging = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}"))["data"]["tagging"]
+    assert tagging["is_tagged"] is False
+    assert tagging["label_state"] == "issued"
+    assert tagging["affixed_at"] is None
+    assert tagging["affixed_by"] is None
+    assert tagging["affixed_by_name"] is None
+    assert tagging["tag_number"] == data["tag"]
+
+
+def test_the_wrong_then_right_sequence_reads_in_order(client, capture):
+    """Handoff 51 §2b step 4: refusal, then acceptance, both rows, in order.
+
+    The pattern the record exists to expose: a refusal and a confirmation
+    moments apart, same asset, same operative. Both instants are on the
+    rows, so the gap between them is visible to anybody reading.
+    """
+    data = _new_asset(client)
+    wrong = f"WRONG-{_uniq()}"
+    assert_envelope_err(client.post(
+        f"/api/v1/assets/{data['id']}/tag-affixed",
+        json={"tag_number": wrong}), 400, "validation_failed")
+    assert_envelope_ok(client.post(
+        f"/api/v1/assets/{data['id']}/tag-affixed",
+        json={"tag_number": data["tag"], "affixed_by_name": "Second Try"}))
+
+    history = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}/history", params={"sort": "oldest"})
+    )["data"]
+    sequence = [e for e in history["events"]
+                if e["type"] in ("affix_refused", "tag_affixed")]
+    assert [e["type"] for e in sequence] == ["affix_refused", "tag_affixed"]
+    refused, affixed = sequence
+    assert refused["detail"]["scanned"] == wrong
+    assert refused["at"] <= affixed["at"], (
+        "the gap between the refusal and the confirmation is the point: "
+        "refusal %s, confirmation %s" % (refused["at"], affixed["at"]))
+
+
 def test_affix_requires_a_tag_number(client):
     data = _new_asset(client)
     r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={})

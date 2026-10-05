@@ -20,6 +20,7 @@ EVENT_VERIFICATION_DATE_SET = 'verification_date_set'
 EVENT_STATUS_CHANGED = 'status_changed'
 EVENT_REFERENCE_CHANGED = 'reference_changed'
 EVENT_WARRANTY_CHANGED = 'warranty_changed'
+EVENT_AFFIX_REFUSED = 'affix_refused'
 
 # The three fields whose change is an event. They are what an auditor
 # reconciles against Vendra and against SAP, they change rarely, and a change
@@ -67,6 +68,17 @@ _PAYLOAD_OF_TYPE = {
     # No `reason`, for the reason above: a PATCH of a duration carries none.
     EVENT_WARRANTY_CHANGED: frozenset(
         {'field_name', 'from_value', 'to_value'}),
+    # Handoff 51. A refused affix confirmation: the number scanned off the
+    # physical label did not match the label Cadra issued. `to_value` is the
+    # scanned number AS ENTERED — the value the caller tried to confirm
+    # with; the expected number is on the label row and is deliberately not
+    # copied here. No `from_value`: a refusal changes nothing, so there is
+    # no before. The point of the row is the SEQUENCE it makes visible — a
+    # refusal and a confirmation seconds apart, same asset, same operative,
+    # is readable in the history, where today the wrong-then-revealed-right
+    # sequence leaves one clean affix record saying a human verified the
+    # label.
+    EVENT_AFFIX_REFUSED: frozenset({'to_value'}),
 }
 
 # Which fields each field-carrying type may name. A reference change naming a
@@ -82,7 +94,7 @@ _FIELDS_OF_TYPE = {
 # `nrs.asset.append.only.mixin._resolve_source`.
 _CONTEXT_SOURCES = (
     'api_verify', 'api_condemn', 'api_mark_missing', 'api_mark_found',
-    'api_write',
+    'api_write', 'api_affix',
     'action', 'transfer', 'approval', 'direct')
 
 
@@ -117,9 +129,18 @@ class NRSAssetEvent(models.Model):
     - **`warranty_changed`** — a change to one of `WARRANTY_FIELDS` (handoff
       34), recorded the same way: a date as its ISO string, a duration as
       its number of months, a name as it was typed.
+    - **`affix_refused`** — a tag-affix confirmation the register REFUSED
+      because the scanned number did not match the label issued (handoff
+      51). The one type here that records a write that did NOT happen, and
+      the one not written under `nrs.asset.write`: the check is
+      `nrs.asset.tag.label._mark_affixed`, whose refusal unwinds the
+      request's transaction, so the row is written there on its own cursor
+      — see `_record_affix_refusal` on the tag model for the measurement.
 
-    Written by `nrs.asset.write`, where every writer passes — not by any
-    route.
+    The field-change types are written by `nrs.asset.write`, where every
+    writer passes — not by any route — because every field they watch has
+    many writers. `affix_refused` is written beside the check that refuses,
+    for the same reason: every caller of the check passes through it.
 
     **An event is a CHANGE, so an asset's opening values write none.** That
     is a deliberate difference from custody and movement, which record the
@@ -153,6 +174,7 @@ class NRSAssetEvent(models.Model):
         (EVENT_STATUS_CHANGED, 'Status changed'),
         (EVENT_REFERENCE_CHANGED, 'Reference changed'),
         (EVENT_WARRANTY_CHANGED, 'Warranty changed'),
+        (EVENT_AFFIX_REFUSED, 'Affix confirmation refused'),
     ], string='Event', required=True, index=True)
 
     occurred_at = fields.Datetime(
@@ -182,6 +204,7 @@ class NRSAssetEvent(models.Model):
         ('api_mark_missing', 'API — mark missing'),
         ('api_mark_found', 'API — mark found'),
         ('api_write', 'API — asset create or update'),
+        ('api_affix', 'API — tag-affix confirmation'),
         ('action', 'A button on the asset (verify, condemn, mark missing '
                    'or found)'),
         ('transfer', 'Asset transfer completion'),
@@ -207,7 +230,8 @@ class NRSAssetEvent(models.Model):
         return _(
             "An asset event cannot be created directly. One is written only "
             "as a side effect of the asset actually being verified, changing "
-            "status or having a reference or its warranty changed, so that the record says "
+            "status, having a reference or its warranty changed, or having "
+            "an affix confirmation refused, so that the record says "
             "what happened rather than what somebody typed."
         )
 
