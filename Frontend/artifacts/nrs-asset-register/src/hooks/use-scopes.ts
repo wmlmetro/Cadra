@@ -66,7 +66,13 @@ export function useScopes(): Scopes {
   return useMemo(() => scopesOf(scopes), [scopes]);
 }
 
-/** Scope names, kept in step with myservice_api/controllers/utils.py. */
+/** Scope names, kept in step with myservice_api/controllers/utils.py —
+ *  ALL of them, held there by `tests/test_scope_maps.py` (handoff 52 §6a):
+ *  a scope renamed server-side used to fail here silently, in the one place
+ *  that decides what a person sees. The map is complete even where the SPA
+ *  never gates on an entry (`ingestion:write` is Vendra's, `webhooks:admin`
+ *  an integration's), because "complete except where it isn't" is exactly
+ *  the state the guard exists to refuse. */
 export const SCOPE = {
   assetsRead: "assets:read",
   assetsWrite: "assets:write",
@@ -100,6 +106,11 @@ export const SCOPE = {
   exportRead: "export:read",
   /** The employee import and the SAP employee sync. */
   integrationsWrite: "integrations:write",
+  /** INT-03 — Vendra's receipt hand-off. No SPA page gates on it; it is
+   *  here so this map is the server's list, whole. */
+  ingestionWrite: "ingestion:write",
+  /** Webhook administration. No SPA page gates on it either. */
+  webhooksAdmin: "webhooks:admin",
   /** The wildcard. Pages under Administration require it (handoff 41). */
   admin: "admin",
 } as const;

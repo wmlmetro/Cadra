@@ -1,0 +1,17 @@
+=== 6a: contrived drift — exportRead removed from use-scopes.ts SCOPE ===
+E       AssertionError: use-scopes.ts SCOPE and the server's 19 scopes disagree (SPA carries 18):
+tests/test_scope_maps.py:108: AssertionError
+1 failed, 1 passed in 0.04s
+
+=== 6a: restored ===
+2 passed in 0.04s
+
+=== 6b: contrived omission — the tag-affixed row deleted from the index ===
+            "%d of %d first-party /api/v1 routes have no row in the endpoint "
+E       AssertionError: 1 of 115 first-party /api/v1 routes have no row in the endpoint index of cadra_api_endpoint_reference.md. Either add the row or add an exclusion WITH ITS SENTENCE:
+E           POST /api/v1/assets/<>/tag-affixed  (myservice_api/controllers/v1_assets.py:confirm_tag_affixed)
+E       assert not ['POST /api/v1/assets/<>/tag-affixed  (myservice_api/controllers/v1_assets.py:confirm_tag_affixed)']
+tests/test_endpoint_reference.py:141: AssertionError
+
+=== 6b: restored ===
+3 passed in 0.30s

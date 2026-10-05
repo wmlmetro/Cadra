@@ -369,8 +369,14 @@ class NRSAssetTag(models.Model):
             })
         return to_mark
 
-    def _record_affix_refusal(self, scanned_tag_number):
+    def _record_affix_refusal(self, scanned_value, reason='number_mismatch'):
         """Append the refused affix to `nrs.asset.event`, on its own cursor.
+
+        `reason` is WHICH refusal — `number_mismatch` (handoff 51, and what
+        a NULL on a pre-52 row means), `scrapped` or `serial_mismatch`
+        (handoff 52 §4). It is the recorder's own key, never caller text.
+        `scanned_value` is what the operative entered: a tag number for the
+        first two, the scanned serial for the third.
 
         ON ITS OWN CURSOR because the `ValidationError` this precedes does
         not stay here: the API decorator turns it into the 400 and calls
@@ -406,17 +412,19 @@ class NRSAssetTag(models.Model):
         self.ensure_one()
         # As entered, which is the evidence; '(none)' mirrors the refusal
         # text when nothing was sent at all.
-        scanned = scanned_tag_number or '(none)'
+        scanned = scanned_value or '(none)'
         try:
             if odoo_module.current_test:
                 self.env['nrs.asset.event']._record(
-                    self.asset_id, EVENT_AFFIX_REFUSED, to_value=scanned)
+                    self.asset_id, EVENT_AFFIX_REFUSED, to_value=scanned,
+                    reason=reason)
                 return
             with Registry(self.env.cr.dbname).cursor() as cr:
                 env = api.Environment(cr, self.env.uid, self.env.context)
                 env['nrs.asset.event']._record(
                     env['nrs.asset'].browse(self.asset_id.id),
-                    EVENT_AFFIX_REFUSED, to_value=scanned)
+                    EVENT_AFFIX_REFUSED, to_value=scanned,
+                    reason=reason)
                 cr.commit()
         except Exception:   # noqa: BLE001
             # catch-all: reported — the refusal below must reach the
@@ -438,6 +446,13 @@ class NRSAssetTag(models.Model):
         """
         self.ensure_one()
         if self.state == 'scrapped' or self.label_state == 'scrapped':
+            # This refusal leaves a record too — handoff 52 §4. Through the
+            # API route it is unreachable (the route confirms against
+            # `active_tag_id`, which a scrapped label no longer is — report
+            # 39), but every caller of the CHECK passes here: the Odoo form,
+            # a script, a shell. A dead label presented for confirmation is
+            # exactly the kind of act an auditor asks about afterwards.
+            self._record_affix_refusal(scanned_tag_number, reason='scrapped')
             raise ValidationError(_(
                 'Tag %s has been scrapped and cannot be confirmed as affixed.'
             ) % self.name)
@@ -450,7 +465,8 @@ class NRSAssetTag(models.Model):
             # event row is what makes that sequence visible to anybody
             # reading the history: a refusal and a confirmation seconds
             # apart, same asset, same operative.
-            self._record_affix_refusal(scanned_tag_number)
+            self._record_affix_refusal(scanned_tag_number,
+                                       reason='number_mismatch')
             raise ValidationError(_(
                 'Scanned tag %(scanned)s does not match the tag issued for '
                 'this asset (%(expected)s). The label on the asset is not the '

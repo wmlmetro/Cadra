@@ -1,0 +1,24 @@
+== create asset with serial ==
+asset id=81404 tag=NRS-GEN-11351 serial=SN-52-1791186330
+== POST tag-affixed with WRONG serial (expect 400) ==
+{"error": {"code": "validation_failed", "message": "Scanned serial SN-WRONG-1791186330 does not match the serial on this asset (SN-52-1791186330) \u2014 the label may be going onto the wrong asset", "request_id": "f1628c5b50254e17987cf33aea32f594", "details": {"asset_id": 81404, "scanned_serial": "SN-WRONG-1791186330", "expected_serial": "SN-52-1791186330", "http_status": 400}}}
+HTTP 400
+== SEPARATE request: the asset's history (affix_refused rows) ==
+affix_refused rows: 1
+{
+  "summary": "Affix confirmation refused \u2014 the serial read off the asset (SN-WRONG-1791186330) is not the serial on record for it; the label may have been going onto the wrong asset",
+  "detail": {
+    "records": [
+      "nrs.asset.event"
+    ],
+    "scanned": "SN-WRONG-1791186330",
+    "reason": "serial_mismatch"
+  },
+  "source": "test",
+  "evidence": "append_only",
+  "record": {
+    "model": "nrs.asset.event",
+    "id": 11337
+  }
+}
+ASSET_ID=81404

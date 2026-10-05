@@ -85,6 +85,22 @@ test.describe("/settings/depreciation", () => {
     const toggle = page.getByTestId("toggle-db-switch");
     const before = await toggle.isChecked();
     try {
+      // The reload must not outrun the WRITE — found by handoff 52 §5's
+      // first three runs. The toggle flips optimistically (`onMutate`), so
+      // the assertion below is satisfied while the PATCH is still in
+      // flight, and reloading then ABORTS it: the server never changes,
+      // and this spec used to go green anyway by reading its own restored
+      // sketch back out of localStorage. Under the §5 ruling the restored
+      // entry is refetched and the screen tells the server's truth, which
+      // is what exposed the race. Waiting for the PATCH response is
+      // waiting for the act under test; the persister's 1 s throttle is
+      // untouched, and the PATCH usually answers inside it — so the copy
+      // the reload restores is still typically the PRE-flip payload, and
+      // the green below is the refetch's doing, not the cache's.
+      const patched = page.waitForResponse(
+        r => r.url().includes("/api/v1/settings/depreciation")
+          && r.request().method() === "PATCH",
+        { timeout: 30_000 });
       await toggle.click();
       // The mutation recomputes the register, so give it room.
       await expect(toggle).toBeChecked({ checked: !before, timeout: 30_000 });
@@ -98,17 +114,35 @@ test.describe("/settings/depreciation", () => {
       await dumpPersistedSettings(page, "between click and reload",
         { before, expected_after_click: !before });
 
+      await patched;
       await page.reload();
       await expectShell(page);
       await dumpPersistedSettings(page, "after reload",
         { before, expected_after_click: !before });
       await expect(page.getByTestId("toggle-db-switch"))
         .toBeChecked({ checked: !before, timeout: 30_000 });
+
+      // Handoff 52 §5's proof instant: after the toggle has settled, the
+      // restored entry must have been REFETCHED, not merely trusted — a
+      // changed `dataUpdatedAt` in the persisted copy once the 1 s write
+      // throttle has flushed the post-refetch cache back to disk. (The
+      // restore-time invalidation in App.tsx is what makes this true; a
+      // restored entry is never fresh.)
+      await page.waitForTimeout(1500);
+      await dumpPersistedSettings(page, "after settle (52 §5: refetched)",
+        { before, expected_after_click: !before });
     } finally {
       const t = page.getByTestId("toggle-db-switch");
       if (await t.isChecked() !== before) {
+        // Same race on the restore: wait for ITS write too, or the next
+        // run inherits a flipped tenant.
+        const restored = page.waitForResponse(
+          r => r.url().includes("/api/v1/settings/depreciation")
+            && r.request().method() === "PATCH",
+          { timeout: 30_000 });
         await t.click();
         await expect(t).toBeChecked({ checked: before, timeout: 30_000 });
+        await restored;
       }
     }
   });

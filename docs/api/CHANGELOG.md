@@ -33,6 +33,29 @@ live at was never the point.
 
 ---
 
+## 2026-10-05 — handoff 52: the Builder's list · `myservice_api` 19.0.3.26.0, `myservice_asset_register` 19.0.1.24.0
+
+- **Additive: two more affix refusals are recorded, and every `affix_refused`
+  history entry says WHICH refusal it was.** The scrapped-label refusal in
+  `_mark_affixed` (unreachable through the route, reachable by every other
+  caller of the check) and the route's serial-mismatch refusal (the `err()`
+  path — the *label going onto the wrong box* event) now write the same
+  append-only `affix_refused` event as handoff 51's number mismatch. The
+  history entry's `detail` gains a `reason` key — `number_mismatch`,
+  `scrapped` or `serial_mismatch` — and the `summary` sentence differs per
+  reason, so a reader can tell a wrong label from a dead one. A row written
+  before this change has no stored reason and is published as
+  `number_mismatch`, the only kind that was recorded then. Refusal texts and
+  status codes are byte-for-byte unchanged; nothing about the 400s moved.
+- **Documentation: the endpoint index in
+  `docs/api/cadra_api_endpoint_reference.md` is complete — all 115
+  first-party `/api/v1` routes, with method and scope — and is now held to
+  the code by a test** (`tests/test_endpoint_reference.py`). It had carried
+  64 rows of 115; the 51 missing included `POST /assets/<id>/tag-affixed`,
+  `GET /assets/<id>/history`, all six auth routes beyond `/auth/token`, the
+  five report routes and the whole §12/§13 users, roles and sidebar surface.
+  No route changed; the index stopped lying by omission.
+
 ## 2026-10-05 — handoff 51: the queue and the refusal · `myservice_api` 19.0.3.25.0, `myservice_asset_register` 19.0.1.23.0
 
 - **Additive: `GET /api/v1/tags/replacements`** (`assets:read`) — every tag

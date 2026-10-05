@@ -4182,74 +4182,143 @@ a deleted parameter's old value to twenty-four writing tests.
 
 ---
 
-# Endpoint index (alphabetical inside groups)
+# Endpoint index (grouped by area, alphabetical inside groups)
+
+Every first-party route under `/api/v1` — 115 of them as of handoff 52; the
+first-party routes OUTSIDE `/api/v1` are `docs/api/EXTERNAL-SURFACES.md`'s.
+This table is held to the code by `tests/test_endpoint_reference.py` (handoff
+52 §6b), which re-derives the route census from every
+`myservice_*/controllers/` and `cadra_brand_*/controllers/` file: a route
+added without a row here, or a row naming a route that does not exist, is a
+red test naming it. Until that guard, this index presented itself as the
+endpoint index while carrying 64 rows of 115 routes — an integrator reading
+it would have built against half an API.
+
+A scope of `(none)` means the route names no scope: the auth routes and the
+self-describing meta routes. Two `@http.route` handlers check their scope
+INLINE rather than declaring it — `GET /assets/export.csv` (`export:read`)
+and `POST /integrations/employees/import` (`integrations:write`) — so their
+cells are stated here by hand; the guard compares method and path, not
+scope. `GET /settings/sidebar` requires a signed-in caller and no scope, by
+design (handoff 48).
 
 | # | Method | Path | Scope |
 |---|---|---|---|
-| 1 | POST   | `/api/v1/auth/token` | (none) |
-| 2 | GET    | `/api/v1/openapi.json` | (none) |
-| 3 | GET    | `/api/v1/docs` | (none) |
-| 4 | GET    | `/api/v1/assets` | `assets:read` |
-| 5 | GET    | `/api/v1/assets/<id>` | `assets:read` |
-| 6 | GET    | `/api/v1/assets/by-tag/<tag>` | `assets:read` |
-| 7 | POST   | `/api/v1/assets` | `assets:write` |
-| 8 | PATCH  | `/api/v1/assets/<id>` | `assets:write` |
-| 9 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
-| 10 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
-| 10a | GET    | `/api/v1/assets/<id>/custody` | `assets:read` |
-| 11 | GET    | `/api/v1/assets/export` | `export:read` |
-| 12 | GET    | `/api/v1/assets/export.csv` | `export:read` |
-| 13 | GET    | `/api/v1/assets/<id>/depreciation` | `assets:read` |
-| 14 | GET    | `/api/v1/locations` | `locations:read` |
-| 15 | GET    | `/api/v1/locations/<id>` | `locations:read` |
-| 16 | POST   | `/api/v1/locations` | `locations:write` |
-| 17 | PATCH  | `/api/v1/locations/<id>` | `locations:write` |
-| 18 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
-| 19 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
-| 20 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
-| 21 | GET    | `/api/v1/requests` | `requests:read` |
-| 22 | GET    | `/api/v1/requests/<id>` | `requests:read` |
-| 23 | GET    | `/api/v1/requests/by-reference/<ref>` | `requests:read` |
-| 24 | POST   | `/api/v1/requests` | `requests:write` |
-| 25 | PATCH  | `/api/v1/requests/<id>` | `requests:write` |
-| 26 | POST   | `/api/v1/requests/<id>/assign` | `requests:write` |
-| 27 | POST   | `/api/v1/requests/<id>/transition` | `requests:write` |
-| 28 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
-| 29 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
-| 30 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
-| 31 | GET    | `/api/v1/dashboard/fleet-command` | `operations:read` |
-| 32 | GET    | `/api/v1/security/kpis` | `operations:read` |
-| 33 | GET    | `/api/v1/security/map-data` | `operations:read` |
-| 34 | GET    | `/api/v1/security/trend` | `operations:read` |
-| 35 | GET    | `/api/v1/security/recent` | `operations:read` |
-| 36 | GET    | `/api/v1/fleet/dashboard` | `operations:read` |
-| 36a | GET    | `/api/v1/fleet/map` | `operations:read` |
-| 37 | GET    | `/api/v1/fm/dashboard` | `operations:read` |
-| 38 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
-| 39 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
-| 40 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
-| 41 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
-| 42 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
-| 43 | POST   | `/api/v1/barcode/generate` | `tagging:write` |
-| 44 | GET    | `/api/v1/tags/lookup` | `assets:read` |
-| 44a | GET    | `/api/v1/tags/<id>` | `assets:read` |
-| 44b | GET    | `/api/v1/tags/pending-replacements` | `assets:read` |
-| 44c | GET    | `/api/v1/tags/replacements` | `assets:read` |
-| 44d | POST   | `/api/v1/tags/<id>/request-replacement` | `tagging:write` |
-| 44e | POST   | `/api/v1/tags/<id>/approve-replacement` | `approvals:write` |
-| 44f | POST   | `/api/v1/tags/<id>/reject-replacement` | `approvals:write` |
-| 45 | GET    | `/api/v1/home/form-data` | `requests:read` |
-| 46 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
-| 47 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
-| 48 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
-| 49 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
-| 50 | GET    | `/api/v1/approvals` | `assets:read` |
-| 51 | GET    | `/api/v1/approvals/<id>` | `assets:read` |
-| 52 | GET    | `/api/v1/approvals/approvers` | `assets:write` |
+| 1 | POST   | `/api/v1/auth/login` | (none) |
+| 2 | POST   | `/api/v1/auth/password-reset` | (none) |
+| 3 | POST   | `/api/v1/auth/password-token/inspect` | (none) |
+| 4 | POST   | `/api/v1/auth/password-token/redeem` | (none) |
+| 5 | POST   | `/api/v1/auth/refresh` | (none) |
+| 6 | POST   | `/api/v1/auth/revoke` | (none) |
+| 7 | POST   | `/api/v1/auth/token` | (none) |
+| 8 | GET    | `/api/v1/auth/whoami` | (none) |
+| 9 | GET    | `/api/v1/openapi.json` | (none) |
+| 10 | GET    | `/api/v1/docs` | (none) |
+| 11 | GET    | `/api/v1/meta/database` | (none) |
+| 12 | GET    | `/api/v1/meta/diagnostics` | `admin` |
+| 13 | GET    | `/api/v1/meta/enums` | (none) |
+| 14 | GET    | `/api/v1/assets` | `assets:read` |
+| 15 | POST   | `/api/v1/assets` | `assets:write` |
+| 16 | GET    | `/api/v1/assets/<id>` | `assets:read` |
+| 17 | PATCH  | `/api/v1/assets/<id>` | `assets:write` |
+| 18 | POST   | `/api/v1/assets/<id>/approve-disposal` | `approvals:write` |
+| 19 | POST   | `/api/v1/assets/<id>/condemn` | `assets:write` |
+| 20 | GET    | `/api/v1/assets/<id>/custody` | `assets:read` |
+| 21 | GET    | `/api/v1/assets/<id>/depreciation` | `assets:read` |
+| 22 | GET    | `/api/v1/assets/<id>/history` | `assets:read` |
+| 23 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
+| 24 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
+| 25 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
+| 26 | POST   | `/api/v1/assets/<id>/tag-affixed` | `tagging:write` |
+| 27 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
+| 28 | POST   | `/api/v1/assets/<id>/verify` | `assets:write` |
+| 29 | GET    | `/api/v1/assets/by-tag/<tag>` | `assets:read` |
+| 30 | GET    | `/api/v1/assets/export` | `export:read` |
+| 31 | GET    | `/api/v1/assets/export.csv` | `export:read` |
+| 32 | GET    | `/api/v1/asset-categories` | `assets:read` |
+| 33 | POST   | `/api/v1/asset-categories` | `settings:write` |
+| 34 | DELETE | `/api/v1/asset-categories/<id>` | `settings:write` |
+| 35 | PATCH  | `/api/v1/asset-categories/<id>` | `settings:write` |
+| 36 | GET    | `/api/v1/locations` | `locations:read` |
+| 37 | POST   | `/api/v1/locations` | `locations:write` |
+| 38 | GET    | `/api/v1/locations/<id>` | `locations:read` |
+| 39 | PATCH  | `/api/v1/locations/<id>` | `locations:write` |
+| 40 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
+| 41 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
+| 42 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
+| 43 | GET    | `/api/v1/requests` | `requests:read` |
+| 44 | POST   | `/api/v1/requests` | `requests:write` |
+| 45 | GET    | `/api/v1/requests/<id>` | `requests:read` |
+| 46 | PATCH  | `/api/v1/requests/<id>` | `requests:write` |
+| 47 | POST   | `/api/v1/requests/<id>/assign` | `requests:write` |
+| 48 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
+| 49 | POST   | `/api/v1/requests/<id>/transition` | `requests:write` |
+| 50 | GET    | `/api/v1/requests/by-reference/<reference>` | `requests:read` |
+| 51 | GET    | `/api/v1/approvals` | `assets:read` |
+| 52 | GET    | `/api/v1/approvals/<id>` | `assets:read` |
 | 53 | POST   | `/api/v1/approvals/<id>/approve` | `approvals:write` |
 | 54 | POST   | `/api/v1/approvals/<id>/reject` | `approvals:write` |
-| 55 | POST   | `/api/v1/approvals/<id>/withdraw` | `assets:write` |
-| 56 | GET    | `/api/v1/settings/approvals` | `assets:read` |
+| 55 | POST   | `/api/v1/approvals/<id>/renominate` | `assets:write` |
+| 56 | POST   | `/api/v1/approvals/<id>/withdraw` | `assets:write` |
+| 57 | GET    | `/api/v1/approvals/approvers` | `assets:write` |
+| 58 | GET    | `/api/v1/dashboard/fleet-command` | `operations:read` |
+| 59 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
+| 60 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
+| 61 | GET    | `/api/v1/security/kpis` | `operations:read` |
+| 62 | GET    | `/api/v1/security/map-data` | `operations:read` |
+| 63 | GET    | `/api/v1/security/recent` | `operations:read` |
+| 64 | GET    | `/api/v1/security/trend` | `operations:read` |
+| 65 | GET    | `/api/v1/fleet` | `operations:read` |
+| 66 | GET    | `/api/v1/fleet/<id>` | `operations:read` |
+| 67 | GET    | `/api/v1/fleet/dashboard` | `operations:read` |
+| 68 | GET    | `/api/v1/fleet/map` | `operations:read` |
+| 69 | GET    | `/api/v1/fm/dashboard` | `operations:read` |
+| 70 | POST   | `/api/v1/barcode/generate` | `tagging:write` |
+| 71 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
+| 72 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
+| 73 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
+| 74 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
+| 75 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
+| 76 | GET    | `/api/v1/tags/<id>` | `assets:read` |
+| 77 | POST   | `/api/v1/tags/<id>/approve-replacement` | `approvals:write` |
+| 78 | POST   | `/api/v1/tags/<id>/reject-replacement` | `approvals:write` |
+| 79 | POST   | `/api/v1/tags/<id>/request-replacement` | `tagging:write` |
+| 80 | GET    | `/api/v1/tags/lookup` | `assets:read` |
+| 81 | GET    | `/api/v1/tags/pending-replacements` | `assets:read` |
+| 82 | GET    | `/api/v1/tags/replacements` | `assets:read` |
+| 83 | GET    | `/api/v1/home/form-data` | `requests:read` |
+| 84 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
+| 85 | POST   | `/api/v1/integrations/employees/import` | `integrations:write` |
+| 86 | GET    | `/api/v1/integrations/employees/import/<job_id>` | `integrations:write` |
+| 87 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
+| 88 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
+| 89 | GET    | `/api/v1/reports/access-changes` | `access:read` |
+| 90 | GET    | `/api/v1/reports/asset-register` | `assets:read` |
+| 91 | GET    | `/api/v1/reports/configuration-changes` | `settings:read` |
+| 92 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
+| 93 | GET    | `/api/v1/reports/disposals` | `assets:read` |
+| 94 | GET    | `/api/v1/identity/employees` | `identity:read` |
+| 95 | GET    | `/api/v1/identity/employees/<id>` | `identity:read` |
+| 96 | GET    | `/api/v1/identity/employees/<id>/assets` | `identity:read` + `assets:read` |
+| 97 | GET    | `/api/v1/identity/employees/by-ir/<ir_number>` | `identity:read` |
+| 98 | GET    | `/api/v1/users` | `admin` |
+| 99 | POST   | `/api/v1/users` | `admin` |
+| 100 | GET    | `/api/v1/users/<user_id>` | `admin` |
+| 101 | POST   | `/api/v1/users/<user_id>/deactivate` | `admin` |
+| 102 | POST   | `/api/v1/users/<user_id>/invite` | `admin` |
+| 103 | POST   | `/api/v1/users/<user_id>/reactivate` | `admin` |
+| 104 | POST   | `/api/v1/users/<user_id>/roles` | `admin` |
+| 105 | GET    | `/api/v1/roles` | `admin` |
+| 106 | GET    | `/api/v1/settings/approvals` | `assets:read` |
+| 107 | GET    | `/api/v1/settings/branding` | `assets:read` |
+| 108 | PATCH  | `/api/v1/settings/branding` | `settings:write` |
+| 109 | GET    | `/api/v1/settings/depreciation` | `assets:read` |
+| 110 | PATCH  | `/api/v1/settings/depreciation` | `settings:write` |
+| 111 | POST   | `/api/v1/settings/depreciation/recompute` | `settings:write` |
+| 112 | GET    | `/api/v1/settings/sidebar` | (any signed-in caller) |
+| 113 | PATCH  | `/api/v1/settings/sidebar` | `admin` |
+| 114 | GET    | `/api/v1/brand` | (none) |
+| 115 | GET    | `/api/v1/brand/logo` | (none) |
 
 
 ## 12 · People and roles (handoffs 41, 42, 43)

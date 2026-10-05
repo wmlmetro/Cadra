@@ -68,17 +68,26 @@ _PAYLOAD_OF_TYPE = {
     # No `reason`, for the reason above: a PATCH of a duration carries none.
     EVENT_WARRANTY_CHANGED: frozenset(
         {'field_name', 'from_value', 'to_value'}),
-    # Handoff 51. A refused affix confirmation: the number scanned off the
-    # physical label did not match the label Cadra issued. `to_value` is the
-    # scanned number AS ENTERED — the value the caller tried to confirm
-    # with; the expected number is on the label row and is deliberately not
-    # copied here. No `from_value`: a refusal changes nothing, so there is
-    # no before. The point of the row is the SEQUENCE it makes visible — a
-    # refusal and a confirmation seconds apart, same asset, same operative,
-    # is readable in the history, where today the wrong-then-revealed-right
-    # sequence leaves one clean affix record saying a human verified the
-    # label.
-    EVENT_AFFIX_REFUSED: frozenset({'to_value'}),
+    # Handoff 51. A refused affix confirmation. `to_value` is the value the
+    # caller tried to confirm with, AS ENTERED — a tag number, or for a
+    # serial refusal the scanned serial; the expected value is on the label
+    # or asset row and is deliberately not copied here. No `from_value`: a
+    # refusal changes nothing, so there is no before. The point of the row
+    # is the SEQUENCE it makes visible — a refusal and a confirmation
+    # seconds apart, same asset, same operative, is readable in the history,
+    # where today the wrong-then-revealed-right sequence leaves one clean
+    # affix record saying a human verified the label.
+    #
+    # `reason` since handoff 52 §4 — WHICH refusal, one of three keys the
+    # recorder writes itself (never caller text): `number_mismatch` (the
+    # scanned tag is not the label issued — handoff 51's, and what a NULL
+    # reason on a pre-52 row means), `scrapped` (the label presented is
+    # dead), `serial_mismatch` (the serial read off the asset is not the
+    # one on record — the label going onto the wrong box, and the cheaper
+    # tell, since that refusal reveals nothing to the person refused). The
+    # history sentence differs per reason so a reader can tell a wrong
+    # label from a dead one.
+    EVENT_AFFIX_REFUSED: frozenset({'to_value', 'reason'}),
 }
 
 # Which fields each field-carrying type may name. A reference change naming a

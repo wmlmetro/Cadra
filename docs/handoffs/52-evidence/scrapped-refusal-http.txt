@@ -1,0 +1,28 @@
+== craft: scrap the active label by SQL (the state the route cannot reach by itself) ==
+  id   |     name      |  state   
+-------+---------------+----------
+ 48969 | NRS-GEN-11352 | scrapped
+(1 row)
+
+UPDATE 1
+== POST tag-affixed with the label's own number (expect 400, scrapped) ==
+{"error": {"code": "validation_failed", "message": "Tag NRS-GEN-11352 has been scrapped and cannot be confirmed as affixed.", "request_id": "5a3ab75e676343c6917cfde1a7b8d33b", "details": {"http_status": 400}}}
+HTTP 400
+== SEPARATE request: history ==
+affix_refused rows: 1
+{
+  "summary": "Affix confirmation refused \u2014 the label presented (NRS-GEN-11352) has been scrapped and is no longer valid for any asset",
+  "detail": {
+    "records": [
+      "nrs.asset.event"
+    ],
+    "scanned": "NRS-GEN-11352",
+    "reason": "scrapped"
+  },
+  "source": "test",
+  "evidence": "append_only",
+  "record": {
+    "model": "nrs.asset.event",
+    "id": 11338
+  }
+}
