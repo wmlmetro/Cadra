@@ -15,8 +15,9 @@
  *      local tenant has an empty register. No mock, no placeholder.
  *   3. A persona whose scopes do not open a screen gets the scope refusal on
  *      the typed URL AND a 403 from the server underneath (the Tag-Issuing
- *      Unit on all four; the Store Officer on configuration-changes, the one
- *      gate narrower than `assets:read`).
+ *      Unit on all four; the Store Officer on configuration-changes
+ *      (`settings:read`) and — since handoff 50 ruling 1 — on the export
+ *      (`export:read`), the two gates narrower than `assets:read`).
  *   4. The export is driven end to end: the click, the browser download
  *      event, the file's name and its row count on screen.
  *   5. The tenant switches for the four new items hide and restore them
@@ -89,6 +90,9 @@ const SCREENS = [
     content: ["report-sap-statement", "disposals-empty-sentence"], probe: "/reports/disposals?from=2026-01-01&to=2026-10-03&limit=1" },
   { key: "register_snapshot", path: "/reports/asset-register", page: "register-snapshot-page",
     content: ["snapshot-table", "snapshot-empty-sentence"], probe: "/reports/asset-register?as_of=2026-10-01&limit=1" },
+  // The export's gate is `export:read` since handoff 50 ruling 1 — the
+  // Auditor's alone. Its probe is only ever asserted as a 403 for personas
+  // without it; the auditor's pass is the real download in the first test.
   { key: "register_export", path: "/reports/export", page: "export-register-page",
     content: ["export-size"], probe: "/assets/export?limit=1" },
 ] as const;
@@ -196,8 +200,13 @@ test.describe("49 — the auditor's own screens", () => {
       await shot(page, `refused-tag_unit-${s.key}`);
     }
 
-    // The Store Officer holds assets:read: three screens are THEIRS by the
-    // server's own gate; configuration-changes (settings:read) is not.
+    // The Store Officer holds assets:read: disposals and the snapshot are
+    // THEIRS by the server's own gate; configuration-changes (settings:read)
+    // is not, and neither — since handoff 50 ruling 1 — is the export
+    // (export:read, the Auditor's). The export probe (SCREENS[3]) is
+    // therefore exercised only where it is expected to FAIL: a persona
+    // expected to pass it is the auditor alone, and her pass is proved by
+    // the real download in the first test, not by this probe.
     const store = P.storekeeper;
     const storeToken = await apiToken(request, store.login, store.password);
     await signIn(page, store.login, store.password);
@@ -206,6 +215,13 @@ test.describe("49 — the auditor's own screens", () => {
     expect(await ask(request, storeToken, SCREENS[0].probe), "storekeeper on configuration-changes").toBe(403);
     expect(await ask(request, storeToken, SCREENS[1].probe), "storekeeper on disposals (the server's own gate is assets:read)").not.toBe(403);
     await shot(page, "refused-storekeeper-configuration_changes");
+
+    await page.goto(appPath(SCREENS[3].path));
+    const exportRefusal = page.getByTestId("scope-refusal");
+    await expect(exportRefusal, "the export typed by the Store Officer shows the refusal").toBeVisible({ timeout: 20_000 });
+    await expect(exportRefusal).toHaveAttribute("data-scope", "export:read");
+    expect(await ask(request, storeToken, SCREENS[3].probe), "storekeeper on the export (export:read since handoff 50)").toBe(403);
+    await shot(page, "refused-storekeeper-register_export");
   });
 
   test("the tenant switch hides and restores the new items — presentation, not permission", async ({ page, request }) => {

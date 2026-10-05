@@ -122,10 +122,8 @@ class MyServiceDashboard(models.AbstractModel):
         }
 
     @api.model
-    def get_map_data(self):
-        """Return fleet and location data for the map."""
-
-        # ── Locations ─────────────────────────────────────────────────
+    def _map_locations(self):
+        """One row per geocoded location, with its open-request count."""
         locations = self.env['generic.location'].search([
             ('latitude', '!=', 0.0),
             ('longitude', '!=', 0.0),
@@ -147,8 +145,14 @@ class MyServiceDashboard(models.AbstractModel):
                 'open_requests': req_count,
                 'model': 'generic.location',
             })
+        return location_data
 
-        # ── Fleet vehicles (use home_location coords) ─────────────────
+    @api.model
+    def _map_fleet(self):
+        """One row per geocoded vehicle (home_location coords), jittered so
+        vehicles sharing a location do not stack. Each row carries the plate
+        and the driver's name — identified personal data, which is why this
+        list takes the fleet's own scope over the API (handoff 50 §2.1)."""
         vehicles = self.env['fleet.vehicle'].search([
             ('home_location_id', '!=', False),
         ])
@@ -184,8 +188,11 @@ class MyServiceDashboard(models.AbstractModel):
                 'type': 'vehicle',
                 'model': 'fleet.vehicle',
             })
+        return fleet_data
 
-        # ── Recent open requests ──────────────────────────────────────
+    @api.model
+    def _map_recent_requests(self):
+        """The ten most recent open requests, for the map's side panel."""
         recent = self.env['request.request'].search([
             ('stage_id.closed', '=', False),
         ], order='date_created desc', limit=10)
@@ -202,11 +209,40 @@ class MyServiceDashboard(models.AbstractModel):
                 'date': r.date_created.strftime('%d %b %Y') if r.date_created else '',
                 'is_maintenance': r.is_maintenance_ticket,
             })
+        return recent_data
 
+    @api.model
+    def get_register_map(self):
+        """What the register dashboard's map actually needs: the geocoded
+        locations and nothing else (handoff 50 §2.1's ruling). The vehicle
+        rows that used to ride beside them carry plate and driver, so they
+        answer to `operations:read` through `get_fleet_map` below — a
+        `dashboards:read` caller no longer receives them."""
+        return {'locations': self._map_locations()}
+
+    @api.model
+    def get_fleet_map(self):
+        """The geocoded vehicle rows, for the fleet map
+        (`GET /api/v1/fleet/map`, `operations:read` — the rows handoff 50
+        §2.1 moved off `/dashboard/map`)."""
+        return {'fleet': self._map_fleet()}
+
+    @api.model
+    def get_map_data(self):
+        """Return fleet and location data for the map.
+
+        All three keys, kept for the back-office twin
+        (`/myservice/dashboard/map`, auth='user' — administrators only since
+        handoff 45), which renders location and fleet pins together. The API
+        route `GET /api/v1/dashboard/map` no longer serves this shape: its
+        `dashboards:read` is held by every Asset User and the fleet rows
+        carry plate and driver, so it serves `get_register_map()` and the
+        vehicles moved to `GET /api/v1/fleet/map` (handoff 50 §2.1).
+        """
         return {
-            'locations': location_data,
-            'fleet': fleet_data,
-            'recent_requests': recent_data,
+            'locations': self._map_locations(),
+            'fleet': self._map_fleet(),
+            'recent_requests': self._map_recent_requests(),
         }
 
     @api.model

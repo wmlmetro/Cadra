@@ -1620,7 +1620,10 @@ acurl "$API/api/v1/assets?tag_label_state=printed"       # printed, not affixed
 
 ## 3.9 GET `/api/v1/assets/export` — bulk JSON export
 
-Scope: `assets:read`. Success: **200**. Returns every asset; no pagination.
+Scope: `export:read` (since handoff 50, **BREAKING** — it took `assets:read`
+until 2026-10-04; taking a copy of the register is its own permission, held
+by the Auditor and the Administrator). Success: **200**. Returns every
+asset; no pagination.
 Cheaper than fanning out individual GETs for ETL into a data warehouse.
 
 ### Request
@@ -1670,7 +1673,8 @@ curl -s $API/api/v1/assets/export
 
 ## 3.9 GET `/api/v1/assets/export.csv` — bulk CSV export
 
-Scope: `assets:read`. Success: **200** (`text/csv`).
+Scope: `export:read` (since handoff 50, **BREAKING** — see the JSON twin
+above). Success: **200** (`text/csv`).
 This is the **one** endpoint that bypasses the JSON envelope — useful for
 Excel/Power BI import.
 
@@ -2588,7 +2592,13 @@ acurl $API/api/v1/dashboard/kpis
 { "error": { "code": "forbidden", "message": "Missing required scope: dashboards:read", "request_id": "…", "details": { "http_status": 403, "required_scope": "dashboards:read" } } }
 ```
 
-## 6.2 GET `/api/v1/dashboard/map` — operations map data
+## 6.2 GET `/api/v1/dashboard/map` — register dashboard map data
+
+Since handoff 50 (**BREAKING**) the payload is `locations` only. The
+`fleet` rows (one per geocoded vehicle, with license plate and driver)
+moved to `GET /api/v1/fleet/map` under `operations:read`, and
+`recent_requests` was removed (read by nothing; its documented shape had
+drifted from what the server sent).
 
 ```bash
 acurl $API/api/v1/dashboard/map
@@ -2600,17 +2610,24 @@ acurl $API/api/v1/dashboard/map
 {
   "data": {
     "locations": [
-      { "id": 891, "name": "HQ - GF - Mail Room", "lat": 9.0579, "lng": 7.4951, "asset_count": 13 }
+      { "id": 891, "name": "HQ - GF - Mail Room", "lat": 9.0579, "lng": 7.4951, "state": "FCT", "type": "location", "open_requests": 2, "model": "generic.location" }
       /* … */
-    ],
-    "fleet": [
-      { "id": 1, "plate": "FIRS191", "lat": 9.0579, "lng": 7.4951, "status": "ok" }
-      /* … */
-    ],
-    "recent_requests": []
+    ]
   },
   "meta": { "request_id": "5334e131…", "timestamp": "…", "version": "v1" }
 }
+```
+
+## 6.2a GET `/api/v1/fleet/map` — geocoded fleet vehicles
+
+Scope: `operations:read`. The vehicle rows exactly as `/dashboard/map`
+shaped them before handoff 50: `id`, `name`, `plate`, `lat`, `lng`,
+`status`, `driver`, `location`, `state`, `type: "vehicle"`,
+`model: "fleet.vehicle"`. Positions are the vehicle's home location's
+coordinates (jittered for display), not live tracking.
+
+```bash
+acurl $API/api/v1/fleet/map | jq '.data.fleet | length'
 ```
 
 ### Error — `401 unauthorized`
@@ -3303,10 +3320,12 @@ Accepts a single employee object or a list of them.
 **Match keys** — one of `ir_number`, `userId`, `personIdExternal`.
 
 **Accepted** — `ir_number`, `userId`, `personIdExternal`, `displayName`,
-`firstName`, `lastName`, `email`, `phone`, `mobile`, `department`,
+`firstName`, `lastName`, `email`, `phone`, `department`,
 `jobTitle`, `costCenter`, `gradeCode`, `managerIR`, `hireDate`,
 `terminationDate`, `locationName`, `location`, `employmentStatus`,
-`sap_status`, `previous_status`, `event`.
+`sap_status`, `previous_status`, `event`. (`mobile` was removed by handoff
+50 — measured sent by nothing and held by nobody; a body carrying it is
+refused like any other unknown key.)
 
 `employmentStatus` takes `active`, `terminated`, `suspended`, `onLeave` or
 `transferred`; the capitalised spellings map to the same values.
@@ -3585,15 +3604,20 @@ A token without `dashboards:read` calling `/api/v1/dashboard/kpis` gets:
 This is the difference between **401 unauthorized** (token absent or
 invalid) and **403 forbidden** (token valid but missing a required scope).
 
-## All 18 scopes
+## All 19 scopes
 
-`assets:read`, `assets:write`, `locations:read`, `locations:write`,
-`requests:read`, `requests:write`, `approvals:write`, `dashboards:read`,
-`operations:read`, `integrations:write`, `ingestion:write`,
-`webhooks:admin`, `identity:read`, `access:read`, `tagging:write`,
-`settings:write`, `settings:read`, `admin`.
+`assets:read`, `assets:write`, `export:read`, `locations:read`,
+`locations:write`, `requests:read`, `requests:write`, `approvals:write`,
+`dashboards:read`, `operations:read`, `integrations:write`,
+`ingestion:write`, `webhooks:admin`, `identity:read`, `access:read`,
+`tagging:write`, `settings:write`, `settings:read`, `admin`.
 
-Two were split out of wider names by handoff 47 (both BREAKING for
+**`export:read`** was split out of `assets:read` by handoff 50 (BREAKING):
+it gates exactly the two bulk-export routes (§3.9), because reading a page
+of the register and taking a copy of all of it are different acts. Granted
+by the Auditor role; the `admin` wildcard covers it.
+
+Two more were split out of wider names by handoff 47 (both BREAKING for
 credentials provisioned under the old name):
 
 - **`operations:read`** — the fleet, staff-bus, FM and security dashboards,
@@ -4173,8 +4197,8 @@ a deleted parameter's old value to twenty-four writing tests.
 | 9 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
 | 10 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
 | 10a | GET    | `/api/v1/assets/<id>/custody` | `assets:read` |
-| 11 | GET    | `/api/v1/assets/export` | `assets:read` |
-| 12 | GET    | `/api/v1/assets/export.csv` | `assets:read` |
+| 11 | GET    | `/api/v1/assets/export` | `export:read` |
+| 12 | GET    | `/api/v1/assets/export.csv` | `export:read` |
 | 13 | GET    | `/api/v1/assets/<id>/depreciation` | `assets:read` |
 | 14 | GET    | `/api/v1/locations` | `locations:read` |
 | 15 | GET    | `/api/v1/locations/<id>` | `locations:read` |
@@ -4199,6 +4223,7 @@ a deleted parameter's old value to twenty-four writing tests.
 | 34 | GET    | `/api/v1/security/trend` | `operations:read` |
 | 35 | GET    | `/api/v1/security/recent` | `operations:read` |
 | 36 | GET    | `/api/v1/fleet/dashboard` | `operations:read` |
+| 36a | GET    | `/api/v1/fleet/map` | `operations:read` |
 | 37 | GET    | `/api/v1/fm/dashboard` | `operations:read` |
 | 38 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
 | 39 | GET    | `/api/v1/barcode/kpis` | `assets:read` |

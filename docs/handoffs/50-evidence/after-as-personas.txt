@@ -1,0 +1,14 @@
+=== AFTER — test19, 2026-10-03T19:23:31Z ===
+--- Store Officer: GET /api/v1/dashboard/map ---
+keys: ['locations'] | locations: 165
+raw body mentions plate: False | driver: False
+--- Store Officer: export JSON / CSV ---
+JSON HTTP 403 code: forbidden | required: ['export:read']
+CSV HTTP 403
+--- Store Officer: /fleet/map ---
+HTTP 403
+--- Auditor zainab.garba: export JSON / CSV / scope list ---
+JSON HTTP 200 | CSV HTTP 200
+--- Administrator: GET /api/v1/fleet/map (the moved vehicle rows) ---
+keys: ['fleet'] | fleet rows: 1
+  row: {'name': 'Evidence Brand (handoff 50)/Evidence Model/EV50-TEST', 'plate': 'EV50-TEST', 'driver': 'Evidence Driver (handoff 50)'}

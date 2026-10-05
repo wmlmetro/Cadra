@@ -45,7 +45,7 @@
         <record id="group_auditor" model="res.groups">
             <field name="name">Auditor</field>
             <field name="privilege_id" ref="privilege_audit"/>
-            <field name="comment">Read-only access for internal and external audit (specification §3, §13.4; INT-10). Grants the six read scopes the five standard audit reports need and no write scope of any kind. Independent of Asset Manager by design.</field>
+            <field name="comment">Read-only access for internal and external audit (specification §3, §13.4; INT-10). Grants the read scopes the standard audit reports and the register export need — the exact set is pinned in tests/test_auditor_access.py — and no write scope of any kind. Independent of Asset Manager by design.</field>
         </record>
     </data>
 </odoo>

@@ -51,13 +51,19 @@ which is a separate handler from `/tags/lookup`. Five of the 27 are described
 in `docs/retired-screens.md`, but that document records that they are dead,
 not what they answer.
 
-**How the number was arrived at.** 36 `@http.route` decorators exist in
-first-party Python (a 37th `@http.route(` match is Odoo's own report route
-quoted inside a docstring in `myservice_asset_register/models/asset_tag.py`).
-Nine of the 36 are the raw pre-envelope `/api/v1` routes in
-`myservice_api/controllers/` — the ones `CLAUDE.md`'s backlog wants moved onto
-`@cadra_route`. All 65 `@cadra_route` sites are under `/api/v1` without
-exception. 36 − 9 = **27**.
+**How the number was arrived at** (original derivation, 2026-09; re-derived
+2026-10-04 by handoff 50). The 2026-09 derivation said 36 `@http.route`
+decorators, 9 of them raw pre-envelope `/api/v1` routes, 65 `@cadra_route`
+sites, 36 − 9 = 27. The API has grown since: as of 2026-10-04 there are 13
+raw `/api/v1` `@http.route` sites (v1.py 8, v1_brand 2, v1_signup 3) and
+~107 `@cadra_route` sites — and the 27 routes OUTSIDE `/api/v1` inventoried
+here are still exactly 27 (25 take a body or are non-GET, 2 are GET-only),
+plus the four `backoffice.py` overrides of core routes, counted separately
+below. **Since handoff 50 the count is no longer maintained by hand:** the
+widened census in `myservice_api/tests/test_published_names_resolve.py`
+walks every first-party `controllers/*.py` and FAILS on any body-taking
+route that is not classified — this file describes the callers; the census
+guards the set.
 
 ---
 
@@ -292,10 +298,10 @@ to a member of the public.
 | Route | File | Auth | Who calls it | Shape published? | Is a change breaking? |
 |---|---|---|---|---|---|
 | `GET/POST /security/incident/report` | `myservice_security/controllers/portal.py:20` | `public`, `website=True`, **CSRF enforced** | A public HTML form rendered by the same route (`views/portal_templates.xml:16`) | No | **No.** Route and form ship together in one module, and the form carries `request.csrf_token()`, so nothing can post to it from off-site anyway. **Note it has no inbound link from anywhere in the repo** — it is reachable only by a typed or shared URL |
-| `GET /tags` | `myservice_barcode_station/controllers/main.py:261` | `public`, `website=True` | A field team, from a printed/shared URL, and from the backend barcode station's own button (`static/src/xml/barcode_station.xml:213`) | No | **No** — it renders a template that ships beside it. The **URL itself** is quoted to users as `myservice.com.ng/tags` in the station UI, so the path is the thing not to rename |
+| `GET /tags` | `myservice_barcode_station/controllers/main.py:341` | `public`, `website=True` | A field team, from a printed/shared URL, and from the backend barcode station's own button (`static/src/xml/barcode_station.xml:213`) | No | **No** — it renders a template that ships beside it. The **URL itself** is quoted to users as `myservice.com.ng/tags` in the station UI, so the path is the thing not to rename |
 | `POST /tags/lookup` | `main.py:266` | **`public`, no scope check** | The public portal scanner, `static/src/js/barcode_portal.js:12` | No | **No** for the JS, which ships with it. See the flagged finding above for why it still deserves a look |
-| `POST /api/myservice/form-data` | `myservice_website_theme/controllers/api.py:24` | `public`, `csrf=False` | The **static homepage**, `homepage/index.html:527` — deployed by `install.sh:371` to `/var/www/html/index.html` and served by nginx at `location = /` | Effectively | **Yes in practice.** The caller is a static file copied outside the Odoo tree at install time, so it does **not** move when the module upgrades. A shape change here goes live for Odoo and not for the page calling it |
-| `POST /api/myservice/quick-submit` | `api.py:73` | `public`, `csrf=False` | Same homepage, `index.html:579` | Effectively | Same as above, and this one **creates records** from an unauthenticated form |
+| `POST /api/myservice/form-data` | `myservice_website_theme/controllers/api.py:116` | `public`, `csrf=False` | The **static homepage**, `homepage/index.html:527` — deployed by `install.sh:371` to `/var/www/html/index.html` and served by nginx at `location = /` | Effectively | **Yes in practice.** The caller is a static file copied outside the Odoo tree at install time, so it does **not** move when the module upgrades. A shape change here goes live for Odoo and not for the page calling it |
+| `POST /api/myservice/quick-submit` | `api.py:165` | `public`, `csrf=False` | Same homepage, `index.html:579` | Effectively | Same as above, and this one **creates records** from an unauthenticated form |
 
 ---
 
@@ -329,7 +335,7 @@ system is known to.
 
 | Route | File | Auth | Why it has no caller | Is a change breaking? |
 |---|---|---|---|---|
-| `GET /myservice/workflow/callback/test` | `myservice_workflow/controllers/callback.py:305` | `user` | A manual probe. No JS, no test, no doc references it | **No**, but it is a **status check somebody may be running by hand or from monitoring outside this repo**. Handoff 15 changed it from 200 to 503 for an unconfigured tenant — deliberately, because 200 read a never-wired tenant as healthy |
+| `GET /myservice/workflow/callback/test` | `myservice_workflow/controllers/callback.py:410` | `user` | A manual probe. No JS, no test, no doc references it | **No**, but it is a **status check somebody may be running by hand or from monitoring outside this repo**. Handoff 15 changed it from 200 to 503 for an unconfigured tenant — deliberately, because 200 read a never-wired tenant as healthy |
 | `POST /api/sap/employee-sync/test` | `sap_webhook.py:137` | `user` | Same: an authenticated probe for verifying the SAP integration by hand | No |
 | `POST /myservice/fleet_dashboard/data` | `myservice_fleet_maintenance/controllers/fleet_dashboard.py:11` | `user` | Its JS caller exists (`fleet_dashboard.js:68`) but **ships in an empty bundle** — `__manifest__.py:42` sets `'web.assets_backend': []`, with a comment explaining the retirement. The tag `myservice_fleet_dashboard` is not in the browser registry. Still exercised by `tests/test_honest_counts.py:49` | No |
 | `POST /myservice/security/kpis` | `myservice_security/controllers/main.py:8` | `user` | **`myservice_security/__manifest__.py` has no `assets` key at all** — the module ships no JavaScript. `security_tabs.js` and `security_dashboard.js` exist on disk and are in no bundle | No |

@@ -55,12 +55,14 @@ QUICK_SUBMIT_FIELDS = sorted([
     "description", "reporter_name", "reporter_contact",
 ])
 
-#: The 22 keys `nrs.sap.sync.log.process_sap_payload` reads. `status` is not
-#: among them and never was.
+#: The 21 keys `nrs.sap.sync.log.process_sap_payload` reads. `status` is not
+#: among them and never was. `mobile` left the set in handoff 50 (§5 B1):
+#: measured 0 of 15,780 employees holding a mobile number and 0 of 321 sync
+#: payloads ever carrying the key, 2026-10-03.
 SAP_FIELDS = sorted([
     "ir_number", "userId", "personIdExternal",
     "displayName", "firstName", "lastName",
-    "email", "phone", "mobile",
+    "email", "phone",
     "department", "jobTitle", "costCenter", "gradeCode", "managerIR",
     "hireDate", "terminationDate",
     "locationName", "location",

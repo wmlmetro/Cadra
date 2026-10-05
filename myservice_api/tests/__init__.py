@@ -19,3 +19,5 @@ from . import test_user_lifecycle
 from . import test_access_record_account_state
 from . import test_password_tokens
 from . import test_asset_officer_role
+from . import test_export_scope
+from . import test_words_classes

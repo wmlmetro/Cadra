@@ -1050,13 +1050,18 @@ export interface DashboardMapFleet {
   id: number; name: string; plate: string; lat: number; lng: number;
   status: string; driver: string; location: string; state: string; type: string; model: string;
 }
+/** `GET /dashboard/map` carries ONLY the locations since handoff 50 §2.1.
+ *  The vehicle rows moved to `GET /fleet/map` (`FleetMap`, `operations:read`)
+ *  so a `dashboards:read` holder stops receiving every plate and driver, and
+ *  `recent_requests` is gone outright — the keys declared here were never
+ *  the ones the server sent, a recorded drift nothing ever read. */
 export interface DashboardMap {
   locations: DashboardMapLocation[];
+}
+/** The fleet's own map feed (handoff 50 §2.1): the old vehicle-row shape,
+ *  behind the fleet's own scope. */
+export interface FleetMap {
   fleet: DashboardMapFleet[];
-  recent_requests: Array<{
-    id: number; name: string; stage: string; location: string;
-    priority: string; create_date: string;
-  }>;
 }
 
 // ── Depreciation (PRD §8.6) ───────────────────────────────────────────────
@@ -1156,6 +1161,10 @@ export const fetchDashboardKpis = async () =>
   (await apiGet<DashboardKpis>("/api/v1/dashboard/kpis")).data;
 export const fetchDashboardMap = async () =>
   (await apiGet<DashboardMap>("/api/v1/dashboard/map")).data;
+/** The vehicle pins, from the fleet's own route (handoff 50 §2.1). Refused
+ *  without `operations:read` — the server's gate, not this function's. */
+export const fetchFleetMap = async () =>
+  (await apiGet<FleetMap>("/api/v1/fleet/map")).data;
 
 // ── FM dashboard ──────────────────────────────────────────────────────────
 

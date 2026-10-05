@@ -138,16 +138,21 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
   // The path is unchanged so existing links (the Users page's filter chip)
   // keep working.
   // The auditor's four other screens (handoff 49): the server has answered
-  // these reports to her scopes for weeks with no page asking. Three carry
+  // these reports to her scopes for weeks with no page asking. Two carry
   // `assets:read` because that is what the SERVER requires — so they are
   // also drawn for every Asset User, which is a role-model observation for
-  // the Architect, not a reason to invent a scope (the rule above).
+  // the Architect, not a reason to invent a scope (the rule above). The
+  // export stopped being one of them: handoff 50 ruling 1 gave BOTH export
+  // routes their own `export:read` (the Auditor's, plus the wildcard),
+  // because taking a copy of the whole register is a different act from
+  // reading it. The KEY stays `register_export` — a key is never renamed
+  // when an item is re-scoped (the rule on `NavItem.key`).
   { key: "audit", label: "Audit", items: [
     { key: "access_changes",          name: "Access changes",          path: "/admin/access-changes",  icon: History,     scope: "access:read" },
     { key: "configuration_changes",   name: "Configuration changes",   path: "/admin/configuration-changes", icon: FileCog, scope: "settings:read" },
     { key: "disposals_report",        name: "Disposals",               path: "/reports/disposals",     icon: Trash2,      scope: "assets:read" },
     { key: "register_snapshot",       name: "Register snapshot",       path: "/reports/asset-register", icon: Camera,     scope: "assets:read" },
-    { key: "register_export",         name: "Export",                  path: "/reports/export",        icon: Download,    scope: "assets:read" },
+    { key: "register_export",         name: "Export",                  path: "/reports/export",        icon: Download,    scope: "export:read" },
   ]},
   // Who holds which role, and changing it (handoffs 41–43): administrators.
   { key: "administration", label: "Administration", items: [

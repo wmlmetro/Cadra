@@ -77,12 +77,12 @@ TOKEN=$(curl -sX POST https://staging.app.cadra.ng/api/v1/auth/token \
   -d '{"client_id":"test_client","client_secret":"…"}' | jq -r .data.access_token)
 ```
 
-**Scopes (18 total):**
-`assets:read`, `assets:write`, `locations:read`, `locations:write`,
-`requests:read`, `requests:write`, `approvals:write`, `dashboards:read`,
-`operations:read`, `integrations:write`, `ingestion:write`,
-`webhooks:admin`, `identity:read`, `access:read`, `tagging:write`,
-`settings:write`, `settings:read`, `admin`.
+**Scopes (19 total):**
+`assets:read`, `assets:write`, `export:read`, `locations:read`,
+`locations:write`, `requests:read`, `requests:write`, `approvals:write`,
+`dashboards:read`, `operations:read`, `integrations:write`,
+`ingestion:write`, `webhooks:admin`, `identity:read`, `access:read`,
+`tagging:write`, `settings:write`, `settings:read`, `admin`.
 
 ---
 
@@ -307,8 +307,12 @@ curl -sX POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/js
 
 | Method | Path | Scope | Format |
 |---|---|---|---|
-| GET | `/api/v1/assets/export` | `assets:read` | JSON array of all assets |
-| GET | `/api/v1/assets/export.csv` | `assets:read` | CSV (the one endpoint that bypasses the envelope) |
+| GET | `/api/v1/assets/export` | `export:read` | JSON array of all assets |
+| GET | `/api/v1/assets/export.csv` | `export:read` | CSV (the one endpoint that bypasses the envelope) |
+
+(`export:read` since handoff 50, BREAKING: taking a copy of the register is
+its own permission — the Auditor's and the Administrator's; `assets:read`
+still reads every page.)
 
 ```bash
 # CSV with all 1,272 HQ assets — pipe straight to a file

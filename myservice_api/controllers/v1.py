@@ -60,6 +60,7 @@ from .utils import (
     SCOPE_ASSETS_READ,
     SCOPE_ASSETS_WRITE,
     SCOPE_DASHBOARDS_READ,
+    SCOPE_EXPORT_READ,
     SCOPE_OPERATIONS_READ,
     SCOPE_INTEGRATIONS_WRITE,
     SCOPE_TAGGING_WRITE,
@@ -2223,7 +2224,16 @@ class MyserviceApiV1(http.Controller):
                             "demo card. `nrs.sap.sync.log` has never read "
                             "`status`: it reads `employmentStatus` or "
                             "`sap_status`. Per `CLAUDE.md` rule 4 the model "
-                            "wins and the document is what gets corrected."),
+                            "wins and the document is what gets corrected.\n\n"
+                            "**`mobile` was removed in handoff 50 §5** "
+                            "(BREAKING on a contract live on no tenant — "
+                            "report 37: secret set on 0 of 8). It was "
+                            "accepted and stored and never published back, "
+                            "and it was never sent: 0 of 15,780 employees "
+                            "hold a mobile number and 0 of 321 recorded "
+                            "payloads ever carried the key (2026-10-03). A "
+                            "sender using it now gets the same loud 400 as "
+                            "any other unknown key."),
                         "properties": {
                             "ir_number": {"type": "string", "description": "Cadra IR/staff number"},
                             "userId": {"type": "string", "description": "SAP user id (fallback match key)"},
@@ -2235,7 +2245,6 @@ class MyserviceApiV1(http.Controller):
                             "lastName": {"type": "string"},
                             "email": {"type": "string", "format": "email"},
                             "phone": {"type": "string"},
-                            "mobile": {"type": "string"},
                             "department": {"type": "string",
                                            "description": "Department NAME; created if no department matches it"},
                             "jobTitle": {"type": "string"},
@@ -2755,11 +2764,19 @@ class MyserviceApiV1(http.Controller):
     def dashboard_kpis(self, **kwargs):
         return request.env["myservice.dashboard"].sudo().get_kpis()
 
+    # Locations only since handoff 50 §2.1 (BREAKING): the payload carried
+    # one row per geocoded vehicle with plate and driver — identified
+    # personal data about named drivers — so an Asset User refused `/fleet`
+    # read the fleet through the map (GO-LIVE §25, found by handoff 47's own
+    # verification pass). The register dashboard's map reads only the
+    # locations; the vehicle rows moved to `/fleet/map` below, under
+    # `operations:read`, and the back-office twin (`/myservice/dashboard/map`,
+    # administrators only since handoff 45) keeps the full shape.
     @cadra_route("/api/v1/dashboard/map", method="GET",
-                 summary="Operations dashboard map data",
+                 summary="Register dashboard map data (locations only)",
                  scopes=[SCOPE_DASHBOARDS_READ])
     def dashboard_map(self, **kwargs):
-        return request.env["myservice.dashboard"].sudo().get_map_data()
+        return request.env["myservice.dashboard"].sudo().get_register_map()
 
     # `operations:read`, not `dashboards:read`, since handoff 47 (BREAKING):
     # the fleet, security and FM routes below are the operational half of
@@ -2801,6 +2818,15 @@ class MyserviceApiV1(http.Controller):
     def fleet_dashboard(self, **kwargs):
         from odoo.addons.myservice_fleet_maintenance.controllers.fleet_dashboard import FleetDashboardController
         return FleetDashboardController().fleet_dashboard_data(**(kwargs or {}))
+
+    # The geocoded vehicle rows handoff 50 §2.1 moved OFF `/dashboard/map`:
+    # one row per vehicle with plate and driver is the fleet's data and
+    # takes the fleet's scope, like the rest of the operational routes here.
+    @cadra_route("/api/v1/fleet/map", method="GET",
+                 summary="Geocoded fleet vehicles for the fleet map",
+                 scopes=[SCOPE_OPERATIONS_READ])
+    def fleet_map(self, **kwargs):
+        return request.env["myservice.dashboard"].sudo().get_fleet_map()
 
     @cadra_route("/api/v1/fm/dashboard", method="GET",
                  summary="Facilities management dashboard data",
@@ -3134,9 +3160,15 @@ class MyserviceApiV1(http.Controller):
 
     # ── Assets bulk export (legacy / CSV) ──────────────────────────
 
+    # `export:read`, not `assets:read`, since handoff 50 (BREAKING): reading
+    # a page of the register and taking a copy of ALL of it are different
+    # acts, and one name was carrying both — the same split handoff 47 drew
+    # twice (its ruling 1, and 50's). Held by the Auditor and, through the
+    # `admin` wildcard, the Administrator; an Asset User, Officer or Manager
+    # reads pages, not copies.
     @cadra_route("/api/v1/assets/export", method="GET",
                  summary="Export all assets as JSON (paginated externally if needed)",
-                 scopes=[SCOPE_ASSETS_READ])
+                 scopes=[SCOPE_EXPORT_READ])
     def assets_export(self, **kwargs):
         # Capped callers see only the first `record_cap()` records — the same
         # paywall safeguard as the cursor-paginated endpoints. The frontend
@@ -3177,7 +3209,9 @@ class MyserviceApiV1(http.Controller):
     def assets_export_csv(self, **kwargs):
         """CSV export — non-JSON response, so it bypasses the PRD envelope.
         Auth is enforced inline."""
-        _, envelope, _ = require_jwt(scopes=[SCOPE_ASSETS_READ])
+        # `export:read` since handoff 50 (BREAKING) — the JSON twin's
+        # comment above says why.
+        _, envelope, _ = require_jwt(scopes=[SCOPE_EXPORT_READ])
         if envelope is not None:
             return _http_response(envelope)
 

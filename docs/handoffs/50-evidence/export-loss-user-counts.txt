@@ -1,0 +1,11 @@
+# Session users who lose the export screen (direct group membership; on 19 implication writes no rows).
+# db|register_holders|lose_export|auditors|active_users
+boot44|7|4|2|10
+cadra19|2|0|0|2
+gtb|6|4|1|15
+gtb19|2|1|0|9
+jaizbankplc|7|5|1|16
+lasg|6|4|1|15
+nrs|6|4|1|8
+nrs19|4|2|0|5
+test19|11|9|1|14

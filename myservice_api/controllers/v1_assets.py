@@ -350,6 +350,13 @@ def _serialize_depreciation(a):
         "method": a.depreciation_method,
         "useful_life_months": a.useful_life_months or None,
         "declining_rate": a.declining_rate or None,
+        # The RATE beside the derived amount (handoff 50 §5, closing 33 §B1):
+        # `salvage_rate` has been writable since the field existed and was
+        # published only as the derived `salvage_value`, so a caller could
+        # see the effect of what it sent but never the figure it sent —
+        # 10,364 of 11,173 assets on test19 carry one (2026-10-03). The keys
+        # are the writable names, so a block read can be sent back unchanged.
+        "salvage_rate": a.salvage_rate or None,
         "salvage_value": a.salvage_value or None,
         "depreciable_cost": a.depreciable_cost or None,
         "start_date": _date(a.depreciation_start_date),
@@ -580,15 +587,19 @@ def _snapshot_filter_disclosure(qs):
     return {
         "query_parameters_supplied": supplied,
         "evaluated_as_of": "today",
+        # Composed for a reader (handoff 50 §5 words guard, class 1): no
+        # backticks, no payload paths — "the requested date" instead of the
+        # parameter's name, "listed as rolled back" instead of the key path.
         "note": (
             "Filters select on the asset's CURRENT value, not its value on "
-            "`as_of` — the rows are rolled back, the selection is not. A "
-            "filter on any field listed in `fidelity.rolled_back` therefore "
-            "chooses a different population from the one the snapshot "
-            "reports for that field. Filter on `as_of` alone for a figure "
-            "that reconciles. Parameters this endpoint does not recognise "
-            "are ignored by the filter builder exactly as they are on "
-            "GET /api/v1/assets, and are still echoed here as sent."),
+            "the requested date — the rows are rolled back, the selection "
+            "is not. A filter on any field this report lists as rolled "
+            "back therefore chooses a different population from the one "
+            "the snapshot reports for that field. Filter on the date alone "
+            "for a figure that reconciles. Parameters this endpoint does "
+            "not recognise are ignored by the filter builder exactly as "
+            "they are on the asset list, and are still echoed here as "
+            "sent."),
     }
 
 
@@ -838,6 +849,12 @@ def serialize_asset(a, *, include=()):
         # was every verification made from the Cadra app. Null means nobody
         # is recorded, not that nobody checked.
         "last_verified_by": _ref(a.last_verified_by),
+        # What the last verification said (handoff 50 §5, closing 33 §B1).
+        # Writable since the field existed, published until now only in the
+        # response to `POST /assets/<id>/verify` (as `verification.notes`,
+        # which stays) — so a caller could write it and never read it back
+        # on a GET. 193 of 11,173 assets on test19 carry one (2026-10-03).
+        "verification_notes": a.verification_notes or None,
         "pm_count": a.pm_count,
         "request_count": a.request_count,
         "notes": a.notes or None,

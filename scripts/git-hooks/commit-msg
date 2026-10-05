@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Local half of handoff 50 ruling 3 — refuses an AI-attribution trailer at
+# commit time. Activated per clone with:
+#
+#   git config core.hooksPath scripts/git-hooks
+#
+# `--no-verify` skips any hook; the CI job `commit-messages` is the half that
+# cannot be skipped, so a trailer that slips past here still fails before it
+# ships.
+exec "$(git rev-parse --show-toplevel)/scripts/check_commit_messages.sh" --message-file "$1"

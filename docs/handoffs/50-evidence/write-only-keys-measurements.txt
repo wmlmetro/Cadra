@@ -1,0 +1,10 @@
+# employees_with_mobile | sync_payloads_with_mobile | assets_with_salvage_rate | assets_with_verification_notes — 2026-10-03
+boot44: 0 of 6|0 of 5|227 of 231|4 of 231
+cadra19: 0 of 2|0 of 1|28 of 1335|0 of 1335
+gtb: 0 of 60|0 of 0|16 of 150|0 of 150
+gtb19: 0 of 61|0 of 1|22 of 156|0 of 156
+jaizbankplc: 0 of 61|0 of 98|3777 of 4164|1 of 4164
+lasg: 0 of 60|0 of 0|99 of 150|0 of 150
+nrs: 0 of 1|0 of 0|0 of 1272|0 of 1272
+nrs19: 0 of 11386|0 of 0|1 of 11951|1 of 11951
+test19: 0 of 143|0 of 216|10364 of 11173|193 of 11173

@@ -82,9 +82,10 @@ import { ConfirmUserActionDialog, CreatePersonDialog } from "@/components/admin/
 import { ScopeRefusal } from "@/components/ScopeRefusal";
 
 // ─── SCOPES IN PLAIN WORDS ────────────────────────────────────────────────────
-/** The sixteen scopes `myservice_api/controllers/utils.py` knows, in words a
- *  person can read. An unknown scope prints as-is rather than being hidden —
- *  a scope this map has not heard of is still something the account can do. */
+/** The nineteen scopes `myservice_api/controllers/utils.py` knows, in words
+ *  a person can read. An unknown scope prints as-is rather than being hidden
+ *  — a scope this map has not heard of is still something the account can
+ *  do. */
 export const SCOPE_WORDS: Record<string, string> = {
   "assets:read":        "Read assets",
   "assets:write":       "Create and edit assets",
@@ -100,6 +101,7 @@ export const SCOPE_WORDS: Record<string, string> = {
   "operations:read":    "View the fleet, staff bus, facilities and security dashboards",
   "identity:read":      "Read the staff roster",
   "access:read":        "Read the access record — who granted whom which role",
+  "export:read":        "Download the whole register as a file",
   "tagging:write":      "Issue, replace and confirm asset labels",
   "settings:write":     "Change settings",
   "settings:read":      "Read the configuration log",
