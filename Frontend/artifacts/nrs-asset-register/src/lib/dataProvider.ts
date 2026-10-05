@@ -1383,6 +1383,59 @@ export const fetchTag = async (id: number): Promise<TagLabel> =>
 export const fetchPendingTagReplacements = async (): Promise<TagLabel[]> =>
   (await apiGet<TagLabel[]>("/api/v1/tags/pending-replacements", { limit: 100 })).data;
 
+/**
+ * Filters for `GET /api/v1/tags/replacements` — the SIBLING of
+ * `pending-replacements`, not a widening of it (handoff 51 §1a). The base
+ * domain is every label that has ever had a replacement requested, and
+ * `state` is the LABEL's own lifecycle: `pending` is still waiting,
+ * `scrapped` is a request approved (the number is dead and a successor was
+ * minted), `active` is a label back in service — rejected, usually. The
+ * route exists because `pending-replacements` can only ever answer "what is
+ * pending", and the requester's question is "what happened to mine".
+ */
+export interface TagReplacementFilters {
+  state?: TagState;
+  /** Only labels NAMING the caller as the approver. A convenience, not a
+   *  boundary — anyone eligible may decide any pending replacement. */
+  waiting_on_me?: boolean;
+  /** Labels the caller asked to replace, decided ones included. */
+  raised_by_me?: boolean;
+}
+
+export interface TagReplacementsPage {
+  tags: TagLabel[];
+  nextCursor: string | null;
+  totalEstimate: number | null;
+}
+
+/**
+ * One page of the replacement record, newest first. The same envelope and
+ * the same boolean rule as `fetchApprovalsPage`: `waiting_on_me` and
+ * `raised_by_me` are sent ONLY when true, because the server filters on
+ * `is True` and an explicit `false` on every request is noise in the access
+ * log for no gain. Rows are full `TagLabel`s with `can_decide` computed for
+ * the calling token, so the queue screen reads the answer off the record
+ * rather than re-implementing the refusal.
+ */
+export async function fetchTagReplacementsPage(
+  cursor: string | undefined,
+  f?: TagReplacementFilters,
+): Promise<TagReplacementsPage> {
+  if (!apiConfigured) return { tags: [], nextCursor: null, totalEstimate: 0 };
+  const res = await apiGet<TagLabel[]>("/api/v1/tags/replacements", {
+    state: f?.state,
+    waiting_on_me: f?.waiting_on_me ? true : undefined,
+    raised_by_me: f?.raised_by_me ? true : undefined,
+    limit: 100,
+    cursor,
+  });
+  return {
+    tags: res.data,
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+  };
+}
+
 export interface TagReplacementRequest {
   /** One of `useEnum("tag_replacement_reason")`; anything else is a 400. */
   reason: string;

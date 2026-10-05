@@ -4,7 +4,7 @@ import {
   Activity, AlertCircle, AlertTriangle, ArrowDown, ArrowRightLeft, ArrowUp,
   CalendarClock, CheckCircle2, ChevronDown, ChevronRight, CircleDot, Clock, Edit3,
   FilePlus, FileSearch, FileText, Gauge, Info, MapPin, Printer, ScrollText, Send, ShieldCheck,
-  Tag, Trash2, Wrench,
+  ShieldX, Tag, Trash2, Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { fetchAssetHistory } from "@/lib/dataProvider";
@@ -24,6 +24,10 @@ const EVENT_ICON: Record<string, LucideIcon> = {
   tag_issued: Tag,
   tag_printed: Printer,
   tag_affixed: Tag,
+  // A scanned number the server refused (handoff 51 §2). The crossed shield,
+  // not the check: nothing was verified here, and the row must not borrow
+  // the look of one where somebody's scan matched.
+  affix_refused: ShieldX,
   tag_scrapped: Trash2,
   custody_changed: ArrowRightLeft,
   location_moved: MapPin,

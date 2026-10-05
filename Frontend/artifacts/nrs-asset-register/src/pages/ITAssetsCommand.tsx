@@ -57,6 +57,14 @@ export default function ITAssetsCommand() {
         sublabel: l.state || undefined,
       }));
   }, [map.data]);
+  // ABOVE the early returns, like every hook. This sat below them, so the
+  // moment `itDash.data` arrived the render called one more hook than the
+  // loading render had — React error 310 — and the page crashed on every
+  // tenant that HAS an IT category, which is why nobody saw it on test19
+  // (no IT category → the early return always won). Found by handoff 51
+  // §4's "reading is not loading" check; before handoff 50's boundary this
+  // was a white screen.
+  const conditionLabelOf = useEnumLabel("condition");
 
   if (itDash.isLoading) return (
     <div className="p-8 flex flex-col items-center gap-3 text-muted-foreground">
@@ -88,9 +96,6 @@ export default function ITAssetsCommand() {
   );
 
   const d = itDash.data;
-  // The recent-assets table below prints `a.condition`, which is now the
-  // model's key. Spell it the model's way.
-  const conditionLabelOf = useEnumLabel("condition");
   // Verification is a fact about an asset IN SERVICE. `d.unverified` is now
   // counted over active assets only, and this was `total - unverified` — which
   // counted every disposed and every missing IT asset as VERIFIED.
