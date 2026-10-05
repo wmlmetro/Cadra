@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import { SCAN_FORMAT_LABELS, type ScanFormat } from "@/lib/scanFormats";
 import {
   fetchBarcodeKpis, fetchBarcodeRecentTags, lookupBarcode,
   fetchUntaggedAssets, generateBarcodes, fetchTag, fetchPendingTagReplacements, fetchAssetTagging,
@@ -77,6 +78,10 @@ export default function BarcodeStation() {
 
   const [mode, setMode] = useState<Mode>("type");
   const [query, setQuery] = useState("");
+  // Which symbology the camera read the current query off, when it was the
+  // camera that filled it. Typing clears it: a typed string has no format.
+  const [scanFormat, setScanFormat] = useState<ScanFormat | null>(null);
+  const scanBoxRef = useRef<HTMLInputElement>(null);
   const [size, setSize] = useState<LabelSize>("standard");
   const [domain, setDomain] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -473,9 +478,10 @@ export default function BarcodeStation() {
                 kept, so nothing is lost on close. */}
             <input
               autoFocus
+              ref={scanBoxRef}
               type="search"
               value={affixOpen ? "" : query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); setScanFormat(null); }}
               data-testid="scan-box"
               placeholder={affixOpen ? "Hidden while you confirm" : "Tag, asset code or serial number — e.g. NRS-LT-00422"}
               className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -494,7 +500,19 @@ export default function BarcodeStation() {
         </form>
 
         {mode === "camera" && (
-          <BarcodeScanner onDetected={(value) => { setMode("type"); runLookup(value); }} />
+          <BarcodeScanner
+            onDetected={(value, format) => { setScanFormat(format); setMode("type"); runLookup(value); }}
+            // After 10 s with nothing read, the scanner offers typing; the
+            // box is already mounted (handheld scanners land in it), so
+            // only focus moves. The camera keeps running.
+            onSuggestType={() => scanBoxRef.current?.focus()}
+          />
+        )}
+
+        {scanFormat && !affixOpen && (
+          <p className="text-[11px] text-muted-foreground" data-testid="scan-format">
+            Camera read: {SCAN_FORMAT_LABELS[scanFormat]}.
+          </p>
         )}
 
         {lookupErr && !missed && (

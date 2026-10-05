@@ -73,7 +73,8 @@
     "vaul": "^1.1.2",
     "vite": "^6.0.5",
     "wouter": "^3.3.5",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "zxing-wasm": "^3.1.4"
   },
   "dependencies": {
     "@tanstack/query-sync-storage-persister": "^5.101.0",

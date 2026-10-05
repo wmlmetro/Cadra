@@ -1556,6 +1556,13 @@ export interface ConfirmAffixedBody {
   serial_number?: string;
   /** Who fitted it — often not the signed-in user. */
   affixed_by_name?: string;
+  /** Which symbology `tag_number` was read off, when the camera read it
+   *  (handoff 54). Omitted for typed and keyboard-wedge entry: the client
+   *  only claims a format it observed. Recorded beside a refused affix so
+   *  an auditor can tell Cadra's label from a manufacturer's. */
+  scanned_format?: string;
+  /** Same, for `serial_number`. */
+  serial_format?: string;
 }
 
 export interface ConfirmAffixedResult {
@@ -1573,6 +1580,8 @@ export const confirmTagAffixed = async (assetId: number, body: ConfirmAffixedBod
   const payload: ConfirmAffixedBody = { tag_number: body.tag_number.trim() };
   if (body.serial_number?.trim()) payload.serial_number = body.serial_number.trim();
   if (body.affixed_by_name?.trim()) payload.affixed_by_name = body.affixed_by_name.trim();
+  if (body.scanned_format) payload.scanned_format = body.scanned_format;
+  if (body.serial_format && payload.serial_number) payload.serial_format = body.serial_format;
   return (await apiPost<ConfirmAffixedResult>(
     `/api/v1/assets/${assetId}/tag-affixed`, payload,
     { idempotencyKey: newIdempotencyKey() })).data;
