@@ -369,14 +369,19 @@ class NRSAssetTag(models.Model):
             })
         return to_mark
 
-    def _record_affix_refusal(self, scanned_value, reason='number_mismatch'):
+    def _record_affix_refusal(self, scanned_value, reason='number_mismatch',
+                              scanned_format=None):
         """Append the refused affix to `nrs.asset.event`, on its own cursor.
 
         `reason` is WHICH refusal — `number_mismatch` (handoff 51, and what
         a NULL on a pre-52 row means), `scrapped` or `serial_mismatch`
         (handoff 52 §4). It is the recorder's own key, never caller text.
         `scanned_value` is what the operative entered: a tag number for the
-        first two, the scanned serial for the third.
+        first two, the scanned serial for the third. `scanned_format` is
+        how THAT value was read, when the caller knew (handoff 54 §7 — the
+        app's camera passes the symbology up; a typed entry passes
+        nothing), already validated against `SCANNED_FORMATS` at the route;
+        the event model's Selection refuses anything else here.
 
         ON ITS OWN CURSOR because the `ValidationError` this precedes does
         not stay here: the API decorator turns it into the 400 and calls
@@ -417,14 +422,14 @@ class NRSAssetTag(models.Model):
             if odoo_module.current_test:
                 self.env['nrs.asset.event']._record(
                     self.asset_id, EVENT_AFFIX_REFUSED, to_value=scanned,
-                    reason=reason)
+                    reason=reason, scanned_format=scanned_format)
                 return
             with Registry(self.env.cr.dbname).cursor() as cr:
                 env = api.Environment(cr, self.env.uid, self.env.context)
                 env['nrs.asset.event']._record(
                     env['nrs.asset'].browse(self.asset_id.id),
                     EVENT_AFFIX_REFUSED, to_value=scanned,
-                    reason=reason)
+                    reason=reason, scanned_format=scanned_format)
                 cr.commit()
         except Exception:   # noqa: BLE001
             # catch-all: reported — the refusal below must reach the
@@ -436,13 +441,19 @@ class NRSAssetTag(models.Model):
                 self.name, self.asset_id.id)
 
     def _mark_affixed(self, scanned_tag_number, affixed_by_name=None,
-                      affixed_date=None):
+                      affixed_date=None, scanned_format=None):
         """Record the serial-to-tag match at the point of physical tagging.
 
         The scanned number is checked against this label's own number rather
         than trusted, because that check IS the control: it is what makes the
         record evidence that the label on the asset is the label Cadra issued
         for it, rather than an assertion that someone tagged something.
+
+        `scanned_format` is how the number was read, when the caller knew,
+        and it reaches ONLY the two refusal records below — a successful
+        affix stores nothing new, by ruling (handoff 54 §7): the format
+        earns its column where it tells an auditor whether a refused number
+        came off Cadra's label or a manufacturer's, and nowhere else.
         """
         self.ensure_one()
         if self.state == 'scrapped' or self.label_state == 'scrapped':
@@ -452,7 +463,8 @@ class NRSAssetTag(models.Model):
             # 39), but every caller of the CHECK passes here: the Odoo form,
             # a script, a shell. A dead label presented for confirmation is
             # exactly the kind of act an auditor asks about afterwards.
-            self._record_affix_refusal(scanned_tag_number, reason='scrapped')
+            self._record_affix_refusal(scanned_tag_number, reason='scrapped',
+                                       scanned_format=scanned_format)
             raise ValidationError(_(
                 'Tag %s has been scrapped and cannot be confirmed as affixed.'
             ) % self.name)
@@ -466,7 +478,8 @@ class NRSAssetTag(models.Model):
             # reading the history: a refusal and a confirmation seconds
             # apart, same asset, same operative.
             self._record_affix_refusal(scanned_tag_number,
-                                       reason='number_mismatch')
+                                       reason='number_mismatch',
+                                       scanned_format=scanned_format)
             raise ValidationError(_(
                 'Scanned tag %(scanned)s does not match the tag issued for '
                 'this asset (%(expected)s). The label on the asset is not the '

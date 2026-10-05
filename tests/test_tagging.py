@@ -320,6 +320,135 @@ def test_a_serial_mismatch_leaves_a_record_the_response_cannot_erase(
     assert sequence == ["affix_refused", "tag_affixed"]
 
 
+# ─── the symbology beside the refused value (handoff 54 §7) ──────────
+#
+# The app's camera passes the barcode format up with every decoded value;
+# the route records it ONLY on the append-only refusal record, so an
+# auditor can tell whether a refused number came off Cadra's own label
+# (code_128 / qr_code) or a manufacturer's. A successful affix stores
+# nothing new — that is the ruling, and the third test pins it.
+
+# The published enum, verbatim — the shared contract with the scanner.
+_SCANNED_FORMATS = [
+    "code_128", "code_39", "code_93", "codabar",
+    "ean_13", "ean_8", "upc_a", "upc_e", "itf",
+    "qr_code", "data_matrix", "pdf417", "aztec"]
+
+
+def test_a_refusal_records_the_format_the_value_was_read_in(client, capture):
+    """A refusal with `scanned_format` lands it in the history, beside
+    `scanned`; a refusal without it publishes null, never a guess."""
+    data = _new_asset(client)
+    wrong_scanned = f"WRONG-CAM-{_uniq()}"
+    wrong_typed = f"WRONG-TYPED-{_uniq()}"
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": wrong_scanned, "scanned_format": "code_39"})
+    capture("tagging/affix_refusal_with_format", r)
+    assert_envelope_err(r, 400, "validation_failed")
+    assert_envelope_err(client.post(
+        f"/api/v1/assets/{data['id']}/tag-affixed",
+        json={"tag_number": wrong_typed}), 400, "validation_failed")
+
+    # The separate read — the 51 §2b discipline.
+    history = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}/history"))["data"]
+    refusals = {e["detail"]["scanned"]: e for e in history["events"]
+                if e["type"] == "affix_refused"}
+    assert set(refusals) == {wrong_scanned, wrong_typed}
+    assert refusals[wrong_scanned]["detail"]["scanned_format"] == "code_39", (
+        "the camera's format must ride beside the refused value")
+    assert refusals[wrong_typed]["detail"]["scanned_format"] is None, (
+        "a typed refusal knows no format; null must not become a claim")
+
+
+def test_a_serial_refusal_records_the_serials_own_format(client):
+    """`serial_format` is the serial READ's format: on a `serial_mismatch`
+    it is what lands in `scanned_format`, because `scanned` there is the
+    serial as entered."""
+    serial = f"SN-{_uniq()}"
+    data = _asset_with_serial(client, serial)
+    wrong = f"SN-WRONG-{_uniq()}"
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": data["tag"], "serial_number": wrong,
+        "serial_format": "data_matrix"})
+    assert_envelope_err(r, 400, "validation_failed")
+    history = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}/history"))["data"]
+    refusals = [e for e in history["events"] if e["type"] == "affix_refused"]
+    assert len(refusals) == 1
+    assert refusals[0]["detail"]["reason"] == "serial_mismatch"
+    assert refusals[0]["detail"]["scanned"] == wrong
+    assert refusals[0]["detail"]["scanned_format"] == "data_matrix"
+
+
+def test_a_serial_format_without_a_serial_is_refused(client):
+    """A claim about how a value was read, with no value: contradictory
+    input is refused rather than quietly ignored (handoff 34's rule)."""
+    data = _new_asset(client)
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": data["tag"], "serial_format": "code_39"})
+    body = assert_envelope_err(r, 400, "invalid_request")
+    assert body["error"]["details"]["field"] == "serial_format"
+    # And nothing was written: the valid tag number beside it did not
+    # confirm the label.
+    tagging = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}"))["data"]["tagging"]
+    assert tagging["is_tagged"] is False
+
+
+def test_a_format_outside_the_enum_is_refused_and_nothing_written(
+        client, capture):
+    """`scanned_format: "CODE128"` is a client bug, not a fact to store.
+
+    Refused 400 `invalid_request` naming the allowed values, and NOTHING
+    is written — not the affix the correct tag number beside it would have
+    earned, and not a refusal event either: a refusal record is for an act
+    an operative made, not for a body the route could not read.
+    """
+    data = _new_asset(client)
+    for key in ("scanned_format", "serial_format"):
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], key: "CODE128"})
+        if key == "scanned_format":
+            capture("tagging/affix_format_outside_enum", r)
+        body = assert_envelope_err(r, 400, "invalid_request")
+        details = body["error"]["details"]
+        assert details["field"] == key
+        assert details["value"] == "CODE128"
+        assert details["allowed_values"] == _SCANNED_FORMATS, (
+            "the published enum is the shared contract with the scanner; "
+            f"got {details.get('allowed_values')!r}")
+
+    # Nothing was written: no event, and the valid tag number beside the
+    # refused key did not confirm the label.
+    history = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}/history"))["data"]
+    assert [e for e in history["events"] if e["type"] == "affix_refused"] == []
+    tagging = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}"))["data"]["tagging"]
+    assert tagging["is_tagged"] is False
+    assert tagging["label_state"] == "issued"
+
+
+def test_a_successful_affix_with_a_format_stores_nothing_new(client):
+    """Handoff 54 §7's ruling, pinned from the outside: the format exists
+    only on the refusal record. A clean affix sent with `scanned_format`
+    succeeds exactly as one without it, and no new key appears anywhere
+    in the tagging block."""
+    data = _new_asset(client)
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+        "tag_number": data["tag"], "scanned_format": "qr_code"})
+    tagging = assert_envelope_ok(r)["data"]["tagging"]
+    assert tagging["is_tagged"] is True
+    assert "scanned_format" not in tagging
+    assert set(tagging) == set(data["tagging"]), (
+        "a successful affix must store nothing new — the tagging block "
+        "grew keys: %s" % sorted(set(tagging) - set(data["tagging"])))
+    history = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{data['id']}/history"))["data"]
+    assert [e for e in history["events"] if e["type"] == "affix_refused"] == []
+
+
 def test_affix_accepts_a_matching_serial(client):
     serial = f"SN-{_uniq()}"
     data = _asset_with_serial(client, serial)

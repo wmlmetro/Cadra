@@ -22,6 +22,17 @@ EVENT_REFERENCE_CHANGED = 'reference_changed'
 EVENT_WARRANTY_CHANGED = 'warranty_changed'
 EVENT_AFFIX_REFUSED = 'affix_refused'
 
+# The symbologies a scanner can claim a value was read in — the
+# BarcodeDetector-style names the app's camera passes up with every decode
+# (handoff 54), published verbatim as the affix route's `scanned_format` /
+# `serial_format` enum. Cadra's own labels print `code_128` and `qr_code`;
+# anything else came off a manufacturer's label, which is the distinction
+# the column below exists to preserve for an auditor.
+SCANNED_FORMATS = (
+    'code_128', 'code_39', 'code_93', 'codabar',
+    'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf',
+    'qr_code', 'data_matrix', 'pdf417', 'aztec')
+
 # The three fields whose change is an event. They are what an auditor
 # reconciles against Vendra and against SAP, they change rarely, and a change
 # to one is exactly the thing somebody would want to hide (report 28 §4,
@@ -87,7 +98,16 @@ _PAYLOAD_OF_TYPE = {
     # tell, since that refusal reveals nothing to the person refused). The
     # history sentence differs per reason so a reader can tell a wrong
     # label from a dead one.
-    EVENT_AFFIX_REFUSED: frozenset({'to_value', 'reason'}),
+    #
+    # `scanned_format` since handoff 54 §7 — HOW `to_value` was read, when
+    # the caller knew (the app's camera passes the symbology up with every
+    # decode; a typed or keyboard-wedge entry has none to claim): the tag
+    # read's format on `number_mismatch` and `scrapped`, the serial read's
+    # on `serial_mismatch`. It is allowed HERE AND NOWHERE ELSE by ruling:
+    # a successful affix stores nothing new, so the format exists only
+    # where it tells an auditor whether a refused number came off Cadra's
+    # own label (code_128 / qr_code) or a manufacturer's.
+    EVENT_AFFIX_REFUSED: frozenset({'to_value', 'reason', 'scanned_format'}),
 }
 
 # Which fields each field-carrying type may name. A reference change naming a
@@ -206,6 +226,14 @@ class NRSAssetEvent(models.Model):
     to_value = fields.Char(string='After (as recorded)')
     reason = fields.Text(string='Reason')
     notes = fields.Text(string='Verification Notes')
+    # Carried only by `affix_refused` (`_PAYLOAD_OF_TYPE`). NULL means the
+    # format is NOT KNOWN — a typed entry, a hardware scanner's keyboard
+    # wedge, or any row from before handoff 54 — never that nothing was
+    # scanned; the keys are the names, as `field_name` does above, because
+    # the values ARE the published enum.
+    scanned_format = fields.Selection(
+        [(name, name) for name in SCANNED_FORMATS],
+        string='Scanned Format')
 
     source = fields.Selection([
         ('api_verify', 'API — verify'),

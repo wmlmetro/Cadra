@@ -240,6 +240,13 @@ from odoo.addons.myservice_asset_register.models.asset_snapshot import (
     snapshot_today,
 )
 
+# The affix route's `scanned_format` / `serial_format` enum is the event
+# model's own Selection, imported at module level for the reason above: a
+# rename fails the controller at load, not one request at a time.
+from odoo.addons.myservice_asset_register.models.asset_event import (
+    SCANNED_FORMATS,
+)
+
 _logger = logging.getLogger(__name__)
 
 # ─── the published enum floors ───────────────────────────────────────
@@ -2498,6 +2505,31 @@ class CadraAssetsV1(http.Controller):
                                             "checking both sides costs "
                                             "nothing and checking one is half "
                                             "a control."},
+                         "scanned_format": {
+                             "type": "string", "nullable": True,
+                             "enum": list(SCANNED_FORMATS),
+                             "description": "How `tag_number` was read, when "
+                                            "the client knows — the app's "
+                                            "camera passes the symbology up "
+                                            "with every decode; a typed or "
+                                            "keyboard-wedge entry does not "
+                                            "know and omits the key. A value "
+                                            "outside the enum is a 400 and "
+                                            "nothing is written. Recorded "
+                                            "ONLY when the confirmation is "
+                                            "refused, beside the refused "
+                                            "value, so an auditor can tell a "
+                                            "number read off Cadra's own "
+                                            "label (code_128 / qr_code) from "
+                                            "a manufacturer's; a successful "
+                                            "affix stores nothing new."},
+                         "serial_format": {
+                             "type": "string", "nullable": True,
+                             "enum": list(SCANNED_FORMATS),
+                             "description": "How `serial_number` was read, "
+                                            "same semantics as "
+                                            "`scanned_format`. Recorded only "
+                                            "on a refused serial check."},
                          "affixed_by_name": {
                              "type": "string", "nullable": True,
                              "description": "Name of the Tag-Issuing Unit "
@@ -2512,6 +2544,7 @@ class CadraAssetsV1(http.Controller):
                  },
                  request_example={
                      "tag_number": "HQ-GF-MR-IT-042",
+                     "scanned_format": "code_128",
                      "serial_number": "5XJZ8T3",
                      "affixed_by_name": "J. Okafor",
                      "affixed_at": "2026-09-14T11:32:07",
@@ -2535,6 +2568,31 @@ class CadraAssetsV1(http.Controller):
         tag_number = (body.get("tag_number") or "").strip()
         if not tag_number:
             return err(ERR_INVALID_REQUEST, "`tag_number` is required")
+
+        # How each value was READ, when the client knows (handoff 54): the
+        # app's camera passes the symbology up with every decode; a typed
+        # or keyboard-wedge entry has none to claim and omits the key.
+        # Validated BEFORE anything is written — including the serial
+        # refusal record below, which must not carry a format the enum
+        # refuses — and recorded only on a refusal: a successful affix
+        # stores nothing new, by ruling (§7).
+        for key in ("scanned_format", "serial_format"):
+            value = body.get(key)
+            if value is not None and value not in SCANNED_FORMATS:
+                return err(ERR_INVALID_REQUEST,
+                           "`%s` must be one of: %s"
+                           % (key, ", ".join(SCANNED_FORMATS)),
+                           details={"field": key, "value": value,
+                                    "allowed_values": list(SCANNED_FORMATS)})
+        scanned_format = body.get("scanned_format") or None
+        serial_format = body.get("serial_format") or None
+        # A claim about how a value was read, with no value: contradictory
+        # input is refused, not quietly ignored (handoff 34's rule).
+        if serial_format and not (body.get("serial_number") or "").strip():
+            return err(ERR_INVALID_REQUEST,
+                       "`serial_format` describes how `serial_number` was "
+                       "read and cannot be sent without it",
+                       details={"field": "serial_format"})
 
         label = rec.active_tag_id
         if not label:
@@ -2576,7 +2634,8 @@ class CadraAssetsV1(http.Controller):
                 label.with_context(
                     cadra_event_source="api_affix",
                 )._record_affix_refusal(scanned_serial,
-                                        reason='serial_mismatch')
+                                        reason='serial_mismatch',
+                                        scanned_format=serial_format)
                 return err(ERR_VALIDATION_FAILED,
                            "Scanned serial %s does not match the serial on "
                            "this asset (%s) — the label may be going onto the "
@@ -2612,7 +2671,8 @@ class CadraAssetsV1(http.Controller):
             cadra_event_source="api_affix",
         )._mark_affixed(tag_number,
                         affixed_by_name=body.get("affixed_by_name"),
-                        affixed_date=affixed_at)
+                        affixed_date=affixed_at,
+                        scanned_format=scanned_format)
 
         return {
             "asset": serialize_asset(rec),

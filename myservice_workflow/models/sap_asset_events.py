@@ -421,8 +421,7 @@ class NRSAssetTagLabelSAP(models.Model):
     """INT-06 fires on the tag transition, alongside INT-05."""
     _inherit = 'nrs.asset.tag.label'
 
-    def _mark_affixed(self, scanned_tag_number, affixed_by_name=None,
-                      affixed_date=None):
+    def _mark_affixed(self, scanned_tag_number, *args, **kwargs):
         """Capture, then queue the asset master posting on a real transition.
 
         Deliberately the same shape as the INT-05 override in
@@ -431,11 +430,15 @@ class NRSAssetTagLabelSAP(models.Model):
         once regardless of import order. A repeat confirmation raises neither
         event, because `_mark_affixed` refuses to rewrite the original record
         and the transition therefore does not happen twice.
+
+        The base method's keyword arguments pass through unnamed ON PURPOSE:
+        this override reads nothing but the transition, and naming them is
+        how handoff 54's `scanned_format` 500'd every affix for the length
+        of one test run — the base signature grew and the two overrides in
+        this module did not.
         """
         was_affixed = self.label_state == 'affixed'
-        result = super()._mark_affixed(
-            scanned_tag_number, affixed_by_name=affixed_by_name,
-            affixed_date=affixed_date)
+        result = super()._mark_affixed(scanned_tag_number, *args, **kwargs)
 
         if not was_affixed and self.label_state == 'affixed':
             self.asset_id._queue_sap_event(EVENT_ASSET_MASTER_CREATE)

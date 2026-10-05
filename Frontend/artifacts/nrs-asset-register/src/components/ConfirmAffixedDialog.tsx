@@ -14,6 +14,7 @@ import { formatIsoDateTime } from "@/lib/utils";
 import { AlertCircle, Camera, Check, Info, Keyboard, Loader2, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import { SCAN_FORMAT_LABELS, type ScanFormat } from "@/lib/scanFormats";
 
 /**
  * Confirming that a printed label is on the asset — handoff 39.
@@ -138,6 +139,13 @@ export function ConfirmAffixedDialog({
   const [tagNumber, setTagNumber] = useState("");
   const [serial, setSerial] = useState("");
   const [fittedBy, setFittedBy] = useState("");
+  // Which symbology the camera read each value off — handoff 54. Sent as
+  // `scanned_format` / `serial_format` so the refused-affix record can say
+  // whether the number came off Cadra's label or a manufacturer's. Typing
+  // (or a keyboard-wedge scanner, which is typing) clears it: the client
+  // only claims a format it actually observed.
+  const [tagFormat, setTagFormat] = useState<ScanFormat | null>(null);
+  const [serialFormat, setSerialFormat] = useState<ScanFormat | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   // Default Type, as the station does. Never auto-selected on a small screen
   // or anywhere else: the handheld path is the primary design.
@@ -166,6 +174,8 @@ export function ConfirmAffixedDialog({
       const before = await fetchAssetTagging(assetId);
       const res = await confirmTagAffixed(assetId, {
         tag_number: tagNumber, serial_number: serial, affixed_by_name: fittedBy,
+        scanned_format: tagFormat ?? undefined,
+        serial_format: serial.trim() ? serialFormat ?? undefined : undefined,
       });
       // Same label, already affixed before the POST, same instant after it.
       // The `label_id` comparison matters only for an asset carrying more
@@ -207,6 +217,8 @@ export function ConfirmAffixedDialog({
       setTagNumber("");
       setSerial("");
       setFittedBy("");
+      setTagFormat(null);
+      setSerialFormat(null);
       setOutcome(null);
       // Unmounting `BarcodeScanner` stops its stream (its own unmount
       // effect); a camera left running after the dialog is gone is a battery
@@ -273,7 +285,7 @@ export function ConfirmAffixedDialog({
               autoComplete="off"
               spellCheck={false}
               value={tagNumber}
-              onChange={e => setTagNumber(e.target.value)}
+              onChange={e => { setTagNumber(e.target.value); setTagFormat(null); }}
               disabled={locked}
               className={cn(inputCls, "font-mono")}
               placeholder="Scan the label"
@@ -284,8 +296,16 @@ export function ConfirmAffixedDialog({
                 {/* Fills the field and switches back to Type (which returns
                     focus to the field). It does NOT submit — see the file
                     comment: the camera reads whatever passes the lens. */}
-                <BarcodeScanner onDetected={(value) => { setTagNumber(value); setCameraFor(null); }} />
+                <BarcodeScanner
+                  onDetected={(value, format) => { setTagNumber(value); setTagFormat(format); setCameraFor(null); }}
+                  onSuggestType={() => tagRef.current?.focus()}
+                />
               </div>
+            )}
+            {tagFormat && (
+              <p className="text-[11px] text-muted-foreground mt-1" data-testid="affix-tag-format">
+                Camera read: {SCAN_FORMAT_LABELS[tagFormat]}.
+              </p>
             )}
           </div>
 
@@ -317,7 +337,7 @@ export function ConfirmAffixedDialog({
                 autoComplete="off"
                 spellCheck={false}
                 value={serial}
-                onChange={e => setSerial(e.target.value)}
+                onChange={e => { setSerial(e.target.value); setSerialFormat(null); }}
                 disabled={locked}
                 className={cn(inputCls, "font-mono")}
                 placeholder="Optional — scan the manufacturer serial too, if legible"
@@ -325,8 +345,16 @@ export function ConfirmAffixedDialog({
               />
               {cameraFor === "serial" && (
                 <div className="mt-2" data-testid="affix-camera" data-for="serial">
-                  <BarcodeScanner onDetected={(value) => { setSerial(value); setCameraFor(null); }} />
+                  <BarcodeScanner
+                    onDetected={(value, format) => { setSerial(value); setSerialFormat(format); setCameraFor(null); }}
+                    onSuggestType={() => serialRef.current?.focus()}
+                  />
                 </div>
+              )}
+              {serialFormat && (
+                <p className="text-[11px] text-muted-foreground mt-1" data-testid="affix-serial-format">
+                  Camera read: {SCAN_FORMAT_LABELS[serialFormat]}.
+                </p>
               )}
               <p className="text-[11px] text-muted-foreground mt-1">
                 If you scan it, it is checked against the record as well: the tag check proves the

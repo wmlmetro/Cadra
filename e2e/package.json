@@ -7,9 +7,11 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:smoke": "playwright test tests/00-auth.spec.ts tests/01-navigation.spec.ts",
+    "corpus:54": "node corpus/run54.mjs",
     "report": "playwright show-report"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0"
+    "@playwright/test": "^1.49.0",
+    "zxing-wasm": "^3.1.4"
   }
 }

@@ -290,7 +290,11 @@ _BODY_ROUTES = {
     ("POST", "/api/v1/assets/<int:id>/move"):
         (None, None, "action: `to_location_id` and `reason`"),
     ("POST", "/api/v1/assets/<int:id>/tag-affixed"):
-        (None, None, "action: what was affixed, and by whom"),
+        (None, None, "action: what was affixed, by whom, and (handoff 54) "
+                     "how each value was read — `scanned_format` / "
+                     "`serial_format`, enum-validated by the route against "
+                     "`asset_event.SCANNED_FORMATS` and recorded only on "
+                     "the refusal event, never as a field of the label"),
     ("POST", "/api/v1/assets/<int:id>/transfer-custody"):
         (None, None, "action: `to_custodian_id` and `reason`"),
     ("POST", "/api/v1/assets/<int:id>/verify"):

@@ -957,6 +957,34 @@ class TestAssetHistoryTags(AssetHistoryCase):
             len({e["summary"].split("(")[0] for e in events}), 3,
             "three reasons, three sentences")
 
+    def test_a_refusal_says_how_the_value_was_read_when_anybody_knew(self):
+        """Handoff 54 §7: the symbology rides beside the refused value.
+
+        The camera passes the format up with every decode; a typed entry
+        passes nothing. `detail.scanned_format` is the format where one was
+        claimed and null where none was — a typed refusal, a keyboard-wedge
+        scanner, or any row from before the column existed — and null must
+        never be invented into a claim about Cadra's label.
+        """
+        asset = self._asset()
+        tag = asset.tag_ids[:1]
+        tag._record_affix_refusal("A-1", reason="number_mismatch",
+                                  scanned_format="code_39")
+        tag._record_affix_refusal("SER-9", reason="serial_mismatch",
+                                  scanned_format="qr_code")
+        tag._record_affix_refusal("A-2", reason="scrapped")
+        events = [e for e in asset.asset_history(newest_first=False)["events"]
+                  if e["type"] == "affix_refused"]
+        self.assertEqual(len(events), 3)
+        by_scanned = {e["detail"]["scanned"]: e for e in events}
+        self.assertEqual(by_scanned["A-1"]["detail"]["scanned_format"],
+                         "code_39")
+        self.assertEqual(by_scanned["SER-9"]["detail"]["scanned_format"],
+                         "qr_code")
+        self.assertIsNone(by_scanned["A-2"]["detail"]["scanned_format"],
+                          "a refusal recorded without a format publishes "
+                          "null, not a guess")
+
     def test_a_same_day_scrap_does_not_sort_before_the_tags_own_issue(self):
         """A bare date sorts at midnight — before the tag existed."""
         asset = self._asset()

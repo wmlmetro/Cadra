@@ -33,6 +33,33 @@ live at was never the point.
 
 ---
 
+## 2026-10-05 — handoff 54: every time · `myservice_api` 19.0.3.27.0, `myservice_asset_register` 19.0.1.25.0
+
+- **Additive: `POST /api/v1/assets/<id>/tag-affixed` accepts `scanned_format`
+  and `serial_format`** — how `tag_number` and `serial_number` were READ,
+  when the client knows. The app's camera (whose decoder is now bundled —
+  zxing-wasm — rather than the platform's `BarcodeDetector`) passes the
+  symbology up with every decode; a typed or keyboard-wedge entry omits the
+  keys. The enum, published verbatim: `code_128`, `code_39`, `code_93`,
+  `codabar`, `ean_13`, `ean_8`, `upc_a`, `upc_e`, `itf`, `qr_code`,
+  `data_matrix`, `pdf417`, `aztec`. A value outside it is a
+  `400 invalid_request` naming `allowed_values`, and nothing is written —
+  not even the affix a correct `tag_number` beside it would have earned.
+  `serial_format` without `serial_number` is refused the same way
+  (contradictory input, handoff 34's rule).
+- **Additive: every `affix_refused` history entry carries
+  `detail.scanned_format`** — the format of the refused value (the tag
+  read's on `number_mismatch` and `scrapped`, the serial read's on
+  `serial_mismatch`), or `null` where none was claimed: a typed entry, a
+  hardware scanner's keyboard wedge, or any row from before this change.
+  Null means *not known*, never a guess.
+- **A successful affix stores nothing new.** The format is recorded ONLY on
+  the refusal record, by ruling (handoff 54 §7): it earns its column where
+  it tells an auditor whether a refused number came off Cadra's own label
+  (`code_128` / `qr_code`) or a manufacturer's, and nowhere else. The
+  response envelope, the `tagging` block and the idempotent replay are
+  byte-identical to before for every caller that does not send the new keys.
+
 ## 2026-10-05 — handoff 52: the Builder's list · `myservice_api` 19.0.3.26.0, `myservice_asset_register` 19.0.1.24.0
 
 - **Additive: two more affix refusals are recorded, and every `affix_refused`

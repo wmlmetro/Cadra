@@ -574,7 +574,11 @@ class NRSAssetHistory(models.Model):
                     summary = ("Affix confirmation refused — the number "
                                "read off the asset (%s) is not the label "
                                "issued for it" % (ev.to_value or "—"))
-                detail.update(scanned=ev.to_value or None, reason=reason)
+                # `scanned_format` since handoff 54: how the refused value
+                # was read, when the caller knew. Null is "not known" — a
+                # typed entry, a keyboard wedge, or a pre-54 row.
+                detail.update(scanned=ev.to_value or None, reason=reason,
+                              scanned_format=ev.scanned_format or None)
             else:
                 # A reference or a warranty field: the same shape, a field
                 # with a before and an after. The warranty fields carry no
