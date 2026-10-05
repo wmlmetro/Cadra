@@ -1,0 +1,69 @@
+{
+  "origin": "http://test19.localhost:8069",
+  "at": "2026-10-05T08:00:52.315Z",
+  "results": [
+    {
+      "screen": "asset-dashboard",
+      "run": 1,
+      "t_content_ms": 365,
+      "t_quiet_ms": 365,
+      "api_calls": 19
+    },
+    {
+      "screen": "asset-dashboard",
+      "run": 2,
+      "t_content_ms": 368,
+      "t_quiet_ms": 368,
+      "api_calls": 19
+    },
+    {
+      "screen": "asset-dashboard",
+      "run": 3,
+      "t_content_ms": 371,
+      "t_quiet_ms": 371,
+      "api_calls": 19
+    },
+    {
+      "screen": "asset-register-list",
+      "run": 1,
+      "t_content_ms": 410,
+      "t_quiet_ms": 410,
+      "api_calls": 7
+    },
+    {
+      "screen": "asset-register-list",
+      "run": 2,
+      "t_content_ms": 444,
+      "t_quiet_ms": 444,
+      "api_calls": 7
+    },
+    {
+      "screen": "asset-register-list",
+      "run": 3,
+      "t_content_ms": 474,
+      "t_quiet_ms": 474,
+      "api_calls": 7
+    },
+    {
+      "screen": "approvals",
+      "run": 1,
+      "t_content_ms": 358,
+      "t_quiet_ms": 358,
+      "api_calls": 8
+    },
+    {
+      "screen": "approvals",
+      "run": 2,
+      "t_content_ms": 370,
+      "t_quiet_ms": 370,
+      "api_calls": 8
+    },
+    {
+      "screen": "approvals",
+      "run": 3,
+      "t_content_ms": 354,
+      "t_quiet_ms": 354,
+      "api_calls": 8
+    }
+  ]
+}

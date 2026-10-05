@@ -2228,3 +2228,55 @@ found is here.
   ever sees it. On `nrs19` the page's count (11,951), the file's rows
   (11,951) and the register agreed, 1.2 MB in 1.2 s click-to-saved-file.
   `[landed]`
+
+## 27 · Handoff 52 — the Builder's list, 2026-10-05
+
+### 27.1 · What it closed — `[landed, keep it that way]`
+
+- **The approvals badge counts both kinds of waiting work** — movement
+  requests AND pending tag replacements naming the person — and shows
+  nothing rather than half when either total cannot be had. Driven on
+  `test19`: Asset Manager, badge 1 (0 movements + 1 replacement), approve,
+  badge gone.
+- **The station's pending panel says what it is showing**: *Showing the
+  100 most recent — N more on the Approvals page*, N from the server's
+  `total_estimate` (`test19`: 100 of 214, N = 114).
+- **IT Assets Command matches a word, not a substring**, and prints
+  *Showing: <category> (N assets)* under its title. `jaizbankplc` before:
+  *21 Furniture records*; after: *Showing: IT Equipment (21 assets)*.
+  Fleet and Facility checked for the same pattern: neither selects by name.
+- **All three affix refusals leave an append-only record naming their
+  reason** (`number_mismatch` / `scrapped` / `serial_mismatch`), each with
+  its own history sentence; the err-path placement measured separately.
+- **Restored cache data is never fresh** (the §5 ruling): every restored
+  query refetches; paint unchanged, burst measured; spec 14 green ×3 with
+  instrumentation kept — and its own reload-outruns-the-PATCH race found
+  and fixed on the way.
+- **Two guards**: the SPA's two scope maps held to `utils.py`'s 19; the
+  endpoint reference's index held to the static route census (64 of 115
+  rows → 115 of 115). Both proven red-once.
+
+### 27.2 · Found on the landing dashboard (handoff 52 §9) — `[open]`
+
+The asset dashboard (`/assets`, every persona's landing page), every number
+traced to its query (report 52 §H has the full table). Three things the
+trace surfaced, none fixed here because none was in the list:
+
+- **A hardcoded host and a hardcoded green dot in the header.** The
+  subtitle reads *NRS Facilities Management · staging.app.cadra.ng* on
+  every tenant — a brand line the brand module does not control, wrong on
+  every host that is not staging — and the green dot beside the title is
+  drawn unconditionally: the *All systems operational* class (deleted in
+  handoff 47), one specimen smaller.
+- **The "PM Due (14 days)" card can never say anything** — it is a static
+  empty card whose own small print says *API endpoint pending*. Honest,
+  but it has held that square since the screen was built; either the
+  endpoint is worth building or the card is not.
+- **The KPI strip does not say it does not partition.** `nrs.asset` has a
+  `transferred` state with no tile; the code comments admit Total − the
+  five tiles need not be zero, the screen does not. Today it is zero
+  everywhere by accident of data — 0 transferred of 12,422 (`test19`), of
+  11,951 (`nrs19`), of 4,164 (`jaizbankplc`) — so nothing visible is
+  currently wrong, which is exactly when nobody would notice it starting
+  to be. ("Last updated" beside it is the counts query's clock alone,
+  standing for a five-query page — same family, smaller.)

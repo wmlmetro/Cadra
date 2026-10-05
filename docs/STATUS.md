@@ -1388,3 +1388,73 @@ repository, and the §4 check that caught a crash reading could not.
   skipped of 211** in 13.4 m; the suite grew 205 → 211 (spec 51's six).
 - Fan-out: `-u myservice_asset_register,myservice_api` on all 9 local
   databases — **0 ERROR/CRITICAL lines on each of the 9** (cadra19, nrs19, gtb19, test19, nrs, lasg, gtb, jaizbankplc, boot44), container restarted after.
+
+## Handoff 52 — the Builder's list (2026-10-05)
+
+Report 51 §9's six answers, made the work: four demo-visible screen
+defects, the cache ruling, and two drift guards.
+
+### Built
+
+- **The approvals badge counts both queues.** `fetchApprovalsWaitingCount`
+  sums `/approvals` and `/tags/replacements` (both
+  `state=pending&waiting_on_me=true&limit=1`, both `assets:read`); either
+  total missing → nothing drawn, not half. `invalidateTagQueries` moves
+  the badge on a replacement decision.
+- **The station panel's honest cap.** `fetchPendingTagReplacements`
+  returns the pagination it used to discard; the panel ends with *Showing
+  the 100 most recent — N more on the Approvals page* (N from
+  `total_estimate`). Chosen over paging: the station is a scan console,
+  the paged queue is the Approvals page.
+- **IT Assets Command**: `/\b(IT|computer|laptop|server)\b/i` (word
+  boundaries) and *Showing: <category> (N assets)* as the first line under
+  the title. `domain`/`code` measured and rejected: seed-only —
+  `jaizbankplc`'s real "IT Equipment" (21 assets) carries neither. Fleet
+  and Facility checked: no name-based selection.
+- **All three affix refusals recorded**: `reason` in the `affix_refused`
+  payload (`number_mismatch`/`scrapped`/`serial_mismatch`, existing
+  column, NULL = pre-52 = number mismatch), one history sentence per
+  reason, the scrapped raise and the serial `err()` wired to the same
+  own-cursor recorder. Err-path placement measured: same-cursor SURVIVES
+  there (no exception, no rollback) — shared recorder shipped anyway.
+- **The cache ruling**: restored data is never fresh.
+  `PersistQueryClientProvider onSuccess` → `invalidateQueries()` once at
+  restore; exclusions and throttle untouched; buster v6 (the `tag-pending`
+  shape, not the ruling).
+- **Two guards**: `tests/test_scope_maps.py` (SPA's SCOPE map and
+  SCOPE_WORDS vs `utils.py`'s 19, both directions — SCOPE was carrying
+  17) and `tests/test_endpoint_reference.py` (static AST census vs the
+  reference's endpoint index, both directions, empty exclusion table with
+  a staleness check). The index rebuilt: 64 rows of 115 → 115.
+
+### Measured
+
+- Badge drive (`test19`, Asset Manager): **1** before (0 pending movement
+  requests of 488 name them; 1 replacement does), **not drawn** after
+  approving it.
+- Station panel (`test19`): 100 rows + *"— 114 more on the Approvals
+  page"*; 100 + 114 = 214, the tenant's whole pending set.
+- IT dashboard (`jaizbankplc`): before *"21 Furniture records"*, after
+  *"Showing: IT Equipment (21 assets)"* — screenshots both.
+- Err-path probe: a request-cursor row beside the serial `err()` read
+  back over HTTP after the 400 — the opposite of the raise path.
+- Page-ready, warm cache, 3 reloads × 3 screens: paint unchanged
+  (~350–475 ms before and after); refetch burst +15 (dashboard), +3
+  (register list), +3 (approvals) API calls per reload.
+- Spec 14's race: its reload aborted the in-flight PATCH; the old green
+  restored a value the server never held. Fixed by awaiting the PATCH
+  response; 5/5 × 3 runs with instrumentation kept, `dataUpdatedAt`
+  moving after every reload.
+- `transferred` (the KPI strip's invisible remainder): 0 of 12,422
+  (`test19`), 0 of 11,951 (`nrs19`), 0 of 4,164 (`jaizbankplc`).
+
+### Verification
+
+- pytest on `test19` (first, CI's order): first run **1 failed, 1305 passed, 9 skipped of 1315** in 480 s — the failure a 30 s client `ReadTimeout` on `test_approvals.py::test_the_requester_can_withdraw_and_nobody_else_can`, a route this handoff never touched, which passed alone in 3.2 s; whole-suite re-run **1306 passed, 9 skipped of 1315, 0 failed** in 426 s. The 9 skips are the documented categories (handoff 46's count)
+- In-registry, `--workers=0`: `myservice_api` **0 failed, 0 error(s) of 374 tests** (report 51's 372 + this handoff's two) ·
+  `myservice_asset_register` **0 failed, 0 error(s) of 482 tests** · `myservice_workflow` **0 failed, 0 error(s) of 96 tests** (the deadlock-risk suite; no hang)
+- Census: *“route census: 73 body routes of 143 first-party routed declarations (48 under /api/v1, 25 outside), plus 4 inherited-route overrides with no path of their own”* — unchanged from report 51, as it should be: this handoff added no route. Found and left, named: run ALONE, the census class reports 0 overrides and fails its own override name-check — `original_routing` exists only after an `HttpCase` has built the routing map, so the override half of the walk is readable only in a run that contains one, which the module suite and CI always do. Pre-existing, not this handoff's, surfaced by quoting the census from an isolated run
+- Browser suite on `test19`: **199 passed, 12 skipped, 0 failed of 211** in 13.6 m — the standing red pair is now zero: spec 13 went green in 51, spec 14 goes green here, in the full suite, under the ruling. The 12 skips are report 49's documented data-dependent categories
+- Guards red-once-then-green: `52-evidence/guards-red-once.txt`
+- Fan-out: no selection, source or stored-field change — none required;
+  manifests bumped for the deploy Job.
