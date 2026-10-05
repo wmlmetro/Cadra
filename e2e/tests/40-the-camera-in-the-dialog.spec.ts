@@ -22,9 +22,11 @@ import { join } from "node:path";
  * (`--use-file-for-fake-video-capture=<path>`, re-read each time a stream
  * is opened), and this spec writes into that file a JPEG of the label
  * Cadra would PRINT for the tag — `code128Svg`, the same encoder the label
- * printer uses — so the number is decoded off a real Code 128 by the
- * platform's own `BarcodeDetector`, not stubbed. A blank frame stands for
- * "the camera is on and nothing is in front of it".
+ * printer uses — so the number is decoded off a real Code 128, not stubbed.
+ * (By the platform's `BarcodeDetector` when this spec was written; by the
+ * bundled zxing-wasm engine since handoff 54 — the frames and assertions
+ * are engine-agnostic.) A blank frame stands for "the camera is on and
+ * nothing is in front of it".
  *
  * Set `E2E_SHOTS=<dir>` to also save the screenshots report 40 refers to.
  */

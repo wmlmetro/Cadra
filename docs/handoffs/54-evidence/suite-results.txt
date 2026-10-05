@@ -1,0 +1,60 @@
+Handoff 54 — suite results, 2026-10-05, all against test19
+===========================================================
+
+HTTP suite (CADRA_API_BASE=http://test19.localhost:8069 tests/.venv/bin/python -m pytest tests/ -q)
+
+  FIRST full run: 16 failed, 1295 passed, 9 skipped of 1320 in 512.63s (0:08:32)
+    — every failure on the tag-affix path:
+      TypeError: NRSAssetTagLabelSAP._mark_affixed() got an unexpected
+      keyword argument 'scanned_format'
+    myservice_workflow holds TWO overrides of _mark_affixed (INT-05 and
+    INT-06 hooks) with the base signature spelled out; the new kwarg 500'd
+    every affix. Both overrides now forward *args/**kwargs;
+    myservice_workflow -> 19.0.3.1.0, fanned out to all eight tenants
+    (0 error lines each).
+
+  SECOND full run (after the fix): 1311 passed, 9 skipped in 471.92s (0:07:51)
+    — 1311 of 1320, 0 failed. Skip count 9, the documented categories.
+
+In-registry Odoo suites (-d test19 -u <module> --test-enable --test-tags /<module> --workers=0, serialized):
+
+  myservice_asset_register: 0 failed, 0 error(s) of 482 tests
+  myservice_api:            0 failed, 0 error(s) of 375 tests
+  myservice_workflow:       0 failed, 0 error(s) of  96 tests
+
+Browser suite (BASE_PATH=/app/ bundle rebuilt first; E2E_ORIGIN=http://test19.localhost:8069 npx playwright test):
+
+  209 passed, 1 failed, 1 flaky(passed on retry), 12 skipped of 223 in 20.2m
+    — the suite grew 211 -> 223 (spec 54's 12 tests, all green in the run).
+    - the 1 failed: 16-settings-branding "shows the tenant's current brand"
+      — page.goto 30 s timeout on both attempts (a load stall under the
+      20-minute run, no assertion reached); 3 of 3 green rerun in
+      isolation immediately after. Not this handoff's area and not a
+      regression.
+    - the 1 flaky: 42-the-grant-and-the-refusal — same class, gotoApp
+      timeout on first attempt, green on retry.
+    - the 12 skips are report 49's documented data-dependent categories.
+
+Spec 54 alone, first run: 10 of 12 green; the 2 failures were SPEC bugs,
+both fixed and both green on rerun (33.8s):
+  - the wrong-tag value was built by appending to the real tag, so the
+    no-leak markup assertion tripped over the field's own legitimate
+    contents;
+  - the small label's Code 128 was shown at its native 400 px and did not
+    survive the fake camera's JPEG — the same density finding as the
+    corpus's small row; the frame now shows every size filling the
+    reticle, which is what a tagger does.
+
+Corpus (node e2e/corpus/run54.mjs): exit 0, invariant held (every label
+size readable on at least one side as printed), baseline 201 of 408 cells
+held; run twice back to back with identical tables.
+
+Module upgrade fan-out: myservice_asset_register,myservice_api then
+myservice_workflow on cadra19 nrs19 gtb19 test19 nrs lasg gtb jaizbankplc
+— each ended "Modules loaded", no CRITICAL, only the pre-existing
+duplicate-label warning on nrs.employee.import.job.
+
+Bundle (BASE_PATH=/app/ npm run build): assets 2,076 KB / 70 files before
+-> 3,060 KB / 72 files after; the delta is zxing_reader wasm 953.53 KB
+(413.61 KB gzip) + scanEngine chunk 35.60 KB (12.93 KB gzip), both lazy
+(network-trace proof in spec 54); BarcodeStation chunk 55.74 -> 63.21 KB.
