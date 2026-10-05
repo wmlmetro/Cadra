@@ -203,3 +203,26 @@ Separately, `t-on-click="refresh"` in `barcode_station.xml:24` and
 `bus_dashboard.xml:16` resolves against the render context rather than the
 component, so the Refresh button is inert on both. Cosmetic; both screens
 render.
+
+---
+
+## Rulings considered and declined (handoff 51, 2026-10-05)
+
+**Deleting the Security Command Center source was considered on 5 October
+2026 and declined**, for three reasons: it ships to nobody (not in any
+bundle means not fetched, so leaving it costs no runtime); it is already
+guarded by tag against silently coming back
+(`tests/test_source_guards.py::test_the_retired_screens_stay_retired`); and
+this file carries the port estimate (*portable, mechanical, ~2 days*), so
+deleting the source would turn a documented, reversible decision into a
+git-archaeology exercise and buy nothing. The next person with the same
+idea should stop here.
+
+**Demoting the IT Assets Command page (`ITAssetsCommand.tsx`) to a saved
+view on the asset list was considered and withdrawn** in the same handoff:
+the page is a condition breakdown and a site map, which a saved view is
+not, and the thing that actually motivated the demotion — one category
+holding a top-level command centre when no other does — is already
+answered by handoff 48's per-tenant sidebar switches. A tenant that does
+not run IT assets as a programme switches the page off; that is the right
+control, and it is shipped.

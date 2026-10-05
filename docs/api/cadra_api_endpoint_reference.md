@@ -4232,6 +4232,12 @@ a deleted parameter's old value to twenty-four writing tests.
 | 42 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
 | 43 | POST   | `/api/v1/barcode/generate` | `tagging:write` |
 | 44 | GET    | `/api/v1/tags/lookup` | `assets:read` |
+| 44a | GET    | `/api/v1/tags/<id>` | `assets:read` |
+| 44b | GET    | `/api/v1/tags/pending-replacements` | `assets:read` |
+| 44c | GET    | `/api/v1/tags/replacements` | `assets:read` |
+| 44d | POST   | `/api/v1/tags/<id>/request-replacement` | `tagging:write` |
+| 44e | POST   | `/api/v1/tags/<id>/approve-replacement` | `approvals:write` |
+| 44f | POST   | `/api/v1/tags/<id>/reject-replacement` | `approvals:write` |
 | 45 | GET    | `/api/v1/home/form-data` | `requests:read` |
 | 46 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
 | 47 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |

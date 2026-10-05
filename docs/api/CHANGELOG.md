@@ -33,6 +33,33 @@ live at was never the point.
 
 ---
 
+## 2026-10-05 — handoff 51: the queue and the refusal · `myservice_api` 19.0.3.25.0, `myservice_asset_register` 19.0.1.23.0
+
+- **Additive: `GET /api/v1/tags/replacements`** (`assets:read`) — every tag
+  replacement REQUEST, decided ones included, filterable by `state` (the
+  label's own values: `pending` is waiting, `scrapped` was approved and
+  replaced, `active` was rejected or back in service), `waiting_on_me` and
+  `raised_by_me`, with the standard pagination. The sibling of
+  `pending-replacements`, not a widening of it: that route stays
+  pending-only by its published name and is unchanged. The new route's base
+  set is labels that have ever had a replacement requested — a label nobody
+  has asked about is not a replacement request and is not listed. Rows are
+  the same shape `pending-replacements` publishes, `can_decide` computed
+  per caller. A tagging-only credential (`tagging:write` alone) cannot read
+  either route; a human tagger reads them through the Asset User pairing.
+- **Additive: a new asset-history event type, `affix_refused`.** A tag-affix
+  confirmation the register refused because the scanned number did not
+  match the label issued now leaves an append-only `nrs.asset.event` row:
+  the scanned value as entered (`detail.scanned`), who presented it, when.
+  It appears in `GET /assets/<id>/history` with its own `title` and
+  `summary`, in `fidelity.events` as a sixth kind, and in the
+  `AssetHistoryEvent.type` enum — the additive growth that enum's own
+  description promises. The refusal response itself is byte-for-byte
+  unchanged (400 `validation_failed`, the message still names the scanned
+  and the expected number), and a refused affix still changes nothing on
+  the label; what changed is that a refusal followed by a confirmation is
+  now a visible sequence instead of a clean affix record.
+
 ## 2026-10-04 — handoff 50: the consequences · `myservice_api` 19.0.3.24.0, `myservice_dashboard` 19.0.1.1.0, `myservice_identity` 19.0.1.2.0
 
 - **BREAKING: `GET /assets/export` and `GET /assets/export.csv` take

@@ -1,0 +1,20 @@
+# Handoff 51 §2b — the placement that was NOT chosen, measured.
+# odoo shell on test19, 2026-10-05. The probe simulates a refusal event
+# written on the REQUEST's own cursor: _record(), then env.flush_all()
+# (so the write HAS reached the database inside the transaction), then
+# cr.rollback() — which is exactly what cadra_endpoint does on a
+# ValidationError (myservice_api/controllers/utils.py).
+
+same cursor, after flush, before rollback: [(10765, 'SAME-CURSOR-PROBE')]
+second connection, during the window (uncommitted): []
+same cursor, after rollback: []
+
+# Reading: on the request cursor the row exists after the flush — every
+# assertion made inside that transaction would pass — while no other
+# connection ever sees it, and the decorator's rollback removes it
+# entirely. An instrument that reports success while measuring nothing,
+# measured rather than reasoned. The shipped placement writes on its own
+# cursor (asset_tag._record_affix_refusal) and commits independently:
+# row 10764 in affix-refusal-http.txt is that cursor's write surviving
+# the same 400. Nothing written there can outlive a SUCCESSFUL affix
+# being rolled back, because a successful affix writes no refusal row.

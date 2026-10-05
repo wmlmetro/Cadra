@@ -1,0 +1,45 @@
+# Handoff 51 §2b — the refusal leaves a record, measured over real HTTP.
+# test19, 2026-10-05, asset 79529 (handoff51-refusal-measurement),
+# label 46682 / NRS-GEN-10716, suite credential (test_client).
+
+## Step 1 — wrong number over HTTP: 400, refusal text unchanged,
+## still naming the expected number (handoff 39's ruling).
+POST /api/v1/assets/79529/tag-affixed {"tag_number":"WRONG-51-MEASURE"}
+HTTP 400
+{"error": {"code": "validation_failed", "message": "Scanned tag
+WRONG-51-MEASURE does not match the tag issued for this asset
+(NRS-GEN-10716). The label on the asset is not the one Cadra issued for
+it.", "request_id": "9396e6a82f694adb9786b89c50bd45e7", "details":
+{"http_status": 400}}}
+
+## Step 2 — a separate read, after the response (a new HTTP request,
+## hence a new transaction): the refusal row, by its own id, with its
+## payload. One refusal made, one row recorded.
+GET /api/v1/assets/79529/history → events of type affix_refused: 1
+{"id": "affix_refused:nrs.asset.event:10764",
+ "type": "affix_refused",
+ "at": "2026-10-05T05:46:45",
+ "summary": "Affix confirmation refused — the number read off the asset
+             (WRONG-51-MEASURE) is not the label issued for it",
+ "evidence": "append_only",
+ "source": "test",            # the credential relabel reaching through
+                              # the recorder's own cursor — the suite
+                              # credential was acting
+ "detail": {"records": ["nrs.asset.event"], "scanned": "WRONG-51-MEASURE"},
+ "record": {"model": "nrs.asset.event", "id": 10764}}
+
+## Step 3 — the label did not move and no field on it changed.
+GET /api/v1/assets/79529 → tagging:
+{"label_id": 46682, "tag_number": "NRS-GEN-10716",
+ "label_state": "issued", "is_tagged": false,
+ "printed_at": null, "printed_by": null,
+ "affixed_at": null, "affixed_by": null, "affixed_by_name": null}
+
+## Step 4 — the revealed number accepted; both rows present, in order,
+## with the gap between them visible (16 seconds here).
+POST /api/v1/assets/79529/tag-affixed
+     {"tag_number":"NRS-GEN-10716","affixed_by_name":"Measurement Operative"}
+HTTP 200 → is_tagged: true, label_state: affixed
+GET /api/v1/assets/79529/history?sort=oldest →
+[('affix_refused', '2026-10-05T05:46:45'),
+ ('tag_affixed',   '2026-10-05T05:47:01')]
