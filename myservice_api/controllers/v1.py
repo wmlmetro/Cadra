@@ -704,6 +704,15 @@ class MyserviceApiV1(http.Controller):
         # res.users.read returns partner_id as [id, display_name]; flatten to id.
         partner = row.get("partner_id")
         partner_id = partner[0] if isinstance(partner, (list, tuple)) and partner else partner
+        # The caller's DIRECT roles — the same `[{key, name}]` rows, from the
+        # same vocabulary and in the same `GROUP_SCOPES` order, that
+        # `/users/<id>` publishes as `roles_direct` (handoff 56). Direct, not
+        # effective: the top bar names the hat somebody was given, and the
+        # effective closure would caption every Asset Manager "Asset User ·
+        # Asset Officer +1". Imported lazily — `v1_users` imports
+        # `cadra_route` from this module at load time.
+        from .v1_users import _resolved_roles, _role_lists
+        roles = _role_lists(user, _resolved_roles(request.env))["roles_direct"]
         return {
             "id": row.get("id"),
             "login": row.get("login"),
@@ -711,6 +720,7 @@ class MyserviceApiV1(http.Controller):
             "email": row.get("email"),
             "partner_id": partner_id,
             "scopes": claims.get("scopes") or [],
+            "roles": roles,
             "token_type": "Bearer",
             "expires_at": claims.get("exp"),
         }
@@ -2699,9 +2709,39 @@ class MyserviceApiV1(http.Controller):
                 "Returns the calling user's basic profile and the active "
                 "token claims. Any valid bearer token works — no extra "
                 "scope is required. Useful after a page refresh to "
-                "recover the session without re-prompting for credentials."
+                "recover the session without re-prompting for credentials. "
+                "`roles` (handoff 56) is the caller's direct roles — the "
+                "same `{key, name}` rows `/users/<id>` publishes as "
+                "`roles_direct`, in the same order; empty for an account "
+                "holding no role in the published vocabulary."
             ),
-            "responses": _standard_responses(),
+            "responses": _standard_responses(data_schema={
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "login": {"type": "string", "nullable": True},
+                    "name": {"type": "string", "nullable": True},
+                    "email": {"type": "string", "nullable": True},
+                    "partner_id": {"type": "integer", "nullable": True},
+                    "scopes": {"type": "array",
+                               "items": {"type": "string"}},
+                    "roles": {
+                        "type": "array",
+                        "description": (
+                            "The caller's direct roles, `/users/<id>`'s "
+                            "`roles_direct` exactly."),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": {"type": "string"},
+                                "name": {"type": "string"},
+                            },
+                        },
+                    },
+                    "token_type": {"type": "string"},
+                    "expires_at": {"type": "integer", "nullable": True},
+                },
+            }),
         }
 
         return request.make_response(
