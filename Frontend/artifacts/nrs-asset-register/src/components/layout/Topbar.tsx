@@ -56,6 +56,23 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
     return () => clearTimeout(t);
   }, [query, onSearch, focused, location, nav]);
 
+  // The hat beside the name (handoff 56): the server's own role rows, never
+  // derived from scopes — a scope set maps to a role only approximately, and
+  // a guessed label would be wrong exactly for the persona it matters for.
+  // One role: its name. Two: both. Three or more: the first two and +N, the
+  // full list in the line's tooltip (there is no account menu to put it in —
+  // the bar has deliberately had none since handoff 29). No roles — an old
+  // server, or an account holding none — shows NOTHING: a blank is honest,
+  // an invented label is not.
+  const roles = me?.roles ?? [];
+  const roleNames = roles.map((r) => r.name);
+  const roleText =
+    roleNames.length === 0
+      ? ""
+      : roleNames.length <= 2
+        ? roleNames.join(" · ")
+        : `${roleNames[0]} · ${roleNames[1]} +${roleNames.length - 2}`;
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
     onSearch?.(e.target.value); // live-filter pages that opt in via setSearchHandler
@@ -138,6 +155,15 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
           <div className="hidden sm:block">
             {me?.name && <p className="text-[12px] font-semibold text-foreground leading-tight">{me.name}</p>}
             {me?.login && <p className="text-[10px] text-muted-foreground leading-tight">{me.login}</p>}
+            {roleText && (
+              <p
+                className="text-[10px] text-muted-foreground leading-tight"
+                title={roleNames.length > 2 ? roleNames.join(" · ") : undefined}
+                data-testid="topbar-role"
+              >
+                {roleText}
+              </p>
+            )}
           </div>
         </div>
       </div>

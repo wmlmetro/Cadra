@@ -33,6 +33,17 @@ live at was never the point.
 
 ---
 
+## 2026-10-06 — handoff 56: the name and the hat · `myservice_api` 19.0.3.28.0
+
+- **Additive: `GET /api/v1/auth/whoami` answers `roles`** — the caller's
+  direct roles as `[{key, name}]`, the same rows `/users/<id>` publishes as
+  `roles_direct` (same `PUBLISHED_ROLE_NAMES` vocabulary, same key, same
+  `GROUP_SCOPES` order), so the app's top bar can name the hat the signed-in
+  person wears without `access:read`. Empty list for an account holding no
+  role in the published vocabulary.
+
+---
+
 ## 2026-10-05 — handoff 54: every time · `myservice_api` 19.0.3.27.0, `myservice_asset_register` 19.0.1.25.0
 
 - **Additive: `POST /api/v1/assets/<id>/tag-affixed` accepts `scanned_format`
