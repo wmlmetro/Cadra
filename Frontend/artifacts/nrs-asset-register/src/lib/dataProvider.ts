@@ -1123,16 +1123,27 @@ export interface DepreciationReport {
  *  point-in-time view (PRD §13.4). */
 // ── Who is signed in ──────────────────────────────────────────────────────
 
-export interface WhoAmI { id: number; name: string | null; login: string | null }
+/** One role the signed-in person holds — the server's `{key, name}` rows,
+ *  the same vocabulary the Users page prints (handoff 56). */
+export interface WhoAmIRole { key: string; name: string }
+
+export interface WhoAmI { id: number; name: string | null; login: string | null; roles: WhoAmIRole[] }
 
 /** The signed-in user, from the token. `GET /auth/whoami` has existed for as
  *  long as the login has and nothing called it: the top bar printed a name it
  *  had been given in the source instead. Null without a live API — there is
- *  nobody signed in to name, and the top bar then names nobody. */
+ *  nobody signed in to name, and the top bar then names nobody. A server
+ *  that predates `roles` (handoff 56) answers without the key: an empty
+ *  list, and the bar degrades to naming nobody's role rather than crashing. */
 export async function fetchWhoAmI(): Promise<WhoAmI | null> {
   if (!apiConfigured) return null;
-  const res = await apiGet<{ id: number; name?: string | null; login?: string | null }>("/api/v1/auth/whoami");
-  return { id: res.data.id, name: res.data.name || null, login: res.data.login || null };
+  const res = await apiGet<{ id: number; name?: string | null; login?: string | null; roles?: WhoAmIRole[] | null }>("/api/v1/auth/whoami");
+  return {
+    id: res.data.id,
+    name: res.data.name || null,
+    login: res.data.login || null,
+    roles: Array.isArray(res.data.roles) ? res.data.roles : [],
+  };
 }
 
 export const fetchAssetDepreciation = async (id: string | number, asOf?: string) =>
