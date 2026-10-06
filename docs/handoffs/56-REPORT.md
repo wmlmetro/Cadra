@@ -80,3 +80,36 @@ successfully rolled out"* at 22:21. `dev`'s `myservice_api` manifest at
 The PR merge (as every handoff): the Builder's permission layer refuses
 `gh pr merge`. Deploying this to the demo estate after merge is
 `deploy-dev` (push, frontend) + `upgrade-19` (manifest bump) — owner-run.
+
+## Deployed (addendum, 2026-10-06, owner-instructed)
+
+Merged as `ee38cb0` (PR #114) and deployed to the cluster the same morning:
+
+1. `deploy-dev` (push, 08:06–08:20 UTC, success) — images `dev-ee38cb0` +
+   `dev-latest` built, frontend rolled.
+2. `upgrade-19` (08:10–08:14 UTC, success; `upgrade_modules=myservice_api`,
+   all four tenants, `scale_down=false` — code-only change on demo day):
+   *staging, gtb, jaizbankplc, lasg* each "upgrade succeeded"
+   (`19.0.3.28.0`), and the run printed *"successfully rolled out"* —
+   **in 2 seconds, because it had rolled nothing.** Verified against the
+   live API: `whoami` still answered without `roles`.
+3. **Found: `upgrade-19`'s roll-forward is a no-op when `scale_down=false`
+   and the image is the default.** The roll step re-applies the deployment
+   manifest with `dev-latest` — the same mutable tag it already carries
+   (`imagePullPolicy: IfNotPresent`) — so with no scale-to-zero there is no
+   pod-template change, no restart, and no new pull; `kubectl rollout
+   status` returns immediately and the step reports success while the pod
+   serves yesterday's code. `scale_down=true` (the default) masks this by
+   recreating the pod anyway. An instrument that reports success while
+   measuring nothing — for the Architect; left unfixed (§3 freeze).
+4. `deploy-dev` with `roll_odoo=true` (08:15–08:20 UTC, success) rolled the
+   backend onto the SHA-pinned `dev-ee38cb0` — a real template change.
+5. **Verified live:** all four tenants' `/api/v1/openapi.json` now publish
+   `whoami`'s `roles` (staging's host is `staging.app.cadra.ng`). A full
+   scripted sign-in on the cluster is blocked by Turnstile on `/auth/login`
+   (by design), and the local `.creds.jaizbankplc` is the local replica's;
+   the signed-in top bar was proved end to end on `test19` (§Verification).
+
+The deployment is now pinned to `dev-ee38cb0` rather than `dev-latest`;
+the next `upgrade-19` with a blank image moves it back to `dev-latest`,
+which is the workflows' normal state.
