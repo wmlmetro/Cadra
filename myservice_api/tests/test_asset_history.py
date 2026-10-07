@@ -752,7 +752,8 @@ class TestAssetHistoryRecordedEvents(AssetHistoryCase):
         self.assertEqual(
             [k["event"] for k in kinds],
             ["verified", "verification_date_set", "status_changed",
-             "provenance_changed", "warranty_changed", "affix_refused"],
+             "provenance_changed", "warranty_changed", "affix_refused",
+             "gate_fired"],
             "by the name the EVENT is published under, not the stored type")
         for kind in kinds:
             self.assertEqual(

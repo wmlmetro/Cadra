@@ -102,6 +102,10 @@ EXPECTED_AUDITOR_SCOPES = frozenset({
     # the register's list screens no longer opens /assets/export. The export
     # is the Auditor's. docs/DECISIONS.md, 2026-10-03.
     "export:read",
+    # Handoff 57 §2e (scaffolding, replaced by 58): the auditor sees a
+    # receipt candidate at any state — Addendum A §4, "Auditor (read-only):
+    # view all records … at any state". docs/DECISIONS.md, 2026-10-07.
+    "candidates:read",
 })
 
 AUDITOR_GROUP_XMLID = "myservice_api.group_auditor"

@@ -666,6 +666,13 @@ _GUARDED_READS = {
     ("utils.py", "truncation_warning", "request", "cadra_truncation"): None,
     ("v1.py", "whoami", "request", "jwt_claims"): None,
     ("v1_meta.py", "meta_database", "request", "jwt_claims"): None,
+    # Handoff 57: the gates judge the caller by the token's scopes.
+    ("v1_assets.py", "_caller_scopes", "request", "jwt_claims"): None,
+    ("v1_gates.py", "_fire", "request", "jwt_claims"): None,
+    # Handoff 57: the settings block guards the field because the route was
+    # written before the field landed; it is always there since
+    # `myservice_asset_register` 19.0.1.26.0.
+    ("v1_settings.py", "_receipt_gate_block", "Asset", "register_state"): None,
 }
 
 #: The one published key that must NOT resolve — see `_location_field`.
@@ -679,6 +686,7 @@ _SERIALIZERS = {
     ("v1_assets.py", "_serialize_depreciation"): "nrs.asset",
     ("v1_assets.py", "_serialize_tagging"): "nrs.asset",
     ("v1_assets.py", "_serialize_sap"): "nrs.asset",
+    ("v1_assets.py", "_serialize_gates"): "nrs.asset",
     ("v1_assets.py", "_serialize_disposal"): "nrs.asset",
     ("v1_assets.py", "_serialize_warranty"): "nrs.asset",
     ("v1_assets.py", "_serialize_custody"): "nrs.asset.custody",
