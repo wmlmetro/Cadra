@@ -47,6 +47,7 @@ const AssetRegisterDashboard     = lazy(() => import("@/pages/AssetRegisterDashb
 const AssetDetail                = lazy(() => import("@/pages/AssetDetail"));
 const AssetForm                  = lazy(() => import("@/pages/AssetForm"));
 const Approvals                  = lazy(() => import("@/pages/Approvals"));
+const Candidates                 = lazy(() => import("@/pages/Candidates"));
 const Locations                  = lazy(() => import("@/pages/Locations"));
 const LocationDetail             = lazy(() => import("@/pages/LocationDetail"));
 const LocationForm               = lazy(() => import("@/pages/LocationForm"));
@@ -75,6 +76,7 @@ const DepreciationSettings       = lazy(() => import("@/pages/settings/Depreciat
 const AssetCategoriesSettings    = lazy(() => import("@/pages/settings/AssetCategories"));
 const BrandingSettings           = lazy(() => import("@/pages/settings/Branding"));
 const SidebarSettings            = lazy(() => import("@/pages/settings/Sidebar"));
+const ReceiptGateSettings        = lazy(() => import("@/pages/settings/ReceiptGate"));
 const MaintenanceReadinessReport = lazy(() => import("@/pages/reports/MaintenanceReadinessReport"));
 const LocationCoverageReport     = lazy(() => import("@/pages/reports/LocationCoverageReport"));
 const TagAdoptionReport          = lazy(() => import("@/pages/reports/TagAdoptionReport"));
@@ -182,6 +184,8 @@ function AppRoutes() {
               `/assets` — but it sits with the register's routes because that
               is the group it belongs to in the nav. Handoff 35. */}
           <Route path="/approvals"           component={Approvals}      />
+          {/* Received units not yet on the register (handoff 57). */}
+          <Route path="/candidates"          component={Candidates}     />
           <Route path="/assets/:id"          component={AssetDetail}    />
           <Route path="/locations"           component={Locations}      />
           <Route path="/locations/new"       component={() => <LocationForm mode="create" />} />
@@ -195,6 +199,7 @@ function AppRoutes() {
           <Route path="/settings/categories"            component={AssetCategoriesSettings}      />
           <Route path="/settings/branding"              component={BrandingSettings}             />
           <Route path="/settings/sidebar"               component={SidebarSettings}              />
+          <Route path="/settings/receipt-gate"          component={ReceiptGateSettings}          />
           <Route path="/reports/maintenance-readiness"  component={MaintenanceReadinessReport}  />
           <Route path="/reports/location-coverage"      component={LocationCoverageReport}      />
           <Route path="/reports/tag-adoption"           component={TagAdoptionReport}           />

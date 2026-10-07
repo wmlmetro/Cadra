@@ -3,8 +3,8 @@ import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
-  fetchAsset, fetchAssetPendingApproval, markAssetVerified,
-  type ApprovalRequest,
+  fetchAsset, fetchAssetPendingApproval, markAssetVerified, fetchAssetGateState,
+  type ApprovalRequest, type CandidateRow,
 } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import {
@@ -19,6 +19,7 @@ import ConditionBadge from "@/components/ConditionBadge";
 import DepreciationCard from "@/components/DepreciationCard";
 import AssetHistoryTimeline from "@/components/AssetHistoryTimeline";
 import WarrantyCard from "@/components/WarrantyCard";
+import { CandidateBanner, GateActions } from "@/components/GateActions";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2, SearchCheck,
@@ -152,6 +153,18 @@ export default function AssetDetail() {
     staleTime: 30_000,
   });
 
+  // THE RECEIPT GATES (handoff 57 — scaffolding until 58's candidate model).
+  // Read raw and on its own key: the mapped `Asset` does not carry them, and
+  // the buttons are the server's answer for THIS caller now (`can_fire` has
+  // the no-two-gates rule applied), so they are refreshed after every gate.
+  const { data: gateRow } = useQuery<CandidateRow, CadraApiError>({
+    queryKey: ["asset-gates", id],
+    queryFn: () => fetchAssetGateState(id ?? ""),
+    enabled: !!id,
+    staleTime: 15_000,
+  });
+  const isCandidate = !!gateRow?.register_state && gateRow.register_state !== "registered";
+
   const [moveOpen, setMoveOpen] = useState(false);
   const [custodyOpen, setCustodyOpen] = useState(false);
   const [condemnOpen, setCondemnOpen] = useState(false);
@@ -283,11 +296,22 @@ export default function AssetDetail() {
         <ArrowLeft size={13} /> Back to Asset Register
       </button>
 
+      {/* A candidate is not a register asset, and says so before anything
+          else on the page (handoff 57). */}
+      {isCandidate && gateRow && (
+        <div className="mb-5 space-y-3" data-testid="asset-gates">
+          <CandidateBanner row={gateRow} />
+          <GateActions row={gateRow} />
+        </div>
+      )}
+
       {/* Header band */}
       <div className="bg-card border border-card-border rounded-xl mb-5 overflow-hidden">
         {/* Workflow */}
         <div className="px-5 py-3 border-b border-border bg-muted/30 flex flex-wrap items-center gap-2">
-          {WORKFLOW_STEPS.map((step, i) => (
+          {/* A candidate is in none of the three — it is not on the
+              register yet; the banner above says where it is. */}
+          {!isCandidate && WORKFLOW_STEPS.map((step, i) => (
             <div key={step} className="flex items-center gap-2">
               {i > 0 && <ChevronRight size={12} className="text-muted-foreground" />}
               {/* Only the current step is drawn. Steps before it used to be
@@ -311,7 +335,10 @@ export default function AssetDetail() {
           ))}
 
           {/* Action bar */}
-          {canWrite && (
+          {/* A candidate is moved on by its gates, not by the register's
+              controls — Move, Verify, Condemn on a unit that is not yet an
+              asset would act on something the register does not hold. */}
+          {canWrite && !isCandidate && (
           <div className="ml-auto flex items-center gap-1.5 flex-wrap" data-testid="asset-action-bar">
             <button
               onClick={() => setNavLocation(`/assets/${id}/edit`)}
@@ -502,7 +529,12 @@ export default function AssetDetail() {
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Identification</h3>
                 <dl className="bg-card border border-card-border rounded-xl px-5 py-1">
                   <DetailRow label="Asset Code" value={asset.assetCode} />
-                  <DetailRow label="Asset Tag" value={asset.assetTag} />
+                  {/* `assetTag` falls back to the asset code when there is
+                      no tag, which on a candidate reads as a label that was
+                      never issued (the mint moved to request-tagging). */}
+                  <DetailRow label="Asset Tag" value={isCandidate
+                    ? (gateRow?.tag ?? "Not issued yet")
+                    : asset.assetTag} />
                   <DetailRow label="Serial / VIN" value={asset.serial} />
                   <DetailRow label="Manufacturer" value={asset.manufacturer} />
                   <DetailRow label="Model" value={asset.model} />

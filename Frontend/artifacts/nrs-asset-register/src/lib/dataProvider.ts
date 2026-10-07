@@ -64,6 +64,11 @@ export interface AssetFilters {
   /** A warranty view — see `warrantyToServerFilter`, the one place it becomes
    *  a server query. */
   warranty?: WarrantyFilter;
+  /** `GET /api/v1/assets?register_state=` (handoff 57). Left unset — every
+   *  register screen leaves it unset — the server answers with registered
+   *  assets only, so a received unit still passing its gates is never counted
+   *  as part of the register. `any` (or one state) needs `candidates:read`. */
+  registerState?: "any" | RegisterState;
 }
 export function listAssets(f?: AssetFilters): Asset[] {
   let r = allMockAssets;
@@ -218,6 +223,7 @@ export async function fetchAssetsPage(
     // anyone. Only this listing passes it; the count and lookup helpers
     // below fetch by id or ask for `limit: 1`, where order means nothing.
     sort: f?.sort ?? "newest",
+    register_state: f?.registerState,
     limit: 200,
     cursor,
   });
@@ -3012,4 +3018,160 @@ export async function fetchRegisterTotal(): Promise<number | null> {
   if (!apiConfigured) throw new Error("No active session");
   const res = await apiGet<unknown[]>("/api/v1/assets", { limit: 1 });
   return res.pagination?.total_estimate ?? null;
+}
+
+// ─── RECEIPT GATES (handoff 57) ──────────────────────────────────────────────
+//
+// SCAFFOLDING, 2026-10-07. The gate machine lives on `nrs.asset` as one
+// field, `register_state`, so that tonight's demonstration reuses every
+// proven path unchanged. Handoff 58 replaces it with a separate candidate
+// model; when it lands, these types and functions are rewritten against that
+// model, not extended.
+
+/** `nrs.asset.register_state`. `registered` is the register; every other
+ *  value is a received unit still passing its gates (a CANDIDATE). */
+export type RegisterState =
+  | "captured" | "vfm_pending" | "vfm_verified" | "vfm_approved" | "vfm_query"
+  | "vfm_rejected" | "tag_requested" | "tag_issued" | "tagged"
+  | "reg_submitted" | "registered";
+
+/** Whose move it is, computed by the server from the state. */
+export type GateWaitingOn =
+  | "store" | "iad" | "iad_approver" | "controller" | "tagging" | "maker" | "checker";
+
+/** The URL slug of each gate route: `POST /api/v1/assets/<id>/gates/<slug>`. */
+export type GateAction =
+  | "submit" | "verify" | "approve" | "query" | "resubmit" | "reject"
+  | "request-tagging" | "register" | "approve-registration" | "return-registration";
+
+/** One action the caller's scopes earn for the record's current state.
+ *  `can_fire` is the server's answer WITH the no-two-gates rule applied to
+ *  this caller; when it is false, `refusal` is the sentence the server would
+ *  answer with, and the app prints it instead of drawing a button. */
+export interface GateAvailability {
+  action: GateAction;
+  can_fire: boolean;
+  refusal: string | null;
+  reason_required: boolean;
+}
+
+export interface AssetGates {
+  waiting_on: GateWaitingOn | null;
+  /** When the record entered its current state (UTC ISO). */
+  state_since: string | null;
+  available: GateAvailability[];
+}
+
+/** The gate half of an asset payload, plus what a candidate row shows. */
+export interface CandidateRow {
+  id: number;
+  asset_code: string;
+  name: string;
+  serial_number: string | null;
+  /** The issued tag's number, null until request-tagging mints one. */
+  tag?: string | null;
+  category: { id: number; name: string } | null;
+  provenance?: {
+    grn_reference: string | null;
+    purchase_order_reference: string | null;
+    purchase_vendor: string | null;
+  } | null;
+  register_state: RegisterState;
+  gates: AssetGates;
+}
+
+export interface CandidatesPage {
+  rows: CandidateRow[];
+  nextCursor: string | null;
+  totalEstimate: number | null;
+}
+
+/** `GET /api/v1/candidates` — every asset whose `register_state` is not
+ *  `registered`. `candidates:read`. */
+export async function fetchCandidatesPage(
+  cursor: string | undefined,
+  f: { waitingOn?: GateWaitingOn; registerState?: RegisterState },
+): Promise<CandidatesPage> {
+  const res = await apiGet<CandidateRow[]>("/api/v1/candidates", {
+    waiting_on: f.waitingOn,
+    register_state: f.registerState,
+    limit: 100,
+    cursor,
+  });
+  return {
+    rows: res.data,
+    nextCursor: res.pagination?.next_cursor ?? null,
+    totalEstimate: res.pagination?.total_estimate ?? null,
+  };
+}
+
+/** The gate block of one asset, read fresh. The mapped `Asset` the asset page
+ *  holds does not carry it, and the buttons must be the server's answer for
+ *  THIS caller NOW, so it is its own query. */
+export const fetchAssetGateState = async (assetId: number | string): Promise<CandidateRow> =>
+  (await apiGet<CandidateRow>(`/api/v1/assets/${assetId}`)).data;
+
+/** A verification's evidence, as the route takes it. */
+export interface GateAttachment { name: string; mimetype: string; data: string }
+
+export interface GateBody {
+  notes?: string;
+  reason?: string;
+  response?: string;
+  checklist?: { quantity: boolean; specification: boolean; condition: boolean; price: boolean };
+  attachments?: GateAttachment[];
+  sap_asset_code?: string;
+  cost?: number;
+  cost_centre?: string;
+  capitalisation_date?: string;
+  /** The category id — sent to CONFIRM the class; a different id corrects it. */
+  asset_class?: number;
+}
+
+/** Fire one gate. Only the keys the action reads are sent, blanks omitted —
+ *  a key a route does not accept is a 400 that writes nothing (handoff 31). */
+export async function fireGate(
+  assetId: number | string, action: GateAction, body: GateBody = {},
+): Promise<CandidateRow> {
+  const payload: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === "string" && !v.trim()) continue;
+    payload[k] = typeof v === "string" ? v.trim() : v;
+  }
+  // No idempotency key: the gate routes do not honour one, and a key the
+  // server ignores is a promise of exact replay nobody keeps. A repeat is
+  // refused on state instead (409 invalid_state).
+  return (await apiPost<CandidateRow>(
+    `/api/v1/assets/${assetId}/gates/${action}`, payload)).data;
+}
+
+/** Read a file the person picked into the route's attachment shape. */
+export function fileToGateAttachment(file: File): Promise<GateAttachment> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(r.error ?? new Error("Could not read " + file.name));
+    r.onload = () => {
+      const url = String(r.result ?? "");
+      resolve({
+        name: file.name,
+        mimetype: file.type || "application/octet-stream",
+        data: url.slice(url.indexOf(",") + 1),
+      });
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+/** Whether new receipts on this tenant start at the gates (`cadra.receipt.gated`,
+ *  read from `GET /api/v1/settings`). `null` when the server does not say —
+ *  an older server, or a caller who may not read settings — which the app
+ *  treats as "do not claim either way". */
+export async function fetchReceiptGated(): Promise<boolean | null> {
+  try {
+    const res = await apiGet<{ receipt_gated?: boolean }>("/api/v1/settings");
+    return typeof res.data?.receipt_gated === "boolean" ? res.data.receipt_gated : null;
+  } catch {
+    return null;
+  }
 }
