@@ -33,6 +33,47 @@ live at was never the point.
 
 ---
 
+## 2026-10-07 — handoff 57: the receipt gates (SCAFFOLDING) · `myservice_api` 19.0.3.29.0, `myservice_asset_register` 19.0.1.26.0, `myservice_workflow` 19.0.3.2.0
+
+**Scaffolding for one demonstration; handoff 58 replaces all of it with a
+separate candidate model and its own routes. Do not integrate against the
+gate routes.** Endpoint reference §14.
+
+- **Additive: `register_state` and `gates`** on every serialised asset
+  (`GET /assets`, `/assets/<id>`, every write's answer). `register_state` is
+  read-only and refused in any body.
+- **Additive: ten routes, `POST /api/v1/assets/<id>/gates/<action>`** —
+  `submit`, `verify`, `approve`, `query`, `resubmit`, `reject`,
+  `request-tagging`, `register`, `approve-registration`,
+  `return-registration` — and **`GET /api/v1/candidates`**
+  (`candidates:read`). Not idempotent (no `X-Idempotency-Key` honoured).
+- **Additive: six scopes** — `candidates:read`, `vfm:verify`,
+  `vfm:approve`, `tagging:request`, `register:make`, `register:check` —
+  and five grantable roles: `iad_vfm_officer`, `iad_vfm_approver`,
+  `asset_controller`, `register_maker`, `register_checker`. Asset User and
+  the Auditor gain `candidates:read`.
+- **Additive: `?register_state=any|<state>` on `GET /api/v1/assets`**
+  (`candidates:read`; 403 without it, 400 on an unknown value).
+- **BEHAVIOUR CHANGE, only on a tenant whose switch is on
+  (`cadra.receipt.gated`, absent = off):** `POST /api/v1/assets` (INT-03)
+  answers a candidate — `register_state: "captured"`, `tag: null` — and the
+  record is absent from every list, count, report and export until a
+  Register Checker approves it. INT-06 (`asset.master.create`) is then sent
+  at that approval, not at affix; its payload gains
+  `capitalisation.cost_centre` and `capitalisation.sap_asset_number_entered`
+  (additive, null for every asset that did not pass the gates), and
+  `proposed_capitalisation_date` is the maker's date where there is one.
+  **Switch off — every tenant by default — nothing a consumer can observe
+  changes except the two additive keys.**
+- **Additive: `GET /api/v1/settings`** (`assets:read`): `receipt_gated`
+  (bool) and the `receipt_gate` block. **Additive: `PATCH
+  /api/v1/settings/receipt-gate`** (`settings:write`, body `{"enabled":
+  bool}` only). Parameter `cadra.receipt.gated`, absent = off. A change
+  shows in `/reports/configuration-changes`.
+- **Additive: `gate_fired`** in `GET /assets/<id>/history` — one per
+  transition, append-only, with `from`, `to`, `gate`, `action`, `reason` and
+  the recorded evidence.
+
 ## 2026-10-06 — handoff 56: the name and the hat · `myservice_api` 19.0.3.28.0
 
 - **Additive: `GET /api/v1/auth/whoami` answers `roles`** — the caller's

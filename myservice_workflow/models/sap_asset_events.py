@@ -83,6 +83,10 @@ SAP_EVENT_TYPES = SAP_LIFECYCLE_EVENTS | {EVENT_ASSET_MASTER_CREATE}
 #: no way to tell from a move followed by a reassignment.
 CTX_IN_TRANSFER = 'cadra_sap_transfer'
 
+#: Handoff 57. Set only by `_on_registered` below: the asset master for a
+#: unit that passed the receipt gates, whose SAP code was typed by the maker.
+CTX_GATE_REGISTRATION = 'cadra_gate_registration'
+
 
 def _iso(value):
     """Odoo stores naive UTC; the wire wants an explicit offset."""
@@ -193,7 +197,12 @@ class NRSAssetSAPEvents(models.Model):
             return False
 
         if event_type == EVENT_ASSET_MASTER_CREATE:
-            if self.sap_asset_number:
+            # Handoff 57: a unit registered through the gates carries the SAP
+            # code the Register Maker TYPED (`sap_code_source = manual`) —
+            # the master is still owed, and is sent once, at registration.
+            gated = self.env.context.get(CTX_GATE_REGISTRATION) \
+                and self.sap_code_source == 'manual'
+            if self.sap_asset_number and not gated:
                 _logger.info(
                     "workflow: asset %s already carries SAP asset number %s; "
                     "not posting a second asset master",
@@ -283,14 +292,20 @@ class NRSAssetSAPEvents(models.Model):
                     'currency': self.currency_id.name or None
                                 if self.currency_id else None,
                     'cost_basis': cost_basis,
+                    # Handoff 57: the Register Maker's entries, additive and
+                    # null for every asset that did not pass the gates.
+                    'cost_centre': self.cost_centre or None,
+                    'sap_asset_number_entered': (self.sap_asset_number or None)
+                    if self.sap_code_source == 'manual' else None,
                     'acquisition_date': _date(self.acquisition_date
                                               or self.purchase_date),
                     # A PROPOSAL. SAP overrides it where period-close rules
                     # require, which is why the response must carry the date
                     # actually posted — see `_apply_sap_master_response`.
                     'proposed_capitalisation_date': _date(
-                        tag.affixed_date.date() if tag and tag.affixed_date
-                        else fields.Date.today()),
+                        self.capitalisation_date
+                        or (tag.affixed_date.date() if tag and tag.affixed_date
+                            else fields.Date.today())),
                 },
                 'procurement': {
                     'po_number': self.purchase_order_reference or None,
@@ -417,6 +432,22 @@ class NRSAssetSAPEvents(models.Model):
         return result
 
 
+class NRSAssetGatesSAP(models.Model):
+    """Handoff 57 (scaffolding, replaced by 58): INT-06 for a unit that
+    came through the receipt gates fires HERE, on the Register Checker's
+    approval, and not on affix — the affix override below skips a
+    candidate. The SAP code on the record was typed by the maker
+    (`sap_code_source = manual`); `CTX_GATE_REGISTRATION` is what lets the
+    master go out once despite it."""
+    _inherit = 'nrs.asset'
+
+    def _on_registered(self):
+        result = super()._on_registered()
+        self.with_context(**{CTX_GATE_REGISTRATION: True})._queue_sap_event(
+            EVENT_ASSET_MASTER_CREATE)
+        return result
+
+
 class NRSAssetTagLabelSAP(models.Model):
     """INT-06 fires on the tag transition, alongside INT-05."""
     _inherit = 'nrs.asset.tag.label'
@@ -440,7 +471,14 @@ class NRSAssetTagLabelSAP(models.Model):
         was_affixed = self.label_state == 'affixed'
         result = super()._mark_affixed(scanned_tag_number, *args, **kwargs)
 
-        if not was_affixed and self.label_state == 'affixed':
+        # Handoff 57 (scaffolding, replaced by 58): a receipt CANDIDATE is
+        # not capitalised on affix — the gates move INT-06 to the checker's
+        # approval (`_on_registered` below). Read AFTER super(), whose own
+        # override has by then moved the candidate on to `tagged`, never to
+        # `registered`. A record that is already registered (switch off,
+        # and every record before handoff 57) is untouched.
+        if not was_affixed and self.label_state == 'affixed' \
+                and self.asset_id.register_state == 'registered':
             self.asset_id._queue_sap_event(EVENT_ASSET_MASTER_CREATE)
         return result
 

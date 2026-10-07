@@ -119,6 +119,39 @@ NOT_RECORDED = (
      "complete account of it."),
 )
 
+#: Handoff 57 (scaffolding): the history's sentence per gate action.
+_GATE_SENTENCES = {
+    "submit": "Submitted to Internal Audit",
+    "verify": "Sighted and verified by Internal Audit",
+    "approve": "Value for money approved",
+    "query": "Queried by Internal Audit",
+    "resubmit": "Store answered the query and resubmitted",
+    "reject": "Rejected by Internal Audit",
+    "request-tagging": "Tagging requested",
+    "issue-tag": "Tag issued",
+    "affix": "Tag affixed",
+    "register": "Submitted for registration",
+    "approve-registration": "Registration approved — on the register",
+    "return-registration": "Registration returned to the maker",
+}
+_REGISTER_STATE_WORDS = {
+    "captured": "captured", "vfm_pending": "awaiting IAD verification",
+    "vfm_verified": "verified", "vfm_approved": "VfM approved",
+    "vfm_query": "queried", "vfm_rejected": "rejected",
+    "tag_requested": "tagging requested", "tag_issued": "tag issued",
+    "tagged": "tagged", "reg_submitted": "registration submitted",
+    "registered": "registered",
+}
+
+
+def _json_or_none(raw):
+    import json
+    try:
+        return json.loads(raw) if raw else None
+    except ValueError:
+        return raw
+
+
 _EVENT_TITLES = {
     "registered": "Registered",
     "tag_issued": "Tag issued",
@@ -129,6 +162,8 @@ _EVENT_TITLES = {
     # seconds apart — must read refusal-first when both land in one second.
     "affix_refused": "Affix confirmation refused",
     "tag_affixed": "Tag affixed",
+    # Handoff 57 (scaffolding, replaced by 58): a receipt gate fired.
+    "gate_fired": "Receipt gate",
     "tag_scrapped": "Tag scrapped",
     "custody_changed": "Custodian changed",
     "location_moved": "Location moved",
@@ -579,6 +614,24 @@ class NRSAssetHistory(models.Model):
                 # typed entry, a keyboard wedge, or a pre-54 row.
                 detail.update(scanned=ev.to_value or None, reason=reason,
                               scanned_format=ev.scanned_format or None)
+            elif etype == "gate_fired":
+                # Handoff 57 (scaffolding, replaced by 58). One row per move
+                # of the register state, by `nrs.asset._fire_gate` alone.
+                published = "gate_fired"
+                summary = _GATE_SENTENCES.get(
+                    ev.gate_action, "Receipt gate: %s" % (ev.gate_action or "—"))
+                summary = "%s (%s → %s)" % (
+                    summary, _REGISTER_STATE_WORDS.get(ev.from_value,
+                                                       ev.from_value or "—"),
+                    _REGISTER_STATE_WORDS.get(ev.to_value, ev.to_value or "—"))
+                if ev.reason:
+                    summary += " — %s" % ev.reason
+                detail.update({"from": ev.from_value or None,
+                               "to": ev.to_value or None,
+                               "gate": ev.gate or None,
+                               "action": ev.gate_action or None,
+                               "reason": ev.reason or None,
+                               "evidence": _json_or_none(ev.notes)})
             else:
                 # A reference or a warranty field: the same shape, a field
                 # with a before and an after. The warranty fields carry no
@@ -624,6 +677,9 @@ class NRSAssetHistory(models.Model):
              "a change to the warranty"),
             ("affix_refused", "affix_refused",
              "a refused affix confirmation"),
+            ("gate_fired", "gate_fired",
+             "a receipt gate fired (submit, verify, approve, tagging, "
+             "registration)"),
         )
         out = []
         for stored, published, what in kinds:

@@ -36,6 +36,9 @@ from .utils import (
     SCOPE_DASHBOARDS_READ,
     SCOPE_REQUESTS_READ,
     SCOPE_TAGGING_WRITE,
+    SCOPE_CANDIDATES_READ,
+    ERR_FORBIDDEN,
+    _missing_scopes,
     caller_holds,
     decode_cursor,
     encode_cursor,
@@ -740,6 +743,58 @@ def _parse_include(raw):
 
 # ─── serializer ──────────────────────────────────────────────────────
 
+def _caller_scopes():
+    """The bearer token's scopes, as `_missing_scopes` reads them."""
+    claims = getattr(request, "jwt_claims", None) or {}
+    granted, _missing = _missing_scopes(claims, [])
+    return granted
+
+
+def _serialize_gates(a):
+    """The receipt-gate block (handoff 57). Cheap for a registered asset:
+    nothing can fire from `registered`, so no event is read."""
+    if a.register_state == "registered":
+        return {"waiting_on": None, "state_since": None, "available": []}
+    block = a._gates_block(scopes=_caller_scopes())
+    if block.get("state_since"):
+        block["state_since"] = block["state_since"].replace(" ", "T") + "Z"
+    return block
+
+
+#: `?register_state=` on `GET /assets` (handoff 57 §2d). Absent: the
+#: register — registered assets only, by the model's own default
+#: (`asset_gates._search`). `any`, or one state: needs `candidates:read`.
+REGISTER_STATES = ("captured", "vfm_pending", "vfm_verified", "vfm_approved",
+                   "vfm_query", "vfm_rejected", "tag_requested", "tag_issued",
+                   "tagged", "reg_submitted", "registered")
+
+
+def _register_state_domain(qs):
+    """`(terms, error)` for `?register_state=`. A term that NAMES the field
+    is what lifts the model's implicit `registered` default — `any` is
+    `register_state != False`, which every row satisfies (the field is
+    required)."""
+    raw = (qs.get("register_state") or "").strip()
+    if not raw:
+        return [], None
+    if raw != "registered" and SCOPE_CANDIDATES_READ not in _caller_scopes() \
+            and "admin" not in _caller_scopes():
+        return None, err(
+            ERR_FORBIDDEN,
+            "Seeing receipt candidates needs the `candidates:read` scope; "
+            "without it the register shows registered assets only.",
+            status=403, details={"required_scopes": [SCOPE_CANDIDATES_READ]})
+    if raw == "any":
+        return [("register_state", "!=", False)], None
+    if raw not in REGISTER_STATES:
+        return None, err(
+            ERR_INVALID_REQUEST,
+            "`register_state` must be `any` or one of: %s"
+            % ", ".join(REGISTER_STATES),
+            details={"allowed_values": ["any", *REGISTER_STATES]})
+    return [("register_state", "=", raw)], None
+
+
 def serialize_asset(a, *, include=()):
     """Map an nrs.asset record to a Cadra-shaped dict.
 
@@ -864,6 +919,14 @@ def serialize_asset(a, *, include=()):
         "verification_notes": a.verification_notes or None,
         "pm_count": a.pm_count,
         "request_count": a.request_count,
+        # Handoff 57 (SCAFFOLDING, replaced by handoff 58's candidate
+        # model). Anything but `registered` is a receipt candidate, hidden
+        # from every list and count by default. `gates` says who it is
+        # waiting on and which gate actions THIS CALLER may fire now — the
+        # no-two-gates rule already applied, so the app draws no button the
+        # server would refuse.
+        "register_state": a.register_state,
+        "gates": _serialize_gates(a),
         "notes": a.notes or None,
         "created_at": _date(a.create_date),
         "updated_at": _date(a.write_date),
@@ -1426,13 +1489,24 @@ class CadraAssetsV1(http.Controller):
                           "for; replaying it against the other direction is "
                           "a 400 rather than a page that silently skips the "
                           "rows you have not seen.")},
+                     {"name": "register_state",
+                      "schema": {"type": "string",
+                                 "enum": ["any", *REGISTER_STATES]},
+                      "description": (
+                          "Handoff 57. Absent: registered assets only — a "
+                          "receipt candidate is not on the register. `any` "
+                          "or one state shows candidates and needs the "
+                          "`candidates:read` scope (403 without it).")},
                      *PAGINATION_QUERY_PARAMS,
                  ])
     def list_assets(self, **kwargs):
         qs = get_params()
         Asset = request.env["nrs.asset"].sudo()
+        state_terms, state_err = _register_state_domain(qs)
+        if state_err:
+            return state_err
         try:
-            domain = _list_domain(qs)
+            domain = _list_domain(qs) + state_terms
         except BadFilter as e:
             return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         limit = parse_limit(qs)
@@ -1489,7 +1563,10 @@ class CadraAssetsV1(http.Controller):
                       "description": "Comma-separated optional sections: transfers, custody, pm, children. `custody` embeds the WHOLE chain of custody, oldest first and uncapped; `GET /assets/<id>/custody` is the paginated form for a chain long enough to want one. A section outside that set is a 400 `invalid_request` carrying `details.allowed_values` — never a silently omitted embed, which a caller cannot tell from a section that is genuinely empty."},
                  ])
     def get_asset_by_tag(self, tag, **kwargs):
-        Asset = request.env["nrs.asset"].sudo()
+        # A single-record lookup: it finds a receipt candidate too, like
+        # `GET /assets/<id>` (handoff 57 hides candidates from LISTS).
+        Asset = request.env["nrs.asset"].sudo().with_context(
+            cadra_candidates=True)
         rec = Asset.search([("asset_tag", "=", tag)], limit=1) \
             or Asset.search([("asset_code", "=", tag)], limit=1)
         if not rec:
@@ -1632,7 +1709,14 @@ class CadraAssetsV1(http.Controller):
         # An asset created already assigned to somebody opens its chain of
         # custody. `nrs.asset.create` records the link; this says where it
         # came from, so the row does not read as an anonymous direct write.
-        rec = request.env["nrs.asset"].sudo().with_context(
+        Asset = request.env["nrs.asset"].sudo()
+        # Handoff 57 §2b (scaffolding): with the tenant's receipt gate on, a
+        # receipt enters as a CANDIDATE — `captured`, and no label minted
+        # (the mint moved to `request-tagging`). Switch off: byte for byte
+        # what this route always did.
+        if Asset._receipt_gated():
+            vals["register_state"] = "captured"
+        rec = Asset.with_context(
             cadra_custody_source="api_write",
             cadra_movement_source="api_write",
             cadra_event_source="api_write").create(vals)

@@ -191,7 +191,8 @@ if db_class not in (TEST, CLIENT):
     print("belongs to whoever knows what is in here, not to this script.")
     raise SystemExit(1)
 
-Asset = env["nrs.asset"].sudo()                      # noqa: F821
+# `cadra_candidates`: receipt candidates (handoff 57) are records too.
+Asset = env["nrs.asset"].sudo().with_context(cadra_candidates=True)                      # noqa: F821
 Custody = env["nrs.asset.custody"].sudo()            # noqa: F821
 # `nrs.asset.movement` (handoff 28) pins an asset exactly as custody does:
 # `asset_id` is `ondelete='restrict'` and the model refuses `unlink()`. Since

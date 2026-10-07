@@ -80,7 +80,7 @@ class NRSAssetImport(models.Model):
         lines = []
         for row in records:
             asset_code = row.get('asset_code') or row.get('sap_asset_number', '')
-            existing = self.env['nrs.asset'].search(
+            existing = self.env['nrs.asset'].with_context(cadra_candidates=True).search(
                 [('asset_code', '=', asset_code)], limit=1) if asset_code else False
             tag_exists = False
             if row.get('asset_tag'):
@@ -166,7 +166,8 @@ class NRSAssetImport(models.Model):
                         asset = self.env['nrs.asset'].create(vals)
                         line.write({'asset_id': asset.id, 'status': 'imported'})
                     else:
-                        existing = self.env['nrs.asset'].search(
+                        existing = self.env['nrs.asset'].with_context(
+                            cadra_candidates=True).search(
                             [('asset_code', '=', line.asset_code)], limit=1)
                         if not existing:
                             # `write()` on an empty recordset is a silent no-op, so

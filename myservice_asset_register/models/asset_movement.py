@@ -258,8 +258,11 @@ class GenericLocation(models.Model):
         # without the ORM ever calling `unlink` on them.
         doomed = self.sudo().with_context(active_test=False).search(
             [('id', 'child_of', self.ids)])
+        # `cadra_candidates`: a receipt candidate is orphaned by this delete
+        # too (handoff 57 hides candidates from searches by default).
         assets = self.env['nrs.asset'].sudo().with_context(
-            active_test=False).search([('location_id', 'in', doomed.ids)])
+            active_test=False, cadra_candidates=True).search(
+                [('location_id', 'in', doomed.ids)])
         # DISPOSED IS TERMINAL, and this is a door `nrs.asset.write` cannot
         # see. The rule that a disposed asset is not moved lives in that
         # method (handoff 30) — and this delete never calls it: the database

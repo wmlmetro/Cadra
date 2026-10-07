@@ -21,6 +21,13 @@ EVENT_STATUS_CHANGED = 'status_changed'
 EVENT_REFERENCE_CHANGED = 'reference_changed'
 EVENT_WARRANTY_CHANGED = 'warranty_changed'
 EVENT_AFFIX_REFUSED = 'affix_refused'
+# Handoff 57 (SCAFFOLDING — replaced by handoff 58's candidate model). One
+# row per transition of `nrs.asset.register_state`, written by
+# `nrs.asset._fire_gate` and by nothing else. `gate` is the segregation-of-
+# duties gate the actor fired (NULL for a system step or for an action that
+# is not itself a gate — a query, a rejection, a return); the no-two-gates
+# rule reads it back.
+EVENT_GATE_FIRED = 'gate_fired'
 
 # The symbologies a scanner can claim a value was read in — the
 # BarcodeDetector-style names the app's camera passes up with every decode
@@ -108,6 +115,12 @@ _PAYLOAD_OF_TYPE = {
     # where it tells an auditor whether a refused number came off Cadra's
     # own label (code_128 / qr_code) or a manufacturer's.
     EVENT_AFFIX_REFUSED: frozenset({'to_value', 'reason', 'scanned_format'}),
+    # Handoff 57. `from_value`/`to_value` are register states; `notes`
+    # carries the gate's evidence as JSON (the verifier's checklist and the
+    # attachment ids, the maker's SAP code and cost) so the row says what
+    # the actor attested to, not only that they clicked.
+    EVENT_GATE_FIRED: frozenset(
+        {'from_value', 'to_value', 'reason', 'notes', 'gate', 'gate_action'}),
 }
 
 # Which fields each field-carrying type may name. A reference change naming a
@@ -123,7 +136,7 @@ _FIELDS_OF_TYPE = {
 # `nrs.asset.append.only.mixin._resolve_source`.
 _CONTEXT_SOURCES = (
     'api_verify', 'api_condemn', 'api_mark_missing', 'api_mark_found',
-    'api_write', 'api_affix',
+    'api_write', 'api_affix', 'api_gate',
     'action', 'transfer', 'approval', 'direct')
 
 
@@ -204,6 +217,7 @@ class NRSAssetEvent(models.Model):
         (EVENT_REFERENCE_CHANGED, 'Reference changed'),
         (EVENT_WARRANTY_CHANGED, 'Warranty changed'),
         (EVENT_AFFIX_REFUSED, 'Affix confirmation refused'),
+        (EVENT_GATE_FIRED, 'Receipt gate fired'),
     ], string='Event', required=True, index=True)
 
     occurred_at = fields.Datetime(
@@ -235,6 +249,13 @@ class NRSAssetEvent(models.Model):
         [(name, name) for name in SCANNED_FORMATS],
         string='Scanned Format')
 
+    # Carried only by `gate_fired` (handoff 57). Chars rather than
+    # Selections because the gate table lives in `asset_gates.py`, which
+    # loads after this model — and because the row records what was fired
+    # AS FIRED, like `from_value`.
+    gate = fields.Char(string='Gate', index=True)
+    gate_action = fields.Char(string='Gate Action')
+
     source = fields.Selection([
         ('api_verify', 'API — verify'),
         ('api_condemn', 'API — condemn'),
@@ -242,6 +263,7 @@ class NRSAssetEvent(models.Model):
         ('api_mark_found', 'API — mark found'),
         ('api_write', 'API — asset create or update'),
         ('api_affix', 'API — tag-affix confirmation'),
+        ('api_gate', 'API — receipt gate'),
         ('action', 'A button on the asset (verify, condemn, mark missing '
                    'or found)'),
         ('transfer', 'Asset transfer completion'),
