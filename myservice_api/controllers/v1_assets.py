@@ -777,8 +777,8 @@ def _register_state_domain(qs):
     raw = (qs.get("register_state") or "").strip()
     if not raw:
         return [], None
-    if raw != "registered" and SCOPE_CANDIDATES_READ not in _caller_scopes() \
-            and "admin" not in _caller_scopes():
+    # `caller_holds`, so `admin` and `*` are judged as the gate judges them.
+    if raw != "registered" and not caller_holds(SCOPE_CANDIDATES_READ):
         return None, err(
             ERR_FORBIDDEN,
             "Seeing receipt candidates needs the `candidates:read` scope; "

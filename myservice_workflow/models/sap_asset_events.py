@@ -188,6 +188,17 @@ class NRSAssetSAPEvents(models.Model):
                 "%s for asset %s not queued", event_type, self.id)
             return False
 
+        if event_type in SAP_LIFECYCLE_EVENTS \
+                and self.register_state != 'registered':
+            # Handoff 57: a receipt candidate is not on SAP's books yet,
+            # even when the Register Maker has TYPED its SAP code — the
+            # master goes out at the checker's approval, and it carries the
+            # current location and custodian then.
+            _logger.info(
+                "workflow: asset %s is a receipt candidate (%s); %s not sent",
+                self.id, self.register_state, event_type)
+            return False
+
         if event_type in SAP_LIFECYCLE_EVENTS and not self.sap_asset_number:
             _logger.info(
                 "workflow: asset %s has no SAP asset number; %s not sent — "

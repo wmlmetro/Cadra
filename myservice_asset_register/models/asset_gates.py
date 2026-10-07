@@ -155,6 +155,12 @@ REASON_REQUIRED = {t['action'] for t in TRANSITIONS if t.get('needs')}
 
 VERIFY_CHECKLIST = ('quantity', 'specification', 'condition', 'price')
 
+# The states in which a candidate has no label yet, and may not be given one
+# except by `request-tagging`.
+_BEFORE_THE_TAG = frozenset({
+    'captured', 'vfm_pending', 'vfm_verified', 'vfm_approved', 'vfm_query',
+    'vfm_rejected', 'tag_requested'})
+
 # The context key that lets a search see candidates. Set by `GET
 # /candidates`, by `?register_state=any|<value>` (for a caller holding
 # `candidates:read`) and by the single-record lookups that must find a
@@ -589,12 +595,14 @@ class NRSAssetTagLabelGates(models.Model):
     def _mark_affixed(self, scanned_tag_number, *args, **kwargs):
         asset = self.asset_id
         candidate = asset and asset.register_state != REGISTERED
-        if candidate:
-            if asset.register_state != 'tag_issued':
-                raise ValidationError(_(
+        if candidate and asset.register_state in _BEFORE_THE_TAG:
+            raise ValidationError(_(
                     'This unit is a receipt candidate at "%s"; it can be '
                     'tagged only once its tag is issued.') % dict(
                         REGISTER_STATES).get(asset.register_state))
+        # A REPEAT confirmation on a tagged candidate goes to the base, which
+        # answers it idempotently (handoff 39) — refused only at the first.
+        if candidate and asset.register_state == 'tag_issued':
             found = asset._two_gates_refusal(GATE_TAGGING)
             if found:
                 raise ValidationError(found[0])
@@ -613,7 +621,11 @@ class NRSAssetTagGates(models.Model):
     _inherit = 'nrs.asset'
 
     def _generate_tag(self, source='auto'):
-        if self.register_state != REGISTERED \
-                and not self.env.context.get('cadra_gate_mint'):
+        # Only BEFORE the tag is issued. From `tag_issued` on, a candidate
+        # has a label, and a replacement of a faded one must mint its
+        # successor exactly as for a registered asset — the first draft
+        # refused every candidate and an approved replacement scrapped the
+        # label with nothing after it (found by the verification pass).
+        if self.register_state in _BEFORE_THE_TAG:
             return self.env['nrs.asset.tag.label']
         return super()._generate_tag(source=source)

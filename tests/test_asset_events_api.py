@@ -64,8 +64,10 @@ _EVENT_RECORD = "nrs.asset.event"
 # `affix_refused` is handoff 51's — the one type that records a write the
 # register REFUSED, written beside the check on its own cursor so the 400's
 # rollback cannot unwind it.
+# `gate_fired` is handoff 57's — a receipt gate (scaffolding, replaced by 58).
 _RECORDED_TYPES = ["verified", "verification_date_set", "status_changed",
-                   "provenance_changed", "warranty_changed", "affix_refused"]
+                   "provenance_changed", "warranty_changed", "affix_refused",
+                   "gate_fired"]
 
 _HIERARCHY_FIELDS = ("building_id", "floor_id", "room_id")
 
@@ -1496,7 +1498,11 @@ def test_an_event_this_suite_wrote_says_so(client, test_location,
     assert_envelope_ok(_condemn(client, asset["id"], "label test"))
 
     recorded = _recorded(_history(client, asset["id"]))
-    assert sorted({e["type"] for e in recorded}) == sorted(_RECORDED_TYPES), (
+    # Every kind but `gate_fired` (handoff 57): a gate needs a receipt
+    # candidate, which exists only with the tenant's switch on, and is
+    # proved in `test_receipt_gates.py` on both sides.
+    assert sorted({e["type"] for e in recorded}) == sorted(
+        t for t in _RECORDED_TYPES if t != "gate_fired"), (
         "this test is meant to write one event of every kind")
     sources = {e["source"] for e in recorded}
     assert sources == {"test"}, (

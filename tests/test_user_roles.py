@@ -47,7 +47,12 @@ NOBODY_THEMSELVES = "Nobody grants themselves a role"
 #: fifth is exactly such a decision: handoff 47 ruling 3 created the Asset
 #: Officer — the role between reading the register and running it.
 GRANTABLE = frozenset({"asset_user", "asset_officer", "asset_manager",
-                       "tag_issuing_unit", "auditor"})
+                       "tag_issuing_unit", "auditor",
+                       # Handoff 57 §2e: the five receipt-gate roles, named
+                       # by the handoff (scaffolding, replaced by 58).
+                       "iad_vfm_officer", "iad_vfm_approver",
+                       "asset_controller", "register_maker",
+                       "register_checker"})
 
 
 # ─── helpers ─────────────────────────────────────────────────────────

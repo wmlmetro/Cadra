@@ -328,3 +328,30 @@ class TestReceiptGates(CadraTransactionCase):
                    'approve-registration')
         self.assertEqual(Asset.search_count([]), before + 1,
                          'the register count moves when the checker approves')
+
+    # ── found by the verification pass ────────────────────────────────
+
+    def test_a_repeat_affix_on_a_tagged_candidate_is_idempotent(self):
+        """Handoff 39's contract: a second confirmation does not rewrite the
+        first and is not an error — a candidate keeps it."""
+        a = self._to('tagged')
+        label = a.active_tag_id
+        when = label.affixed_date
+        label.with_user(self.tagger).sudo()._mark_affixed(a.asset_code)
+        self.assertEqual(label.affixed_date, when)
+        self.assertEqual(a.register_state, 'tagged')
+
+    def test_replacing_a_tagged_candidates_label_mints_its_successor(self):
+        a = self._to('tagged')
+        old = a.active_tag_id
+        manager = self.env['res.users'].sudo().create({
+            'name': 'G57 Manager', 'login': 'g57-manager', 'group_ids': [
+                (4, self.env.ref('base.group_user').id),
+                (4, self.env.ref(
+                    'myservice_asset_register.group_asset_manager').id)]})
+        old.with_user(self.tagger).sudo().action_request_replacement(
+            reason='damaged', approver=manager)
+        new = old.with_user(manager).sudo().action_approve_replacement()
+        self.assertTrue(new, 'an approved replacement must mint a successor')
+        self.assertEqual(old.state, 'scrapped')
+        self.assertNotEqual(new.name, old.name)
