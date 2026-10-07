@@ -480,7 +480,9 @@ class TestAccessGuard(CadraHttpCase):
 
     def test_roles_marks_exactly_the_grantable_five(self):
         # Four until handoff 47; the fifth is the Asset Officer, the named
-        # decision ruling 3 is (see API_GRANTABLE_XMLIDS).
+        # decision ruling 3 is (see API_GRANTABLE_XMLIDS). Ten since handoff
+        # 57 §2e: the five receipt-gate roles, named by the handoff. The
+        # method keeps its name — renaming a test hides its history.
         r = self.url_open("/api/v1/roles",
                           headers={"Authorization": "Bearer %s" % self._cred_token()})
         self.assertEqual(r.status_code, 200, r.text)
@@ -489,4 +491,4 @@ class TestAccessGuard(CadraHttpCase):
         self.assertEqual(grantable, set(API_GRANTABLE_XMLIDS))
         by_key = {x["key"]: x for x in roles}
         self.assertIs(by_key["system"]["grantable"], False)
-        self.assertEqual(len(grantable), 5)
+        self.assertEqual(len(grantable), 10)

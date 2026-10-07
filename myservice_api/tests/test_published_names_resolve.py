@@ -167,6 +167,9 @@ def _first_party_controller_modules():
 #: _is_classified`. That is the point: the two doors handoff 31 missed were
 #: missed because the search asked which routes DECLARE an allow-list, and
 #: these two create records without declaring one.
+_GATE_BODY = ("a receipt gate's evidence (`v1_gates._BODY_KEYS`), mapped onto "
+              "the record by `nrs.asset._fire_gate`, never by field name")
+
 _BODY_ROUTES = {
     # ── resource routes: the body is a dict of the model's fields ──
     ("POST", "/api/v1/assets"):
@@ -217,6 +220,35 @@ _BODY_ROUTES = {
         (None, None,
          "writes `ir.config_parameter` rows (`cadra.sidebar.*`), not fields "
          "of a record; the keys are the catalog in `v1_sidebar.py`"),
+    # Handoff 57 (scaffolding, replaced by 58). Each gate's body is the
+    # gate's own evidence — a reason, a checklist, attachments, the maker's
+    # SAP code and cost — refused outside `v1_gates._BODY_KEYS`; the
+    # register's three fields are written by `_fire_gate`, not by name.
+    ("POST", "/api/v1/assets/<int:id>/gates/submit"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/verify"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/approve"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/query"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/resubmit"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/reject"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/request-tagging"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/register"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/approve-registration"):
+        (None, None, _GATE_BODY),
+    ("POST", "/api/v1/assets/<int:id>/gates/return-registration"):
+        (None, None, _GATE_BODY),
+    # Handoff 57. `enabled` writes one `ir.config_parameter` row.
+    ("PATCH", "/api/v1/settings/receipt-gate"):
+        (None, None,
+         "writes the `cadra.receipt.gated` `ir.config_parameter` row, not "
+         "a field of a record"),
     ("POST", "/api/v1/auth/token"):
         (None, None, "credentials"),
     ("POST", "/api/v1/auth/login"):
@@ -634,6 +666,13 @@ _GUARDED_READS = {
     ("utils.py", "truncation_warning", "request", "cadra_truncation"): None,
     ("v1.py", "whoami", "request", "jwt_claims"): None,
     ("v1_meta.py", "meta_database", "request", "jwt_claims"): None,
+    # Handoff 57: the gates judge the caller by the token's scopes.
+    ("v1_assets.py", "_caller_scopes", "request", "jwt_claims"): None,
+    ("v1_gates.py", "_fire", "request", "jwt_claims"): None,
+    # Handoff 57: the settings block guards the field because the route was
+    # written before the field landed; it is always there since
+    # `myservice_asset_register` 19.0.1.26.0.
+    ("v1_settings.py", "_receipt_gate_block", "Asset", "register_state"): None,
 }
 
 #: The one published key that must NOT resolve — see `_location_field`.
@@ -647,6 +686,7 @@ _SERIALIZERS = {
     ("v1_assets.py", "_serialize_depreciation"): "nrs.asset",
     ("v1_assets.py", "_serialize_tagging"): "nrs.asset",
     ("v1_assets.py", "_serialize_sap"): "nrs.asset",
+    ("v1_assets.py", "_serialize_gates"): "nrs.asset",
     ("v1_assets.py", "_serialize_disposal"): "nrs.asset",
     ("v1_assets.py", "_serialize_warranty"): "nrs.asset",
     ("v1_assets.py", "_serialize_custody"): "nrs.asset.custody",

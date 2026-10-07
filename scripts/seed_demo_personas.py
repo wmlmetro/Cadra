@@ -90,14 +90,30 @@ ASSET_MANAGER = "myservice_asset_register.group_asset_manager"
 TAG_ISSUING_UNIT = "myservice_asset_register.group_tag_issuing_unit"
 AUDITOR = "myservice_api.group_auditor"
 SYSTEM = "base.group_system"
+ASSET_OFFICER = "myservice_asset_register.group_asset_officer"
+# Handoff 57 — the five gate roles of Addendum A (scaffolding: the gates ride
+# on `nrs.asset.register_state` until handoff 58's candidate model). Each
+# implies Asset User, so each persona can read the register it is gating.
+IAD_VFM_OFFICER = "myservice_asset_register.group_iad_vfm_officer"
+IAD_VFM_APPROVER = "myservice_asset_register.group_iad_vfm_approver"
+ASSET_CONTROLLER = "myservice_asset_register.group_asset_controller"
+REGISTER_MAKER = "myservice_asset_register.group_register_maker"
+REGISTER_CHECKER = "myservice_asset_register.group_register_checker"
 
 #: (key, name, job title, groups). One per role this system has, plus the two
 #: combinations the demo needs: the tagger a person actually is (Asset User +
 #: Tag-Issuing Unit — the unit's role alone opens no screen, handoff 41), and
 #: an administrator. The unit's role ALONE is kept as a persona on purpose:
 #: it is the evidence that the role does not fit a person.
+#:
+#: Handoff 57: the Store Officer holds the Asset Officer role (handoff 47's
+#: answer to 46's finding that Asset User cannot register) — receiving a unit
+#: and submitting it to Internal Audit is `assets:write`, and the gated demo
+#: starts with her. The five gate personas follow the six, one role each.
+#: Every name below was checked at zero employees and zero contacts on all
+#: nine local databases on 7 October 2026 (`nrs19`: 0 of 11,386 employees).
 PERSONAS = (
-    ("storekeeper", "Halima Danjuma", "Store Officer", (ASSET_USER,)),
+    ("storekeeper", "Halima Danjuma", "Store Officer", (ASSET_OFFICER,)),
     ("asset_manager", "Chukwudi Anyanwu", "Asset Manager", (ASSET_MANAGER,)),
     ("tag_unit", "Nkechi Obiora", "Tag-Issuing Unit Officer",
      (TAG_ISSUING_UNIT,)),
@@ -106,6 +122,16 @@ PERSONAS = (
     ("auditor", "Zainab Garba", "Internal Auditor", (AUDITOR,)),
     ("administrator", "Oluwaseun Ajayi", "Systems Administrator",
      (SYSTEM, ASSET_MANAGER)),
+    ("iad_officer", "Folasade Ogunbiyi", "IAD Value-for-Money Officer",
+     (IAD_VFM_OFFICER,)),
+    ("iad_approver", "Kelechi Ihenacho", "IAD Value-for-Money Approver",
+     (IAD_VFM_APPROVER,)),
+    ("asset_controller", "Hauwa Dikko", "Asset Controller",
+     (ASSET_CONTROLLER,)),
+    ("register_maker", "Temitope Oyelaran", "Register Maker",
+     (REGISTER_MAKER,)),
+    ("register_checker", "Obinna Ezeagu", "Register Checker",
+     (REGISTER_CHECKER,)),
 )
 
 

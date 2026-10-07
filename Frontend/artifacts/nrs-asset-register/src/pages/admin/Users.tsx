@@ -82,7 +82,7 @@ import { ConfirmUserActionDialog, CreatePersonDialog } from "@/components/admin/
 import { ScopeRefusal } from "@/components/ScopeRefusal";
 
 // ─── SCOPES IN PLAIN WORDS ────────────────────────────────────────────────────
-/** The nineteen scopes `myservice_api/controllers/utils.py` knows, in words
+/** The twenty-five scopes `myservice_api/controllers/utils.py` knows, in words
  *  a person can read. An unknown scope prints as-is rather than being hidden
  *  — a scope this map has not heard of is still something the account can
  *  do. */
@@ -105,6 +105,12 @@ export const SCOPE_WORDS: Record<string, string> = {
   "tagging:write":      "Issue, replace and confirm asset labels",
   "settings:write":     "Change settings",
   "settings:read":      "Read the configuration log",
+  "candidates:read":    "See received units that are not yet on the register",
+  "vfm:verify":         "Verify a received unit for value for money (IAD officer)",
+  "vfm:approve":        "Approve a verified unit for value for money (IAD approver)",
+  "tagging:request":    "Ask for a label for an approved unit",
+  "register:make":      "Submit a tagged unit to the register, with its SAP code and cost",
+  "register:check":     "Approve a submitted unit onto the register",
   "admin":              "Everything — system administrator",
 };
 

@@ -23,4 +23,6 @@ from . import v1_signup
 # Handoff 48 — which sidebar items this tenant shows. Presentation, not
 # permission.
 from . import v1_sidebar
+# Handoff 57 — the receipt gates (SCAFFOLDING, replaced by handoff 58).
+from . import v1_gates
 from . import backoffice

@@ -111,6 +111,20 @@ export const SCOPE = {
   ingestionWrite: "ingestion:write",
   /** Webhook administration. No SPA page gates on it either. */
   webhooksAdmin: "webhooks:admin",
+  /** The receipt gates (handoff 57 — scaffolding, replaced by 58's
+   *  candidate model). Seeing a unit that is not yet on the register: the
+   *  Candidates page and `?register_state=any`. */
+  candidatesRead: "candidates:read",
+  /** IAD Value-for-Money Officer: sight the unit against the order. */
+  vfmVerify: "vfm:verify",
+  /** IAD Value-for-Money Approver: approve what the officer verified. */
+  vfmApprove: "vfm:approve",
+  /** Asset Controller: ask for a label for an approved unit. */
+  taggingRequest: "tagging:request",
+  /** Register Maker: submit a tagged unit with its SAP code and cost. */
+  registerMake: "register:make",
+  /** Register Checker: put a submitted unit on the register. */
+  registerCheck: "register:check",
   /** The wildcard. Pages under Administration require it (handoff 41). */
   admin: "admin",
 } as const;

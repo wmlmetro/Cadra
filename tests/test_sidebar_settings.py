@@ -98,7 +98,9 @@ def test_the_payload_says_it_is_not_a_permission(client, capture):
     # 30 since handoff 49: the auditor's four screens joined the Audit group
     # (configuration_changes, disposals_report, register_snapshot,
     # register_export).
-    assert len(keys) == len(set(keys)) == 30, keys
+    # 32 since handoff 57: Candidates (Asset Register) and Receipt gates
+    # (Settings).
+    assert len(keys) == len(set(keys)) == 32, keys
     assert len(data["groups"]) == 10
     hidden = [it["key"] for g in data["groups"] for it in g["items"]
               if not it["shown"]]

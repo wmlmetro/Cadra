@@ -11,7 +11,7 @@ import {
   Users, ScanBarcode, Upload, RefreshCw,
   Wrench, Tag, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
   Hourglass, ShieldCheck, History, PanelLeft,
-  FileCog, Trash2, Camera, Download,
+  FileCog, Trash2, Camera, Download, Inbox,
   type LucideIcon,
 } from "lucide-react";
 
@@ -87,6 +87,10 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     // queue rather than a page — an approval nobody notices is a move that
     // never happens (handoff 35).
     { key: "approvals",               name: "Approvals",               path: "/approvals",            icon: Hourglass, badge: "approvals", scope: "assets:read" },
+    // Units received but not yet on the register (handoff 57 — scaffolding
+    // for 58's candidate model). The register itself hides them, so this is
+    // the only list that shows them.
+    { key: "candidates",              name: "Candidates",              path: "/candidates",           icon: Inbox,           scope: "candidates:read" },
     { key: "new_asset",               name: "+ New Asset",             path: "/assets/new",           icon: BookOpen,        scope: "assets:write" },
   ]},
   { key: "operations", label: "Operations", items: [
@@ -126,6 +130,10 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     { key: "asset_categories",        name: "Asset Categories",        path: "/settings/categories",   icon: Layers,            scope: "settings:write" },
     { key: "branding",                name: "Branding",                path: "/settings/branding",     icon: Palette,           scope: "settings:write" },
     { key: "depreciation_settings",   name: "Depreciation",            path: "/settings/depreciation", icon: SlidersHorizontal, scope: "settings:write" },
+    // Whether a received unit must pass the gates before it is an asset
+    // (handoff 57, `cadra.receipt.gated`). `settings:write`, as the
+    // server's PATCH is.
+    { key: "receipt_gate",            name: "Receipt gates",           path: "/settings/receipt-gate", icon: ShieldCheck,       scope: "settings:write" },
     // Which of these items this tenant shows (handoff 48). `admin`, as the
     // server's PATCH is. The one item that cannot be switched off, with its
     // group: it is where they are switched back on.

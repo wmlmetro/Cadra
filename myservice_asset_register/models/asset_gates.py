@@ -1,0 +1,631 @@
+# -*- coding: utf-8 -*-
+"""SCAFFOLDING — handoff 57, written the night of 7 October 2026.
+REPLACED BY HANDOFF 58 (`nrs.asset.candidate`, a separate model).
+
+What this is, plainly: NRS ruled on 7 October that a received unit is not
+an asset until Internal Audit has sighted it, a tag is on it and a maker-
+checker pair has registered it (Addendum A). The correct build is a
+separate candidate model (`docs/ADDENDUM-A-EVALUATION.md` §4.6, the
+Architect's ruling) and takes a week. This file is NOT that build. It puts
+the gate machine on the existing `nrs.asset` record as one field,
+`register_state`, and hides any asset that has not passed the gates from
+the register — exactly the design §4.6 rules against for the real thing,
+chosen for one night BECAUSE it reuses every proven path unchanged: INT-03
+still creates the record, the label still prints, the affix dialog still
+checks serial and label, the history still renders, SAP still gets the
+master. Every report, count and dashboard now has to filter on this flag;
+that cost is the reason 58 replaces it. Do not build on it.
+
+The machine is ONE table (`TRANSITIONS`) and ONE method (`_fire_gate`).
+Nothing else changes `register_state`: `write` refuses the field without
+the flag `_fire_gate` sets, and a test pins that.
+
+The no-two-gates rule (Addendum A §4, enforcement rule 1): a user who
+fired one gate on a unit may not fire a DIFFERENT gate on it. The refusal
+names the earlier act, its date and the person — never "permission
+denied". The officer/approver and maker/checker separations are this rule;
+they are not written a second time.
+"""
+import base64
+import binascii
+import json
+import logging
+from datetime import date as _date_cls
+
+import pytz
+
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError, ValidationError
+from odoo.fields import Domain
+
+from .asset_event import EVENT_GATE_FIRED
+
+_logger = logging.getLogger(__name__)
+
+# ── The states ────────────────────────────────────────────────────────
+REGISTERED = 'registered'
+REGISTER_STATES = [
+    ('captured', 'Captured'),
+    ('vfm_pending', 'Awaiting IAD verification'),
+    ('vfm_verified', 'Verified — awaiting IAD approval'),
+    ('vfm_approved', 'Value for money approved'),
+    ('vfm_query', 'Queried by IAD'),
+    ('vfm_rejected', 'Rejected by IAD'),
+    ('tag_requested', 'Tagging requested'),
+    ('tag_issued', 'Tag issued'),
+    ('tagged', 'Tagged'),
+    ('reg_submitted', 'Registration submitted'),
+    (REGISTERED, 'Registered'),
+]
+
+# Who the record is waiting on, by state. Published as `gates.waiting_on`
+# and the `?waiting_on=` filter on `GET /candidates`.
+WAITING_ON = {
+    'captured': 'store',
+    'vfm_query': 'store',
+    'vfm_pending': 'iad',
+    'vfm_verified': 'iad_approver',
+    'vfm_approved': 'controller',
+    'tag_requested': 'tagging',
+    'tag_issued': 'tagging',
+    'tagged': 'maker',
+    'reg_submitted': 'checker',
+    'vfm_rejected': None,
+    REGISTERED: None,
+}
+WAITING_ON_VALUES = ('store', 'iad', 'iad_approver', 'controller',
+                     'tagging', 'maker', 'checker')
+
+# ── The gates (Addendum A §4 rule 1) and how a refusal says them ─────
+GATE_RECEIPT = 'receipt'
+GATE_VERIFY = 'verify'
+GATE_APPROVE = 'approve'
+GATE_TAG_REQUEST = 'tag_request'
+GATE_TAGGING = 'tagging'
+GATE_MAKE = 'make'
+GATE_CHECK = 'check'
+
+# "You <done> on 7 Oct; a different person must <todo>."
+_GATE_DONE = {
+    GATE_RECEIPT: 'received this unit',
+    GATE_VERIFY: 'verified this unit',
+    GATE_APPROVE: "approved this unit's value for money",
+    GATE_TAG_REQUEST: 'requested tagging for this unit',
+    GATE_TAGGING: 'tagged this unit',
+    GATE_MAKE: 'submitted this unit for registration',
+    GATE_CHECK: "approved this unit's registration",
+}
+_GATE_TODO = {
+    GATE_RECEIPT: 'submit it',
+    GATE_VERIFY: 'verify it',
+    GATE_APPROVE: 'approve it',
+    GATE_TAG_REQUEST: 'request its tagging',
+    GATE_TAGGING: 'tag it',
+    GATE_MAKE: 'submit it for registration',
+    GATE_CHECK: 'approve its registration',
+}
+
+# The scopes, spelled here as literals because `myservice_api` (which owns
+# the scope table) depends on this module and not the reverse.
+S_ASSETS_WRITE = 'assets:write'
+S_VFM_VERIFY = 'vfm:verify'
+S_VFM_APPROVE = 'vfm:approve'
+S_TAGGING_REQUEST = 'tagging:request'
+S_REGISTER_MAKE = 'register:make'
+S_REGISTER_CHECK = 'register:check'
+
+# ── THE table. (from states, to, action, scopes [any of], gate, needs) ─
+# `gate` is the gate the actor fires (None: not a gate). `acts_as` is the
+# gate the no-two-gates rule checks the actor against when the action is
+# not itself a gate (a query is IAD acting, a return is the checker
+# acting). `needs` names the one free-text field the action requires.
+TRANSITIONS = (
+    dict(action='submit', frm=('captured',), to='vfm_pending',
+         scopes=(S_ASSETS_WRITE,), gate=GATE_RECEIPT),
+    dict(action='verify', frm=('vfm_pending',), to='vfm_verified',
+         scopes=(S_VFM_VERIFY,), gate=GATE_VERIFY),
+    dict(action='approve', frm=('vfm_verified',), to='vfm_approved',
+         scopes=(S_VFM_APPROVE,), gate=GATE_APPROVE),
+    dict(action='query', frm=('vfm_pending', 'vfm_verified'), to='vfm_query',
+         scopes=(S_VFM_VERIFY, S_VFM_APPROVE), gate=None,
+         acts_as='iad', needs='reason'),
+    dict(action='resubmit', frm=('vfm_query',), to='captured',
+         scopes=(S_ASSETS_WRITE,), gate=None, acts_as=GATE_RECEIPT,
+         needs='response'),
+    dict(action='reject', frm=('vfm_pending', 'vfm_verified'),
+         to='vfm_rejected', scopes=(S_VFM_APPROVE,), gate=None,
+         acts_as=GATE_APPROVE, needs='reason'),
+    dict(action='request-tagging', frm=('vfm_approved',), to='tag_requested',
+         scopes=(S_TAGGING_REQUEST,), gate=GATE_TAG_REQUEST),
+    dict(action='register', frm=('tagged',), to='reg_submitted',
+         scopes=(S_REGISTER_MAKE,), gate=GATE_MAKE),
+    dict(action='approve-registration', frm=('reg_submitted',),
+         to=REGISTERED, scopes=(S_REGISTER_CHECK,), gate=GATE_CHECK),
+    dict(action='return-registration', frm=('reg_submitted',), to='tagged',
+         scopes=(S_REGISTER_CHECK,), gate=None, acts_as=GATE_CHECK,
+         needs='reason'),
+)
+# The two system steps. Not in the table a caller can fire from.
+SYSTEM_TRANSITIONS = (
+    dict(action='issue-tag', frm=('tag_requested',), to='tag_issued'),
+    dict(action='affix', frm=('tag_issued',), to='tagged', gate=GATE_TAGGING),
+)
+ACTIONS = tuple(t['action'] for t in TRANSITIONS)
+REASON_REQUIRED = {t['action'] for t in TRANSITIONS if t.get('needs')}
+
+VERIFY_CHECKLIST = ('quantity', 'specification', 'condition', 'price')
+
+# The states in which a candidate has no label yet, and may not be given one
+# except by `request-tagging`.
+_BEFORE_THE_TAG = frozenset({
+    'captured', 'vfm_pending', 'vfm_verified', 'vfm_approved', 'vfm_query',
+    'vfm_rejected', 'tag_requested'})
+
+# The context key that lets a search see candidates. Set by `GET
+# /candidates`, by `?register_state=any|<value>` (for a caller holding
+# `candidates:read`) and by the single-record lookups that must find a
+# candidate (the scan box, by-tag). Everything else sees the register.
+CANDIDATES_CTX = 'cadra_candidates'
+
+# The flag `_fire_gate` sets so `write` lets `register_state` through.
+_GATE_WRITE_KEY = 'cadra_gate_fire'
+# The parameter that switches the gates on (handoff 57 §2b; built by
+# Stream C on the settings screen). Absent means OFF — today's behaviour.
+RECEIPT_GATED_PARAM = 'cadra.receipt.gated'
+_ON_VALUES = ('1', 'true', 'True', 'TRUE', 'on', 'yes')
+
+_LAGOS = pytz.timezone('Africa/Lagos')
+
+
+class GateRefused(UserError):
+    """A gate refusal, carrying what the API needs to say it.
+
+    `kind` is one of `invalid_state`, `forbidden`, `validation_failed`,
+    `segregation_of_duties`; the route maps it onto the envelope. A
+    `UserError` so any non-API caller still gets the sentence.
+    """
+
+    def __init__(self, message, kind, details=None):
+        super().__init__(message)
+        self.kind = kind
+        self.details = details or {}
+
+
+def _lagos_day(dt):
+    if not dt:
+        return ''
+    local = pytz.utc.localize(dt).astimezone(_LAGOS)
+    return '%d %s' % (local.day, local.strftime('%b'))
+
+
+def _row(action, state):
+    for row in TRANSITIONS:
+        if row['action'] == action and state in row['frm']:
+            return row
+    return None
+
+
+class NRSAssetGates(models.Model):
+    _inherit = 'nrs.asset'
+
+    register_state = fields.Selection(
+        REGISTER_STATES, string='Register State', default=REGISTERED,
+        # NOT tracked: every change already writes a `gate_fired` event,
+        # which nobody can alter; a chatter line too would put each gate in
+        # the asset's history twice.
+        required=True, index=True, copy=False,
+        help='Handoff 57 scaffolding. Anything but Registered is a receipt '
+             'candidate: hidden from the register, its counts and its '
+             'reports, and moved only by the receipt gates.')
+    # The Register Maker's entries (handoff 57 §2a). The cost goes into
+    # `acquisition_cost`, the SAP code into `sap_asset_number` as a code
+    # ENTERED BY HAND — these two had nowhere to go.
+    cost_centre = fields.Char('Cost Centre', copy=False)
+    capitalisation_date = fields.Date('Capitalisation Date', copy=False)
+
+    # ── the register hides candidates — ONE place (handoff 57 §2d) ────
+
+    @api.model
+    def _search(self, domain, *args, **kwargs):
+        """Registered assets only, unless the search asks otherwise.
+
+        The ONE place §2d asks for. The route census found 22 routes that
+        list, count, aggregate or export assets and only two of them share
+        a domain builder — the dashboard strip, the export, the map's
+        counts, the category and employee counts, the reports and the
+        depreciation cron each build their own. Odoo's own `_search` hides
+        archived rows this way (an implicit `active = True` unless the
+        domain names `active`), so a candidate is hidden the same way: an
+        implicit `register_state = 'registered'` unless the domain names
+        `register_state` or the context carries `cadra_candidates`.
+        `browse()` is not a search, so `GET /assets/<id>` and every
+        by-id action still reach a candidate.
+        """
+        # NOT when `active_test` is off. Odoo reads records it already holds
+        # by ids through `_search([('id', 'in', ids)], active_test=False)`
+        # (`BaseModel.fetch`) — the same door it uses to let an archived
+        # record it holds be read — and filtering there made a candidate
+        # unreadable, sudo included, the moment its cache was dropped
+        # (caught by `test_receipt_gates`). So this default steps aside
+        # exactly where the `active` default does.
+        if kwargs.get('active_test', True) \
+                and self.env.context.get('active_test', True) \
+                and not self.env.context.get(CANDIDATES_CTX):
+            domain = Domain(domain)
+            if not any(leaf.field_expr == 'register_state'
+                       for leaf in domain.iter_conditions()):
+                domain &= Domain('register_state', '=', REGISTERED)
+        return super()._search(domain, *args, **kwargs)
+
+    # ── the switch ────────────────────────────────────────────────────
+
+    @api.model
+    def _receipt_gated(self):
+        """Whether a new receipt enters as a candidate. Raw SQL, like
+        `cadra.approval.required`, so no cache can answer for the row; but
+        here ABSENT MEANS OFF — the gates are opt-in per tenant."""
+        self.env.cr.execute(
+            "SELECT value FROM ir_config_parameter WHERE key = %s",
+            (RECEIPT_GATED_PARAM,))
+        row = self.env.cr.fetchone()
+        return bool(row) and (row[0] or '').strip() in _ON_VALUES
+
+    # ── the guard on the field ────────────────────────────────────────
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            state = vals.get('register_state')
+            if state and state not in ('captured', REGISTERED) \
+                    and not self.env.context.get(_GATE_WRITE_KEY):
+                raise UserError(_(
+                    'A record enters the register either as a captured '
+                    'receipt or as a registered asset; "%s" is reached only '
+                    'through the receipt gates.') % state)
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if 'register_state' in vals \
+                and not self.env.context.get(_GATE_WRITE_KEY) \
+                and any(r.register_state != vals['register_state']
+                        for r in self):
+            raise UserError(_(
+                'The register state of an asset is changed only by firing '
+                'one of its receipt gates (submit, verify, approve, request '
+                'tagging, register, approve registration…), never by '
+                'writing it.'))
+        return super().write(vals)
+
+    # ── scopes of the caller ──────────────────────────────────────────
+
+    def _gate_scopes(self, scopes=None):
+        """The scopes to judge the caller by: the token's when the API
+        passes them, else derived from the user's groups by the same table
+        a login uses. `admin`/`*` hold everything."""
+        if scopes is None:
+            try:
+                from odoo.addons.myservice_api.controllers.utils import (
+                    scopes_for_user)
+                scopes = scopes_for_user(self.env.user)
+            except ImportError:
+                scopes = []
+        held = set(scopes or ())
+        if 'admin' in held or '*' in held:
+            held |= {S_ASSETS_WRITE, S_VFM_VERIFY, S_VFM_APPROVE,
+                     S_TAGGING_REQUEST, S_REGISTER_MAKE, S_REGISTER_CHECK}
+        return held
+
+    # ── the rule ──────────────────────────────────────────────────────
+
+    def _gate_events(self):
+        self.ensure_one()
+        return self.env['nrs.asset.event'].sudo().search(
+            [('asset_id', '=', self.id), ('event_type', '=', EVENT_GATE_FIRED)],
+            order='occurred_at, id')
+
+    def _acting_gate(self, row, held):
+        gate = row.get('gate') or row.get('acts_as')
+        if gate == 'iad':
+            # A query is the officer's act if they hold the officer's
+            # scope, else the approver's.
+            gate = GATE_VERIFY if S_VFM_VERIFY in held else GATE_APPROVE
+        return gate
+
+    def _two_gates_refusal(self, gate, user=None):
+        """The sentence refusing `user` gate `gate` here, or None."""
+        self.ensure_one()
+        user = user or self.env.user
+        for event in self._gate_events():
+            if event.actor_id.id == user.id and event.gate \
+                    and event.gate != gate:
+                return (_(
+                    'You %(done)s on %(day)s; a different person must '
+                    '%(todo)s.',
+                    done=_GATE_DONE.get(event.gate, event.gate),
+                    day=_lagos_day(event.occurred_at),
+                    todo=_GATE_TODO.get(gate, gate)), event)
+        return None
+
+    def _assert_two_gates(self, gate, user=None):
+        found = self._two_gates_refusal(gate, user)
+        if found:
+            message, event = found
+            raise GateRefused(message, 'segregation_of_duties', {
+                'earlier': {
+                    'action': event.gate_action,
+                    'gate': event.gate,
+                    'date': fields.Datetime.to_string(event.occurred_at),
+                    'user_name': event.actor_name,
+                }})
+
+    # ── what the caller may do (the serialiser's `gates` block) ───────
+
+    def _gates_block(self, scopes=None):
+        self.ensure_one()
+        held = self._gate_scopes(scopes)
+        available = []
+        for row in TRANSITIONS:
+            if self.register_state not in row['frm']:
+                continue
+            if not set(row['scopes']) & held:
+                continue
+            found = self._two_gates_refusal(self._acting_gate(row, held))
+            available.append({
+                'action': row['action'],
+                'can_fire': not found,
+                'refusal': found[0] if found else None,
+                'reason_required': row['action'] in REASON_REQUIRED,
+            })
+        events = self._gate_events()
+        since = events[-1:].occurred_at if events else self.create_date
+        return {
+            'waiting_on': WAITING_ON.get(self.register_state),
+            'state_since': fields.Datetime.to_string(since) if since else None,
+            'available': available,
+        }
+
+    # ── THE method ────────────────────────────────────────────────────
+
+    def _fire_gate(self, action, reason=None, payload=None, scopes=None):
+        """Fire one gate. Every check BEFORE anything is written."""
+        self.ensure_one()
+        payload = payload or {}
+        state = self.register_state
+        row = _row(action, state)
+        if row is None:
+            if action not in ACTIONS:
+                raise GateRefused(
+                    _('There is no gate action called "%s".') % action,
+                    'validation_failed')
+            label = dict(REGISTER_STATES).get(state, state)
+            raise GateRefused(_(
+                'This unit is "%(state)s"; "%(action)s" cannot be done from '
+                'there.', state=label, action=action), 'invalid_state',
+                {'register_state': state})
+        held = self._gate_scopes(scopes)
+        if not set(row['scopes']) & held:
+            raise GateRefused(_(
+                '"%(action)s" needs the %(scopes)s scope, which you do not '
+                'hold.', action=action,
+                scopes=' or '.join('`%s`' % s for s in row['scopes'])),
+                'forbidden', {'required_scopes': list(row['scopes'])})
+        needs = row.get('needs')
+        text = (reason or '').strip() if isinstance(reason, str) else ''
+        if needs and not text:
+            raise GateRefused(
+                _('A %s is required — say why, in words.') % needs,
+                'validation_failed', {'field': needs})
+        evidence = self._gate_validate(action, payload)
+        gate = self._acting_gate(row, held)
+        self._assert_two_gates(gate)
+        # ── everything after this line writes ──
+        notes = self._gate_apply(action, payload, evidence)
+        self._gate_move(row['to'], action, row.get('gate'),
+                        reason=text or None, notes=notes)
+        if action == 'request-tagging':
+            self._gate_issue_tag()
+        if row['to'] == REGISTERED:
+            self._on_registered()
+        return self
+
+    def _gate_move(self, to, action, gate, reason=None, notes=None):
+        frm = self.register_state
+        self.env['nrs.asset.event']._record(
+            self, EVENT_GATE_FIRED, source='api_gate' if self._in_api()
+            else None, from_value=frm, to_value=to, gate=gate,
+            gate_action=action, reason=reason,
+            notes=json.dumps(notes, sort_keys=True) if notes else None)
+        self.with_context(**{_GATE_WRITE_KEY: True}).sudo().write(
+            {'register_state': to})
+
+    def _in_api(self):
+        from odoo.http import request
+        return bool(request and getattr(request, 'jwt_claims', None))
+
+    # ── per-action checks and effects ─────────────────────────────────
+
+    def _gate_validate(self, action, payload):
+        """Refuse a body the action cannot accept. Returns what to apply."""
+        if action == 'verify':
+            checklist = payload.get('checklist')
+            if not isinstance(checklist, dict) or not all(
+                    checklist.get(k) is True for k in VERIFY_CHECKLIST):
+                raise GateRefused(_(
+                    'Verification needs all four checks confirmed — '
+                    'quantity, specification, condition and price.'),
+                    'validation_failed', {'field': 'checklist',
+                                          'required': list(VERIFY_CHECKLIST)})
+            files = payload.get('attachments')
+            if not isinstance(files, list) or not files:
+                raise GateRefused(_(
+                    'Verification needs at least one piece of evidence '
+                    'attached — a photograph of the unit, the delivery '
+                    'note, the invoice.'), 'validation_failed',
+                    {'field': 'attachments'})
+            decoded = []
+            for f in files:
+                name = (f or {}).get('name') if isinstance(f, dict) else None
+                data = (f or {}).get('data') if isinstance(f, dict) else None
+                if not name or not data:
+                    raise GateRefused(_(
+                        'Each attachment needs a `name` and its `data` '
+                        '(base64).'), 'validation_failed',
+                        {'field': 'attachments'})
+                try:
+                    base64.b64decode(data, validate=True)
+                except (binascii.Error, ValueError, TypeError):
+                    raise GateRefused(_(
+                        'Attachment "%s" is not valid base64.') % name,
+                        'validation_failed', {'field': 'attachments'})
+                decoded.append((name, f.get('mimetype') or None, data))
+            return {'checklist': {k: True for k in VERIFY_CHECKLIST},
+                    'files': decoded}
+        if action == 'register':
+            code = payload.get('sap_asset_code')
+            code = code.strip() if isinstance(code, str) else ''
+            if not code:
+                raise GateRefused(_(
+                    'The SAP asset code is required to submit a '
+                    'registration.'), 'validation_failed',
+                    {'field': 'sap_asset_code'})
+            clash = self.sudo().with_context(
+                **{CANDIDATES_CTX: True}).search_count([
+                ('sap_asset_number', '=', code), ('id', '!=', self.id)])
+            if clash:
+                raise GateRefused(_(
+                    'SAP asset code %s is already on another asset.') % code,
+                    'validation_failed', {'field': 'sap_asset_code'})
+            cost = payload.get('cost')
+            if isinstance(cost, bool) or not isinstance(cost, (int, float)) \
+                    or cost <= 0:
+                raise GateRefused(_(
+                    'The cost must be a number greater than zero.'),
+                    'validation_failed', {'field': 'cost'})
+            centre = payload.get('cost_centre')
+            centre = centre.strip() if isinstance(centre, str) else ''
+            if not centre:
+                raise GateRefused(_('The cost centre is required.'),
+                                  'validation_failed', {'field': 'cost_centre'})
+            raw = payload.get('capitalisation_date')
+            try:
+                cap = _date_cls.fromisoformat(raw) if isinstance(raw, str) \
+                    else None
+            except ValueError:
+                cap = None
+            if not cap:
+                raise GateRefused(_(
+                    'The capitalisation date is required, as YYYY-MM-DD.'),
+                    'validation_failed', {'field': 'capitalisation_date'})
+            klass = payload.get('asset_class')
+            if isinstance(klass, bool) or not isinstance(klass, int) or \
+                    not self.env['nrs.asset.category'].sudo().browse(
+                        klass).exists():
+                raise GateRefused(_(
+                    'Confirm the asset class: send `asset_class` as the id '
+                    'of an asset category.'), 'validation_failed',
+                    {'field': 'asset_class'})
+            return {'sap_asset_number': code, 'acquisition_cost': float(cost),
+                    'cost_centre': centre, 'capitalisation_date': cap,
+                    'category_id': klass}
+        if action == 'approve-registration':
+            if not (self.sap_asset_number or '').strip():
+                raise GateRefused(_(
+                    'This registration carries no SAP asset code; return it '
+                    'to the maker rather than approving it.'),
+                    'validation_failed', {'field': 'sap_asset_code'})
+        return None
+
+    def _gate_apply(self, action, payload, evidence):
+        """The action's own effect. Returns the evidence for the event."""
+        notes = {}
+        if payload.get('notes') and isinstance(payload['notes'], str):
+            notes['notes'] = payload['notes'].strip()
+        if action == 'verify':
+            Attachment = self.env['ir.attachment'].sudo()
+            ids = []
+            for name, mimetype, data in evidence['files']:
+                vals = {'name': name, 'datas': data,
+                        'res_model': 'nrs.asset', 'res_id': self.id}
+                if mimetype:
+                    vals['mimetype'] = mimetype
+                ids.append(Attachment.create(vals).id)
+            notes.update(checklist=evidence['checklist'], attachment_ids=ids)
+        elif action == 'register':
+            vals = dict(evidence)
+            vals['sap_code_source'] = 'manual'
+            self.sudo().write(vals)
+            notes.update(
+                sap_asset_code=vals['sap_asset_number'],
+                cost=vals['acquisition_cost'],
+                cost_centre=vals['cost_centre'],
+                capitalisation_date=fields.Date.to_string(
+                    vals['capitalisation_date']),
+                asset_class=vals['category_id'])
+        elif action == 'resubmit':
+            pass
+        return notes or None
+
+    def _gate_issue_tag(self):
+        """TAG_REQUESTED → TAG_ISSUED, inside request-tagging.
+
+        The mint MOVED here from creation for a candidate. The label's
+        number is the ASSET CODE (ruling §7/4.3: one identifier, the code is
+        what the label carries) — so the scan box finds it either way and
+        the affix dialog checks the code."""
+        Tag = self.env['nrs.asset.tag.label'].sudo()
+        tag = self.active_tag_id
+        if not tag:
+            tag = Tag.create({'name': self.asset_code, 'asset_id': self.id,
+                              'source': 'auto', 'state': 'active'})
+            self.sudo().write({'asset_tag': self.asset_code})
+        self._gate_move('tag_issued', 'issue-tag', None,
+                        notes={'tag_number': tag.name})
+
+    def _on_registered(self):
+        """REGISTERED is reached. `myservice_workflow` queues the INT-06
+        asset master here (handoff 57 §2b) — not on affix — for a unit that
+        came through the gates."""
+        return True
+
+
+class NRSAssetTagLabelGates(models.Model):
+    """TAG_ISSUED → TAGGED fires from the existing affix success path."""
+    _inherit = 'nrs.asset.tag.label'
+
+    def _mark_affixed(self, scanned_tag_number, *args, **kwargs):
+        asset = self.asset_id
+        candidate = asset and asset.register_state != REGISTERED
+        if candidate and asset.register_state in _BEFORE_THE_TAG:
+            raise ValidationError(_(
+                    'This unit is a receipt candidate at "%s"; it can be '
+                    'tagged only once its tag is issued.') % dict(
+                        REGISTER_STATES).get(asset.register_state))
+        # A REPEAT confirmation on a tagged candidate goes to the base, which
+        # answers it idempotently (handoff 39) — refused only at the first.
+        if candidate and asset.register_state == 'tag_issued':
+            found = asset._two_gates_refusal(GATE_TAGGING)
+            if found:
+                raise ValidationError(found[0])
+        was_affixed = self.label_state == 'affixed'
+        result = super()._mark_affixed(scanned_tag_number, *args, **kwargs)
+        if candidate and not was_affixed and self.label_state == 'affixed' \
+                and asset.register_state == 'tag_issued':
+            asset._gate_move('tagged', 'affix', GATE_TAGGING,
+                             notes={'tag_number': self.name})
+        return result
+
+
+class NRSAssetTagGates(models.Model):
+    """No label is minted at creation for a captured receipt — the mint
+    moved to `request-tagging`."""
+    _inherit = 'nrs.asset'
+
+    def _generate_tag(self, source='auto'):
+        # Only BEFORE the tag is issued. From `tag_issued` on, a candidate
+        # has a label, and a replacement of a faded one must mint its
+        # successor exactly as for a registered asset — the first draft
+        # refused every candidate and an approved replacement scrapped the
+        # label with nothing after it (found by the verification pass).
+        if self.register_state in _BEFORE_THE_TAG:
+            return self.env['nrs.asset.tag.label']
+        return super()._generate_tag(source=source)

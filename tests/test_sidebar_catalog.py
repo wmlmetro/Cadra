@@ -56,6 +56,8 @@ PUBLISHED_ITEMS = {
     # The auditor's own screens (handoff 49).
     "configuration_changes", "disposals_report", "register_snapshot",
     "register_export",
+    # The receipt gates (handoff 57): the Candidates list and the switch.
+    "candidates", "receipt_gate",
 }
 
 _KEY = re.compile(r"^[a-z][a-z0-9_]*$")

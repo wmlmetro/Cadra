@@ -80,6 +80,80 @@ def _serialize_category(c):
     }
 
 
+# ── Receipt gates (handoff 57) ───────────────────────────────────────
+#
+# SCAFFOLDING, 7 October 2026: the routes after `/settings/approvals` say what
+# this is and what replaces it (handoff 58).
+
+#: The parameter `nrs.asset._receipt_gated()` reads (raw SQL, absent = off).
+#: Written here as `true`/`false`, never deleted, so the row keeps its writer.
+RECEIPT_GATE_PARAM = "cadra.receipt.gated"
+
+#: Said on the Settings screen, from here, so the screen and the API cannot
+#: describe the switch differently.
+RECEIPT_GATE_STATEMENT_ON = (
+    "On: a unit received from a goods receipt is a candidate, not an asset. "
+    "It joins the register only after Internal Audit has verified and "
+    "approved it, a tag has been affixed, and a Register Maker and a "
+    "different Register Checker have registered it. Nobody may pass a "
+    "candidate through two of those gates. SAP receives the asset master at "
+    "registration, not at tagging.")
+RECEIPT_GATE_STATEMENT_OFF = (
+    "Off: a unit received from a goods receipt is an asset in the register "
+    "at once, its tag is issued on receipt, and SAP receives the asset "
+    "master when the tag is affixed.")
+
+_RECEIPT_GATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "enabled": {"type": "boolean"},
+        "configured": {"type": "boolean"},
+        "default_when_unset": {"type": "boolean"},
+        "parameter": {"type": "string"},
+        "statement": {"type": "string"},
+        "candidates_in_flight": {"type": "integer", "nullable": True},
+        "changed_by": {"type": "object", "nullable": True,
+                       "properties": {"id": {"type": "integer"},
+                                      "name": {"type": "string"}}},
+        "changed_at": {"type": "string", "format": "date-time",
+                       "nullable": True},
+    },
+}
+
+
+def _receipt_gate_block(env):
+    """What the switch says, who set it, and what is waiting on the gates.
+
+    `configured` tells *nobody has ever set this* from *somebody turned it
+    off*, as `/settings/approvals` does. `candidates_in_flight` is there
+    because turning the switch off does not register anything: a candidate
+    already in the machine stays a candidate, hidden from the register, until
+    its gates are passed — a screen about to switch it off should say so.
+    """
+    enabled = env["nrs.asset"].sudo()._receipt_gated()
+    env.cr.execute(
+        "SELECT value, write_uid, write_date FROM ir_config_parameter "
+        "WHERE key = %s", (RECEIPT_GATE_PARAM,))
+    row = env.cr.fetchone()
+    writer = env["res.users"].sudo().browse(row[1]).exists() if row and row[1] \
+        else None
+    Asset = env["nrs.asset"].sudo().with_context(active_test=False)
+    in_flight = (Asset.search_count([("register_state", "!=", "registered")])
+                 if "register_state" in Asset._fields else None)
+    return {
+        "enabled": enabled,
+        "configured": row is not None,
+        "default_when_unset": False,
+        "parameter": RECEIPT_GATE_PARAM,
+        "statement": (RECEIPT_GATE_STATEMENT_ON if enabled
+                      else RECEIPT_GATE_STATEMENT_OFF),
+        "candidates_in_flight": in_flight,
+        "changed_by": ({"id": writer.id, "name": writer.name}
+                       if writer else None),
+        "changed_at": (row[2].isoformat() if row and row[2] else None),
+    }
+
+
 class CadraConfigV1(http.Controller):
 
     # ── Categories ─────────────────────────────────────────────────
@@ -539,6 +613,78 @@ class CadraConfigV1(http.Controller):
             "default_when_unset": REQUIRED_WHEN_UNSET,
             "parameter": PARAM,
         }
+
+    # ── Receipt gates: GET /api/v1/settings, PATCH …/receipt-gate ────
+    #
+    # SCAFFOLDING, 7 October 2026 (handoff 57). This switch turns on the gate
+    # machine that tonight rides on `nrs.asset.register_state`, a design
+    # handoff 58 replaces with a separate candidate model. When 58 lands the
+    # switch either moves with it or is retired; until then it is the one
+    # place a tenant says "a received unit is not an asset yet".
+
+    @cadra_route("/api/v1/settings", method="GET",
+                 summary="Tenant-wide switches every screen may need to know",
+                 # `assets:read`, as `/settings/approvals` is and for its
+                 # reason: the Candidates page, the asset page's banner and
+                 # the register all behave differently when receipts are
+                 # gated, and an answer some signed-in people cannot read is
+                 # one the app has to guess at.
+                 scopes=[SCOPE_ASSETS_READ],
+                 response_schema={
+                     "type": "object",
+                     "properties": {
+                         "receipt_gated": {"type": "boolean"},
+                         "receipt_gate": _RECEIPT_GATE_SCHEMA,
+                     },
+                 })
+    def get_settings(self, **kwargs):
+        return {
+            "receipt_gated": request.env["nrs.asset"].sudo()._receipt_gated(),
+            "receipt_gate": _receipt_gate_block(request.env),
+        }
+
+    @cadra_route("/api/v1/settings/receipt-gate", method="PATCH",
+                 summary="Turn the receipt gates on or off for this tenant",
+                 # `settings:write`, as every write on this controller is
+                 # (`test_settings_routes_use_settings_write_and_not_admin`:
+                 # `admin` is a wildcard). KNOWN WEAKNESS, said rather than
+                 # hidden: the Asset Manager holds `settings:write`, so the
+                 # person the gates constrain can switch them off — and the
+                 # switch is recorded in the configuration-change report, which
+                 # is the only thing between that and nobody knowing. Handoff
+                 # 58 should make this what `/settings/approvals` is: read-only
+                 # over the API, set by an administrator's command.
+                 scopes=[SCOPE_SETTINGS_WRITE],
+                 success_status=200,
+                 request_schema={
+                     "type": "object",
+                     "required": ["enabled"],
+                     "properties": {"enabled": {"type": "boolean"}},
+                 },
+                 request_example={"enabled": True},
+                 response_schema=_RECEIPT_GATE_SCHEMA)
+    def patch_receipt_gate(self, **kwargs):
+        """One key, a boolean, stored as `true`/`false` so the row — and its
+        writer and write time — survives either way. That row is what the
+        configuration-change report reads (`/reports/configuration-changes`),
+        so switching this IS a configuration-record event: who, when, what it
+        says now."""
+        body = get_params()
+        rejected = [k for k in body if k != "enabled"]
+        if rejected:
+            return refuse_unwritable(rejected, {"enabled"})
+        enabled = body.get("enabled")
+        if not isinstance(enabled, bool):
+            return err(ERR_INVALID_REQUEST,
+                       "Say whether receipts are gated with `enabled`: true "
+                       "or false.",
+                       details={"field": "enabled", "received": enabled})
+        # `sudo()` keeps the acting uid, so `write_uid` on the row is the
+        # person who clicked — the configuration report's "last writer".
+        request.env["ir.config_parameter"].sudo().set_param(
+            RECEIPT_GATE_PARAM, "true" if enabled else "false")
+        request.env.flush_all()
+        return _receipt_gate_block(request.env)
 
     @cadra_route("/api/v1/settings/depreciation/recompute", method="POST",
                  summary="Recompute book values across the register",

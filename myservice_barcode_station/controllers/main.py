@@ -76,7 +76,10 @@ def _resolve_lookup(env, query, sudo=False):
     """
     q = (query or '').strip()
     Tag = env['nrs.asset.tag.label']
-    Asset = env['nrs.asset']
+    # Handoff 57: the scan box must find a receipt CANDIDATE — the tagger
+    # scans its label before it is registered. `cadra_candidates` lifts the
+    # register's default filter (`asset_gates._search`) for this lookup only.
+    Asset = env['nrs.asset'].with_context(cadra_candidates=True)
     if sudo:
         Tag, Asset = Tag.sudo(), Asset.sudo()
     if not q:

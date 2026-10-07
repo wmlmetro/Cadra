@@ -256,8 +256,11 @@ class HrEmployee(models.Model):
     _inherit = 'hr.employee'
 
     def unlink(self):
+        # `cadra_candidates`: a receipt candidate names its custodian too
+        # (handoff 57 hides candidates from searches by default).
         assets = self.env['nrs.asset'].sudo().with_context(
-            active_test=False).search([('custodian_id', 'in', self.ids)])
+            active_test=False, cadra_candidates=True).search(
+                [('custodian_id', 'in', self.ids)])
         disposed = assets.filtered(lambda a: a.state == 'disposed')
         if disposed:
             raise UserError(_(

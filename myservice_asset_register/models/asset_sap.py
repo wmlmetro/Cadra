@@ -201,7 +201,9 @@ class NRSAssetSAP(models.Model):
         for record in self:
             if not record.sap_asset_number:
                 continue
-            duplicate = self.sudo().search([
+            # A receipt candidate's typed SAP code counts (handoff 57).
+            duplicate = self.sudo().with_context(
+                cadra_candidates=True).search([
                 ('id', '!=', record.id),
                 ('sap_asset_number', '=', record.sap_asset_number),
                 ('sap_company_code', '=', record.sap_company_code or False),

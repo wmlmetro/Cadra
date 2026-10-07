@@ -257,6 +257,16 @@ SCOPE_SETTINGS_WRITE     = "settings:write"
 # ruling in `v1_assets.py` rightly rejects.
 SCOPE_SETTINGS_READ      = "settings:read"
 SCOPE_ADMIN              = "admin"
+# Handoff 57 (SCAFFOLDING, replaced by handoff 58): the receipt gates.
+# `candidates:read` lets a caller see a unit that has not yet passed the
+# gates (`GET /candidates`, `?register_state=any|<value>`); the other five
+# fire one gate each. Their groups are the Addendum A §4 roles.
+SCOPE_CANDIDATES_READ    = "candidates:read"
+SCOPE_VFM_VERIFY         = "vfm:verify"
+SCOPE_VFM_APPROVE        = "vfm:approve"
+SCOPE_TAGGING_REQUEST    = "tagging:request"
+SCOPE_REGISTER_MAKE      = "register:make"
+SCOPE_REGISTER_CHECK     = "register:check"
 
 ALL_SCOPES = frozenset({
     SCOPE_ASSETS_READ, SCOPE_ASSETS_WRITE,
@@ -274,6 +284,8 @@ ALL_SCOPES = frozenset({
     SCOPE_TAGGING_WRITE,
     SCOPE_SETTINGS_WRITE,
     SCOPE_SETTINGS_READ,
+    SCOPE_CANDIDATES_READ, SCOPE_VFM_VERIFY, SCOPE_VFM_APPROVE,
+    SCOPE_TAGGING_REQUEST, SCOPE_REGISTER_MAKE, SCOPE_REGISTER_CHECK,
     SCOPE_ADMIN,
 })
 
@@ -316,6 +328,10 @@ GROUP_SCOPES = (
         # The group's own description is "view assets, log verifications,
         # RAISE REQUESTS", and raising one is a write.
         SCOPE_REQUESTS_WRITE,
+        # Handoff 57: seeing a receipt candidate. Inherited by every role
+        # that implies Asset User — the Store Officer who submits it among
+        # them — and by the five gate roles below.
+        SCOPE_CANDIDATES_READ,
     )),
     # The role between reading the register and running it (handoff 47,
     # ruling 3). Registers assets, requests moves and custody changes,
@@ -354,6 +370,20 @@ GROUP_SCOPES = (
     # system said so twice.
     ("myservice_asset_register.group_tag_issuing_unit", (SCOPE_TAGGING_WRITE,)),
 
+    # The receipt gates (handoff 57, scaffolding; Addendum A §4). Each
+    # implies Asset User, so `candidates:read` arrives that way too and is
+    # repeated here only so the row says what the role is FOR.
+    ("myservice_asset_register.group_iad_vfm_officer", (
+        SCOPE_CANDIDATES_READ, SCOPE_VFM_VERIFY)),
+    ("myservice_asset_register.group_iad_vfm_approver", (
+        SCOPE_CANDIDATES_READ, SCOPE_VFM_APPROVE)),
+    ("myservice_asset_register.group_asset_controller", (
+        SCOPE_CANDIDATES_READ, SCOPE_TAGGING_REQUEST)),
+    ("myservice_asset_register.group_register_maker", (
+        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_MAKE)),
+    ("myservice_asset_register.group_register_checker", (
+        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_CHECK)),
+
     # The Auditor (specification §3's `audit_viewer`, INT-10 §4.3). READ
     # scopes only, and every one of them already exists — the five §13.4
     # reports are views of the register, the identity roster and the
@@ -384,6 +414,9 @@ GROUP_SCOPES = (
         # `_missing_scopes`, the Administrator — and by nobody else: a Store
         # Officer, Asset User, Officer or Manager reads pages, not copies.
         SCOPE_EXPORT_READ,
+        # Handoff 57: the auditor sees every record at any state
+        # (Addendum A §4, "Auditor (read-only)").
+        SCOPE_CANDIDATES_READ,
     )),
 
     # The employee roster and the SAP/spreadsheet imports that feed it.
@@ -483,6 +516,14 @@ SCOPE_GROUPS = {
     # non-wildcard group that grants `export:read`, so it is what the group
     # is FOR.
     SCOPE_EXPORT_READ:        ("myservice_api.group_auditor",),
+    # Handoff 57. Each gate scope maps to the one role that holds it; reading
+    # candidates to Asset User, which every gate role implies.
+    SCOPE_CANDIDATES_READ:    ("myservice_asset_register.group_asset_user",),
+    SCOPE_VFM_VERIFY:         ("myservice_asset_register.group_iad_vfm_officer",),
+    SCOPE_VFM_APPROVE:        ("myservice_asset_register.group_iad_vfm_approver",),
+    SCOPE_TAGGING_REQUEST:    ("myservice_asset_register.group_asset_controller",),
+    SCOPE_REGISTER_MAKE:      ("myservice_asset_register.group_register_maker",),
+    SCOPE_REGISTER_CHECK:     ("myservice_asset_register.group_register_checker",),
     SCOPE_INTEGRATIONS_WRITE: ("myservice_identity.group_identity_manager",),
     SCOPE_TAGGING_WRITE:      ("myservice_asset_register.group_tag_issuing_unit",),
     # SCOPE_WEBHOOKS_ADMIN and SCOPE_ADMIN map to nothing on purpose — see the

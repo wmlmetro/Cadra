@@ -4723,6 +4723,14 @@ def _models_carrying_the_mixin():
 #: migrating: the value is a Selection, not a boolean, and three reports and
 #: a script cite it by name.
 ALREADY_LABELLED = {
+    "ir.attachment":
+        "Created by first-party code only as verification EVIDENCE, in "
+        "`nrs.asset._gate_apply` (handoff 57, scaffolding), bound to its "
+        "asset by res_model/res_id. The `gate_fired` event that lists the "
+        "attachment ids carries `source = 'test'` when a test credential "
+        "fired the gate (the append-only mixin's derivation), and the asset "
+        "it is attached to carries `is_test_fixture` — so the evidence is "
+        "identifiable through both records it belongs to.",
     "nrs.asset.custody":
         "`source = 'test'`, derived in myservice_api/models/append_only.py "
         "from the same credential flag. 352 rows on jaizbankplc self-label "

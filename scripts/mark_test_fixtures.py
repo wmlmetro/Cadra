@@ -165,7 +165,8 @@ def _name_domain(patterns):
 
 
 Client = env['myservice.api.client'].sudo()          # noqa: F821 — odoo shell
-Asset = env['nrs.asset'].sudo()                      # noqa: F821
+# `cadra_candidates`: receipt candidates (handoff 57) are records too.
+Asset = env['nrs.asset'].sudo().with_context(cadra_candidates=True)                      # noqa: F821
 Custody = env['nrs.asset.custody'].sudo()            # noqa: F821
 # The second append-only pin (handoff 28) — see `remove_test_residue.py`,
 # which refuses on it; the two scripts must agree about what stays.

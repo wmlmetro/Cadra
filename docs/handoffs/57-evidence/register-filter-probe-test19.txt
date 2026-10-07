@@ -1,0 +1,13 @@
+tenant test19; candidate 84713 (probe57-1791406822-bb1f43) register_state=captured tag=None
+route                                              before         after          verdict
+GET /assets (total_estimate)                       13893          13893          unchanged — hides candidates
+GET /assets?category_id=1                          12715          12715          unchanged — hides candidates
+GET /reports/asset-register?as_of=today            13893          13893          unchanged — hides candidates
+GET /dashboard/kpis assets.total                   13893          13893          unchanged — hides candidates
+GET /barcode/kpis total_assets                     13893          13893          unchanged — hides candidates
+GET /assets/export data.total                      13893          13893          unchanged — hides candidates
+GET /assets/export.csv X-Cadra-Truncated           100/13893      100/13893      unchanged — hides candidates
+GET /asset-categories asset_count (category 1)     12715          12715          unchanged — hides candidates
+GET /reports/depreciation totals.asset_count       13893          13893          unchanged — hides candidates
+GET /assets?register_state=any                     13903          13904          moved, as it should
+GET /candidates                                    10             11             moved, as it should
