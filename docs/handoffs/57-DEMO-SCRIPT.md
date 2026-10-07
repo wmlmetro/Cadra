@@ -56,7 +56,7 @@ the screen says**. The screen's words are quoted as they appear.
 
 1. **Asset Register → All Assets.** Read the total out loud. Write it down:
    ______. *This number does not move until step 7.*
-2. **Settings → Receipt gates** shows *Gate received units — on*, with the
+2. **Settings → Receipt gates.** Tonight it says *off*: click the switch once to turn it on (do this at the rehearsal, not in the room). From then on it shows *Gate received units — on*, with the
    sentence: *"On: a unit received from a goods receipt is a candidate, not
    an asset. It joins the register only after Internal Audit has verified and
    approved it, a tag has been affixed, and a Register Maker and a different

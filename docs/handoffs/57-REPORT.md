@@ -210,3 +210,43 @@ restart, `GET /assets` totals on five ungated tenants equal those counts.
 - **Needs the owner:** the PR merge (the Builder's permission layer refuses
   `gh pr merge`), the deploy, four more Chrome profiles
   (`57-DEMO-SCRIPT.md`, top).
+
+## Addendum — deployed to the cluster (2026-10-07, after the merge)
+
+Stream C ran the deploy after the owner merged PR #115 (`b1d24a8`,
+21:46:50Z) and approved the downtime. Stream A checked the three runs
+against GitHub: all `success`, all on `b1d24a8`.
+
+- **`deploy-dev`** run 37691794193 — backend and frontend images; pinned
+  `cadra-odoo-19:dev-b1d24a8` (previously `dev-ee38cb0`).
+- **`upgrade-19`** run 37692263722 — `staging, gtb, jaizbankplc, lasg`,
+  the three modules, `scale_down=true`. The migration's line per tenant:
+  `staging` 11,925 of 11,925 assets registered · `gtb` 150 of 150 ·
+  `jaizbankplc` 150 of 150 · `lasg` 150 of 150 (0 filled on each).
+  *"every tenant upgraded — rolling forward"*, *"deployment odoo-19
+  successfully rolled out"* at 21:56:41Z. Odoo down 21:51:33–21:56:41Z
+  (~5 min).
+- **Probed without credentials:** `GET /api/v1/settings` and
+  `/api/v1/candidates` answer a 401 JSON on all four hosts (the old backend
+  answers an HTML 404); `staging`'s `/app/` bundle contains `/candidates`
+  and `/settings/receipt-gate`.
+- **`demo-personas`** run 37693023665 on `staging` (class `client`): 5
+  created (the five gate roles), 1 updated (`storekeeper` → Asset
+  Officer), 5 unchanged. Passwords decrypted on the owner's machine into
+  `docs/api/.personas.cluster.staging`.
+
+**Not done by the Builder — owner-blocked, and a handoff defect.** The
+switch on `staging` and the deployed drive with screenshots. The cluster's
+`/api/v1/auth/login` requires `turnstile_token` (400 *"`turnstile_token`
+is required"*, the same wall as report 56 §5), so nothing scripted can sign
+in: not the switch's PATCH, and not spec 57, whose personas sign in through
+the API. Turning Turnstile off would weaken a control on live client sites
+and needs another roll; not done. **The owner turns the gates on in the
+browser as the administrator persona (Settings → Receipt gates — the
+configuration record will name them), and the owner's rehearsal is the
+deployed drive.** Spec 57's 10/10 on `test19` with the gates on is the
+automated proof. Turnstile on the cluster was known from report 56 and was
+not in a "Needs the owner" block — per `CLAUDE.md`, a defect in the handoff.
+
+**Run sheet:** step 0.2 now says the switch reads *off* tonight and is
+turned on once, at the rehearsal.
