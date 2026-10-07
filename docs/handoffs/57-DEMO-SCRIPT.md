@@ -64,14 +64,16 @@ the screen says**. The screen's words are quoted as they appear.
 
 ### 1 · Receipt — Halima (Store Officer)
 
-1. **Asset Register → Register asset** (`/assets/new`). Enter the item: name,
+1. **Asset Register → + New Asset** (`/assets/new`). Enter the item: name,
    category, **serial number from the physical label**, PO and GRN numbers,
    location. Save.
    *(If Vendra is posting to staging, the GRN in Vendra creates this record
    instead — INT-03 is unchanged; skip to 1.2.)*
-2. The asset page opens with a banner: **"Captured — received, not yet
-   submitted to IAD"**. There is no tag yet — tonight the tag is minted at
-   step 4, not at receipt.
+2. Save opens the asset page, with an amber banner across the top: **"Not
+   on the register — this is a received unit still passing its gates."** and
+   under it **"Captured — received, not yet submitted to IAD · waiting on
+   Store"**. The *Asset Tag* row reads **"Not issued yet"** — tonight the tag
+   is minted at step 4, not at receipt.
 3. Click **Submit to IAD**, confirm. Banner: **"Awaiting IAD verification"**.
 4. **Asset Register → All Assets**: the unit is **not** there, and the total
    is unchanged. **Candidates** lists it.
@@ -102,8 +104,9 @@ the screen says**. The screen's words are quoted as they appear.
 2. Click **Request tagging**: *"Asks the Tag-Issuing Unit for a label. The
    label is minted now and can then be printed and affixed at the Barcode
    Station."* Confirm.
-3. Banner: **"Tag issued — awaiting the label on the asset"**, with the tag
-   number.
+3. Banner: **"Tag issued — awaiting the label on the asset · waiting on
+   Tagging"**, with a link to the Barcode Station. The *Asset Tag* row now
+   shows the tag number.
 
 ### 5 · Tagging — Babatunde (Tagging Officer)
 
@@ -133,7 +136,8 @@ the screen says**. The screen's words are quoted as they appear.
 2. Click **Approve registration**: *"Puts this unit on the register and sends
    its asset master to SAP. You cannot approve a submission you made."*
    Confirm.
-3. The banner is gone. The unit is **on the register**.
+3. The amber banner is gone: the unit is **on the register** and shows the
+   register's own status steps, like every other asset.
 
 ### 8 · The register after — Oluwaseun (Administrator)
 
