@@ -55,6 +55,8 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/dashboards/it", probes: [G("/dashboard/kpis"), G("/assets?limit=1"), G("/dashboard/map")] },
   { path: "/assets", probes: [G("/assets?limit=1"), G("/dashboard/kpis"), G("/dashboard/map")] },
   { path: "/assets/list", probes: [G("/assets?limit=1")] },
+  // Handoff 57 — the candidates a received unit becomes when receipts are gated.
+  { path: "/candidates", probes: [G("/candidates?limit=1")] },
   { path: "/approvals", probes: [G("/approvals?limit=1")] },
   { path: "/assets/new", probes: [W("POST", "/assets")] },
   { path: "/locations", probes: [G("/locations?limit=1")] },
@@ -74,6 +76,8 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/settings/depreciation", probes: [W("PATCH", "/settings/depreciation")] },
   // Handoff 48. `admin`-only; the probe body is refused 400 to a holder.
   { path: "/settings/sidebar", probes: [W("PATCH", "/settings/sidebar")] },
+  // Handoff 57. `settings:write`; the probe body is refused 400 to a holder.
+  { path: "/settings/receipt-gate", probes: [W("PATCH", "/settings/receipt-gate")] },
   { path: "/admin/access-changes", probes: [G("/reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1")] },
   // The auditor's own screens (handoff 49).
   { path: "/admin/configuration-changes", probes: [G("/reports/configuration-changes?from=2026-10-01&to=2026-10-03&limit=1")] },
@@ -95,12 +99,22 @@ const JOB: Record<string, Probe[]> = {
   asset_manager: [W("POST", "/approvals/0/approve"), W("POST", "/tags/0/approve-replacement")],
   auditor: [G("/reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1"), G("/reports/configuration-changes?from=2026-10-01&to=2026-10-03&limit=1"), G("/reports/disposals?from=2026-01-01&to=2026-10-03&limit=1"), G("/reports/asset-register?as_of=2026-10-03&limit=1"), G("/assets/export?limit=1")],
   administrator: [G("/users?limit=1"), G("/meta/diagnostics")],
+  // Handoff 57's gate personas — each probed at its own gate and at the next
+  // one, so the matrix shows the one it holds and the one it does not.
+  iad_officer: [W("POST", "/assets/0/gates/verify"), W("POST", "/assets/0/gates/approve")],
+  iad_approver: [W("POST", "/assets/0/gates/approve"), W("POST", "/assets/0/gates/verify")],
+  asset_controller: [W("POST", "/assets/0/gates/request-tagging"), W("POST", "/assets/0/gates/register")],
+  register_maker: [W("POST", "/assets/0/gates/register"), W("POST", "/assets/0/gates/approve-registration")],
+  register_checker: [W("POST", "/assets/0/gates/approve-registration"), W("POST", "/assets/0/gates/register")],
 };
 
 /** Where each persona must land, measured by signing in (handoff 46 §4). */
 const LANDING: Record<string, string> = {
   storekeeper: "/assets", tagger: "/assets", asset_manager: "/assets",
   auditor: "/assets", administrator: "/assets", tag_unit: "/no-access",
+  // Handoff 57: every gate role implies Asset User, so each opens the register.
+  iad_officer: "/assets", iad_approver: "/assets", asset_controller: "/assets",
+  register_maker: "/assets", register_checker: "/assets",
 };
 
 type Persona = { key: string; login: string; password: string };

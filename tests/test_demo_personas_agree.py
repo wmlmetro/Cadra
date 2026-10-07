@@ -18,8 +18,8 @@ on and none is visible from a test run:
 * the external-id namespace is not a valid module name, so no module
   upgrade can adopt or delete those rows;
 * every login the seed would create is on that domain;
-* the persona roles are the four the API grants plus `base.group_system`
-  for the administrator, and nothing else;
+* the persona roles are the ones the API grants (`API_GRANTABLE_XMLIDS`)
+  plus `base.group_system` for the administrator, and nothing else;
 * the sentinel lines the seed prints are the ones the wrapper strips — a
   mismatch would put passwords on the terminal;
 * the passwords file is gitignored.
@@ -42,12 +42,20 @@ WRAPPER = SCRIPTS / "demo_personas.sh"
 
 SHARED = ("XMLID_MODULE", "EMAIL_DOMAIN", "SEEDER_CLIENT_ID")
 
-#: The four roles `POST /users` may grant (`access_guard.API_GRANTABLE_XMLIDS`)
+#: The roles `POST /users` may grant (`access_guard.API_GRANTABLE_XMLIDS`)
 #: and the administrator's system group. A persona holding anything else is a
 #: role the system does not have.
 ALLOWED_GROUPS = {
     "myservice_asset_register.group_asset_user",
+    # Handoff 47's fifth grantable role; the Store Officer holds it since 57.
+    "myservice_asset_register.group_asset_officer",
     "myservice_asset_register.group_asset_manager",
+    # Handoff 57's five gate roles, all API-grantable.
+    "myservice_asset_register.group_iad_vfm_officer",
+    "myservice_asset_register.group_iad_vfm_approver",
+    "myservice_asset_register.group_asset_controller",
+    "myservice_asset_register.group_register_maker",
+    "myservice_asset_register.group_register_checker",
     "myservice_asset_register.group_tag_issuing_unit",
     "myservice_api.group_auditor",
     "base.group_system",
