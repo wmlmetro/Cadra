@@ -1529,3 +1529,21 @@ failing silently, depending on whose phone it was. The engine changed.
   hold a printed label in front of a camera) and the handoff carried no
   "Needs the owner" block naming it — a handoff defect per the authoring
   rules. The procedure and fill-in table are in report §6c.
+
+## Handoff 57 — the gates, tonight (SCAFFOLDING, replaced by handoff 58)
+
+- **The receipt gates on `nrs.asset`**: `register_state`, one transition
+  table, one method (`_fire_gate`), ten `POST /assets/<id>/gates/*` routes,
+  `GET /candidates`, the no-two-gates rule, five grantable roles, six scopes.
+  Off by default per tenant (`cadra.receipt.gated`); with it on, INT-03
+  creates a candidate with no label and INT-06 fires on the Register
+  Checker's approval.
+- **The register hides candidates** in `nrs.asset._search` — measured on
+  `test19`: nine list/count/report/export routes unchanged by a new
+  candidate, `/candidates` and `?register_state=any` +1
+  (`handoffs/57-evidence/register-filter-probe-test19.txt`).
+- **Evidence**: pytest on `test19`, switch off, 1,324 passed / 7 skipped /
+  0 failed of 1,331; module suites 482/482, 96/96, 391/391; spec 57 10/10
+  (the chain in the browser as seven people). Every local tenant upgraded,
+  every existing asset registered (report 57, fan-out table).
+- **Not yet**: deployed to the demo tenant (`staging`) — owner, after merge.
