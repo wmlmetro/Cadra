@@ -487,7 +487,29 @@ suite moves it): **22 passed of 22** (`e2e-specs-57-59.txt`).
 
 ### 6. The source-file rule
 
-**EVIDENCE_GREP**
+`git log -p dev..HEAD` on this branch (every commit, so an intermediate one
+cannot hide a value later removed), every added line checked against a set
+of NRS's identifiers built from the source file in the scratchpad — 211,694
+asset numbers, 112,280 inventory (FIRS tag) numbers, 44,859 distinct serials
+— and deleted afterwards. The script prints counts, never a value:
+
+```
+added lines scanned: 4455
+11-digit numbers in the diff: 2; of them in SAP's register: 0
+FIRS/<office>/<n> tags in the diff: 0; of them in SAP's register: 0
+alphanumeric legacy SAP asset numbers in the diff: 0
+the six named shared serials in the diff: 0
+serials shared by >=50 SAP rows (len>=6) in the diff: 0 of 55 checked
+```
+
+The two 11-digit numbers are invented (an OpenAPI example and one the test
+generated, quoted in §4), and neither is in SAP's register. Scoped to
+`dev..HEAD` on purpose: the handoff file and the reference doc on `dev` carry
+real ones — see *For the Architect* below. **This check caught me first:**
+before committing, two of my code comments and one OpenAPI description had
+reused the handoff's example numbers, which are real NRS asset numbers; they
+were replaced with descriptions of the shape before any commit, so no commit
+on the branch carries them.
 
 ### 7. Fan-out and readiness (`fanout.txt`)
 
@@ -595,3 +617,14 @@ placeholder list and why it cannot be saved. None says "permission denied".
 The handoff's sentences are used verbatim — §1's refusal, §3's placeholder
 refusal, §2's skip reason, §4's warning — asserted by equality in the HTTP
 and in-registry tests and, for §1, in the browser (spec 59 (ii)).
+
+## Commits
+
+| Commit | What |
+|---|---|
+| `b1d5a0e` (on `dev`) | Step 0: the instruction file and the SAP asset-master reference |
+| `a3e97ae` | the server: the SAP class at both registration gates, `record_only` and `reg_ready`, placeholder serials, SAP numbers normalised, the verification pass's fixes, migration 19.0.1.28.0 |
+| `e327363` | the app: SAP class on categories, placeholder serials, the receive form and register dialog; specs 57 (extended) and 59 |
+| `408f3f7` | the HTTP and in-registry suites; the walk reads the next gate off the state |
+| `93b612a` | decisions, CHANGELOG, endpoint reference §14.11, GO-LIVE §29, STATUS, CLAUDE.md, this report and its evidence |
+| (this commit) | §6.6's grep result |
