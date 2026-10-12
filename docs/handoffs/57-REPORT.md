@@ -1,6 +1,6 @@
 # Report — Handoff 57: the gates, tonight
 
-**SCAFFOLDING. Handoff 58 replaces all of it.** Branch
+**SCAFFOLDING. Handoff 58 replaces all of it.** *(2026-10-12: kept by handoff 58; see `docs/ADDENDUM-A-EVALUATION.md` §8.)* Branch
 `feat/the-gates-tonight`, from `dev` at `c87c10c` (Step 0: the instruction
 file, the addendum and its evaluation, committed and pushed on `dev`). Three
 streams ran in parallel in three sessions on one working tree; Stream A (this

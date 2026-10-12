@@ -1,0 +1,11 @@
+# Handoff 58 §1 — the scaffolding grep
+Pattern (case-insensitive): scaffolding|replaced by 58|handoff 58 replaces; excluding dist/, docs/handoffs/5[78]*, docs/handoffs/_superseded
+
+BEFORE — dev at e3e5525 (the commit this branch started from): 55 lines
+
+AFTER — working tree:
+Frontend/attached_assets/Pasted--Replit-prompt-NRS-Asset-Register-Facility-UI-React-des_1781043692595.txt:127:Start by scaffolding the project, the types, the mock data, 
+docs/DECISIONS.md:668:## 2026-10-07 — handoff 57 (the gates, tonight — SCAFFOLDING, replaced by handoff 58)
+docs/DECISIONS.md:672:- 2026-10-07 · **The gate machine goes on `nrs.asset` for one night, knowingly against §4.6.** `[ruled]` handoff 57 §0: Addendum A's chain must be s
+docs/api/CHANGELOG.md:107:## 2026-10-07 — handoff 57: the receipt gates (SCAFFOLDING) · `myservice_api` 19.0.3.29.0, `myservice_asset_register` 19.0.1.26.0, `myservice_wo
+docs/api/CHANGELOG.md:109:**Scaffolding for one demonstration; handoff 58 replaces all of it with a

@@ -1,0 +1,3 @@
+== myservice_api: 0 failed, 0 error(s) of 414 tests when loading database 'test19'  · CRITICAL lines: 0
+== myservice_asset_register: 0 failed, 0 error(s) of 482 tests when loading database 'test19'  · CRITICAL lines: 0
+== myservice_workflow: 0 failed, 0 error(s) of 96 tests when loading database 'test19'  · CRITICAL lines: 0

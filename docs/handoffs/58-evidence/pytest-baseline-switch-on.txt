@@ -1,0 +1,3312 @@
+........................................................................ [  5%]
+.........................................................FF..F.......... [ 10%]
+..................F.......FF...FFF.......F.............................. [ 16%]
+............FFFs.F.FFFF....sF...............F.FFFFFFFFFFFFFF.sF......... [ 21%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 37%]
+..........................................F..............s.............. [ 43%]
+........................................................................ [ 48%]
+...................................................................s.... [ 54%]
+...............s.s...................................................... [ 59%]
+.................................................F.............F........ [ 64%]
+.......................F....F........................................... [ 70%]
+........................................................................ [ 75%]
+........................................................................ [ 81%]
+........................................................................ [ 86%]
+........FFFFFFFFFFFFFFFF.FFFFFFF.FFFF..FFFFFFFFFFFFF...F.FF..FF......... [ 91%]
+...........................ss........................................... [ 97%]
+......................FF...........                                      [100%]
+=================================== FAILURES ===================================
+____________________ test_an_event_this_suite_wrote_says_so ____________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+database_accepts_test_writes = {'accepts_test_writes': True, 'credential_is_test': True, 'database': 'test19', 'database_class': 'test'}
+
+    def test_an_event_this_suite_wrote_says_so(client, test_location,
+                                               database_accepts_test_writes):
+        """The suite verifies, condemns and marks missing real assets, and the
+        record of each is PERMANENT.
+    
+        Same argument as `test_custody.test_a_link_this_suite_wrote_says_so`:
+        that is accepted, because a test that does not exercise the recorder
+        proves nothing about whether anything is recorded. What is not
+        acceptable is a reader being unable to tell. `tests/test_source_guards.py`
+        lists `nrs.asset.event` as self-labelling on the strength of this.
+    
+        No skip for a credential that is not flagged, unlike the custody and
+        movement versions of this test: since handoff 25 the session refuses to
+        start without `credential_is_test`, so by the time this runs the label
+        is owed, and a skip here would be a guard that passes.
+        """
+        assert database_accepts_test_writes["credential_is_test"] is True
+        asset = _new_asset(client, test_location, "pytest-events-label",
+                           grn_reference="GRN-LABEL-BEFORE")
+        assert_envelope_ok(client.post(
+            f"/api/v1/assets/{asset['id']}/verify", json={}))
+        assert_envelope_ok(client.patch(
+            f"/api/v1/assets/{asset['id']}",
+            json={"last_verified_date": "2026-01-15",
+                  "grn_reference": "GRN-LABEL-AFTER",
+                  "warranty_expiry": "2027-01-15"}))
+        # The refused write of the set: a wrong-number affix is a 400 and the
+        # 400 is the point — the event survives it. Before the condemn, because
+        # a disposed asset's label is a different refusal.
+>       assert_envelope_err(client.post(
+            f"/api/v1/assets/{asset['id']}/tag-affixed",
+            json={"tag_number": "PYTEST-NOT-THE-TAG"}),
+            400, "validation_failed")
+
+tests/test_asset_events_api.py:1493: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+________ test_the_history_says_from_when_each_kind_of_event_is_recorded ________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+
+    def test_the_history_says_from_when_each_kind_of_event_is_recorded(
+            client, test_location):
+        """`fidelity.events` — PER KIND, because they share a table.
+    
+        A database whose first status change was recorded in September and whose
+        first verification was recorded in March did not begin recording
+        verifications in September. One `recording_began_at` for the table would
+        say it had. Everything older than the instant given is still a
+        message-log line and is still graded as one; this is what tells a reader
+        where that line falls.
+        """
+        asset = _new_asset(client, test_location, "pytest-events-fidelity",
+                           grn_reference="GRN-FIDELITY-BEFORE")
+        # One of each, so that none of the six can honestly say "not yet".
+        assert_envelope_ok(client.post(
+            f"/api/v1/assets/{asset['id']}/verify", json={}))
+        assert_envelope_ok(client.patch(
+            f"/api/v1/assets/{asset['id']}",
+            json={"last_verified_date": "2026-01-15",
+                  "grn_reference": "GRN-FIDELITY-AFTER",
+                  "warranty_expiry": "2027-01-15"}))
+>       assert_envelope_err(client.post(
+            f"/api/v1/assets/{asset['id']}/tag-affixed",
+            json={"tag_number": "PYTEST-NOT-THE-TAG"}),
+            400, "validation_failed")
+
+tests/test_asset_events_api.py:1538: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+_____ test_the_location_hierarchy_is_refused_on_create_and_creates_nothing _____
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+any_location = 65
+
+    def test_the_location_hierarchy_is_refused_on_create_and_creates_nothing(
+            client, test_location, any_location):
+        """POST — `building_id`, `floor_id`, `room_id` are no longer writable.
+    
+        Rule 3: the refusal is said, never silent — and since handoff 31 it is
+        said with a 400, before anything is created. Until then this was a 201:
+        the asset was registered WITHOUT the building the caller sent, and the
+        three names sat in `_warnings.rejected_fields` of a response most callers
+        had stopped reading at the status line.
+    
+        A create has no record to read back, so "nothing was written" is asked of
+        the list — and the CONTROL is what makes that answer mean something: the
+        same name, sent without the three fields, is created and found.
+        """
+        name = f"pytest-events-hierarchy-post-{uuid.uuid4().hex[:8]}"
+        assert ids_matching(client, "/api/v1/assets", name) == []
+        r = client.post("/api/v1/assets", json={
+            "name": name, "category_id": 1, "location_id": test_location["id"],
+            **{f: any_location for f in _HIERARCHY_FIELDS}})
+        details = assert_fields_refused(r, *_HIERARCHY_FIELDS)
+        assert "location_id" in details["writable"], (
+            "the repair — move it with `location_id` — is not in the response")
+        assert ids_matching(client, "/api/v1/assets", name) == [], (
+            "the hierarchy was refused with a 400 and the asset was created "
+            "anyway")
+    
+        control = _new_asset(client, test_location, name)
+>       assert ids_matching(client, "/api/v1/assets", name) == [control["id"]]
+E       assert [] == [86791]
+E         
+E         Right contains one more item: 86791
+E         Use -v to get more diff
+
+tests/test_asset_events_api.py:1668: AssertionError
+_______________________________ test_get_by_tag ________________________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_asset = {'address_display': None, 'asset_code': 'NRS-AST-050729', 'asset_level': 'asset', 'asset_type': None, ...}
+capture = <function capture.<locals>._capture at 0x10b478860>
+
+    def test_get_by_tag(client, test_asset, capture):
+        """GET /api/v1/assets/by-tag/<tag> — lookup by asset_tag."""
+        r = client.get(f"/api/v1/assets/by-tag/{test_asset['tag']}")
+        capture("assets/get_by_tag", r)
+>       body = assert_envelope_ok(r)
+               ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_assets.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [404]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 404: {"error": {"code": "not_found", "message": "No asset with tag or code 'None'", "request_id": "486cc596f0524950b3aaa39a4b661fdc", "details": {"http_status": 404}}}
+E       assert 404 == 200
+E        +  where 404 = <Response [404]>.status_code
+
+tests/conftest.py:1034: AssertionError
+_________________________ test_filter_by_grn_reference _________________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+capture = <function capture.<locals>._capture at 0x10b479300>
+
+    def test_filter_by_grn_reference(client, test_location, capture):
+        """GET /api/v1/assets?grn_reference=… returns exactly that receipt's assets."""
+        ts = _uniq()
+        grn = f"GRN-PYTEST-FILTER-{ts}"
+        wanted = set()
+        for n in (1, 2):
+            r = client.post("/api/v1/assets", json={
+                "name": f"pytest-grn-{ts}-{n}",
+                "category_id": 1,
+                "location_id": test_location["id"],
+                "grn_reference": grn,
+            })
+            wanted.add(assert_envelope_ok(r, expected_status=201)["data"]["id"])
+        # A decoy on a different GRN — the filter has to exclude it, or an
+        # auditor's GRN lookup over-reports what the receipt delivered.
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-grn-decoy-{ts}",
+            "category_id": 1,
+            "location_id": test_location["id"],
+            "grn_reference": f"GRN-PYTEST-DECOY-{ts}",
+        })
+        decoy_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    
+        r = client.get("/api/v1/assets", params={"grn_reference": grn, "limit": 100})
+        capture("assets/filter_by_grn", r)
+        body = assert_envelope_ok(r)
+        got = {a["id"] for a in body["data"]}
+>       assert got == wanted, f"expected exactly {wanted}, got {got}"
+E       AssertionError: expected exactly {86809, 86810}, got set()
+E       assert set() == {86809, 86810}
+E         
+E         Extra items in the right set:
+E         86809
+E         86810
+E         Use -v to get more diff
+
+tests/test_assets.py:237: AssertionError
+___________________ test_filter_by_purchase_order_reference ____________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+
+    def test_filter_by_purchase_order_reference(client, test_location):
+        """GET /api/v1/assets?purchase_order_reference=… — exact match, no bleed."""
+        ts = _uniq()
+        po = f"PO-PYTEST-FILTER-{ts}"
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-po-{ts}",
+            "category_id": 1,
+            "location_id": test_location["id"],
+            "purchase_order_reference": po,
+        })
+        asset_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    
+        r = client.get("/api/v1/assets", params={"purchase_order_reference": po, "limit": 100})
+        body = assert_envelope_ok(r)
+>       assert [a["id"] for a in body["data"]] == [asset_id]
+E       assert [] == [86812]
+E         
+E         Right contains one more item: 86812
+E         Use -v to get more diff
+
+tests/test_assets.py:255: AssertionError
+___________________ test_filter_by_vendor_and_import_fields ____________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+
+    def test_filter_by_vendor_and_import_fields(client, test_location):
+        """The remaining provenance filters are exact and independent."""
+        ts = _uniq()
+        vendor = f"Pytest Vendor {ts}"
+        ref = f"VENDRA-FILTER-{ts}"
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-vendor-{ts}",
+            "category_id": 1,
+            "location_id": test_location["id"],
+            "purchase_vendor": vendor,
+            "import_source": "other",
+            "import_ref": ref,
+        })
+        asset_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    
+        for params in ({"purchase_vendor": vendor}, {"import_ref": ref}):
+            body = assert_envelope_ok(
+                client.get("/api/v1/assets", params={**params, "limit": 100}))
+>           assert [a["id"] for a in body["data"]] == [asset_id], (
+                f"filter {params} returned {[a['id'] for a in body['data']]}"
+            )
+E           AssertionError: filter {'purchase_vendor': 'Pytest Vendor 1791797228-42496185'} returned []
+E           assert [] == [86814]
+E             
+E             Right contains one more item: 86814
+E             Use -v to get more diff
+
+tests/test_assets.py:330: AssertionError
+_________________________ test_q_matches_grn_reference _________________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+
+    def test_q_matches_grn_reference(client, test_location):
+        """Free-text search reaches the GRN — an auditor pastes it into the box."""
+        ts = _uniq()
+        grn = f"GRN-PYTEST-Q-{ts}"
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-q-grn-{ts}",
+            "category_id": 1,
+            "location_id": test_location["id"],
+            "grn_reference": grn,
+        })
+        asset_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    
+        body = assert_envelope_ok(client.get("/api/v1/assets", params={"q": grn, "limit": 50}))
+>       assert asset_id in {a["id"] for a in body["data"]}
+E       assert 86815 in set()
+
+tests/test_assets.py:378: AssertionError
+_____________________ test_grn_filter_is_exact_not_prefix ______________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+
+    def test_grn_filter_is_exact_not_prefix(client, test_location):
+        """`?grn_reference=` must not match a longer GRN that starts with it.
+    
+        Under `ilike` an audit lookup for GRN-…-001 would silently also report the
+        assets from GRN-…-0011, over-stating what the receipt delivered.
+        """
+        ts = _uniq()
+        grn = f"GRN-PYTEST-EXACT-{ts}"
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-exact-{ts}", "category_id": 1,
+            "location_id": test_location["id"], "grn_reference": grn})
+        wanted = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-exact-longer-{ts}", "category_id": 1,
+            "location_id": test_location["id"], "grn_reference": grn + "9"})
+        longer = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    
+        body = assert_envelope_ok(
+            client.get("/api/v1/assets", params={"grn_reference": grn, "limit": 100}))
+        got = {a["id"] for a in body["data"]}
+>       assert got == {wanted}, f"expected exactly {{{wanted}}}, got {got}"
+E       AssertionError: expected exactly {86816}, got set()
+E       assert set() == {86816}
+E         
+E         Extra items in the right set:
+E         86816
+E         Use -v to get more diff
+
+tests/test_assets.py:401: AssertionError
+______________ test_sort_newest_puts_the_most_recent_asset_first _______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+a_fresh_asset = {'address_display': None, 'asset_code': 'NRS-AST-050763', 'asset_level': 'asset', 'asset_type': None, ...}
+
+    def test_sort_newest_puts_the_most_recent_asset_first(client, a_fresh_asset):
+        """The whole point: create one, ask for newest, and it is row one."""
+        r = client.get("/api/v1/assets", params={"sort": "newest", "limit": 5})
+        body = assert_envelope_ok(r)
+        assert _ids(body), "the register is empty; this test proves nothing"
+>       assert body["data"][0]["id"] == a_fresh_asset["id"], (
+            "the asset created moments ago must lead `sort=newest`; got id %r"
+            % (body["data"][0]["id"],))
+E       AssertionError: the asset created moments ago must lead `sort=newest`; got id 86672
+E       assert 86672 == 86819
+
+tests/test_assets_sort.py:65: AssertionError
+__________ test_the_snapshot_excludes_an_asset_created_after_the_date __________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+
+    def test_the_snapshot_excludes_an_asset_created_after_the_date(
+            client, disposed_assets):
+        """Existence — the first of the auditor's six questions.
+    
+        The fixture assets were created during this session. A snapshot dated
+        before that must not contain them, and one dated today must.
+        """
+        prefix = disposed_assets["prefix"]
+        yesterday = _iso(_today() - datetime.timedelta(days=1))
+    
+        before, _ = _walk_snapshot(client, yesterday, q=prefix)
+        assert before == [], (
+            "a snapshot dated before these assets were created returned "
+            f"{len(before)} of them. Existence is the first thing an auditor "
+            "tests and the register cannot report an asset it did not hold.")
+    
+        now, _ = _walk_snapshot(client, _iso(_today()), q=prefix)
+        ids = {row["id"] for row in now}
+        for key in ("bare", "documented", "partial"):
+>           assert disposed_assets[key]["id"] in ids, (
+                f"the {key} fixture asset is missing from today's snapshot")
+E           AssertionError: the bare fixture asset is missing from today's snapshot
+E           assert 86823 in set()
+
+tests/test_audit_reports.py:392: AssertionError
+_______________ test_a_snapshot_row_declares_its_own_degradation _______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+
+    def test_a_snapshot_row_declares_its_own_degradation(client, disposed_assets):
+        """`_fidelity` is per row and present ONLY when non-empty.
+    
+        The report-wide declaration says what the SNAPSHOT can answer; this says
+        what it could answer for THIS asset. A consumer that ignores it is
+        reading today's value as history.
+        """
+        rows, _ = _walk_snapshot(client, _iso(_today()), q=disposed_assets["prefix"])
+>       assert rows, "no snapshot rows to inspect"
+E       AssertionError: no snapshot rows to inspect
+E       assert []
+
+tests/test_audit_reports.py:404: AssertionError
+__________________ test_the_snapshot_total_is_the_true_count ___________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+
+    def test_the_snapshot_total_is_the_true_count(client, disposed_assets):
+        """handoff 12's honesty, inherited rather than reimplemented.
+    
+        A one-row page of an N-row report must still report N. A report added
+        after handoff 12 gets that for free ONLY if it goes through
+        `paginate()`, which is what this checks.
+        """
+        prefix = disposed_assets["prefix"]
+        full, _ = _walk_snapshot(client, _iso(_today()), q=prefix)
+>       assert len(full) >= 2, "fixture did not create enough assets to page"
+E       AssertionError: fixture did not create enough assets to page
+E       assert 0 >= 2
+E        +  where 0 = len([])
+
+tests/test_audit_reports.py:430: AssertionError
+________ test_a_disposal_with_no_reference_is_present_with_its_finding _________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+capture = <function capture.<locals>._capture at 0x10b770180>
+
+    def test_a_disposal_with_no_reference_is_present_with_its_finding(
+            client, disposed_assets, capture):
+        """The acceptance criterion: *"a disposal with no authorising reference
+        appears in the report as a finding, not filtered out."*
+    
+        A report that showed only the well-documented disposals would be a
+        report of the paperwork rather than of the estate.
+        """
+        date = disposed_assets["date"]
+        rows, first = _walk_disposals(client, date, date)
+        capture("reports/disposals", first_response_of(client, date))
+    
+        by_id = {row["asset_id"]: row for row in rows}
+        bare_id = disposed_assets["bare"]["id"]
+>       assert bare_id in by_id, (
+            "the undocumented disposal is ABSENT from the report. That is the "
+            "defect this endpoint exists to remove: a disposal with no "
+            "authorising reference is itself the finding.")
+E       AssertionError: the undocumented disposal is ABSENT from the report. That is the defect this endpoint exists to remove: a disposal with no authorising reference is itself the finding.
+E       assert 86823 in {}
+
+tests/test_audit_reports.py:498: AssertionError
+____________________ test_the_summary_counts_match_the_rows ____________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+capture = <function capture.<locals>._capture at 0x10b770220>
+
+    def test_the_summary_counts_match_the_rows(client, disposed_assets, capture):
+        """*"N of M carry no authorising reference"* must be readable from page
+        one, without walking.
+    
+        So the summary describes the WHOLE PERIOD on every page while `rows`
+        pages — and it is recomputed here from the walked rows to prove the two
+        agree. A summary taken over the page would shrink as the reader paged,
+        which is a number that changes meaning depending on where you are.
+        """
+        date = disposed_assets["date"]
+        rows, first = _walk_disposals(client, date, date)
+        capture("reports/disposals_summary", first_response_of(client, date))
+    
+        if first.get("_warnings", {}).get("truncated"):
+            pytest.skip(
+                "this credential's record cap bit on the disposal schedule, so "
+                "the walked rows are a window and cannot be compared with a "
+                "summary that describes the period. The cap is honest — "
+                "`_warnings.truncated` said so — but the comparison is not "
+                "available.")
+    
+        summary = first["data"]["summary"]
+        assert summary["total"] == len(rows), (
+            "`summary.total` and the walked schedule disagree. They come out of "
+            "one call to the model precisely so they cannot.")
+        assert first["pagination"]["total_estimate"] == summary["total"], (
+            "there must be exactly ONE count of the period in this response")
+    
+        expected = {}
+        for row in rows:
+            for finding in row["findings"]:
+                expected[finding] = expected.get(finding, 0) + 1
+        assert summary["findings"] == expected
+    
+        assert summary["clean"] == sum(1 for row in rows if not row["findings"])
+    
+        # The single number the handoff asked for by name.
+>       assert summary["findings"].get("no_authorising_reference", 0) >= 1, (
+            "the fixture created an undocumented disposal in this period and the "
+            "summary counted none")
+E       AssertionError: the fixture created an undocumented disposal in this period and the summary counted none
+E       assert 0 >= 1
+E        +  where 0 = <built-in method get of dict object at 0x10b699440>('no_authorising_reference', 0)
+E        +    where <built-in method get of dict object at 0x10b699440> = {}.get
+
+tests/test_audit_reports.py:583: AssertionError
+________ test_the_sap_position_is_a_statement_and_not_a_per_row_finding ________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+
+    def test_the_sap_position_is_a_statement_and_not_a_per_row_finding(
+            client, disposed_assets):
+        """Handoff 17 E1, stated as the acceptance criterion it is.
+    
+        `no_sap_asset_number` fired on essentially every row of this report on
+        every tenant, and a control that fires on 100% of rows is one a reader
+        learns to skip — taking `no_approver` and `no_authorising_reference`,
+        sitting in the same column, down with it. It is now said ONCE for the
+        period, where it reads as a fact about INT-09 rather than as a defect
+        repeated on each row.
+    
+        Removing it would have hidden something true, so the FACT is asserted in
+        both places it survives: `sap_asset_number` on the row, and the counts in
+        `summary.sap_coverage`.
+        """
+        date = disposed_assets["date"]
+        rows, first = _walk_disposals(client, date, date)
+        summary = first["data"]["summary"]
+    
+        for row in rows + first["data"]["unplaceable"]:
+            assert not (set(row["findings"]) & _RETIRED_FINDINGS), (
+                f"row {row['asset_id']} carries a retired finding: "
+                f"{set(row['findings']) & _RETIRED_FINDINGS}. It moved to "
+                "`summary.sap_coverage` and must appear once, not per row.")
+            # The fact itself is still published per row. Only the label went.
+            assert "sap_asset_number" in row
+    
+        assert "no_sap_asset_number" not in summary["findings"], (
+            "the findings TALLY still counts it, so it is still being emitted "
+            "somewhere")
+    
+        coverage = summary["sap_coverage"]
+        assert coverage["coverage"] in _SAP_COVERAGE
+        assert coverage["total"] == summary["total"], (
+            "`sap_coverage` is counted over a different population from "
+            "`summary.total` — two numbers in one response that cannot both be "
+            "about the same period")
+        assert (coverage["with_sap_asset_number"]
+                + coverage["without_sap_asset_number"]) == coverage["total"]
+    
+        # The fixture creates its disposals through the API, and
+        # `sap_asset_number` is not writable there — deliberately, and asserted
+        # elsewhere in this file. So the bare/documented/partial trio contribute
+        # three rows with no SAP number, and the period cannot be `empty` or
+        # `complete`.
+>       assert coverage["coverage"] in ("none", "partial")
+E       AssertionError: assert 'empty' in ('none', 'partial')
+
+tests/test_audit_reports.py:639: AssertionError
+______ test_the_sap_statement_is_never_the_absolute_one_when_it_is_untrue ______
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+
+    def test_the_sap_statement_is_never_the_absolute_one_when_it_is_untrue(
+            client, disposed_assets):
+        """The one way this replacement can be worse than the finding it
+        replaced.
+    
+        *"No disposal in this period carried a SAP asset number"* is the sentence
+        the ruling asked for and it is true only when the count is ALL of them.
+        Printed over a table where three rows DO carry one it is a false
+        statement in an audit report — which is worse than a noisy findings
+        column. The verdict is therefore not left to the renderer: `coverage`
+        decides, once, in the model.
+    
+        Asserted in BOTH directions, because an implementation that never emits
+        the absolute sentence at all would pass a one-directional test while
+        failing the ruling.
+        """
+        date = disposed_assets["date"]
+        rows, first = _walk_disposals(client, date, date)
+        if first.get("_warnings", {}).get("truncated"):
+            pytest.skip(
+                "this credential's record cap bit on the disposal schedule, so "
+                "the walked rows are a window and cannot be compared with a "
+                "coverage block that describes the period.")
+        coverage = first["data"]["summary"]["sap_coverage"]
+    
+        with_number = sum(1 for row in rows if row["sap_asset_number"])
+        assert coverage["with_sap_asset_number"] == with_number, (
+            "the coverage count and the rows disagree about how many disposals "
+            "reached SAP")
+    
+        if with_number:
+            assert coverage["coverage"] == "partial"
+            assert _ABSOLUTE_SAP_SENTENCE not in coverage["statement"], (
+                f"{with_number} disposal(s) in this period carry a SAP asset "
+                "number and the report states that none does. A period-scoped "
+                "absolute is a false statement in an audit report.")
+            assert str(with_number) in coverage["statement"]
+        else:
+>           assert coverage["coverage"] == "none"
+E           AssertionError: assert 'empty' == 'none'
+E             
+E             - none
+E             + empty
+
+tests/test_audit_reports.py:683: AssertionError
+__________________ test_the_period_bounds_are_both_inclusive ___________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+
+    def test_the_period_bounds_are_both_inclusive(client, disposed_assets):
+        """An auditor asks for a quarter by naming its first and last day. An
+        exclusive upper bound silently loses everything disposed of on 31
+        March."""
+        date = disposed_assets["date"]
+        bare_id = disposed_assets["bare"]["id"]
+    
+        # A single-day period whose only day IS the disposal date.
+        rows, _ = _walk_disposals(client, date, date)
+>       assert bare_id in {row["asset_id"] for row in rows}, (
+            "a one-day period containing the disposal date did not contain the "
+            "disposal — one of the two bounds is exclusive")
+E       AssertionError: a one-day period containing the disposal date did not contain the disposal — one of the two bounds is exclusive
+E       assert 86823 in set()
+
+tests/test_audit_reports.py:710: AssertionError
+__________________ test_neither_report_repairs_what_it_finds ___________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+disposed_assets = {'bare': {'address_display': None, 'asset_code': 'NRS-AST-050767', 'asset_level': 'asset', 'asset_type': None, ...}, '...tial': {'address_display': None, 'asset_code': 'NRS-AST-050769', 'asset_level': 'asset', 'asset_type': None, ...}, ...}
+
+    def test_neither_report_repairs_what_it_finds(client, disposed_assets):
+        """*"A report that quietly fixes what it finds can never honestly report
+        zero"* — the second run reports a cleanliness it created itself.
+    
+        Asserted from the API alone: the findings on a known-bad disposal must
+        be byte-identical across two runs, and the asset's `updated_at` must not
+        move. A repair would show up as either.
+        """
+        date = disposed_assets["date"]
+        bare_id = disposed_assets["bare"]["id"]
+    
+        before = assert_envelope_ok(
+            client.get(f"/api/v1/assets/{bare_id}"))["data"]
+    
+        first_rows, _ = _walk_disposals(client, date, date)
+        snap_before, _ = _walk_snapshot(client, _iso(_today()),
+                                        q=disposed_assets["prefix"])
+        second_rows, _ = _walk_disposals(client, date, date)
+    
+        after = assert_envelope_ok(
+            client.get(f"/api/v1/assets/{bare_id}"))["data"]
+    
+        assert after["updated_at"] == before["updated_at"], (
+            "running the reports moved the asset's write stamp. Both reports "
+            "are read-only; a stamped field means something on the read path "
+            "wrote.")
+        assert after["disposal"] == before["disposal"]
+    
+>       first_bare = next(r for r in first_rows if r["asset_id"] == bare_id)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       StopIteration
+
+tests/test_audit_reports.py:831: StopIteration
+____________________________ test_lookup_with_query ____________________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b770e00>
+
+    def test_lookup_with_query(client, capture):
+        """Look up an asset by its tag — and get the domain LABEL back.
+    
+        This was xfailed on a real 500: `lookup_tag` did
+        `dict(asset._fields['domain'].selection)`, and `nrs.asset.domain` is
+        `related='category_id.domain'`, so Odoo had filled `.selection` with a
+        callable and `dict()` over it raised TypeError. Every asset the lookup
+        actually found in a category with an FM domain — which is most of the
+        register — answered 500. It is fixed by resolving the label through
+        `fields_get`, which does not care how the field was declared.
+    
+        The label, not the key, is the assertion that matters: returning `"it"`
+        where `"IT & Communications"` belongs would be a green 200 and a barcode
+        station showing raw enum keys to a field team.
+        """
+        asset = _asset_with_an_fm_domain(client)
+    
+        r = client.get("/api/v1/barcode/lookup", params={"query": asset["tag"]})
+        capture("barcode/lookup_query", r)
+>       data = assert_envelope_ok(r)["data"]
+               ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [404]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 404: {"error": {"code": "not_found", "message": "No query provided", "request_id": "98b4aac6c2864df2a34911aa6b512168", "details": {"query": "", "http_status": 404}}}
+E       assert 404 == 200
+E        +  where 404 = <Response [404]>.status_code
+
+tests/conftest.py:1034: AssertionError
+________________________________ test_print_url ________________________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_asset = {'address_display': None, 'asset_code': 'NRS-AST-050729', 'asset_level': 'asset', 'asset_type': None, ...}
+capture = <function capture.<locals>._capture at 0x10b771940>
+
+    def test_print_url(client, test_asset, capture):
+        """Generate a tag print URL, from the LABEL id — not the asset id.
+    
+        This test used to pass `test_asset["id"]`, an asset id, into a parameter
+        the endpoint documents as an `nrs.asset.tag.label` id. It went green only
+        when some unrelated label happened to carry that same number: run this
+        file on its own and it answered `404 Tag not found`. That is the id-space
+        collision in miniature, and it is why `data.tagging.label_id` now exists
+        — a caller with an asset payload had nothing else to reach for.
+    
+        The URL comes back carrying the ASSET id, because the four label reports
+        are registered on `nrs.asset`. So the id going in and the id coming out
+        are deliberately different, and neither may be substituted for the other.
+        """
+        label_id = test_asset["tagging"]["label_id"]
+>       assert label_id, (
+            "the test asset carries no tag label, so this test would be checking "
+            "nothing — nrs.asset.create is supposed to mint one"
+        )
+E       AssertionError: the test asset carries no tag label, so this test would be checking nothing — nrs.asset.create is supposed to mint one
+E       assert None
+
+tests/test_barcode.py:173: AssertionError
+_______________________________ test_tags_lookup _______________________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_asset = {'address_display': None, 'asset_code': 'NRS-AST-050729', 'asset_level': 'asset', 'asset_type': None, ...}
+capture = <function capture.<locals>._capture at 0x10b771760>
+
+    def test_tags_lookup(client, test_asset, capture):
+        """GET /api/v1/tags/lookup — public-style tag lookup, JWT-protected."""
+        r = client.get("/api/v1/tags/lookup", params={"query": test_asset["tag"]})
+        capture("barcode/tags_lookup", r)
+>       assert_envelope_ok(r)
+
+tests/test_barcode.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [404]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 404: {"error": {"code": "not_found", "message": "The request could not be completed", "request_id": "041d8f9de17649d188846138862ee126", "details": {"query": "", "http_status": 404}}}
+E       assert 404 == 200
+E        +  where 404 = <Response [404]>.status_code
+
+tests/conftest.py:1034: AssertionError
+__________________ test_lookup_by_tag_says_it_matched_the_tag __________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b7707c0>
+
+    def test_lookup_by_tag_says_it_matched_the_tag(client, capture):
+        """`matched_by` is the key the screen reads to say *found by …*."""
+        serial = _serial()
+>       asset = _asset_with_serial(client, "by-tag", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:227: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'by-tag'
+serial = 'PYT-95521C7E62', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050772', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+______________________ test_lookup_by_asset_code_says_so _______________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b7725c0>
+
+    def test_lookup_by_asset_code_says_so(client, capture):
+        serial = _serial()
+>       asset = _asset_with_serial(client, "by-code", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:240: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'by-code'
+serial = 'PYT-D6233D6181', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050773', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+_________________ test_lookup_by_the_serial_of_a_tagged_asset __________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b772480>
+
+    def test_lookup_by_the_serial_of_a_tagged_asset(client, capture):
+        """THE case from the meeting: an auditor scans the serial of a laptop
+        that is already tagged. Before handoff 38 this was a 404."""
+        serial = _serial()
+>       asset = _asset_with_serial(client, "by-serial", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:254: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'by-serial'
+serial = 'PYT-877A79771D', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050774', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+________ test_a_scanner_s_whitespace_still_finds_the_serial[{serial} ] _________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+spelling = '{serial} '
+
+    @pytest.mark.parametrize("spelling", [
+        "{serial} ",          # the trailing space a scanner sends
+        " {serial}",
+        "{serial}\n",         # a scanner configured to send Enter
+        "{serial}",
+    ])
+    def test_a_scanner_s_whitespace_still_finds_the_serial(client, spelling):
+        """The query is stripped. Stored serials carry no padding (measured 0 of
+        11,704 with a serial across the eight local tenants, report 38), so stripping the QUERY is
+        the whole rule; internal whitespace stays significant."""
+        serial = _serial()
+>       asset = _asset_with_serial(client, "whitespace", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:281: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'whitespace'
+serial = 'PYT-61F454C010', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050775', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+________ test_a_scanner_s_whitespace_still_finds_the_serial[ {serial}] _________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+spelling = ' {serial}'
+
+    @pytest.mark.parametrize("spelling", [
+        "{serial} ",          # the trailing space a scanner sends
+        " {serial}",
+        "{serial}\n",         # a scanner configured to send Enter
+        "{serial}",
+    ])
+    def test_a_scanner_s_whitespace_still_finds_the_serial(client, spelling):
+        """The query is stripped. Stored serials carry no padding (measured 0 of
+        11,704 with a serial across the eight local tenants, report 38), so stripping the QUERY is
+        the whole rule; internal whitespace stays significant."""
+        serial = _serial()
+>       asset = _asset_with_serial(client, "whitespace", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:281: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'whitespace'
+serial = 'PYT-3C601CF29E', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050776', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+________ test_a_scanner_s_whitespace_still_finds_the_serial[{serial}\n] ________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+spelling = '{serial}\n'
+
+    @pytest.mark.parametrize("spelling", [
+        "{serial} ",          # the trailing space a scanner sends
+        " {serial}",
+        "{serial}\n",         # a scanner configured to send Enter
+        "{serial}",
+    ])
+    def test_a_scanner_s_whitespace_still_finds_the_serial(client, spelling):
+        """The query is stripped. Stored serials carry no padding (measured 0 of
+        11,704 with a serial across the eight local tenants, report 38), so stripping the QUERY is
+        the whole rule; internal whitespace stays significant."""
+        serial = _serial()
+>       asset = _asset_with_serial(client, "whitespace", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:281: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'whitespace'
+serial = 'PYT-3B9A5E5622', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050777', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+_________ test_a_scanner_s_whitespace_still_finds_the_serial[{serial}] _________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, spelling = '{serial}'
+
+    @pytest.mark.parametrize("spelling", [
+        "{serial} ",          # the trailing space a scanner sends
+        " {serial}",
+        "{serial}\n",         # a scanner configured to send Enter
+        "{serial}",
+    ])
+    def test_a_scanner_s_whitespace_still_finds_the_serial(client, spelling):
+        """The query is stripped. Stored serials carry no padding (measured 0 of
+        11,704 with a serial across the eight local tenants, report 38), so stripping the QUERY is
+        the whole rule; internal whitespace stays significant."""
+        serial = _serial()
+>       asset = _asset_with_serial(client, "whitespace", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:281: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'whitespace'
+serial = 'PYT-F075D7F961', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050778', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+______________________ test_the_serial_match_ignores_case ______________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_the_serial_match_ignores_case(client):
+        serial = _serial()
+>       asset = _asset_with_serial(client, "case", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:290: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'case'
+serial = 'PYT-A4AE6CE539', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050779', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+__________________ test_the_serial_match_is_exact_not_partial __________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_the_serial_match_is_exact_not_partial(client):
+        """A prefix of a serial is not that serial. The untagged picker searches
+        serials with `ilike`; the scan box must not, or scanning `PROBOOK` would
+        find whichever of 94 laptops sorts first."""
+        serial = _serial()
+>       _asset_with_serial(client, "exact", serial)
+
+tests/test_barcode.py:301: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'exact'
+serial = 'PYT-B1870C8EF8', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050780', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+_____________ test_a_tag_number_beats_a_serial_that_reads_the_same _____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b7739c0>
+
+    def test_a_tag_number_beats_a_serial_that_reads_the_same(client, capture):
+        """Precedence, proved by building the collision.
+    
+        Measured across the eight local tenants on 2026-10-01 there were no such
+        collisions (report 38), so this is a rule about determinism rather than
+        about data — which is exactly why it has to be proved by making one: a
+        rule nobody can observe is a rule nobody notices breaking.
+        """
+>       first = _asset_with_serial(client, "precedence-tagged", _serial())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:315: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'precedence-tagged', serial = 'PYT-BD009B0CD3', extra = {}
+r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050781', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+____________ test_an_asset_code_beats_a_serial_that_reads_the_same _____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_an_asset_code_beats_a_serial_that_reads_the_same(client):
+>       first = _asset_with_serial(client, "code-precedence", _serial())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:330: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'code-precedence', serial = 'PYT-E02167ABFC', extra = {}
+r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050782', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+______________ test_a_serial_on_two_assets_is_a_miss_that_says_so ______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b750220>
+
+    def test_a_serial_on_two_assets_is_a_miss_that_says_so(client, capture):
+        """Never a silent first pick.
+    
+        `nrs19` has 1,291 serial values on more than one asset — model names
+        typed where a serial should go (`PROBOOK` on 94). Resolving one of those
+        to whichever row sorts first would show an auditor the WRONG asset with
+        a green tick on it, which is worse than showing nothing.
+        """
+        serial = _serial()
+>       a = _asset_with_serial(client, "ambiguous-a", serial)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:347: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'ambiguous-a'
+serial = 'PYT-A1A0528500', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050783', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+___________ test_tags_lookup_by_serial_through_the_public_style_twin ___________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b750ae0>
+
+    def test_tags_lookup_by_serial_through_the_public_style_twin(client, capture):
+        """`/tags/lookup` resolves the same way and says what it matched. It
+        publishes no ids — it never has — so the asset is identified by code."""
+        serial = _serial()
+>       asset = _asset_with_serial(client, "twin", serial)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_barcode.py:408: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'twin'
+serial = 'PYT-A3DF1D8AF8', extra = {}, r = <Response [201]>
+asset = {'address_display': None, 'asset_code': 'NRS-AST-050784', 'asset_level': 'asset', 'asset_type': None, ...}
+@py_assert0 = None, @py_assert2 = None, @py_format4 = 'None'
+@py_assert1 = ['None']
+
+    def _asset_with_serial(client, label, serial, **extra):
+        """A tagged asset of this test's own carrying `serial`. Every asset the
+        API creates is tagged — see the module docstring."""
+        r = client.post("/api/v1/assets", json={
+            "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+            "category_id": 1,
+            "serial_number": serial,
+            **extra,
+        })
+        asset = assert_envelope_ok(r, expected_status=201)["data"]
+        assert asset["serial_number"] == serial, (
+            "the serial sent was not the serial saved — nothing below means "
+            "anything if the fixture does not carry what it claims")
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one the "
+            "precedence tests below have nothing to beat")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one the precedence tests below have nothing to beat
+E       assert (None)
+
+tests/test_barcode.py:214: AssertionError
+_________________ test_concurrent_same_key_creates_exactly_one _________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+capture = <function capture.<locals>._capture at 0x10b47b6a0>
+
+    def test_concurrent_same_key_creates_exactly_one(client, test_location, capture):
+        """Four simultaneous creates under one key must yield one asset.
+    
+        This is the case the key exists for: a client retrying a request whose
+        response it never saw. The requests genuinely race — the losers do create
+        an asset before failing to claim the key, and the handler has to discard
+        that work rather than keep it and answer with the winner's body.
+    
+        Whether the race is actually hit depends on worker scheduling, so the
+        assertions are on the invariant (one asset, one id, always an envelope)
+        rather than on the race occurring.
+        """
+        import concurrent.futures
+    
+        key = f"pytest-idem-race-{int(time.time() * 1000)}"
+        name = f"idem-race-{key}"
+        payload = {"name": name, "category_id": 1, "location_id": test_location["id"]}
+    
+        def fire(_):
+            return client.post("/api/v1/assets", json=payload,
+                               headers={"X-Idempotency-Key": key})
+    
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            responses = list(pool.map(fire, range(4)))
+        capture("idempotency/concurrent_same_key", responses[0])
+    
+        created_ids = set()
+        for r in responses:
+            # A raw 500 with an HTML or empty body is the failure mode this
+            # guards: every outcome has to be the PRD envelope.
+            body = r.json()
+            assert "data" in body or "error" in body, f"non-enveloped response: {r.text[:300]}"
+            assert r.status_code in (200, 201, 409), (
+                f"unexpected status {r.status_code}: {r.text[:300]}"
+            )
+            if r.status_code in (200, 201):
+                created_ids.add(body["data"]["id"])
+    
+        assert len(created_ids) == 1, (
+            f"idempotency broken: same key produced ids {sorted(created_ids)}"
+        )
+    
+        # And the losers' assets must not have survived the rollback.
+        listing = client.get("/api/v1/assets", params={"q": name, "limit": 50})
+        matches = [a for a in assert_envelope_ok(listing)["data"] if a["name"] == name]
+>       assert len(matches) == 1, (
+            f"expected 1 asset named {name}, found {len(matches)}: "
+            f"{[a['id'] for a in matches]}"
+        )
+E       AssertionError: expected 1 asset named idem-race-pytest-idem-race-1791797485049, found 0: []
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/test_idempotency.py:163: AssertionError
+_ test_the_same_create_without_the_refused_key_creates_exactly_one[POST /assets] _
+
+request = <FixtureRequest for <Function test_the_same_create_without_the_refused_key_creates_exactly_one[POST /assets]>>
+label = 'POST /assets', build = <function _post_asset at 0x10b0ab7e0>
+
+    @pytest.mark.parametrize("label,build", _CREATE_ROUTES,
+                             ids=[label for label, _ in _CREATE_ROUTES])
+    def test_the_same_create_without_the_refused_key_creates_exactly_one(
+            request, label, build):
+        """The CONTROL for every "created nothing" above.
+    
+        `ids_matching` proves a refused create left no record only if it WOULD
+        have found one. So the same body, same unique name, is sent twice: with
+        the refused key it must leave nothing to find, and without it must leave
+        exactly one — found by the same search.
+        """
+        row = build(request)
+        assert row["read"]() == []
+        assert_fields_refused(row["send"]({_KEY: 1}), _KEY)
+        assert row["read"]() == []
+        created = assert_envelope_ok(row["send"]({}), row["created_status"])
+>       assert row["read"]() == [created["data"]["id"]]
+E       assert [] == [86858]
+E         
+E         Right contains one more item: 86858
+E         Use -v to get more diff
+
+tests/test_rejected_fields_are_refused.py:497: AssertionError
+___________ test_a_refused_create_does_not_burn_its_idempotency_key ____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+
+    def test_a_refused_create_does_not_burn_its_idempotency_key(
+            client, test_location):
+        """The sequence Vendra needs: fix the mapper, deliver again under the
+        SAME key, and it lands.
+    
+        Only a SUCCESS is stored under an `X-Idempotency-Key`. So a refused
+        request is evaluated afresh each time — the second 400 is a new answer
+        with a new `request_id`, not a replay — and the corrected body under the
+        same key is processed, creates the asset, and from then on IS replayed.
+    
+        This is the defect §B was ruled to close, from the other side. When the
+        lenient answer was a 201, the key pinned it: every retry replayed the
+        same incomplete asset, and the only repair was by hand.
+        """
+        key = _uniq("pytest-refused-idem")
+        name = _uniq("pytest-refused-idem-asset")
+        good = {"name": name, "category_id": 1,
+                "location_id": test_location["id"]}
+        headers = {"X-Idempotency-Key": key}
+    
+        first = client.post("/api/v1/assets", json={**good, _KEY: 1},
+                            headers=headers)
+        assert_fields_refused(first, _KEY)
+        second = client.post("/api/v1/assets", json={**good, _KEY: 1},
+                             headers=headers)
+        assert_fields_refused(second, _KEY)
+        assert (second.json()["error"]["request_id"]
+                != first.json()["error"]["request_id"]), (
+            "the second 400 is a replay of the first, so a refusal IS stored "
+            "under the key — and the corrected body below will be answered "
+            "with it")
+        assert ids_matching(client, "/api/v1/assets", name) == []
+    
+        landed = assert_envelope_ok(
+            client.post("/api/v1/assets", json=good, headers=headers), 201)
+        replay = assert_envelope_ok(
+            client.post("/api/v1/assets", json=good, headers=headers), 201)
+        assert replay["data"]["id"] == landed["data"]["id"]
+        assert replay["meta"]["request_id"] == landed["meta"]["request_id"], (
+            "the fourth call was processed rather than replayed")
+>       assert ids_matching(client, "/api/v1/assets", name) == [
+            landed["data"]["id"]], "one key, one asset"
+E       AssertionError: one key, one asset
+E       assert [] == [86859]
+E         
+E         Right contains one more item: 86859
+E         Use -v to get more diff
+
+tests/test_rejected_fields_are_refused.py:683: AssertionError
+_______________ test_has_sap_code_true_and_false_are_complements _______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_has_sap_code_true_and_false_are_complements(client):
+        """Both values work, they partition, and neither is the whole register.
+    
+        Scoped to assets this test made, because the two halves are asserted as
+        an exact partition and the register is shared with every other run.
+        """
+        marker = f"pytest-sapcode-{_uniq()}"
+        made = {_new_asset(client, name=f"{marker}-{n}")["id"] for n in (1, 2)}
+    
+        def ids(**params):
+            body = assert_envelope_ok(client.get(
+                "/api/v1/assets", params={"q": marker, "limit": 100, **params}))
+            return {a["id"] for a in body["data"]}
+    
+        unfiltered = ids()
+>       assert unfiltered == made, f"the marker scope is not ours: {unfiltered}"
+E       AssertionError: the marker scope is not ours: set()
+E       assert set() == {86862, 86863}
+E         
+E         Extra items in the right set:
+E         86862
+E         86863
+E         Use -v to get more diff
+
+tests/test_sap_reconciliation.py:241: AssertionError
+__________________ test_sap_fields_are_not_writable_on_create __________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b5bb6a0>
+
+    def test_sap_fields_are_not_writable_on_create(client, capture):
+        """A client that can set `sap_asset_number` can fake a reconciliation.
+    
+        The dual-code control is an audit control: `reconciled` is supposed to
+        mean finance booked the asset. A caller able to POST the number would
+        reach that state without SAP having booked anything, and a caller able to
+        POST the state would reach it without even the pretence of a code. Both
+        are REFUSED — rule 3, and since handoff 31 with a 400 rather than a 201
+        and a warning: until then the asset was created WITHOUT the number, which
+        is what Vendra dead-lettered after the fact, under an idempotency key
+        that replayed the same incomplete 201 on every retry.
+    
+        So this asserts two records: the refused body created NONE, and the same
+        asset sent without the four fields is created with an empty SAP block.
+        """
+        name = f"pytest-sapwrite-{_uniq()}"
+        r = client.post("/api/v1/assets", json={
+            "name": name,
+            "category_id": 1,
+            "sap_asset_number": "100000001234",
+            "sap_reconciliation_state": "reconciled",
+            "sap_code_source": "integration",
+            "sap_synced_at": "2026-09-06T10:00:00",
+        })
+        capture("sap/create_rejects_sap_fields", r)
+        assert_fields_refused(r, "sap_asset_number", "sap_reconciliation_state",
+                              "sap_code_source", "sap_synced_at")
+        assert ids_matching(client, "/api/v1/assets", name) == [], (
+            "the SAP fields were refused with a 400 and the asset was created "
+            "anyway")
+    
+        data = _new_asset(client, name=name)
+>       assert ids_matching(client, "/api/v1/assets", name) == [data["id"]]
+E       assert [] == [86864]
+E         
+E         Right contains one more item: 86864
+E         Use -v to get more diff
+
+tests/test_sap_reconciliation.py:369: AssertionError
+__________ test_requesting_marks_the_label_pending_and_mints_nothing ___________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, requester_id = 2
+approver_id = 6, capture = <function capture.<locals>._capture at 0x10b601d00>
+
+    def test_requesting_marks_the_label_pending_and_mints_nothing(
+            client, requester, requester_id, approver_id, capture):
+        """The request step, read back from the record.
+    
+        The reason and the notes are on the label — the thing handoff 38 §B.2
+        asked for, because until now the reason could only be typed on the Odoo
+        form and the API's own request would have recorded none.
+        """
+>       asset = _tagged_asset(client, "request")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:149: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'request'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+___ test_a_pending_label_still_resolves_by_code_and_serial_but_not_by_number ___
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+capture = <function capture.<locals>._capture at 0x10b66b420>
+
+    def test_a_pending_label_still_resolves_by_code_and_serial_but_not_by_number(
+            client, requester, approver_id, capture):
+        """Decision 5 of the handoff-38 contract, asserted from both sides.
+    
+        A pending tag's NUMBER no longer resolves — only `active` tags match by
+        number, unchanged from before. But the asset is still there and still
+        scannable by code or serial, and the lookup then carries the PENDING
+        tag's block with `tagged: false`, so a screen can say *replacement
+        pending* rather than *untagged* for a label that is physically on the
+        asset. This is also the nearest reachable case to "an asset with no
+        active tag", which `tests/test_barcode.py` names as inexpressible.
+        """
+>       asset = _tagged_asset(client, "pending-lookup")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'pending-lookup'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_________________ test_the_pending_queue_lists_it_newest_first _________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+capture = <function capture.<locals>._capture at 0x10b669e40>
+
+    def test_the_pending_queue_lists_it_newest_first(client, requester,
+                                                     approver_id, capture):
+>       a = _tagged_asset(client, "queue-a")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:223: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'queue-a'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_________ test_what_happened_to_mine_is_answerable_after_the_decision __________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, requester_id = 2
+approver_id = 6, capture = <function capture.<locals>._capture at 0x10b66aac0>
+
+    def test_what_happened_to_mine_is_answerable_after_the_decision(
+            client, requester, requester_id, approver_id, capture):
+        """Handoff 51 §1a, the reason the sibling route exists.
+    
+        The requester's question is not "what is pending", it is "what
+        happened to mine" — and a pending-only endpoint answers "nothing" the
+        moment the request is decided, however many filters it grows. So:
+        request, decide, then ask both routes.
+        """
+>       asset = _tagged_asset(client, "mine-decided")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:251: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'mine-decided'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+____________ test_the_replacements_record_lists_requests_not_labels ____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+capture = <function capture.<locals>._capture at 0x10b66ae80>
+
+    def test_the_replacements_record_lists_requests_not_labels(
+            client, requester, approver_id, capture):
+        """A label nobody has asked about is not a replacement request.
+    
+        Every asset mints a label at creation, so without the base domain this
+        route would be a label list wearing a replacement route's name — one
+        published name carrying two meanings, the defect class §1a names.
+        """
+>       fresh = _tagged_asset(client, "never-asked")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'never-asked'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+___________ test_the_replacements_filters_are_the_approvals_filters ____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+capture = <function capture.<locals>._capture at 0x10b66b240>
+
+    def test_the_replacements_filters_are_the_approvals_filters(
+            client, requester, approver_id, capture):
+        """`state` (the model's own values), `waiting_on_me`, `raised_by_me`.
+    
+        `waiting_on_me` is the approver's queue — requests NAMING the caller.
+        The suite's user is the nominated approver here, so its own
+        `waiting_on_me` must carry the pending row, and `state=pending` must
+        agree with the pending-only route about what is pending.
+        """
+>       asset = _tagged_asset(client, "filters")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:312: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'filters'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+____ test_a_rejected_request_stays_on_the_record_as_active_with_who_refused ____
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, requester_id = 2
+approver_id = 6, capture = <function capture.<locals>._capture at 0x10b66b2e0>
+
+    def test_a_rejected_request_stays_on_the_record_as_active_with_who_refused(
+            client, requester, requester_id, approver_id, capture):
+        """The third outcome: rejected goes back to `active`, and the row says
+        who refused and why — which is how the requester finds out."""
+>       asset = _tagged_asset(client, "rejected-record")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:349: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'rejected-record'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_____ test_a_second_request_on_a_pending_label_is_refused_naming_the_first _____
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, requester_id = 2
+approver_id = 6, capture = <function capture.<locals>._capture at 0x10b66ae80>
+
+    def test_a_second_request_on_a_pending_label_is_refused_naming_the_first(
+            client, requester, requester_id, approver_id, capture):
+>       asset = _tagged_asset(client, "twice")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:370: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'twice'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_________ test_a_reason_outside_the_set_is_refused_with_the_set_named __________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+capture = <function capture.<locals>._capture at 0x10b669b20>
+
+    def test_a_reason_outside_the_set_is_refused_with_the_set_named(
+            client, requester, approver_id, capture):
+>       asset = _tagged_asset(client, "bad-reason")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:391: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'bad-reason'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_____________ test_a_stray_body_key_is_refused_and_nothing_written _____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+
+    def test_a_stray_body_key_is_refused_and_nothing_written(
+            client, requester, approver_id):
+        """Handoff 31's contract: a key the route does not accept is a 400 and
+        NOTHING is written — not the keys beside it either."""
+>       asset = _tagged_asset(client, "stray-key")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:414: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'stray-key'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_______ test_a_body_naming_who_asked_or_decided_is_refused[requested_by] _______
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+claim = 'requested_by'
+
+    @pytest.mark.parametrize("claim", ["requested_by", "approved_by", "state",
+                                       "rejected_by", "replaced_by_id"])
+    def test_a_body_naming_who_asked_or_decided_is_refused(
+            client, requester, approver_id, claim):
+        """Who asked and who decided are taken from the token and the act. A
+        client able to write them could stamp any user as the authority."""
+>       asset = _tagged_asset(client, f"claim-{claim}")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:431: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'claim-requested_by'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_______ test_a_body_naming_who_asked_or_decided_is_refused[approved_by] ________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+claim = 'approved_by'
+
+    @pytest.mark.parametrize("claim", ["requested_by", "approved_by", "state",
+                                       "rejected_by", "replaced_by_id"])
+    def test_a_body_naming_who_asked_or_decided_is_refused(
+            client, requester, approver_id, claim):
+        """Who asked and who decided are taken from the token and the act. A
+        client able to write them could stamp any user as the authority."""
+>       asset = _tagged_asset(client, f"claim-{claim}")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:431: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'claim-approved_by'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+__________ test_a_body_naming_who_asked_or_decided_is_refused[state] ___________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+claim = 'state'
+
+    @pytest.mark.parametrize("claim", ["requested_by", "approved_by", "state",
+                                       "rejected_by", "replaced_by_id"])
+    def test_a_body_naming_who_asked_or_decided_is_refused(
+            client, requester, approver_id, claim):
+        """Who asked and who decided are taken from the token and the act. A
+        client able to write them could stamp any user as the authority."""
+>       asset = _tagged_asset(client, f"claim-{claim}")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:431: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'claim-state'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_______ test_a_body_naming_who_asked_or_decided_is_refused[rejected_by] ________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+claim = 'rejected_by'
+
+    @pytest.mark.parametrize("claim", ["requested_by", "approved_by", "state",
+                                       "rejected_by", "replaced_by_id"])
+    def test_a_body_naming_who_asked_or_decided_is_refused(
+            client, requester, approver_id, claim):
+        """Who asked and who decided are taken from the token and the act. A
+        client able to write them could stamp any user as the authority."""
+>       asset = _tagged_asset(client, f"claim-{claim}")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:431: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'claim-rejected_by'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+______ test_a_body_naming_who_asked_or_decided_is_refused[replaced_by_id] ______
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+claim = 'replaced_by_id'
+
+    @pytest.mark.parametrize("claim", ["requested_by", "approved_by", "state",
+                                       "rejected_by", "replaced_by_id"])
+    def test_a_body_naming_who_asked_or_decided_is_refused(
+            client, requester, approver_id, claim):
+        """Who asked and who decided are taken from the token and the act. A
+        client able to write them could stamp any user as the authority."""
+>       asset = _tagged_asset(client, f"claim-{claim}")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:431: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'claim-replaced_by_id'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+____________ test_the_approver_must_be_named_and_cannot_be_yourself ____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, requester_id = 2
+approver_id = 6, capture = <function capture.<locals>._capture at 0x10b668e00>
+
+    def test_the_approver_must_be_named_and_cannot_be_yourself(
+            client, requester, requester_id, approver_id, capture):
+        """The same two refusals `/assets/<id>/move` gives, because it is the
+        same helper: no `approver_id` lists who may be asked; naming yourself
+        is refused before the model sees it."""
+>       asset = _tagged_asset(client, "approver")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:444: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'approver'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+_____________ test_self_approval_is_refused_with_the_reason_named ______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, requester_id = 2
+approver_id = 6, capture = <function capture.<locals>._capture at 0x10b669300>
+
+    def test_self_approval_is_refused_with_the_reason_named(
+            client, requester, requester_id, approver_id, capture):
+        """403 and `is_own_request`, and the label stays pending.
+    
+        The flag matters as much as the status: *you asked for this one* and
+        *not yours to decide* are different messages to put on a screen.
+        """
+>       asset = _tagged_asset(client, "self-approve")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:486: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'self-approve'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+______ test_approving_scraps_the_label_mints_the_next_and_keeps_the_chain ______
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, requester_id = 2
+approver_id = 6, capture = <function capture.<locals>._capture at 0x10b668220>
+
+    def test_approving_scraps_the_label_mints_the_next_and_keeps_the_chain(
+            client, requester, requester_id, approver_id, capture):
+        """The whole of §B, read off the records.
+    
+        Old label scrapped, new number minted, `replaces` / `replaced_by`
+        naming each other, the reason recorded, who asked and who agreed two
+        different people — and the old number not reissued, which is proved
+        here by comparison and below by the lookup routes.
+        """
+>       asset = _tagged_asset(client, "approve")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:517: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'approve'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+________________________ test_a_decision_is_taken_once _________________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+capture = <function capture.<locals>._capture at 0x10b669580>
+
+    def test_a_decision_is_taken_once(client, requester, approver_id, capture):
+>       asset = _tagged_asset(client, "decide-once")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:577: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'decide-once'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+____________ test_rejecting_needs_a_reason_and_puts_the_label_back _____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+capture = <function capture.<locals>._capture at 0x10b66b600>
+
+    def test_rejecting_needs_a_reason_and_puts_the_label_back(
+            client, requester, approver_id, capture):
+        """The reason is REQUIRED, the refusal-for-want-of-one writes nothing,
+        and a rejected label is `active` again: its number resolves, and it
+        can be asked about afresh — with the earlier decision cleared."""
+>       asset = _tagged_asset(client, "reject")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:603: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'reject'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+________________ test_the_decision_body_may_only_carry_a_reason ________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+
+    def test_the_decision_body_may_only_carry_a_reason(client, requester,
+                                                       approver_id):
+>       asset = _tagged_asset(client, "decision-body")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:639: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+label = 'decision-body'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+___________ test_replaying_an_approval_under_the_same_key_mints_once ___________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+requester = <tests.conftest.ApiClient object at 0x10b1dbd90>, approver_id = 6
+
+    def test_replaying_an_approval_under_the_same_key_mints_once(
+            client, requester, approver_id):
+        """Idempotency is load-bearing: a retry after a timeout must not scrap
+        a second label or mint a second number."""
+>       asset = _tagged_asset(client, "idempotent")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tag_replacement.py:660: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>, label = 'idempotent'
+
+    def _tagged_asset(client, label):
+        """A new asset of this test's own, with the tag `nrs.asset.create`
+        mints, and a serial so the lookup-by-serial assertions have one."""
+        serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
+        asset = assert_envelope_ok(client.post("/api/v1/assets", json={
+            "name": _uniq(f"pytest-tagrepl-{label}"),
+            "category_id": 1,
+            "serial_number": serial,
+        }), 201)["data"]
+>       assert asset["tag"] and asset["tagging"]["label_id"], (
+            "nrs.asset.create is supposed to mint a tag; without one there is "
+            "nothing to replace")
+E       AssertionError: nrs.asset.create is supposed to mint a tag; without one there is nothing to replace
+E       assert (None)
+
+tests/test_tag_replacement.py:114: AssertionError
+______________ test_new_asset_has_a_tag_string_but_is_not_tagged _______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b668360>
+
+    def test_new_asset_has_a_tag_string_but_is_not_tagged(client, capture):
+        """`tag` is populated at creation; `is_tagged` must still be false.
+    
+        This is the exact false-completeness bug. If this test ever goes green by
+        reading `tag`, the audit trail is claiming every asset was physically
+        labelled the instant someone typed its name.
+        """
+        data = _new_asset(client)
+        tagging = data["tagging"]
+    
+>       assert data["tag"], "expected the auto-generated tag string to be present"
+E       AssertionError: expected the auto-generated tag string to be present
+E       assert None
+
+tests/test_tagging.py:41: AssertionError
+________________ test_affix_confirmation_makes_the_asset_tagged ________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b668900>
+
+    def test_affix_confirmation_makes_the_asset_tagged(client, capture):
+        """The happy path: a scanned tag matching the issued one."""
+        data = _new_asset(client)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"],
+            "affixed_by_name": "J. Okafor",
+        })
+        capture("tagging/affix", r)
+>       body = assert_envelope_ok(r)
+               ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tagging.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "e3b795f15a0c4adc807da61a2acba5f8", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+_____________ test_affix_rejects_a_tag_number_that_does_not_match ______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b669440>
+
+    def test_affix_rejects_a_tag_number_that_does_not_match(client, capture):
+        """The control. Without this check the endpoint records an assertion.
+    
+        Confirming a tag the asset was never issued is the failure the
+        serial-to-tag match exists to catch — a label from another asset, or a
+        typo, would otherwise be recorded as valid evidence.
+        """
+        data = _new_asset(client)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed",
+                        json={"tag_number": "DEFINITELY-NOT-THE-TAG"})
+        capture("tagging/affix_mismatch", r)
+>       assert_envelope_err(r, 400, "validation_failed")
+
+tests/test_tagging.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+_______ test_a_refused_affix_leaves_a_record_the_rollback_cannot_unwind ________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b66b4c0>
+
+    def test_a_refused_affix_leaves_a_record_the_rollback_cannot_unwind(
+            client, capture):
+        """Handoff 51 §2: a refusal is recorded, and the 400 cannot erase it.
+    
+        The refusal text names the expected number (handoff 39's ruling), so
+        one wrong entry reveals the right answer and a second attempt with it
+        will pass. Before this, that sequence left exactly one trace — a clean
+        affix record saying a human verified the label. The event row is what
+        makes it visible.
+    
+        The 400 path rolls the request transaction back (`cadra_endpoint`
+        calls `cr.rollback()` on a `ValidationError`), so this test is only
+        evidence because the read below is a SEPARATE request after the
+        response: a row that had gone on the request's own cursor would be
+        gone by then — measured, report 51 §2.
+        """
+        data = _new_asset(client)
+        wrong = f"WRONG-{_uniq()}"
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed",
+                        json={"tag_number": wrong})
+        capture("tagging/affix_refusal_recorded", r)
+>       assert_envelope_err(r, 400, "validation_failed")
+
+tests/test_tagging.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+______________ test_the_wrong_then_right_sequence_reads_in_order _______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b6309a0>
+
+    def test_the_wrong_then_right_sequence_reads_in_order(client, capture):
+        """Handoff 51 §2b step 4: refusal, then acceptance, both rows, in order.
+    
+        The pattern the record exists to expose: a refusal and a confirmation
+        moments apart, same asset, same operative. Both instants are on the
+        rows, so the gap between them is visible to anybody reading.
+        """
+        data = _new_asset(client)
+        wrong = f"WRONG-{_uniq()}"
+>       assert_envelope_err(client.post(
+            f"/api/v1/assets/{data['id']}/tag-affixed",
+            json={"tag_number": wrong}), 400, "validation_failed")
+
+tests/test_tagging.py:183: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+___________________ test_affix_accepts_a_supplied_timestamp ____________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_affix_accepts_a_supplied_timestamp(client):
+        """A unit tagging offline records when it happened, not when it synced."""
+        data = _new_asset(client)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "affixed_at": "2026-09-01T09:15:00"})
+>       body = assert_envelope_ok(r)
+               ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tagging.py:221: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "1078df537a2e41739757747f2af7c019", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+_______________ test_affix_rejects_a_serial_that_does_not_match ________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b66ae80>
+
+    def test_affix_rejects_a_serial_that_does_not_match(client, capture):
+        serial = f"SN-{_uniq()}"
+        data = _asset_with_serial(client, serial)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "serial_number": "SN-SOME-OTHER-BOX"})
+        capture("tagging/affix_serial_mismatch", r)
+>       body = assert_envelope_err(r, 400, "validation_failed")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tagging.py:246: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+_______ test_a_serial_mismatch_leaves_a_record_the_response_cannot_erase _______
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b66be20>
+
+    def test_a_serial_mismatch_leaves_a_record_the_response_cannot_erase(
+            client, capture):
+        """Handoff 52 §4: the serial refusal is recorded, with its own reason.
+    
+        This is the exact *label going onto the wrong box* event an auditor
+        wants, and the cheaper tell: unlike the number refusal, it reveals
+        nothing to the person being refused that they did not already know.
+        It is also the `err(...)` path, not a raise — no exception, no
+        decorator rollback — so its placement was measured separately from
+        handoff 51's (report 52 §4): a same-cursor write here would survive,
+        and the shared own-cursor recorder is used anyway, one mechanism for
+        all three refusals. The read below is still a SEPARATE request after
+        the 400, the 51 §2b discipline, so this test cannot be fooled by a
+        row that only existed inside the refused request's transaction.
+        """
+        serial = f"SN-{_uniq()}"
+        wrong = f"SN-WRONG-{_uniq()}"
+        data = _asset_with_serial(client, serial)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "serial_number": wrong})
+        capture("tagging/serial_refusal_recorded", r)
+>       body = assert_envelope_err(r, 400, "validation_failed")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tagging.py:280: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+___________ test_a_refusal_records_the_format_the_value_was_read_in ____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b630680>
+
+    def test_a_refusal_records_the_format_the_value_was_read_in(client, capture):
+        """A refusal with `scanned_format` lands it in the history, beside
+        `scanned`; a refusal without it publishes null, never a guess."""
+        data = _new_asset(client)
+        wrong_scanned = f"WRONG-CAM-{_uniq()}"
+        wrong_typed = f"WRONG-TYPED-{_uniq()}"
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": wrong_scanned, "scanned_format": "code_39"})
+        capture("tagging/affix_refusal_with_format", r)
+>       assert_envelope_err(r, 400, "validation_failed")
+
+tests/test_tagging.py:347: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+_____________ test_a_serial_refusal_records_the_serials_own_format _____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_a_serial_refusal_records_the_serials_own_format(client):
+        """`serial_format` is the serial READ's format: on a `serial_mismatch`
+        it is what lands in `scanned_format`, because `scanned` there is the
+        serial as entered."""
+        serial = f"SN-{_uniq()}"
+        data = _asset_with_serial(client, serial)
+        wrong = f"SN-WRONG-{_uniq()}"
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "serial_number": wrong,
+            "serial_format": "data_matrix"})
+>       assert_envelope_err(r, 400, "validation_failed")
+
+tests/test_tagging.py:374: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+_______________ test_a_serial_format_without_a_serial_is_refused _______________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_a_serial_format_without_a_serial_is_refused(client):
+        """A claim about how a value was read, with no value: contradictory
+        input is refused rather than quietly ignored (handoff 34's rule)."""
+        data = _new_asset(client)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "serial_format": "code_39"})
+        body = assert_envelope_err(r, 400, "invalid_request")
+>       assert body["error"]["details"]["field"] == "serial_format"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'field'
+
+tests/test_tagging.py:391: KeyError
+________ test_a_format_outside_the_enum_is_refused_and_nothing_written _________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+capture = <function capture.<locals>._capture at 0x10b66be20>
+
+    def test_a_format_outside_the_enum_is_refused_and_nothing_written(
+            client, capture):
+        """`scanned_format: "CODE128"` is a client bug, not a fact to store.
+    
+        Refused 400 `invalid_request` naming the allowed values, and NOTHING
+        is written — not the affix the correct tag number beside it would have
+        earned, and not a refusal event either: a refusal record is for an act
+        an operative made, not for a body the route could not read.
+        """
+        data = _new_asset(client)
+        for key in ("scanned_format", "serial_format"):
+            r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+                "tag_number": data["tag"], key: "CODE128"})
+            if key == "scanned_format":
+                capture("tagging/affix_format_outside_enum", r)
+            body = assert_envelope_err(r, 400, "invalid_request")
+            details = body["error"]["details"]
+>           assert details["field"] == key
+                   ^^^^^^^^^^^^^^^^
+E           KeyError: 'field'
+
+tests/test_tagging.py:416: KeyError
+___________ test_a_successful_affix_with_a_format_stores_nothing_new ___________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_a_successful_affix_with_a_format_stores_nothing_new(client):
+        """Handoff 54 §7's ruling, pinned from the outside: the format exists
+        only on the refusal record. A clean affix sent with `scanned_format`
+        succeeds exactly as one without it, and no new key appears anywhere
+        in the tagging block."""
+        data = _new_asset(client)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "scanned_format": "qr_code"})
+>       tagging = assert_envelope_ok(r)["data"]["tagging"]
+                  ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tagging.py:441: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "59842eb9132a4d5d86d01c6880b0947a", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+_____________________ test_affix_accepts_a_matching_serial _____________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_affix_accepts_a_matching_serial(client):
+        serial = f"SN-{_uniq()}"
+        data = _asset_with_serial(client, serial)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "serial_number": serial})
+>       assert assert_envelope_ok(r)["data"]["tagging"]["is_tagged"] is True
+               ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tagging.py:457: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "5464d48bad504715b76210ce730b9ac8", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+_____________________ test_affix_serial_match_ignores_case _____________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_affix_serial_match_ignores_case(client):
+        """A serial read off an engraved plate or a barcode: case is not data."""
+        serial = f"sn-lower-{_uniq()}"
+        data = _asset_with_serial(client, serial)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "serial_number": serial.upper()})
+>       assert assert_envelope_ok(r)["data"]["tagging"]["is_tagged"] is True
+               ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tagging.py:466: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "cf9b8b85178847e5950c067f5d755923", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+________________________ test_affix_serial_is_optional _________________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_affix_serial_is_optional(client):
+        """A fixed asset with no legible serial still has to be taggable."""
+        data = _new_asset(client)
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed",
+                        json={"tag_number": data["tag"]})
+>       assert assert_envelope_ok(r)["data"]["tagging"]["is_tagged"] is True
+               ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_tagging.py:474: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "60d9883b31c949209225f51b6afb0688", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+_____ test_affix_refuses_to_verify_a_serial_against_a_record_that_has_none _____
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_affix_refuses_to_verify_a_serial_against_a_record_that_has_none(client):
+        """Saying "cannot check" beats passing quietly.
+    
+        An asset with no serial on file cannot corroborate a scanned one. Letting
+        it through would record a serial-to-tag match that was never performed.
+        """
+        data = _new_asset(client)            # created without a serial_number
+        r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
+            "tag_number": data["tag"], "serial_number": "SN-ANYTHING"})
+>       assert_envelope_err(r, 400, "validation_failed")
+
+tests/test_tagging.py:486: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 400
+expected_code = 'validation_failed'
+
+    def assert_envelope_err(response, expected_status, expected_code=None):
+        """Assert response is the PRD error envelope at the given status."""
+        assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+        body = response.json()
+        assert "error" in body, f"missing `error` in envelope: {body}"
+        err = body["error"]
+        assert "code" in err and err["code"], "missing error.code"
+        assert "message" in err and err["message"], "missing error.message"
+        assert "request_id" in err and err["request_id"], "missing error.request_id"
+        if expected_code:
+>           assert err["code"] == expected_code, (
+                f"expected code={expected_code}, got {err['code']}"
+            )
+E           AssertionError: expected code=validation_failed, got invalid_request
+E           assert 'invalid_request' == 'validation_failed'
+E             
+E             - validation_failed
+E             + invalid_request
+
+tests/conftest.py:1059: AssertionError
+___________________ test_asset_tag_is_not_writable_on_create ___________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_asset_tag_is_not_writable_on_create(client):
+        """A client that can set `tag` can walk the record off the physical label.
+    
+        It would then fail the affix check it just defeated, with a 400 that looks
+        like the scanner's fault. Breaking change, announced: Vendra is the only
+        live consumer and does not write this field.
+    
+        REFUSED since handoff 31, where it was dropped beside a 201: the asset
+        was created under a tag Cadra minted, and the caller that believed it
+        had chosen one found out at the affix check. Nothing is created now, and
+        the same asset without the tag is.
+        """
+        name = f"pytest-tagwrite-{_uniq()}"
+        r = client.post("/api/v1/assets", json={
+            "name": name, "category_id": 1,
+            "asset_tag": "OPERATOR-CHOSEN-TAG"})
+        assert_fields_refused(r, "asset_tag")
+        assert ids_matching(client, "/api/v1/assets", name) == [], (
+            "`asset_tag` was refused with a 400 and the asset was created anyway")
+    
+        created = _new_asset(client, name=name)
+>       assert ids_matching(client, "/api/v1/assets", name) == [created["id"]]
+E       assert [] == [86908]
+E         
+E         Right contains one more item: 86908
+E         Use -v to get more diff
+
+tests/test_tagging.py:513: AssertionError
+__________________ test_filters_separate_tagged_from_untagged __________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_filters_separate_tagged_from_untagged(client):
+        """`?is_tagged=` is the question Vendra asks; it must partition correctly."""
+        name = f"pytest-tagfilter-{_uniq()}"
+        untagged = _new_asset(client, name=f"{name}-untagged")
+        tagged = _new_asset(client, name=f"{name}-tagged")
+>       assert_envelope_ok(client.post(
+            f"/api/v1/assets/{tagged['id']}/tag-affixed",
+            json={"tag_number": tagged["tag"]}))
+
+tests/test_tagging.py:561: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "fd6bc4a615a34242830614521d188757", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+_______ test_repeat_confirmation_does_not_rewrite_the_original_evidence ________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_repeat_confirmation_does_not_rewrite_the_original_evidence(client):
+        """A second confirmation must not blank who fitted the label, or when.
+    
+        Neither `affixed_by_name` nor `affixed_date` is tracked, so an overwrite
+        does not supersede the original — it destroys it. A caller retrying
+        without the optional fields would silently erase the evidence.
+        """
+        data = _new_asset(client)
+>       first = assert_envelope_ok(client.post(
+            f"/api/v1/assets/{data['id']}/tag-affixed",
+            json={"tag_number": data["tag"],
+                  "affixed_by_name": "FIRST Operative",
+                  "affixed_at": "2026-01-01T10:00:00"}))["data"]["tagging"]
+
+tests/test_tagging.py:602: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "4c86100fe35f461691b66bff11bb6820", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+____________ test_a_tag_awaiting_replacement_still_reads_as_tagged _____________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_a_tag_awaiting_replacement_still_reads_as_tagged(client):
+        """Requesting a replacement does not peel the label off the asset.
+    
+        `active_tag_id` drops a tag the moment its state becomes `pending`. If
+        the tagging block read that, an asset with a label physically on it would
+        report as never tagged and land back in the `?is_tagged=false` worklist —
+        the false-completeness bug pointed the other way.
+        """
+        data = _new_asset(client)
+>       assert_envelope_ok(client.post(f"/api/v1/assets/{data['id']}/tag-affixed",
+                                       json={"tag_number": data["tag"]}))
+
+tests/test_tagging.py:630: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = <Response [400]>, expected_status = 200
+
+    def assert_envelope_ok(response, expected_status=200):
+        """Assert response is the PRD success envelope at the given status."""
+>       assert response.status_code == expected_status, (
+            f"expected {expected_status}, got {response.status_code}: {response.text[:300]}"
+        )
+E       AssertionError: expected 200, got 400: {"error": {"code": "invalid_request", "message": "`tag_number` is required", "request_id": "9b8c6d619ed940b382089edfbedb44fe", "details": {"http_status": 400}}}
+E       assert 400 == 200
+E        +  where 400 = <Response [400]>.status_code
+
+tests/conftest.py:1034: AssertionError
+__________________ test_minting_a_tag_is_not_printing_a_label __________________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+test_location = {'active': True, 'address': {'city': None, 'country': None, 'state': None, 'street': None, ...}, 'child_all_count': 0, 'child_count': 0, ...}
+
+    def test_minting_a_tag_is_not_printing_a_label(client, test_location):
+        """What this file CAN prove about printing, and what it cannot.
+    
+        It used to be called `test_printing_records_who_printed_and_when` and was
+        named for acceptance criterion 1 — while asserting `printed_at is None`
+        twice, both assertions negative. It never printed anything, and neither
+        did anything else in this repository: `/report/pdf/` is `auth='user'` and
+        this suite holds a bearer token, not an Odoo session, so it cannot render
+        a report at all. A test that cannot reach the funnel cannot cover it.
+    
+        The rename is the honest scope. The guarantee it does hold — that minting
+        an identity is not the same event as issuing a print instruction — is
+        real and is the reason `label_state` exists separately from `state`.
+    
+        Acceptance criterion 1 is covered where the render actually happens:
+        `myservice_asset_register/tests/test_print_funnel.py`, which drives every
+        real caller through `_render_qweb_pdf` and asserts the stamp, including
+        once against wkhtmltopdf for a genuine PDF.
+        """
+        data = _new_asset(client)
+        assert data["tagging"]["printed_at"] is None
+    
+        r = client.post("/api/v1/barcode/generate", json={"asset_ids": [data["id"]]})
+        if r.status_code == 404:
+            import pytest
+            pytest.skip("barcode generate endpoint not available on this instance")
+    
+        body = assert_envelope_ok(client.get(f"/api/v1/assets/{data['id']}"))
+        tagging = body["data"]["tagging"]
+        assert tagging["printed_at"] is None, "minting a tag is not printing a label"
+        assert tagging["printed_by"] is None
+>       assert tagging["label_state"] == "issued", (
+            "a freshly minted label has been issued and nothing more"
+        )
+E       AssertionError: a freshly minted label has been issued and nothing more
+E       assert None == 'issued'
+
+tests/test_tagging.py:701: AssertionError
+_________ test_tagging_block_carries_the_label_id_that_print_url_wants _________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+
+    def test_tagging_block_carries_the_label_id_that_print_url_wants(client):
+        """`data.tagging.label_id` closes a gap that had no safe workaround.
+    
+        `GET /barcode/print-url` takes an `nrs.asset.tag.label` id, and until this
+        key existed the only endpoint that put an asset next to its label id was
+        `/barcode/recent-tags`. A caller holding an asset payload had to guess —
+        and the two id spaces collide numerically, so guessing the asset id does
+        not fail, it renders a real label for a different machine.
+        """
+        data = _new_asset(client)
+        label_id = data["tagging"]["label_id"]
+    
+>       assert label_id is not None, (
+            "a freshly created asset already has a tag record, so label_id must "
+            "be populated — `null` here means an integration has no way to print"
+        )
+E       AssertionError: a freshly created asset already has a tag record, so label_id must be populated — `null` here means an integration has no way to print
+E       assert None is not None
+
+tests/test_tagging.py:721: AssertionError
+__________ test_each_status_filter_returns_only_rows_that_publish_it ___________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+marker = 'pytest-warranty-1791797673'
+
+    def test_each_status_filter_returns_only_rows_that_publish_it(
+            client, marker):
+        today = _lagos_today()
+        under = _new(client, f"{marker}-f-under",
+                     warranty_expiry=_iso(today))
+        expired = _new(client, f"{marker}-f-expired",
+                       warranty_expiry=_iso(today - datetime.timedelta(days=1)))
+        none = _new(client, f"{marker}-f-none")
+        expected = {"under_warranty": under["id"], "expired": expired["id"],
+                    "none": none["id"]}
+        for status, mine in expected.items():
+            ids, body = _ids(client, warranty_status=status, q=f"{marker}-f-")
+>           assert ids == [mine], (status, ids)
+E           AssertionError: ('under_warranty', [])
+E           assert [] == [86922]
+E             
+E             Right contains one more item: 86922
+E             Use -v to get more diff
+
+tests/test_warranty.py:180: AssertionError
+_________ test_expiring_soon_is_a_window_of_days_never_an_expired_one __________
+
+client = <tests.conftest.ApiClient object at 0x10a7c3c50>
+marker = 'pytest-warranty-1791797673'
+
+    def test_expiring_soon_is_a_window_of_days_never_an_expired_one(
+            client, marker):
+        today = _lagos_today()
+        soon = _new(client, f"{marker}-w-soon",
+                    warranty_expiry=_iso(today + datetime.timedelta(days=10)))
+        today_row = _new(client, f"{marker}-w-today", warranty_expiry=_iso(today))
+        gone = _new(client, f"{marker}-w-gone",
+                    warranty_expiry=_iso(today - datetime.timedelta(days=1)))
+        ids, _ = _ids(client, warranty_expires_within_days=30, q=f"{marker}-w-")
+>       assert sorted(ids) == sorted([soon["id"], today_row["id"]])
+E       assert [] == [86925, 86926]
+E         
+E         Right contains 2 more items, first extra item: 86925
+E         Use -v to get more diff
+
+tests/test_warranty.py:196: AssertionError
+============================ cadra api test report =============================
+Report: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-report.md
+Captured responses: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-responses/
+=========================== short test summary info ============================
+FAILED tests/test_asset_events_api.py::test_an_event_this_suite_wrote_says_so
+FAILED tests/test_asset_events_api.py::test_the_history_says_from_when_each_kind_of_event_is_recorded
+FAILED tests/test_asset_events_api.py::test_the_location_hierarchy_is_refused_on_create_and_creates_nothing
+FAILED tests/test_assets.py::test_get_by_tag - AssertionError: expected 200, ...
+FAILED tests/test_assets.py::test_filter_by_grn_reference - AssertionError: e...
+FAILED tests/test_assets.py::test_filter_by_purchase_order_reference - assert...
+FAILED tests/test_assets.py::test_filter_by_vendor_and_import_fields - Assert...
+FAILED tests/test_assets.py::test_q_matches_grn_reference - assert 86815 in s...
+FAILED tests/test_assets.py::test_grn_filter_is_exact_not_prefix - AssertionE...
+FAILED tests/test_assets_sort.py::test_sort_newest_puts_the_most_recent_asset_first
+FAILED tests/test_audit_reports.py::test_the_snapshot_excludes_an_asset_created_after_the_date
+FAILED tests/test_audit_reports.py::test_a_snapshot_row_declares_its_own_degradation
+FAILED tests/test_audit_reports.py::test_the_snapshot_total_is_the_true_count
+FAILED tests/test_audit_reports.py::test_a_disposal_with_no_reference_is_present_with_its_finding
+FAILED tests/test_audit_reports.py::test_the_summary_counts_match_the_rows - ...
+FAILED tests/test_audit_reports.py::test_the_sap_position_is_a_statement_and_not_a_per_row_finding
+FAILED tests/test_audit_reports.py::test_the_sap_statement_is_never_the_absolute_one_when_it_is_untrue
+FAILED tests/test_audit_reports.py::test_the_period_bounds_are_both_inclusive
+FAILED tests/test_audit_reports.py::test_neither_report_repairs_what_it_finds
+FAILED tests/test_barcode.py::test_lookup_with_query - AssertionError: expect...
+FAILED tests/test_barcode.py::test_print_url - AssertionError: the test asset...
+FAILED tests/test_barcode.py::test_tags_lookup - AssertionError: expected 200...
+FAILED tests/test_barcode.py::test_lookup_by_tag_says_it_matched_the_tag - As...
+FAILED tests/test_barcode.py::test_lookup_by_asset_code_says_so - AssertionEr...
+FAILED tests/test_barcode.py::test_lookup_by_the_serial_of_a_tagged_asset - A...
+FAILED tests/test_barcode.py::test_a_scanner_s_whitespace_still_finds_the_serial[{serial} ]
+FAILED tests/test_barcode.py::test_a_scanner_s_whitespace_still_finds_the_serial[ {serial}]
+FAILED tests/test_barcode.py::test_a_scanner_s_whitespace_still_finds_the_serial[{serial}\n]
+FAILED tests/test_barcode.py::test_a_scanner_s_whitespace_still_finds_the_serial[{serial}]
+FAILED tests/test_barcode.py::test_the_serial_match_ignores_case - AssertionE...
+FAILED tests/test_barcode.py::test_the_serial_match_is_exact_not_partial - As...
+FAILED tests/test_barcode.py::test_a_tag_number_beats_a_serial_that_reads_the_same
+FAILED tests/test_barcode.py::test_an_asset_code_beats_a_serial_that_reads_the_same
+FAILED tests/test_barcode.py::test_a_serial_on_two_assets_is_a_miss_that_says_so
+FAILED tests/test_barcode.py::test_tags_lookup_by_serial_through_the_public_style_twin
+FAILED tests/test_idempotency.py::test_concurrent_same_key_creates_exactly_one
+FAILED tests/test_rejected_fields_are_refused.py::test_the_same_create_without_the_refused_key_creates_exactly_one[POST /assets]
+FAILED tests/test_rejected_fields_are_refused.py::test_a_refused_create_does_not_burn_its_idempotency_key
+FAILED tests/test_sap_reconciliation.py::test_has_sap_code_true_and_false_are_complements
+FAILED tests/test_sap_reconciliation.py::test_sap_fields_are_not_writable_on_create
+FAILED tests/test_tag_replacement.py::test_requesting_marks_the_label_pending_and_mints_nothing
+FAILED tests/test_tag_replacement.py::test_a_pending_label_still_resolves_by_code_and_serial_but_not_by_number
+FAILED tests/test_tag_replacement.py::test_the_pending_queue_lists_it_newest_first
+FAILED tests/test_tag_replacement.py::test_what_happened_to_mine_is_answerable_after_the_decision
+FAILED tests/test_tag_replacement.py::test_the_replacements_record_lists_requests_not_labels
+FAILED tests/test_tag_replacement.py::test_the_replacements_filters_are_the_approvals_filters
+FAILED tests/test_tag_replacement.py::test_a_rejected_request_stays_on_the_record_as_active_with_who_refused
+FAILED tests/test_tag_replacement.py::test_a_second_request_on_a_pending_label_is_refused_naming_the_first
+FAILED tests/test_tag_replacement.py::test_a_reason_outside_the_set_is_refused_with_the_set_named
+FAILED tests/test_tag_replacement.py::test_a_stray_body_key_is_refused_and_nothing_written
+FAILED tests/test_tag_replacement.py::test_a_body_naming_who_asked_or_decided_is_refused[requested_by]
+FAILED tests/test_tag_replacement.py::test_a_body_naming_who_asked_or_decided_is_refused[approved_by]
+FAILED tests/test_tag_replacement.py::test_a_body_naming_who_asked_or_decided_is_refused[state]
+FAILED tests/test_tag_replacement.py::test_a_body_naming_who_asked_or_decided_is_refused[rejected_by]
+FAILED tests/test_tag_replacement.py::test_a_body_naming_who_asked_or_decided_is_refused[replaced_by_id]
+FAILED tests/test_tag_replacement.py::test_the_approver_must_be_named_and_cannot_be_yourself
+FAILED tests/test_tag_replacement.py::test_self_approval_is_refused_with_the_reason_named
+FAILED tests/test_tag_replacement.py::test_approving_scraps_the_label_mints_the_next_and_keeps_the_chain
+FAILED tests/test_tag_replacement.py::test_a_decision_is_taken_once - Asserti...
+FAILED tests/test_tag_replacement.py::test_rejecting_needs_a_reason_and_puts_the_label_back
+FAILED tests/test_tag_replacement.py::test_the_decision_body_may_only_carry_a_reason
+FAILED tests/test_tag_replacement.py::test_replaying_an_approval_under_the_same_key_mints_once
+FAILED tests/test_tagging.py::test_new_asset_has_a_tag_string_but_is_not_tagged
+FAILED tests/test_tagging.py::test_affix_confirmation_makes_the_asset_tagged
+FAILED tests/test_tagging.py::test_affix_rejects_a_tag_number_that_does_not_match
+FAILED tests/test_tagging.py::test_a_refused_affix_leaves_a_record_the_rollback_cannot_unwind
+FAILED tests/test_tagging.py::test_the_wrong_then_right_sequence_reads_in_order
+FAILED tests/test_tagging.py::test_affix_accepts_a_supplied_timestamp - Asser...
+FAILED tests/test_tagging.py::test_affix_rejects_a_serial_that_does_not_match
+FAILED tests/test_tagging.py::test_a_serial_mismatch_leaves_a_record_the_response_cannot_erase
+FAILED tests/test_tagging.py::test_a_refusal_records_the_format_the_value_was_read_in
+FAILED tests/test_tagging.py::test_a_serial_refusal_records_the_serials_own_format
+FAILED tests/test_tagging.py::test_a_serial_format_without_a_serial_is_refused
+FAILED tests/test_tagging.py::test_a_format_outside_the_enum_is_refused_and_nothing_written
+FAILED tests/test_tagging.py::test_a_successful_affix_with_a_format_stores_nothing_new
+FAILED tests/test_tagging.py::test_affix_accepts_a_matching_serial - Assertio...
+FAILED tests/test_tagging.py::test_affix_serial_match_ignores_case - Assertio...
+FAILED tests/test_tagging.py::test_affix_serial_is_optional - AssertionError:...
+FAILED tests/test_tagging.py::test_affix_refuses_to_verify_a_serial_against_a_record_that_has_none
+FAILED tests/test_tagging.py::test_asset_tag_is_not_writable_on_create - asse...
+FAILED tests/test_tagging.py::test_filters_separate_tagged_from_untagged - As...
+FAILED tests/test_tagging.py::test_repeat_confirmation_does_not_rewrite_the_original_evidence
+FAILED tests/test_tagging.py::test_a_tag_awaiting_replacement_still_reads_as_tagged
+FAILED tests/test_tagging.py::test_minting_a_tag_is_not_printing_a_label - As...
+FAILED tests/test_tagging.py::test_tagging_block_carries_the_label_id_that_print_url_wants
+FAILED tests/test_warranty.py::test_each_status_filter_returns_only_rows_that_publish_it
+FAILED tests/test_warranty.py::test_expiring_soon_is_a_window_of_days_never_an_expired_one
+SKIPPED [1] tests/test_audit_reports.py:447: fewer than two snapshot rows to page
+SKIPPED [1] tests/test_audit_reports.py:783: fewer than two disposals in the fixture period
+SKIPPED [1] tests/test_barcode.py:397: the API cannot create an asset without a tag: `tag_source` and `asset_tag` are not in `_WRITABLE_FIELDS` and every `POST /api/v1/assets` mints one. The untagged-serial lookup is proved by the browser pass against a row created in Odoo.
+SKIPPED [1] tests/test_integrations.py:115: this tenant has no active workflow.config, so the v1 callback refuses 503 and the replay path is unreachable from here
+SKIPPED [1] tests/test_query_params.py:119: `is_tagged` published `null` as 'no filter' before this rule existed and keeps it — see the comment in v1_assets._list_domain
+SKIPPED [1] tests/test_query_params.py:195: no data to partition on this tenant: `closed=true` matched 0 rows and `closed=false` matched 1048. The refusal test above still covers the 400; this assertion needs both halves to exist.
+SKIPPED [1] tests/test_query_params.py:195: no data to partition on this tenant: `is_staff_bus=true` matched 0 rows and `is_staff_bus=false` matched 0. The refusal test above still covers the 400; this assertion needs both halves to exist.
+SKIPPED [1] tests/test_turnstile.py:125: Turnstile is not configured on this deployment
+SKIPPED [1] tests/test_turnstile.py:140: Turnstile is not configured on this deployment
+87 failed, 1235 passed, 9 skipped in 578.15s (0:09:38)

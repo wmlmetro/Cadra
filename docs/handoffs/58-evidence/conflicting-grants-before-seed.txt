@@ -1,0 +1,68 @@
+== cadra19
+people (internal, not credentials): 3
+people holding a forbidden pair: 0
+== nrs19
+people (internal, not credentials): 5
+people holding a forbidden pair: 0
+== gtb19
+people (internal, not credentials): 9
+people holding a forbidden pair: 0
+== test19
+people (internal, not credentials): 665
+people holding a forbidden pair: 16
+  e2e-1791052081211-740-officer-5jn2oq@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791012336740-6692-officer-uf9vgb@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791188711915-6887-officer-o1lhy7@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791272909436-4174-officer-nyts3t@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791094622233-931-officer-jifiuv@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791012336740-6692-officer-tdsvt6@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791188711915-6887-officer-b2ucdy@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791272909436-4174-officer-qlya53@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791012188398-5182-officer-j4naxc@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791052081211-740-officer-r0lxt5@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791236324285-9589-officer-2nxfl4@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791094622233-931-officer-b5wk9b@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791181422710-957-officer-2svsp6@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791236324285-9589-officer-lxq33v@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791012163556-4418-officer-xzbt1x@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791181422710-957-officer-wdo7ps@example.invalid (inactive) — officer × tag_issuing_unit
+== nrs
+people (internal, not credentials): 8
+people holding a forbidden pair: 0
+== lasg
+people (internal, not credentials): 15
+people holding a forbidden pair: 0
+== gtb
+people (internal, not credentials): 15
+people holding a forbidden pair: 0
+== jaizbankplc
+people (internal, not credentials): 21
+people holding a forbidden pair: 0
+== boot44
+people (internal, not credentials): 37
+people holding a forbidden pair: 10
+  e2e-1790982351023-3753-officer-aavom6@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1790982213385-3651-officer-ayp3uw@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1790979715516-5942-officer-zhxlcf@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1790982213385-3651-officer-jw9qxv@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1790979555145-6721-officer@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1790982314262-9196-officer-a7nhow@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1790982279152-4222-officer-gfwytg@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1790979667666-4085-officer-0nv4w5@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791012401330-9872-officer-z90bc0@example.invalid (inactive) — officer × tag_issuing_unit
+  e2e-1791012401330-9872-officer-9vwf2v@example.invalid (inactive) — officer × tag_issuing_unit
+
+# The cluster — measured BEFORE the seed through the read-only `db-query`
+# workflow (SET TRANSACTION READ ONLY), the same SQL, 2026-10-12:
+== staging (run 38231213472)
+people (internal, not credentials): 17
+people holding a forbidden pair: 0
+== jaizbankplc (run 38231234158)
+people (internal, not credentials): 15
+people holding a forbidden pair: 0
+== lasg (run 38231244194)
+people (internal, not credentials): 15
+people holding a forbidden pair: 0
+== gtb (run 38252143640; the first dispatch, 38231224358, was cancelled by the workflow's one-at-a-time concurrency group)
+people (internal, not credentials): 15
+people holding a forbidden pair: 0
