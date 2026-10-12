@@ -21,6 +21,7 @@ import time
 
 import pytest
 
+from . import gates
 from .conftest import assert_envelope_err, assert_envelope_ok
 
 #: The keys a caller may write, all of them published inside `warranty`
@@ -43,10 +44,12 @@ def _iso(day):
 
 
 def _new(client, name, **extra):
+    """An asset ON THE REGISTER whichever way the receipt switch is set
+    (handoff 58 §2) — the warranty filters read the register, which with the
+    gates on hides a receipt until `tests/gates.py` walks it onto it."""
     body = {"name": name, "category_id": 1}
     body.update(extra)
-    return assert_envelope_ok(
-        client.post("/api/v1/assets", json=body), expected_status=201)["data"]
+    return gates.new_registered_asset(client, **body)
 
 
 def _get(client, asset_id):
@@ -138,8 +141,8 @@ def test_a_contradicting_expiry_is_refused_and_nothing_is_written(
     {"warranty_start_date": "2026-03-12", "warranty_months": 24.5},
 ])
 def test_half_a_basis_or_a_bad_duration_is_refused(client, marker, body):
-    r = client.post("/api/v1/assets",
-                    json=dict(body, name=f"{marker}-refused", category_id=1))
+    r = client.post("/api/v1/assets", json=gates.receipt_body(
+        client, **dict(body, name=f"{marker}-refused", category_id=1)))
     assert_envelope_err(r, 400, "validation_failed")
 
 

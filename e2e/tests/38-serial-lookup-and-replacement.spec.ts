@@ -57,9 +57,12 @@ test("tag, asset code, serial and serial-with-trailing-space all find the asset,
   await expect(badge).toHaveText(/found by tag/i, { timeout: 20_000 });
   await expect(page.getByText(a.name, { exact: false }).first()).toBeVisible();
 
-  // 2 · The asset code.
+  // 2 · The asset code. With the receipt gates on, the label is minted at
+  //     request-tagging and its number IS the asset code (ruling 4.3: one
+  //     identifier), so the code scan resolves at the first rung, the tag —
+  //     the pytest twin asserts the same (`test_lookup_by_asset_code_says_so`).
   await scan(page, a.code);
-  await expect(badge).toHaveText(/found by asset code/i, { timeout: 20_000 });
+  await expect(badge).toHaveText(a.tag === a.code ? /found by tag/i : /found by asset code/i, { timeout: 20_000 });
 
   // 3 · The serial of a TAGGED asset — the case that found nothing before.
   await scan(page, a.serial);

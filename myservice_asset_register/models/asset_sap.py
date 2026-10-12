@@ -38,6 +38,9 @@ from odoo.exceptions import ValidationError
 SAP_SOURCE_INTEGRATION = 'integration'
 SAP_SOURCE_IMPORT = 'import'
 SAP_SOURCE_MANUAL = 'manual'
+# A code the Register Maker typed that SAP's INT-06 answer then returned
+# unchanged (handoff 58, P4): still the maker's entry, now evidenced.
+SAP_SOURCE_CONFIRMED = 'confirmed'
 
 # How far the INT-06 posting has got. Maintained by the transport module; a
 # plain stored field rather than a compute over dispatch rows, so the asset
@@ -101,11 +104,28 @@ class NRSAssetSAP(models.Model):
         (SAP_SOURCE_INTEGRATION, 'Returned by SAP (INT-07)'),
         (SAP_SOURCE_IMPORT, 'Loaded from a legacy extract'),
         (SAP_SOURCE_MANUAL, 'Entered by hand'),
+        (SAP_SOURCE_CONFIRMED, 'Entered by hand, confirmed by SAP'),
     ], string='SAP Code Source', copy=False, index=True,
        help='How the SAP asset number got onto this record. A code returned '
             'by SAP is evidence that finance booked the asset; a code typed '
             'in by a person is a claim that they did. The dual-code control '
             'is an audit control, so the two must not look alike.')
+
+    # ── When SAP's answer and the maker's entry disagree (handoff 58, P4) ─
+    #
+    # A unit that came through the receipt gates carries the SAP asset code
+    # the Register Maker TYPED, approved by a checker. Until 58 the INT-06
+    # answer overwrote it silently with whatever SAP returned. Now the
+    # maker's number stays on the record — it is what two people signed —
+    # SAP's different number is kept beside it, and the asset becomes a
+    # dual-code exception naming both numbers, the maker and the checker.
+    sap_returned_asset_number = fields.Char(
+        'SAP Asset Number (as returned)', copy=False, readonly=True,
+        help='The asset number SAP returned on INT-06 when it DIFFERED from '
+             'the one the Register Maker entered. Empty when they agree or '
+             'when SAP has not answered.')
+    sap_discrepancy_at = fields.Datetime(
+        'SAP Discrepancy Raised', copy=False, readonly=True)
 
     # ── Posting progress (INT-06) ─────────────────────────────────────
     sap_posting_state = fields.Selection([
@@ -123,14 +143,16 @@ class NRSAssetSAP(models.Model):
         (RECON_NOT_TAGGED, 'Not tagged — SAP posting not due'),
         (RECON_PENDING, 'Posted to SAP — awaiting asset code'),
         (RECON_RECONCILED, 'Reconciled — both codes linked'),
-        (RECON_EXCEPTION, 'EXCEPTION — tagged with no SAP code'),
+        (RECON_EXCEPTION, 'EXCEPTION — tagged with no SAP code, or SAP '
+                          'returned a different code'),
     ], string='Dual-Code Status',
        compute='_compute_sap_reconciliation_state', store=True, index=True,
        help='The September Integration Flow completeness control: an asset '
             'is complete only when both the Cadra Asset Code and the SAP '
             'asset code are linked on the register.')
 
-    @api.depends('sap_asset_number', 'tag_label_state', 'sap_posting_state')
+    @api.depends('sap_asset_number', 'tag_label_state', 'sap_posting_state',
+                 'sap_returned_asset_number')
     def _compute_sap_reconciliation_state(self):
         """Four states, and only one of them is a finding.
 
@@ -148,7 +170,11 @@ class NRSAssetSAP(models.Model):
         exception report.
         """
         for r in self:
-            if r.sap_asset_number:
+            # FIRST, before the presence check: two codes that disagree are
+            # not reconciled however present they are (handoff 58, P4).
+            if r.sap_returned_asset_number:
+                r.sap_reconciliation_state = RECON_EXCEPTION
+            elif r.sap_asset_number:
                 r.sap_reconciliation_state = RECON_RECONCILED
             elif r.tag_label_state != 'affixed':
                 r.sap_reconciliation_state = RECON_NOT_TAGGED
@@ -240,7 +266,8 @@ class NRSAssetSAP(models.Model):
     def _assert_sap_evidence_allowed(self, vals):
         if self.env.context.get(self._SAP_EVIDENCE_CONTEXT):
             return
-        if vals.get('sap_code_source') == SAP_SOURCE_INTEGRATION:
+        if vals.get('sap_code_source') in (SAP_SOURCE_INTEGRATION,
+                                           SAP_SOURCE_CONFIRMED):
             raise ValidationError(_(
                 'Only the SAP integration can record that a SAP asset number '
                 'was returned by SAP. A code entered by hand or loaded from '
@@ -248,6 +275,11 @@ class NRSAssetSAP(models.Model):
                 'returned on INT-07 is evidence that it did. Recording one as '
                 'the other would defeat the dual-code control. Choose '
                 '"Entered by hand" or "Loaded from a legacy extract".'))
+        if 'sap_returned_asset_number' in vals \
+                or 'sap_discrepancy_at' in vals:
+            raise ValidationError(_(
+                'What SAP returned is written by the integration, not by '
+                'hand.'))
         if 'sap_synced_at' in vals:
             raise ValidationError(_(
                 '"SAP Last Synced" records when Cadra last heard from SAP and '
@@ -261,7 +293,22 @@ class NRSAssetSAP(models.Model):
 
     def write(self, vals):
         self._assert_sap_evidence_allowed(vals)
-        return super().write(vals)
+        result = super().write(vals)
+        if vals.get('sap_asset_number') \
+                and not self.env.context.get(self._SAP_EVIDENCE_CONTEXT):
+            # The way a discrepancy CLOSES (handoff 58, P4): somebody
+            # corrects the entered number to the one SAP returned. It is
+            # then the maker's entry confirmed by SAP's own answer — not a
+            # new claim — and the exception clears. Any other correction
+            # leaves the discrepancy standing: the two still disagree.
+            for rec in self.filtered('sap_returned_asset_number'):
+                if rec.sap_asset_number.strip().casefold() \
+                        == rec.sap_returned_asset_number.strip().casefold():
+                    rec.sudo().with_context(
+                        **{self._SAP_EVIDENCE_CONTEXT: True}).write({
+                            'sap_returned_asset_number': False,
+                            'sap_code_source': SAP_SOURCE_CONFIRMED})
+        return result
 
     def _set_sap_master(self, values, source=SAP_SOURCE_INTEGRATION):
         """Record what SAP returned for this asset.
@@ -300,10 +347,77 @@ class NRSAssetSAP(models.Model):
         if not vals:
             return False
         vals['sap_synced_at'] = fields.Datetime.now()
-        if vals.get('sap_asset_number') and not self.sap_code_source:
+        returned = vals.get('sap_asset_number')
+        entered = (self.sap_asset_number or '').strip()
+        if returned and entered and self.sap_code_source in (
+                SAP_SOURCE_MANUAL, SAP_SOURCE_CONFIRMED):
+            # The maker's number stays: it is what the maker entered and the
+            # checker approved (handoff 58, P4). Never replaced silently.
+            vals.pop('sap_asset_number')
+            if str(returned).strip().casefold() == entered.casefold():
+                # The same number: the label changes and nothing else does.
+                vals['sap_code_source'] = SAP_SOURCE_CONFIRMED
+                vals['sap_returned_asset_number'] = False
+            else:
+                vals['sap_returned_asset_number'] = str(returned).strip()
+                vals['sap_discrepancy_at'] = vals['sap_synced_at']
+        elif returned and not self.sap_code_source:
             vals['sap_code_source'] = source
         self.sudo().with_context(**{self._SAP_EVIDENCE_CONTEXT: True}).write(vals)
+        if vals.get('sap_returned_asset_number'):
+            # Inside the INT-06 drain, which catches ValidationError only:
+            # an exception escaping here would roll back a row already marked
+            # `posted` and re-send the master (sap_asset_events.py says so
+            # about its own chatter post). The fields above are the record;
+            # this line is a courtesy, so it never escapes.
+            # In a savepoint, so a database error inside the post leaves the
+            # transaction usable rather than aborted (CLAUDE.md: `with
+            # cr.savepoint():`, never `closing(...)`, which rolls back).
+            try:
+                with self.env.cr.savepoint():
+                    self._post_discrepancy()
+            except Exception:  # noqa: BLE001  catch-all: reported — the chatter line only; the discrepancy fields above are already written, and an escape would re-send INT-06. Logged with its traceback.
+                import logging
+                logging.getLogger(__name__).exception(
+                    "Could not post the SAP discrepancy on %s", self.asset_code)
         return True
+
+    def _post_discrepancy(self):
+        """The discrepancy on the asset's chatter, naming both numbers and both people."""
+        block = self._sap_discrepancy()
+        self.sudo().message_post(body=_(
+            'SAP returned asset number %(sap)s; the Register Maker '
+            'entered %(maker)s. The entered number is kept and the asset '
+            'is a dual-code exception until the two are reconciled. '
+            'Maker: %(who_made)s. Checker: %(who_checked)s.',
+            sap=block['sap_number'], maker=block['maker_number'],
+            who_made=(block['maker'] or {}).get('name') or _('unknown'),
+            who_checked=(block['checker'] or {}).get('name')
+            or _('unknown')))
+
+    def _sap_discrepancy(self):
+        """`data.sap.discrepancy`: None, or both numbers and the two people
+        who put the entered one on the record — read from the gate events,
+        the only place the maker and the checker are recorded."""
+        self.ensure_one()
+        if not self.sap_returned_asset_number:
+            return None
+        people = {'register': None, 'approve-registration': None}
+        events = self.env['nrs.asset.event'].sudo().search(
+            [('asset_id', '=', self.id), ('event_type', '=', 'gate_fired'),
+             ('gate_action', 'in', list(people))], order='occurred_at, id')
+        for event in events:
+            people[event.gate_action] = {
+                'id': event.actor_id.id or None,
+                'name': event.actor_name or event.actor_id.name or None}
+        return {
+            'maker_number': self.sap_asset_number,
+            'sap_number': self.sap_returned_asset_number,
+            'maker': people['register'],
+            'checker': people['approve-registration'],
+            'raised_at': fields.Datetime.to_string(self.sap_discrepancy_at)
+            if self.sap_discrepancy_at else None,
+        }
 
 
 class NRSAssetCategorySAP(models.Model):

@@ -352,6 +352,10 @@ export interface AssetWriteBody {
   make?: string | null;
   model_name?: string | null;
   manufacturer?: string | null;
+  // Section 12 (handoff 58): writable on POST/PATCH /assets.
+  colour?: string | null;
+  material?: string | null;
+  dimensions?: string | null;
   category_id?: number | null;
   subcategory_id?: number | null;
   asset_type_id?: number | null;
@@ -1580,6 +1584,11 @@ export interface ConfirmAffixedBody {
   scanned_format?: string;
   /** Same, for `serial_number`. */
   serial_format?: string;
+  /** Handoff 58: for a `tag_id` unit there is no manufacturer serial to
+   *  check, so the tagger ticks that the item matches its description, make
+   *  and colour. Required by the server for a `tag_id` unit (400 without it);
+   *  sent only when ticked. */
+  attributes_confirmed?: boolean;
 }
 
 export interface ConfirmAffixedResult {
@@ -1599,6 +1608,7 @@ export const confirmTagAffixed = async (assetId: number, body: ConfirmAffixedBod
   if (body.affixed_by_name?.trim()) payload.affixed_by_name = body.affixed_by_name.trim();
   if (body.scanned_format) payload.scanned_format = body.scanned_format;
   if (body.serial_format && payload.serial_number) payload.serial_format = body.serial_format;
+  if (body.attributes_confirmed) payload.attributes_confirmed = true;
   return (await apiPost<ConfirmAffixedResult>(
     `/api/v1/assets/${assetId}/tag-affixed`, payload,
     { idempotencyKey: newIdempotencyKey() })).data;
@@ -2208,8 +2218,52 @@ export interface AssetCategoryConfig {
   depreciating_count: number;
   pm_interval_days: number | null;
   depreciation: CategoryPolicy;
+  /** Section 12 (handoff 58): how a unit of this class is told apart from
+   *  its neighbours — by the manufacturer serial, by Cadra's tag and the
+   *  item's attributes, or (not built) as a pool. Optional only because an
+   *  older server does not publish it; the screen reads absent as `serial`,
+   *  the model's default. */
+  identification_mode?: IdentificationMode;
+  /** The EFFECTIVE capture schema — the stored one, or the mode's default.
+   *  What is read can be PATCHed back unchanged. */
+  class_attributes_schema?: ClassAttributesSchema;
   /** Only present on the response to a PATCH. */
   assets_recomputed?: number;
+}
+
+/** `nrs.asset.category.identification_mode` (handoff 58 §4). */
+export type IdentificationMode = "serial" | "tag_id" | "pool";
+
+/** The three modes, in the server's words. */
+export const IDENTIFICATION_MODE_WORDS: Record<IdentificationMode, string> = {
+  serial: "Serial (manufacturer serial number)",
+  tag_id: "Tag ID (attributes, no serial)",
+  pool: "Pool (not built yet — refused at receipt)",
+};
+
+/** The short form, for a table cell (the Candidates page's Mode column). */
+export const IDENTIFICATION_MODE_SHORT: Record<IdentificationMode, string> = {
+  serial: "Serial",
+  tag_id: "Tag ID",
+  pool: "Pool",
+};
+
+/** The closed set of `POST /assets` fields a class may make mandatory, in
+ *  the order the screen lists them, with the screen's words for each. A name
+ *  outside this set is refused by the server; the editor offers only these. */
+export const CAPTURABLE_ATTRIBUTES = [
+  { field: "name",         label: "Description" },
+  { field: "make",         label: "Make or brand" },
+  { field: "model_name",   label: "Model or catalogue reference" },
+  { field: "manufacturer", label: "Manufacturer" },
+  { field: "colour",       label: "Colour" },
+  { field: "material",     label: "Material" },
+  { field: "dimensions",   label: "Dimensions" },
+] as const;
+export type CapturableAttribute = typeof CAPTURABLE_ATTRIBUTES[number]["field"];
+
+export interface ClassAttributesSchema {
+  mandatory: CapturableAttribute[];
 }
 
 export interface DepreciationSettings {
@@ -2239,6 +2293,13 @@ export interface CategoryIdentity {
   pm_interval_days: number | null;
 }
 
+/** How a class is identified (handoff 58 §4) — the two keys a
+ *  `settings:classes` holder may PATCH and nothing else. */
+export interface CategoryClassIdentification {
+  identification_mode: IdentificationMode;
+  class_attributes_schema: ClassAttributesSchema;
+}
+
 /**
  * Only the named keys, and only those that are set. For the three settings
  * writes below, whose screens build a body by EDITING AN OBJECT THEY WERE
@@ -2261,6 +2322,13 @@ function pickSet<T extends object, K extends keyof T>(body: T, keys: readonly K[
 const CATEGORY_IDENTITY_KEYS = [
   "name", "code", "domain", "description", "sequence", "pm_interval_days",
 ] as const;
+/** The two Section 12 keys (handoff 58). Their own list, because they are
+ *  the ONLY keys a `settings:classes`-only caller may send — any other key
+ *  from that caller is a 403 — so the screen sends them alone for that
+ *  person and alongside the identity keys for a `settings:write` holder. */
+const CATEGORY_CLASS_KEYS = [
+  "identification_mode", "class_attributes_schema",
+] as const;
 /** `_CATEGORY_POLICY_FIELDS`, less the method — sent under its wire name. */
 const CATEGORY_POLICY_NUMBER_KEYS = [
   "useful_life_months", "declining_rate", "salvage_rate",
@@ -2281,10 +2349,11 @@ const CATEGORY_POLICY_NUMBER_KEYS = [
  */
 export const updateAssetCategory = async (
   id: number,
-  body: Partial<CategoryPolicy & CategoryIdentity>,
+  body: Partial<CategoryPolicy & CategoryIdentity & CategoryClassIdentification>,
 ) => {
   const wire: Record<string, unknown> = {
     ...pickSet(body, CATEGORY_IDENTITY_KEYS),
+    ...pickSet(body, CATEGORY_CLASS_KEYS),
     ...pickSet(body, CATEGORY_POLICY_NUMBER_KEYS),
   };
   if (body.method !== undefined) wire.depreciation_method = body.method;
@@ -3022,11 +3091,9 @@ export async function fetchRegisterTotal(): Promise<number | null> {
 
 // ─── RECEIPT GATES (handoff 57) ──────────────────────────────────────────────
 //
-// SCAFFOLDING, 2026-10-07. The gate machine lives on `nrs.asset` as one
-// field, `register_state`, so that tonight's demonstration reuses every
-// proven path unchanged. Handoff 58 replaces it with a separate candidate
-// model; when it lands, these types and functions are rewritten against that
-// model, not extended.
+// The gate machine lives on `nrs.asset` as one field, `register_state`
+// (handoff 57); handoff 58 kept it there (evaluation §8), so these types and
+// functions are extended, not rewritten.
 
 /** `nrs.asset.register_state`. `registered` is the register; every other
  *  value is a received unit still passing its gates (a CANDIDATE). */
@@ -3078,6 +3145,16 @@ export interface CandidateRow {
   } | null;
   register_state: RegisterState;
   gates: AssetGates;
+  /** The mode the unit was RECEIVED under (handoff 58), fixed at receipt;
+   *  null for anything received with the gates off or before 58. Optional
+   *  because an older server does not publish it. */
+  identification_mode?: Exclude<IdentificationMode, "pool"> | null;
+  /** The attributes a `tag_id` unit is identified by (handoff 58). */
+  make?: string | null;
+  model_name?: string | null;
+  colour?: string | null;
+  material?: string | null;
+  dimensions?: string | null;
 }
 
 export interface CandidatesPage {
@@ -3110,6 +3187,26 @@ export async function fetchCandidatesPage(
  *  THIS caller NOW, so it is its own query. */
 export const fetchAssetGateState = async (assetId: number | string): Promise<CandidateRow> =>
   (await apiGet<CandidateRow>(`/api/v1/assets/${assetId}`)).data;
+
+/** What the affix dialog needs to know about how a unit is identified, read
+ *  off `GET /api/v1/assets/<id>`: the barcode lookup's payload carries the
+ *  serial but neither the mode nor the attributes (handoff 58). */
+export interface AssetIdentification {
+  identification_mode: Exclude<IdentificationMode, "pool"> | null;
+  name: string;
+  make: string | null;
+  colour: string | null;
+}
+
+export const fetchAssetIdentification = async (assetId: number): Promise<AssetIdentification> => {
+  const a = (await apiGet<CandidateRow>(`/api/v1/assets/${assetId}`)).data;
+  return {
+    identification_mode: a.identification_mode ?? null,
+    name: a.name,
+    make: a.make ?? null,
+    colour: a.colour ?? null,
+  };
+};
 
 /** A verification's evidence, as the route takes it. */
 export interface GateAttachment { name: string; mimetype: string; data: string }
@@ -3175,3 +3272,76 @@ export async function fetchReceiptGated(): Promise<boolean | null> {
     return null;
   }
 }
+
+// ─── ROLE EXCLUSIONS (handoff 58 §5 — Addendum A §4, rule 2) ────────────────
+// Which two roles one person may not hold together. The table is enforced on
+// the model under every writer of membership; these routes read and edit it.
+// An existing pair is NOT revoked by a new exclusion — it is listed on
+// `GET /settings/conflicting-grants` for the owner to decide.
+
+/** The role keys an exclusion may name — the same keys `/roles` publishes.
+ *  Used when `/roles` cannot be read (it scopes `admin`; this page scopes
+ *  `settings:write`), so the add form still has something to offer. */
+export const EXCLUDABLE_ROLE_KEYS = [
+  "asset_user", "asset_officer", "asset_manager", "tag_issuing_unit",
+  "iad_vfm_officer", "iad_vfm_approver", "asset_controller",
+  "register_maker", "register_checker", "auditor",
+] as const;
+
+export interface RoleRefKN { key: string; name: string }
+
+export interface RoleExclusion {
+  id: number;
+  role_a: RoleRefKN;
+  role_b: RoleRefKN;
+  active: boolean;
+  reason: string;
+  /** Active people who hold BOTH roles now. */
+  holders: number;
+}
+
+export interface ConflictingGrant {
+  user: { id: number; name: string; login: string; active: boolean };
+  pairs: { exclusion_id: number; role_a: RoleRefKN; role_b: RoleRefKN; reason: string }[];
+}
+
+export interface ConflictingGrants {
+  rows: ConflictingGrant[];
+  /** People, from `meta.total`; null when the server does not say. */
+  total: number | null;
+  /** The server's sentence (`meta.statement`), shown as written. */
+  statement: string | null;
+}
+
+/** `settings:read` or `settings:write`. */
+export const fetchRoleExclusions = async (): Promise<RoleExclusion[]> =>
+  (await apiGet<RoleExclusion[]>("/api/v1/settings/role-exclusions")).data;
+
+/** `settings:write`. 201 with the row. */
+export const createRoleExclusion = async (
+  body: { role_a: string; role_b: string; reason: string },
+): Promise<RoleExclusion> =>
+  (await apiPost<RoleExclusion>("/api/v1/settings/role-exclusions", {
+    role_a: body.role_a, role_b: body.role_b, reason: body.reason.trim(),
+  })).data;
+
+/** `settings:write`. Only `active` and `reason` are accepted. */
+export const updateRoleExclusion = async (
+  id: number, body: { active?: boolean; reason?: string },
+): Promise<RoleExclusion> => {
+  const wire: Record<string, unknown> = {};
+  if (body.active !== undefined) wire.active = body.active;
+  if (body.reason !== undefined) wire.reason = body.reason.trim();
+  return (await apiPatch<RoleExclusion>(`/api/v1/settings/role-exclusions/${id}`, wire)).data;
+};
+
+/** `settings:write`. Who already holds a pair the table forbids. */
+export const fetchConflictingGrants = async (): Promise<ConflictingGrants> => {
+  const res = await apiGet<ConflictingGrant[]>("/api/v1/settings/conflicting-grants");
+  const meta = res.meta as unknown as { total?: unknown; statement?: unknown } | undefined;
+  return {
+    rows: res.data,
+    total: typeof meta?.total === "number" ? meta.total : null,
+    statement: typeof meta?.statement === "string" ? meta.statement : null,
+  };
+};

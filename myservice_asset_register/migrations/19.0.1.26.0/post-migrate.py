@@ -1,4 +1,4 @@
-"""Handoff 57 (SCAFFOLDING, replaced by handoff 58): every existing asset is
+"""Handoff 57 (kept by handoff 58): every existing asset is
 REGISTERED.
 
 `nrs.asset.register_state` arrives with this version. Anything but

@@ -1,9 +1,9 @@
 """`cadra.receipt.gated` — the switch that makes a received unit a candidate.
 
-Handoff 57. SCAFFOLDING, 7 October 2026: the gates ride on
-`nrs.asset.register_state` tonight; handoff 58 replaces them with a separate
-candidate model. What is proved here, over HTTP, is the switch alone — the
-gates themselves are Stream A's tests:
+Handoff 57, kept by handoff 58: the gates ride on
+`nrs.asset.register_state` (evaluation §8). What is proved here, over HTTP,
+is the switch alone — the gates themselves are `test_receipt_gates.py` and
+`test_gates_kept.py`:
 
 * `GET /api/v1/settings` says whether receipts are gated, as a boolean and
   as a block that tells *never set* from *set off*, with the sentence the

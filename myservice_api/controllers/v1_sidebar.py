@@ -84,7 +84,7 @@ SIDEBAR_GROUPS = (
     ("reports", ("fleet_roster", "asset_inventory", "maintenance_readiness",
                  "location_coverage", "tag_adoption", "depreciation_report")),
     ("settings", ("asset_categories", "branding", "depreciation_settings",
-                  "receipt_gate", "sidebar_settings")),
+                  "receipt_gate", "role_exclusions", "sidebar_settings")),
     ("audit", ("access_changes", "configuration_changes", "disposals_report",
                "register_snapshot", "register_export")),
     ("administration", ("users",)),

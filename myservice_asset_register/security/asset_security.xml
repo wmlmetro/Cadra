@@ -124,14 +124,17 @@
         </record>
 
         <!--
-            Handoff 57 (SCAFFOLDING, replaced by handoff 58): the five roles
+            Handoff 57, kept by handoff 58: the five roles
             of the receipt gates (Addendum A §4). Each implies Asset User so
             the person can open the asset and its categories. Maker and
             Checker share ONE privilege on purpose: on the user form they are
             a single choice, which is the addendum's default role exclusion
             (Register Maker with Register Checker). The IAD pair and the
             Asset Controller have their own, so any other combination can be
-            held — the no-two-gates rule, per record, is what separates them.
+            held — the no-two-gates rule, per record, is what separates them,
+            and since handoff 58 the role-exclusion table
+            (`nrs.role.exclusion`, myservice_api) refuses the GRANT of a
+            forbidden pair; it states the maker/checker and IAD pairs too.
         -->
         <record id="privilege_iad_vfm" model="res.groups.privilege">
             <field name="name">IAD Value for Money</field>

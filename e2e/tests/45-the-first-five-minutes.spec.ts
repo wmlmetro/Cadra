@@ -138,7 +138,11 @@ test.describe("handoff 45 — the first five minutes", () => {
   });
 
   test("the letter → our page → a password → signed in, and Odoo never appears", async ({ page, api }) => {
-    const person = await invite(api, ["asset_manager", "tag_issuing_unit"]);
+    // The ruled human tagger (handoff 41): Asset User + Tag-Issuing Unit. It
+    // was Asset Manager + Tag-Issuing Unit until handoff 58 §5: the manager
+    // implies the Asset Officer, and that pair is a seeded role exclusion,
+    // so `POST /users` now refuses it 403 — correctly.
+    const person = await invite(api, ["asset_user", "tag_issuing_unit"]);
     made.push(person.id);
     const letter = await letterTo(person.email, "accept-invite");
     expect(letter.html + letter.text).not.toContain("/web/");
@@ -232,7 +236,9 @@ test.describe("handoff 45 — the first five minutes", () => {
   test("a non-administrator uses the app, prints a label, and cannot reach the back office", async ({ page, api }) => {
     const tagged = (await api.get("/api/v1/assets", { is_tagged: "true", limit: 1 })) as any[];
     test.skip(!tagged?.length, "0 tagged assets on this tenant: no 'Print label' to press");
-    const tagger = await officer(api, ["asset_manager", "tag_issuing_unit"], made);
+    // The ruled human tagger, Asset User + Tag-Issuing Unit (see the letter
+    // test above for why it is no longer the Asset Manager).
+    const tagger = await officer(api, ["asset_user", "tag_issuing_unit"], made);
 
     // The print dialog cannot be driven; the label's own frame calls print().
     await page.addInitScript(() => {

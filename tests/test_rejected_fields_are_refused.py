@@ -38,6 +38,7 @@ import uuid
 
 import pytest
 
+from . import gates
 from .conftest import (assert_envelope_err, assert_envelope_ok,
                        assert_fields_refused, ids_matching)
 
@@ -76,9 +77,11 @@ def _need(me, scope):
 
 @pytest.fixture(scope="module")
 def an_asset(client, test_location):
-    return assert_envelope_ok(client.post("/api/v1/assets", json={
-        "name": _uniq("pytest-refused-asset"), "category_id": 1,
-        "location_id": test_location["id"]}), 201)["data"]
+    """On the register whichever way the receipt switch is set (handoff 58
+    §2, `tests/gates.py`)."""
+    return gates.new_registered_asset(
+        client, name=_uniq("pytest-refused-asset"), category_id=1,
+        location_id=test_location["id"])
 
 
 @pytest.fixture(scope="module")
@@ -86,10 +89,13 @@ def a_disposal_awaiting_approval(client, test_location):
     """Created as already disposed, with a date, and NOT condemned: an
     approval is a one-time act, so this asset must reach the table
     unapproved and leave it unapproved."""
-    data = assert_envelope_ok(client.post("/api/v1/assets", json={
-        "name": _uniq("pytest-refused-disposal"), "category_id": 1,
-        "state": "disposed", "disposal_date": "2026-01-31",
-        "location_id": test_location["id"]}), 201)["data"]
+    # Handoff 58, P5: with the gates on a receipt cannot arrive disposed,
+    # so it is registered and then disposed (`tests/gates.py`); off, one
+    # create, as always.
+    data = gates.disposed_on_the_register(
+        client, name=_uniq("pytest-refused-disposal"), category_id=1,
+        state="disposed", disposal_date="2026-01-31",
+        location_id=test_location["id"])
     assert data["disposal"]["approved_by"] is None
     return data
 
@@ -152,9 +158,12 @@ def _post_asset(request):
     location = request.getfixturevalue("test_location")
     name = _uniq("pytest-refused-post-asset")
     return {
-        "send": lambda extra: client.post("/api/v1/assets", json={
-            "name": name, "category_id": 1, "location_id": location["id"],
-            **extra}),
+        # Filled in by `tests/gates.py`, so with the receipt gates on the
+        # refused key is still the only reason for the 400 (a bare body
+        # would be refused for its missing serial first).
+        "send": lambda extra: client.post("/api/v1/assets", json=gates.receipt_body(
+            client, name=name, category_id=1, location_id=location["id"],
+            **extra)),
         "read": lambda: ids_matching(client, "/api/v1/assets", name),
         "good": None, "created_status": 201,
     }
@@ -324,9 +333,9 @@ def _a_pending_request(request, raised_by_the_suite):
                     "changes the asset and there is no request to decide")
     location = request.getfixturevalue("test_location")
     elsewhere = request.getfixturevalue("a_location")
-    asset = assert_envelope_ok(client.post("/api/v1/assets", json={
-        "name": _uniq("pytest-refused-approval-asset"), "category_id": 1,
-        "location_id": location["id"]}), 201)["data"]
+    asset = gates.new_registered_asset(
+        client, name=_uniq("pytest-refused-approval-asset"), category_id=1,
+        location_id=location["id"])
 
     if raised_by_the_suite:
         raiser, approver_id = client, second_person.other["id"]
@@ -656,8 +665,10 @@ def test_a_refused_create_does_not_burn_its_idempotency_key(
     """
     key = _uniq("pytest-refused-idem")
     name = _uniq("pytest-refused-idem-asset")
-    good = {"name": name, "category_id": 1,
-            "location_id": test_location["id"]}
+    # Filled in ONCE (`tests/gates.py`): the corrected body must be the same
+    # body every time, and with the gates on it carries its serial.
+    good = gates.receipt_body(client, name=name, category_id=1,
+                              location_id=test_location["id"])
     headers = {"X-Idempotency-Key": key}
 
     first = client.post("/api/v1/assets", json={**good, _KEY: 1},
@@ -695,9 +706,9 @@ def test_a_clean_write_carries_no_warnings_block(client, test_location):
     on lists and `_warnings.discarded_fields` on the workflow callback are
     other things and are untouched.
     """
-    created = assert_envelope_ok(client.post("/api/v1/assets", json={
-        "name": _uniq("pytest-refused-clean"), "category_id": 1,
-        "location_id": test_location["id"]}), 201)["data"]
+    created = gates.receive(
+        client, name=_uniq("pytest-refused-clean"), category_id=1,
+        location_id=test_location["id"])
     assert "_warnings" not in created
     patched = assert_envelope_ok(client.patch(
         f"/api/v1/assets/{created['id']}", json={"notes": "clean"}))["data"]

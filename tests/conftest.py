@@ -778,18 +778,23 @@ def test_location(client):
 
 @pytest.fixture(scope="session")
 def test_asset(client, test_location):
-    """Create one asset at session start; reused by request tests."""
+    """Create one asset at session start; reused by request tests.
+
+    ON THE REGISTER whichever way the tenant's receipt switch is set
+    (handoff 58 §2): every test using it is about an asset already
+    registered, so with the gates on it is walked through them by
+    `tests/gates.py`, the one helper. Switch off, that is the plain create
+    this always was."""
+    from . import gates
     ts = int(time.time())
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-asset-{ts}",
-        "category_id": 1,  # first asset category (seed has many)
-        "condition": "new",
-        "state": "active",
-        "location_id": test_location["id"],
-    })
-    if r.status_code != 201:
-        pytest.fail(f"test_asset fixture failed: HTTP {r.status_code} {r.text[:300]}")
-    return r.json()["data"]
+    return gates.new_registered_asset(
+        client,
+        name=f"pytest-asset-{ts}",
+        category_id=1,  # first asset category (seed has many)
+        condition="new",
+        state="active",
+        location_id=test_location["id"],
+    )
 
 
 @pytest.fixture(scope="session")
@@ -1029,6 +1034,31 @@ def admin_scope(client):
     return True
 
 
+@pytest.fixture
+def receipt_switch(client, admin_scope):
+    """Yields a setter for the tenant's receipt-gate switch
+    (`PATCH /api/v1/settings/receipt-gate`) and puts the tenant's OWN value
+    back afterwards, whatever happens.
+
+    For a test ABOUT the receipt path — `POST /assets` as INT-03 — whose
+    answer depends on the switch (handoff 58 §2): it is parametrised over
+    both states and sets the one it is asserting. Every other test leaves the
+    switch alone and gets its asset from `tests/gates.py`."""
+    def _gated():
+        data = assert_envelope_ok(client.get("/api/v1/settings"))["data"]
+        return bool(data.get("receipt_gated"))
+
+    def _set(on):
+        assert_envelope_ok(client.patch("/api/v1/settings/receipt-gate",
+                                        json={"enabled": bool(on)}))
+
+    was = _gated()
+    try:
+        yield _set
+    finally:
+        _set(was)
+
+
 def assert_envelope_ok(response, expected_status=200):
     """Assert response is the PRD success envelope at the given status."""
     assert response.status_code == expected_status, (
@@ -1107,6 +1137,13 @@ def ids_matching(client, path, marker):
     refused key must then be found — or an `?q=` that had quietly stopped
     matching would make every "created nothing" pass on its own.
     """
-    body = assert_envelope_ok(
-        client.get(path, params={"q": marker, "limit": 5}))
+    params = {"q": marker, "limit": 5}
+    if path.rstrip("/") == "/api/v1/assets":
+        # Handoff 58: with the receipt gates on, a create makes a CANDIDATE,
+        # which the register hides. Asked of the register alone, "nothing
+        # was created" would pass with a candidate sitting there — so the
+        # question is asked of every register state. Switch off, every row
+        # is `registered` and `any` is the same set.
+        params["register_state"] = "any"
+    body = assert_envelope_ok(client.get(path, params=params))
     return [row["id"] for row in body["data"]]

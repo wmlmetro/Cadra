@@ -197,7 +197,7 @@ INVENTORY = {
     ("v1_tags", "waiting_on_me"): ("bool", ""),
     ("v1_tags", "raised_by_me"): ("bool", ""),
 
-    # ── handoff 57 — the receipt gates (scaffolding, replaced by 58) ───
+    # ── handoff 57 — the receipt gates (kept by 58) ─────────────────
     ("v1_assets", "register_state"): ("inline", "refused inline by _register_state_domain, which must answer a 403 (no `candidates:read`) before it can answer a 400, and accepts `any`, which is not a state"),
     ("v1_gates", "register_state"): ("inline", "refused inline by list_candidates against the model's states minus `registered`, which a candidate never is"),
     ("v1_gates", "waiting_on"): ("inline", "refused inline by list_candidates against asset_gates.WAITING_ON_VALUES, a derived set the model owns"),

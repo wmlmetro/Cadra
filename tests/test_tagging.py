@@ -10,6 +10,9 @@ makes the confirmation evidence rather than assertion.
 import time
 import uuid
 
+import pytest
+
+from . import gates
 from .conftest import (assert_envelope_ok, assert_envelope_err,
                        assert_fields_refused, ids_matching)
 
@@ -19,23 +22,47 @@ def _uniq():
     return f"{int(time.time())}-{uuid.uuid4().hex[:8]}"
 
 
-def _new_asset(client, name=None):
+def _new_asset(client, name=None, **extra):
+    """An asset with its label ISSUED and not yet on it — what every test in
+    this file is about. With the receipt gates on (handoff 58) that is a
+    unit walked to `tag_issued` by `tests/gates.py`, the label minted at
+    request-tagging; switch off, a fresh create, as it always was."""
     name = name or f"pytest-tag-{_uniq()}"
-    r = client.post("/api/v1/assets", json={"name": name, "category_id": 1})
-    return assert_envelope_ok(r, expected_status=201)["data"]
+    return gates.ready_to_affix(client, gates.receive(client, name=name,
+                                                      **extra))
 
 
 # ─── the trap this work exists to close ──────────────────────────────
 
 
-def test_new_asset_has_a_tag_string_but_is_not_tagged(client, capture):
+@pytest.mark.parametrize("gated", [True, False],
+                         ids=["switch_on", "switch_off"])
+def test_new_asset_has_a_tag_string_but_is_not_tagged(
+        client, capture, receipt_switch, gated):
     """`tag` is populated at creation; `is_tagged` must still be false.
 
     This is the exact false-completeness bug. If this test ever goes green by
     reading `tag`, the audit trail is claiming every asset was physically
     labelled the instant someone typed its name.
+
+    It is about the RECEIPT path, so it asserts both switch states (handoff
+    58 §2). With the receipt gates on, a receipt has no label at all until
+    request-tagging — `tag` is null and nothing reads as tagged — and the
+    same false-completeness question is then asked of the unit whose label
+    has been issued and not yet affixed.
     """
-    data = _new_asset(client)
+    receipt_switch(gated)
+    received = gates.receive(client, name=f"pytest-tag-{_uniq()}")
+    if gated:
+        assert received["register_state"] == "captured"
+        assert received["tag"] is None, (
+            "with the gates on no label is minted at receipt")
+        assert received["tagging"]["is_tagged"] is False
+        assert received["tagging"]["affixed_at"] is None
+        assert received["tagging"]["affixed_by"] is None
+    else:
+        assert received["register_state"] == "registered"
+    data = gates.ready_to_affix(client, received)
     tagging = data["tagging"]
 
     assert data["tag"], "expected the auto-generated tag string to be present"
@@ -231,10 +258,26 @@ def test_affix_accepts_a_supplied_timestamp(client):
 
 
 def _asset_with_serial(client, serial):
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-serial-{_uniq()}", "category_id": 1,
-        "serial_number": serial})
-    return assert_envelope_ok(r, expected_status=201)["data"]
+    data = _new_asset(client, name=f"pytest-serial-{_uniq()}",
+                      category_id=1, serial_number=serial)
+    assert data["serial_number"] == serial
+    return data
+
+
+def _asset_without_serial(client):
+    """A record with no serial on file. With the receipt gates on, a
+    serial-mode class refuses a receipt without one (Section 12), so the
+    record that has none is a `tag_id` unit — the furniture class."""
+    if not gates.receipt_gated(client):
+        return _new_asset(client)            # created without a serial_number
+    rows = assert_envelope_ok(client.get("/api/v1/asset-categories"))["data"]
+    category = next((c for c in rows
+                     if c.get("identification_mode") == "tag_id"), None)
+    assert category, ("no `tag_id` class on this tenant, so no unit can be "
+                      "received without a serial with the gates on")
+    data = _new_asset(client, category_id=category["id"])
+    assert not data.get("serial_number")
+    return data
 
 
 def test_affix_rejects_a_serial_that_does_not_match(client, capture):
@@ -480,10 +523,15 @@ def test_affix_refuses_to_verify_a_serial_against_a_record_that_has_none(client)
     An asset with no serial on file cannot corroborate a scanned one. Letting
     it through would record a serial-to-tag match that was never performed.
     """
-    data = _new_asset(client)            # created without a serial_number
-    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json={
-        "tag_number": data["tag"], "serial_number": "SN-ANYTHING"})
-    assert_envelope_err(r, 400, "validation_failed")
+    data = _asset_without_serial(client)
+    body = {"tag_number": data["tag"], "serial_number": "SN-ANYTHING"}
+    if data.get("identification_mode") == "tag_id":
+        # A `tag_id` unit's affix needs its attributes confirmed (Section
+        # 12); without it the 400 would be THAT refusal, not this one.
+        body["attributes_confirmed"] = True
+    r = client.post(f"/api/v1/assets/{data['id']}/tag-affixed", json=body)
+    err = assert_envelope_err(r, 400, "validation_failed")["error"]
+    assert "no serial number on file" in err["message"], err["message"]
 
 
 # ─── the tag number is not writable ──────────────────────────────────
@@ -502,9 +550,8 @@ def test_asset_tag_is_not_writable_on_create(client):
     the same asset without the tag is.
     """
     name = f"pytest-tagwrite-{_uniq()}"
-    r = client.post("/api/v1/assets", json={
-        "name": name, "category_id": 1,
-        "asset_tag": "OPERATOR-CHOSEN-TAG"})
+    r = client.post("/api/v1/assets", json=gates.receipt_body(
+        client, name=name, category_id=1, asset_tag="OPERATOR-CHOSEN-TAG"))
     assert_fields_refused(r, "asset_tag")
     assert ids_matching(client, "/api/v1/assets", name) == [], (
         "`asset_tag` was refused with a 400 and the asset was created anyway")
@@ -563,8 +610,13 @@ def test_filters_separate_tagged_from_untagged(client):
         json={"tag_number": tagged["tag"]}))
 
     def ids(**params):
+        # Every register state: with the receipt gates on both units are
+        # candidates (one at `tag_issued`, one `tagged`) — a unit is tagged
+        # BEFORE it is registered, so an untagged one is never on the
+        # register. Switch off, `any` is the register itself.
         body = assert_envelope_ok(client.get(
-            "/api/v1/assets", params={"q": name, "limit": 50, **params}))
+            "/api/v1/assets", params={"q": name, "limit": 50,
+                                      "register_state": "any", **params}))
         return {a["id"] for a in body["data"]}
 
     assert ids(is_tagged="true") == {tagged["id"]}
@@ -631,9 +683,7 @@ def test_a_tag_awaiting_replacement_still_reads_as_tagged(client):
                                    json={"tag_number": data["tag"]}))
 
     # Drive the replacement request through the model, as the UI button does.
-    r = client.post("/api/v1/assets", json={"name": f"probe-{_uniq()}",
-                                            "category_id": 1})
-    assert_envelope_ok(r, expected_status=201)
+    gates.receive(client, name=f"probe-{_uniq()}", category_id=1)
 
     body = assert_envelope_ok(client.get(f"/api/v1/assets/{data['id']}"))
     assert body["data"]["tagging"]["is_tagged"] is True

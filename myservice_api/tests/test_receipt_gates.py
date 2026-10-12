@@ -1,4 +1,4 @@
-"""The receipt gates — handoff 57 (SCAFFOLDING, replaced by handoff 58).
+"""The receipt gates — handoff 57, kept by handoff 58.
 
 In-registry, because the chain needs SEVEN different people: the no-two-gates
 rule refuses one person firing two gates on a unit, so a single API
@@ -29,11 +29,12 @@ CHECKLIST = {"quantity": True, "specification": True, "condition": True,
              "price": True}
 
 
-@tagged('post_install', '-at_install')
-class TestReceiptGates(CadraTransactionCase):
+class GateCrew:
+    """The seven people and the walk, shared with `test_gates_kept.py`
+    (handoff 58) — a mixin, not a base TestCase, so the other file does not
+    inherit and re-run every test below."""
 
-    def setUp(self):
-        super().setUp()
+    def _setup_crew(self):
         self.env['workflow.config'].search([
             ('purpose', 'in', ('asset_events', 'sap_assets')),
         ]).write({'active': False})
@@ -67,6 +68,9 @@ class TestReceiptGates(CadraTransactionCase):
         return self.env['nrs.asset'].sudo().create({
             'name': 'Gates probe', 'category_id': self.category.id,
             'serial_number': 'SN-G57-%s' % uuid.uuid4().hex[:10],
+            # Since handoff 58 a gated receipt carries what its class makes
+            # mandatory (Section 12): a serial-mode class, make and model.
+            'make': 'Dell', 'model_name': 'Latitude 7430',
             'grn_reference': 'GRN-57', 'register_state': 'captured'})
 
     def _fire(self, asset, user, action, **kw):
@@ -105,6 +109,14 @@ class TestReceiptGates(CadraTransactionCase):
         return self.env['workflow.dispatch.log'].search([
             ('asset_id', '=', asset.id),
             ('event_type', '=', 'asset.master.create')])
+
+
+@tagged('post_install', '-at_install')
+class TestReceiptGates(GateCrew, CadraTransactionCase):
+
+    def setUp(self):
+        super().setUp()
+        self._setup_crew()
 
     # ── the chain ─────────────────────────────────────────────────────
 
@@ -166,7 +178,15 @@ class TestReceiptGates(CadraTransactionCase):
 
     # ── the no-two-gates rule ─────────────────────────────────────────
 
+    def _exclusion_off(self, xmlid):
+        """Rule 2 (handoff 58) refuses GRANTING the pairs below; these tests
+        prove rule 1 still refuses them PER UNIT when an owner has switched
+        the exclusion off — which the table allows. Inside the test's
+        transaction, so nothing outlives it."""
+        self.env.ref('myservice_api.%s' % xmlid).sudo().active = False
+
     def test_one_person_two_gates_is_refused_naming_the_earlier_act(self):
+        self._exclusion_off('role_exclusion_store_iad_officer')
         both = self.env['res.users'].sudo().create({
             'name': 'G57 Both', 'login': 'g57-both', 'group_ids': [
                 (4, self.env.ref('base.group_user').id),
@@ -189,6 +209,7 @@ class TestReceiptGates(CadraTransactionCase):
                          'G57 Both')
 
     def test_the_approver_must_not_be_the_verifier(self):
+        self._exclusion_off('role_exclusion_iad_officer_approver')
         iad = self.env['res.users'].sudo().create({
             'name': 'G57 Iad', 'login': 'g57-iad', 'group_ids': [
                 (4, self.env.ref('base.group_user').id),
@@ -211,6 +232,7 @@ class TestReceiptGates(CadraTransactionCase):
         self.assertIn('You verified this unit on', str(caught.exception))
 
     def test_the_checker_must_not_be_the_maker(self):
+        self._exclusion_off('role_exclusion_maker_checker')
         pair = self.env['res.users'].sudo().create({
             'name': 'G57 Pair', 'login': 'g57-pair', 'group_ids': [
                 (4, self.env.ref('base.group_user').id),
@@ -294,9 +316,14 @@ class TestReceiptGates(CadraTransactionCase):
         a = self._to('vfm_approved')
         self.assertFalse(a.active_tag_id)
         other = self._to('tag_issued')
-        with self.assertRaises(ValidationError):
+        # Handoff 58, D3: the gates' own refusal — `segregation_of_duties`,
+        # a 409 on the API like every other gate — not a ValidationError.
+        with self.assertRaises(GateRefused) as caught:
             other.active_tag_id.with_user(self.officer).sudo()._mark_affixed(
                 other.asset_code)  # the officer verified it: two gates
+        self.assertEqual(caught.exception.kind, 'segregation_of_duties')
+        self.assertTrue(str(caught.exception.args[0]).endswith(
+            'a different person must tag it.'))
 
     # ── the field is moved by nothing else ───────────────────────────
 

@@ -1,6 +1,6 @@
 {
     'name': 'Cadra API (v1)',
-    'version': '19.0.3.29.0',
+    'version': '19.0.3.30.0',
     'summary': 'Cadra API-first layer (JWT, PRD envelope, idempotency, auto OpenAPI)',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',
@@ -42,6 +42,8 @@
         'security/api_groups.xml',
         'security/ir.model.access.csv',
         'data/api_refresh_token_cron.xml',
+        # Handoff 58 §5: Addendum A's role exclusions, noupdate.
+        'data/role_exclusions.xml',
         # Handoff 43: the invitation and the password-reset letters, in the
         # tenant's brand (models/invitation.py renders them).
         'data/mail_templates.xml',

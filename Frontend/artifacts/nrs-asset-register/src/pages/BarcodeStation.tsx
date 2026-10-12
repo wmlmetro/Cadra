@@ -7,6 +7,7 @@ import { SCAN_FORMAT_LABELS, type ScanFormat } from "@/lib/scanFormats";
 import {
   fetchBarcodeKpis, fetchBarcodeRecentTags, lookupBarcode,
   fetchUntaggedAssets, generateBarcodes, fetchTag, fetchPendingTagReplacements, fetchAssetTagging,
+  fetchAssetIdentification,
   type BarcodeTag, type BarcodeLookupHit, type BarcodeMatchedBy, type UntaggedAsset, type TagLabel,
   type TagReplacementRaised, type TagReplacementApproved, type AssetTagging, type ConfirmAffixedResult,
 } from "@/lib/dataProvider";
@@ -170,9 +171,22 @@ export default function BarcodeStation() {
   const labelMismatch = Boolean(
     hit && tagging.data && tagging.data.label_id !== null && tagging.data.label_id !== hit.tag_id,
   );
+  // How the unit is identified (handoff 58): a `tag_id` unit is confirmed
+  // by its label and a tick that the item matches its attributes, not by a
+  // serial. The lookup payload carries neither the mode nor the attributes,
+  // so they are read off the asset, as the `tagging` block is, and the
+  // button waits for them — a dialog opened before they arrived would offer
+  // a serial field to a unit that has none to check.
+  const identification = useQuery({
+    queryKey: ["asset-identification", hit?.asset_id],
+    queryFn: () => fetchAssetIdentification(hit!.asset_id),
+    enabled: Boolean(hit && hit.tag_id && hit.tag_state === "active"),
+    staleTime: 60_000,
+  });
   const canConfirmAffixed = Boolean(
     canTag && label && hit?.tag_state === "active"
-      && label.label_state !== "affixed" && label.label_state !== "scrapped",
+      && label.label_state !== "affixed" && label.label_state !== "scrapped"
+      && identification.data,
   );
   const [affixOpen, setAffixOpen] = useState(false);
 
@@ -958,6 +972,8 @@ export default function BarcodeStation() {
           assetId={hit.asset_id}
           assetName={hit.asset_name}
           hasSerialOnFile={Boolean(hit.serial_number)}
+          identificationMode={identification.data?.identification_mode ?? null}
+          attributes={identification.data}
           open={affixOpen}
           onOpenChange={setAffixOpen}
           onConfirmed={onAffixConfirmed}

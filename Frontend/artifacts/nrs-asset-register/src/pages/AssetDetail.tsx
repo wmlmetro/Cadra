@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
   fetchAsset, fetchAssetPendingApproval, markAssetVerified, fetchAssetGateState,
+  IDENTIFICATION_MODE_WORDS,
   type ApprovalRequest, type CandidateRow,
 } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
@@ -153,7 +154,7 @@ export default function AssetDetail() {
     staleTime: 30_000,
   });
 
-  // THE RECEIPT GATES (handoff 57 — scaffolding until 58's candidate model).
+  // THE RECEIPT GATES (handoff 57, kept by 58).
   // Read raw and on its own key: the mapped `Asset` does not carry them, and
   // the buttons are the server's answer for THIS caller now (`can_fire` has
   // the no-two-gates rule applied), so they are refreshed after every gate.
@@ -538,6 +539,15 @@ export default function AssetDetail() {
                   <DetailRow label="Serial / VIN" value={asset.serial} />
                   <DetailRow label="Manufacturer" value={asset.manufacturer} />
                   <DetailRow label="Model" value={asset.model} />
+                  {/* Handoff 58: what a TAG ID unit is told apart by, and the
+                      mode it was received under. Read off the raw asset (the
+                      gate query), which the mapped `Asset` does not carry;
+                      each row is absent when the record has no value. */}
+                  <DetailRow label="Colour" value={gateRow?.colour} />
+                  <DetailRow label="Material" value={gateRow?.material} />
+                  <DetailRow label="Dimensions" value={gateRow?.dimensions} />
+                  <DetailRow label="Identified by" value={gateRow?.identification_mode
+                    ? IDENTIFICATION_MODE_WORDS[gateRow.identification_mode] : undefined} />
                   <DetailRow label="Asset Type" value={asset.assetType} />
                   <DetailRow label="FM Domain" value={fmDomainLabel(asset.fmDomain)} />
                   {isFleet && <DetailRow label="Registration No." value={asset.registrationNo} />}

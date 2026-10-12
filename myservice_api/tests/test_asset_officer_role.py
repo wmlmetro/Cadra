@@ -131,9 +131,16 @@ class TestAssetOfficerRole(CadraHttpCase):
     def test_the_officer_registers_moves_and_verifies(self):
         token = self._login_token(self.officer, self.officer_password)
 
+        # What a receipt carries — since handoff 58, with the tenant's
+        # receipt gates on, a serial-mode class refuses a unit without its
+        # serial, make and model (Section 12). Switch off, ignored extras.
         r = self._send(token, "POST", "/api/v1/assets", {
             "name": "officer registered %s" % self.marker,
             "category_id": self.category.id,
+            "serial_number": "SN-%s" % self.marker,
+            "make": "Dell", "model_name": "Latitude 7430",
+            "colour": "Black", "material": "Aluminium",
+            "dimensions": "30x21 cm",
         })
         self.assertEqual(r.status_code, 201,
                          "the officer cannot register an asset — the role's "

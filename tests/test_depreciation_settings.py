@@ -9,6 +9,7 @@ import time
 
 import pytest
 
+from . import gates
 from .conftest import assert_envelope_ok
 
 
@@ -233,7 +234,7 @@ def test_the_straight_line_switch_removes_the_final_period_cliff(
     declining-balance asset further down the register is unreachable here.
     """
     ts = int(time.time())
-    created = client.post("/api/v1/assets", json={
+    created = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-cliff-{ts}",
         "category_id": a_category["id"],
         "location_id": test_location["id"],
@@ -244,9 +245,11 @@ def test_the_straight_line_switch_removes_the_final_period_cliff(
         "useful_life_months": 36,
         "declining_rate": 20.0,
         "salvage_rate": 5.0,
-    })
+    }))
     assert created.status_code == 201, created.text[:300]
-    asset_id = created.json()["data"]["id"]
+    # On the register whichever way the receipt switch is set (handoff 58
+    # §2, `tests/gates.py`): the depreciation module never sees a candidate.
+    asset_id = gates.on_the_register(client, created.json()["data"])["id"]
 
     def last_ratio():
         r = client.get(f"/api/v1/assets/{asset_id}/depreciation")

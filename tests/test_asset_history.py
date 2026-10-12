@@ -14,6 +14,7 @@ and a reader has to be able to see that without knowing to ask.
 """
 import pytest
 
+from . import gates
 from .conftest import (assert_envelope_err, assert_envelope_ok,
                        assert_fields_refused)
 
@@ -30,17 +31,28 @@ def _history(client, asset_id, **params):
     return r, assert_envelope_ok(r)["data"]
 
 
-def _new_asset(client, test_location, name):
+def _new_asset(client, test_location, name, registered=True):
     """An asset of this test's own, so its history is exactly what we did.
 
     The session-scoped `test_asset` is moved about by every other module; a
     count asserted against it would be asserting about their order.
+
+    ON THE REGISTER whichever way the receipt switch is set (handoff 58 §2):
+    with the gates on it is walked through them by `tests/gates.py`, so its
+    history also carries the gate events, the label's affix and the SAP code
+    the Register Maker entered — which is what a gated unit's history is.
+
+    `registered=False` for a test that asserts the WHOLE history and needs
+    nothing only a register asset can have done to it: the unit as
+    received, which with the gates on is a candidate (read by id, which
+    reaches one) and with them off is exactly the asset it always was.
     """
-    r = client.post("/api/v1/assets", json={
-        "name": name,
-        "category_id": 1,  # as the session `test_asset` fixture does
-        "location_id": test_location["id"]})
-    return assert_envelope_ok(r, expected_status=201)["data"]
+    body = dict(name=name,
+                category_id=1,  # as the session `test_asset` fixture does
+                location_id=test_location["id"])
+    if not registered:
+        return gates.receive(client, **body)
+    return gates.new_registered_asset(client, **body)
 
 
 def _assert_registration_is_oldest(client, asset_id):
@@ -92,7 +104,8 @@ def test_the_boundary_arrives_with_the_events(client, test_asset):
 
 def test_a_new_asset_says_it_has_no_history_in_words(client, test_location):
     """The defect that produced the handoff was an empty panel."""
-    asset = _new_asset(client, test_location, "pytest-history-empty")
+    asset = _new_asset(client, test_location, "pytest-history-empty",
+                       registered=False)
     _, data = _history(client, asset["id"])
     assert data["summary"]["events_after_registration"] == 0
     assert data["summary"]["statement"].startswith(
@@ -424,10 +437,12 @@ def test_a_changed_grn_reference_is_recorded_where_nobody_can_alter_it(
 
     This test was `…is_now_visible_and_is_only_chatter` and asserted the
     `chatter` grade. The name said what was true then."""
-    r = client.post("/api/v1/assets", json={
-        "name": "pytest-history-provenance", "category_id": 1,
-        "location_id": test_location["id"], "grn_reference": "GRN-BEFORE"})
-    asset = assert_envelope_ok(r, expected_status=201)["data"]
+    # As received, not walked (see `_new_asset`): with the gates on the
+    # Register Maker's SAP code is a provenance change of its own, and this
+    # test counts the GRN's.
+    asset = gates.receive(
+        client, name="pytest-history-provenance", category_id=1,
+        location_id=test_location["id"], grn_reference="GRN-BEFORE")
     r = client.patch(f"/api/v1/assets/{asset['id']}",
                      json={"grn_reference": "GRN-AFTER"})
     assert_envelope_ok(r)
@@ -526,10 +541,13 @@ def test_an_asset_with_no_location_can_be_placed(client, any_location,
     move is not always a transfer: the asset is PLACED, the append-only
     movement records it, and no document is made for a journey from nowhere.
     """
-    r = client.post("/api/v1/assets", json={
-        "name": "pytest-history-unplaced", "category_id": 1})
-    asset = assert_envelope_ok(r, expected_status=201)["data"]
+    asset = gates.new_registered_asset(
+        client, name="pytest-history-unplaced", category_id=1)
     assert asset["current_location"] is None
+    # What the asset's history held before the move: nothing switch off;
+    # with the gates on, the walk onto the register (`tests/gates.py`).
+    _, before = _history(client, asset["id"])
+    already = before["summary"]["events_after_registration"]
 
     placed_by = second_person.move(asset["id"], any_location,
                                    reason="test_asset_history.placed")
@@ -558,8 +576,8 @@ def test_an_asset_with_no_location_can_be_placed(client, any_location,
     assert placed[0]["detail"]["reason"] == "test_asset_history.placed"
     assert placed[0]["detail"]["transfer"] is None
     # A LATER request, so this is something that happened to the asset and
-    # not part of its registration.
-    assert history["summary"]["events_after_registration"] == 1
+    # not part of its registration — exactly one more than it had.
+    assert history["summary"]["events_after_registration"] == already + 1
 
 
 def test_a_placed_asset_then_moves_with_a_transfer_as_before(
@@ -593,9 +611,8 @@ def test_a_placed_asset_then_moves_with_a_transfer_as_before(
 
 
 def test_placing_an_unplaced_asset_nowhere_real_is_still_refused(client):
-    r = client.post("/api/v1/assets", json={
-        "name": "pytest-history-unplaced-refused", "category_id": 1})
-    asset = assert_envelope_ok(r, expected_status=201)["data"]
+    asset = gates.new_registered_asset(
+        client, name="pytest-history-unplaced-refused", category_id=1)
     r = client.post(f"/api/v1/assets/{asset['id']}/move",
                     json={"to_location_id": 999999999})
     assert_envelope_err(r, 404, "not_found")

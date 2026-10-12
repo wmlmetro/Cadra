@@ -32,6 +32,7 @@ import time
 
 import pytest
 
+from . import gates
 from .conftest import assert_envelope_err, assert_envelope_ok
 
 
@@ -45,14 +46,15 @@ def _ids(body):
 
 @pytest.fixture(scope="module")
 def a_fresh_asset(client, test_location):
-    """One asset created now, so "newest" has a known right answer."""
+    """One asset created now, so "newest" has a known right answer.
+
+    ON THE REGISTER whichever way the receipt switch is set (handoff 58
+    §2): the list sorts the register, which with the gates on hides a
+    receipt until `tests/gates.py` has walked it onto it."""
     ts = _uniq()
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-sort-{ts}",
-        "category_id": 1,
-        "location_id": test_location["id"],
-    })
-    return assert_envelope_ok(r, expected_status=201)["data"]
+    return gates.new_registered_asset(
+        client, name=f"pytest-sort-{ts}", category_id=1,
+        location_id=test_location["id"])
 
 
 # ─── the direction ───────────────────────────────────────────────────

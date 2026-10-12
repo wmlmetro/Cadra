@@ -1,0 +1,21 @@
+cadra19 | handoff 58: identification mode on cadra19 — 2 of 28 classes tag_id (Furniture & Fittings, Office Furniture), the rest serial  | errors: 0
+nrs19 | handoff 58: identification mode on nrs19 — 1 of 22 classes tag_id (Office Furniture), the rest serial  | errors: 0
+gtb19 | handoff 58: identification mode on gtb19 — 2 of 29 classes tag_id (Furniture, Office Furniture), the rest serial  | errors: 0
+test19 | (no migration line — already at 19.0.1.27.0) | errors: 0
+nrs | handoff 58: identification mode on nrs — 2 of 28 classes tag_id (Furniture & Fittings, Office Furniture), the rest serial  | errors: 0
+lasg | handoff 58: identification mode on lasg — 1 of 29 classes tag_id (Office Furniture), the rest serial  | errors: 0
+gtb | handoff 58: identification mode on gtb — 2 of 29 classes tag_id (Furniture, Office Furniture), the rest serial  | errors: 0
+jaizbankplc | handoff 58: identification mode on jaizbankplc — 2 of 29 classes tag_id (Furniture, Office Furniture), the rest serial  | errors: 0
+boot44 | handoff 58: identification mode on boot44 — 1 of 22 classes tag_id (Office Furniture), the rest serial  | errors: 0
+test19 | handoff 58: identification mode on test19 — 1 of 129 classes tag_id (Office Furniture), the rest serial (its first upgrade, 09:44Z) | errors: 0
+
+# after the restart: readiness (no token) and the seeded exclusions, per tenant
+cadra19 | readiness: {"data": {"ready": true, "database": "cadra19"}} 200 | exclusions active: 8 of 8
+nrs19 | readiness: {"data": {"ready": true, "database": "nrs19"}} 200 | exclusions active: 8 of 8
+gtb19 | readiness: {"data": {"ready": true, "database": "gtb19"}} 200 | exclusions active: 8 of 8
+test19 | readiness: {"data": {"ready": true, "database": "test19"}} 200 | exclusions active: 8 of 8
+nrs | readiness: {"data": {"ready": true, "database": "nrs"}} 200 | exclusions active: 8 of 8
+lasg | readiness: {"data": {"ready": true, "database": "lasg"}} 200 | exclusions active: 8 of 8
+gtb | readiness: {"data": {"ready": true, "database": "gtb"}} 200 | exclusions active: 8 of 8
+jaizbankplc | readiness: {"data": {"ready": true, "database": "jaizbankplc"}} 200 | exclusions active: 8 of 8
+boot44 | readiness: {"data": {"ready": true, "database": "boot44"}} 200 | exclusions active: 8 of 8

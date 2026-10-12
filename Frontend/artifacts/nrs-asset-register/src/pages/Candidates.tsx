@@ -1,11 +1,10 @@
 /**
  * Candidates — received units that are not yet on the register.
  *
- * SCAFFOLDING — 2026-10-07, handoff 57. A candidate tonight is an `nrs.asset`
- * whose `register_state` is anything but `registered`; the register itself
- * (every list, count, report, export and the map) hides them by default, so
- * this is the one list that shows them. Handoff 58 replaces the field with a
- * separate candidate model and this page is rewritten against it.
+ * Handoff 57, kept by 58. A candidate is an `nrs.asset` whose
+ * `register_state` is anything but `registered`; the register itself (every
+ * list, count, report, export and the map) hides them by default, so this is
+ * the one list that shows them.
  *
  * One list with a *waiting on* filter, not a queue per role (out of scope
  * tonight). The filter opens on the signed-in person's own gate, derived from
@@ -17,7 +16,7 @@ import { Link } from "wouter";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
-  fetchCandidatesPage, fetchReceiptGated,
+  fetchCandidatesPage, fetchReceiptGated, IDENTIFICATION_MODE_SHORT,
   type CandidatesPage, type GateWaitingOn,
 } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
@@ -241,8 +240,12 @@ export default function Candidates() {
                       {REGISTER_STATE_SHORT[r.register_state] ?? r.register_state}
                     </span>
                   </td>
-                  {/* Always Serial tonight: Tag-ID and Pool modes are out (handoff 57 §0). */}
-                  <td className="px-3 py-2.5 text-muted-foreground">Serial</td>
+                  {/* The mode the unit was RECEIVED under (handoff 58), fixed
+                      on the unit; a dash for one received before 58, which
+                      the server publishes as null rather than guessing. */}
+                  <td className="px-3 py-2.5 text-muted-foreground" data-testid="candidate-mode">
+                    {r.identification_mode ? IDENTIFICATION_MODE_SHORT[r.identification_mode] : "—"}
+                  </td>
                   <td className="px-3 py-2.5">{r.provenance?.purchase_order_reference ?? "—"}</td>
                   <td className="px-3 py-2.5">{r.provenance?.grn_reference ?? "—"}</td>
                   <td className="px-3 py-2.5">{r.serial_number ?? "—"}</td>

@@ -444,7 +444,7 @@ class NRSAssetSAPEvents(models.Model):
 
 
 class NRSAssetGatesSAP(models.Model):
-    """Handoff 57 (scaffolding, replaced by 58): INT-06 for a unit that
+    """Handoff 57 (kept by 58): INT-06 for a unit that
     came through the receipt gates fires HERE, on the Register Checker's
     approval, and not on affix — the affix override below skips a
     candidate. The SAP code on the record was typed by the maker
@@ -482,7 +482,7 @@ class NRSAssetTagLabelSAP(models.Model):
         was_affixed = self.label_state == 'affixed'
         result = super()._mark_affixed(scanned_tag_number, *args, **kwargs)
 
-        # Handoff 57 (scaffolding, replaced by 58): a receipt CANDIDATE is
+        # Handoff 57 (kept by 58): a receipt CANDIDATE is
         # not capitalised on affix — the gates move INT-06 to the checker's
         # approval (`_on_registered` below). Read AFTER super(), whose own
         # override has by then moved the candidate on to `tagged`, never to

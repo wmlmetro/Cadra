@@ -176,3 +176,34 @@ def test_every_exclusion_still_excludes_something():
     assert not stale, (
         "stale exclusions (route gone, or now documented):\n  %s"
         % "\n  ".join(stale))
+
+
+# ─── handoff 58, D6: the `waiting_on` values the reference publishes ────
+
+def _served_waiting_on():
+    """`WAITING_ON_VALUES` read off the model's source — the tuple the
+    route's `?waiting_on=` filter and its OpenAPI enum are built from."""
+    src = (REPO_ROOT / "myservice_asset_register" / "models"
+           / "asset_gates.py").read_text(encoding="utf-8")
+    for node in ast.parse(src).body:
+        if isinstance(node, ast.Assign) and any(
+                isinstance(t, ast.Name) and t.id == "WAITING_ON_VALUES"
+                for t in node.targets):
+            return [e.value for e in node.value.elts]
+    raise AssertionError("WAITING_ON_VALUES not found in asset_gates.py")
+
+
+def test_the_reference_lists_every_waiting_on_value_it_serves():
+    """Report 57 D6: `iad_approver` was served and not published. §14.2's
+    list must name exactly the values `GET /candidates?waiting_on=` accepts —
+    no more, no fewer."""
+    text = REFERENCE.read_text(encoding="utf-8")
+    start = text.index("`waiting_on`: `store`")
+    block = text[start:text.index("\n\n", start)]
+    # `null` is the absence of a value (registered, rejected), not a filter.
+    documented = [v for v in re.findall(r"`([a-z_]+)`\s+\(", block)
+                  if v != "null"]
+    assert sorted(documented) == sorted(_served_waiting_on()), (
+        "the endpoint reference's `waiting_on` list (§14.2) and the served "
+        "values disagree: documented %s, served %s"
+        % (documented, _served_waiting_on()))

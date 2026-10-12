@@ -99,6 +99,11 @@ export const SCOPE = {
    *  49). Held by the Auditor and the Asset Manager; `settings:write` does
    *  not imply it on the token, the two are granted side by side. */
   settingsRead: "settings:read",
+  /** How a class is identified — `identification_mode` and
+   *  `class_attributes_schema` on a category, and NOTHING else on it
+   *  (handoff 58 §4). The Asset Controller's. `settings:write` covers the
+   *  same two keys; this lets the controller change them without the rest. */
+  settingsClasses: "settings:classes",
   /** Taking a copy of the register — both export routes (handoff 50 ruling
    *  1). The Auditor's alone (plus the `admin` wildcard): reading the
    *  register is not the same act as walking out with a file of it. Kept in
@@ -111,8 +116,8 @@ export const SCOPE = {
   ingestionWrite: "ingestion:write",
   /** Webhook administration. No SPA page gates on it either. */
   webhooksAdmin: "webhooks:admin",
-  /** The receipt gates (handoff 57 — scaffolding, replaced by 58's
-   *  candidate model). Seeing a unit that is not yet on the register: the
+  /** The receipt gates (handoff 57, kept by 58). Seeing a unit that is
+   *  not yet on the register: the
    *  Candidates page and `?register_state=any`. */
   candidatesRead: "candidates:read",
   /** IAD Value-for-Money Officer: sight the unit against the order. */

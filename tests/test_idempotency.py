@@ -4,6 +4,7 @@ identical body)."""
 import time
 import uuid
 
+from . import gates
 from .conftest import assert_envelope_ok
 
 
@@ -35,18 +36,21 @@ def test_idempotent_location_create(client, capture):
 def test_idempotent_asset_create(client, test_location, capture):
     """Two POST /assets with same key → same record."""
     key = f"pytest-idem-asset-{int(time.time())}"
-    body = {
+    # Filled in by `tests/gates.py` (handoff 58): with the receipt gates on
+    # a serial-mode class takes a serial, make and model at the door.
+    body = gates.receipt_body(client, **{
         "name": f"idem-asset-{key}",
         "category_id": 1,
         "location_id": test_location["id"],
-    }
+    })
     r1 = client.post("/api/v1/assets", json=body,
                      headers={"X-Idempotency-Key": key})
     capture("idempotency/asset_first", r1)
     body1 = assert_envelope_ok(r1, expected_status=201)
 
     r2 = client.post("/api/v1/assets",
-                     json={"name": "DIFFERENT", "category_id": 1, "location_id": test_location["id"]},
+                     json=gates.receipt_body(client, name="DIFFERENT", category_id=1,
+                                             location_id=test_location["id"]),
                      headers={"X-Idempotency-Key": key})
     capture("idempotency/asset_second", r2)
     body2 = assert_envelope_ok(r2, expected_status=201)
@@ -90,9 +94,9 @@ def test_overlong_key_is_rejected(client, test_location, capture):
     to find out.
     """
     r = client.post("/api/v1/assets",
-                    json={"name": f"idem-longkey-{int(time.time())}",
-                          "category_id": 1,
-                          "location_id": test_location["id"]},
+                    json=gates.receipt_body(
+                        client, name=f"idem-longkey-{int(time.time())}",
+                        category_id=1, location_id=test_location["id"]),
                     headers={"X-Idempotency-Key": "k" * 200})
     capture("idempotency/overlong_key", r)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
@@ -108,9 +112,9 @@ def test_key_at_max_length_is_accepted(client, test_location):
     """128 characters is the limit, not one past it."""
     key = "b" * 128
     r = client.post("/api/v1/assets",
-                    json={"name": f"idem-maxkey-{int(time.time())}",
-                          "category_id": 1,
-                          "location_id": test_location["id"]},
+                    json=gates.receipt_body(
+                        client, name=f"idem-maxkey-{int(time.time())}",
+                        category_id=1, location_id=test_location["id"]),
                     headers={"X-Idempotency-Key": key})
     assert_envelope_ok(r, expected_status=201)
 
@@ -131,7 +135,8 @@ def test_concurrent_same_key_creates_exactly_one(client, test_location, capture)
 
     key = f"pytest-idem-race-{int(time.time() * 1000)}"
     name = f"idem-race-{key}"
-    payload = {"name": name, "category_id": 1, "location_id": test_location["id"]}
+    payload = gates.receipt_body(client, name=name, category_id=1,
+                                 location_id=test_location["id"])
 
     def fire(_):
         return client.post("/api/v1/assets", json=payload,
@@ -158,7 +163,12 @@ def test_concurrent_same_key_creates_exactly_one(client, test_location, capture)
     )
 
     # And the losers' assets must not have survived the rollback.
-    listing = client.get("/api/v1/assets", params={"q": name, "limit": 50})
+    # Every register state: with the receipt gates on, a loser's asset that
+    # survived would be a CANDIDATE, which the register alone would hide —
+    # and this assertion would pass with it sitting there. Switch off,
+    # `any` is the register itself.
+    listing = client.get("/api/v1/assets", params={"q": name, "limit": 50,
+                                                   "register_state": "any"})
     matches = [a for a in assert_envelope_ok(listing)["data"] if a["name"] == name]
     assert len(matches) == 1, (
         f"expected 1 asset named {name}, found {len(matches)}: "

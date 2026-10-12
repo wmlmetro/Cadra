@@ -44,6 +44,13 @@ class NRSAssetTransfer(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            # A transfer document against a receipt candidate is refused
+            # when it is raised, not when it completes (handoff 58, P5): a
+            # unit that is not on the register has nowhere to be transferred
+            # from. Completion would meet the model guard anyway.
+            if vals.get('asset_id'):
+                self.env['nrs.asset'].sudo().browse(
+                    vals['asset_id'])._refuse_off_the_register('transfer')
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('nrs.asset.transfer') or '/'
         return super().create(vals_list)

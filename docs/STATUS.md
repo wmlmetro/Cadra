@@ -1530,7 +1530,7 @@ failing silently, depending on whose phone it was. The engine changed.
   "Needs the owner" block naming it — a handoff defect per the authoring
   rules. The procedure and fill-in table are in report §6c.
 
-## Handoff 57 — the gates, tonight (SCAFFOLDING, replaced by handoff 58)
+## Handoff 57 — the gates, tonight (kept by handoff 58; see evaluation §8)
 
 - **The receipt gates on `nrs.asset`**: `register_state`, one transition
   table, one method (`_fire_gate`), ten `POST /assets/<id>/gates/*` routes,
@@ -1547,3 +1547,35 @@ failing silently, depending on whose phone it was. The engine changed.
   (the chain in the browser as seven people). Every local tenant upgraded,
   every existing asset registered (report 57, fan-out table).
 - **Not yet**: deployed to the demo tenant (`staging`) — owner, after merge.
+
+## Handoff 58 — the gates, kept
+
+- **§4.6 reversed**: the candidate stays `register_state` on `nrs.asset`
+  (`docs/ADDENDUM-A-EVALUATION.md` §8); the "scaffolding" labels are off —
+  55 matching lines before, 5 after, all dated history or unrelated
+  (`handoffs/58-evidence/scaffolding-grep.txt`).
+- **Green with the gates ON**: one HTTP-suite helper, `tests/gates.py`, walks
+  a unit through the seven gates as the seven demo personas; the receipt-path
+  tests are parametrised over both switch states. Denominators in report 58
+  §2 (`handoffs/58-evidence/pytest-switch-*.txt`, `e2e-switch-*.txt`).
+- **57's findings closed**: D3 (the affix refusal is a 409
+  `segregation_of_duties`), P4 (SAP's number never replaces the maker's; a
+  different one is a dual-code exception naming both and the two people),
+  P5 (a candidate takes no custodian, move, transfer or disposal — every
+  writer), P8 (`503 server_misconfigured` naming the missing column, and
+  `GET /api/v1/meta/readiness`, no token — driven on a throwaway copy with
+  the column dropped), D6 (reference pinned by a guard); P1, D5, INT-05
+  kept with a DECISIONS line each.
+- **Section 12**: `identification_mode` (serial / tag_id / pool) and the
+  mandatory-attribute schema per class; furniture seeded `tag_id`; the unit
+  keeps the mode it arrived with; a gated receipt refuses a serial-mode unit
+  with no serial (Vendra's sentence), a missing attribute (named), a pool
+  unit (Phase E) and a serial already on the register; a `tag_id` unit is
+  affixed on the label plus a tick. New scope `settings:classes`.
+- **Rule 2**: `nrs.role.exclusion`, eight seeded pairs, refused at grant
+  under every writer, never revoked; conflicting grants measured before the
+  seed — 0 on 7 of 9 local tenants and on all 4 cluster tenants; 26 inactive
+  e2e fixtures on `test19`/`boot44` (`handoffs/58-evidence/conflicting-
+  grants-before-seed.txt`).
+- **Not yet**: deployed — owner, after merge; the deployed check is the
+  owner's, in the browser (Turnstile; report 58, top).

@@ -4723,9 +4723,15 @@ def _models_carrying_the_mixin():
 #: migrating: the value is a Selection, not a boolean, and three reports and
 #: a script cite it by name.
 ALREADY_LABELLED = {
+    "nrs.role.exclusion":
+        "Carries `cadra.test.fixture.mixin` (`is_test_fixture`) declared on "
+        "the model itself in myservice_api/models/role_exclusion.py "
+        "(handoff 58 §5) — not in test_fixture.py, which is imported before "
+        "the model exists. A `settings:write` credential creates rows "
+        "through `POST /settings/role-exclusions`.",
     "ir.attachment":
         "Created by first-party code only as verification EVIDENCE, in "
-        "`nrs.asset._gate_apply` (handoff 57, scaffolding), bound to its "
+        "`nrs.asset._gate_apply` (handoff 57, kept by 58), bound to its "
         "asset by res_model/res_id. The `gate_fired` event that lists the "
         "attachment ids carries `source = 'test'` when a test credential "
         "fired the gate (the append-only mixin's derivation), and the asset "

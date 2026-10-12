@@ -55,6 +55,7 @@ import uuid
 
 import pytest
 
+from . import gates
 from .conftest import (assert_envelope_err, assert_envelope_ok,
                        assert_fields_refused)
 
@@ -104,13 +105,16 @@ def approver_id(two_people):
 
 def _tagged_asset(client, label):
     """A new asset of this test's own, with the tag `nrs.asset.create`
-    mints, and a serial so the lookup-by-serial assertions have one."""
+    mints, and a serial so the lookup-by-serial assertions have one.
+
+    ON THE REGISTER whichever way the receipt switch is set (handoff 58
+    §2): a faded label is replaced on an asset that has one, and with the
+    gates on that is a unit walked through them by `tests/gates.py` — its
+    label minted at request-tagging and numbered with its asset code."""
     serial = "PYT-TAG-" + uuid.uuid4().hex[:8].upper()
-    asset = assert_envelope_ok(client.post("/api/v1/assets", json={
-        "name": _uniq(f"pytest-tagrepl-{label}"),
-        "category_id": 1,
-        "serial_number": serial,
-    }), 201)["data"]
+    asset = gates.new_registered_asset(
+        client, name=_uniq(f"pytest-tagrepl-{label}"), category_id=1,
+        serial_number=serial)
     assert asset["tag"] and asset["tagging"]["label_id"], (
         "nrs.asset.create is supposed to mint a tag; without one there is "
         "nothing to replace")
@@ -200,7 +204,15 @@ def test_a_pending_label_still_resolves_by_code_and_serial_but_not_by_number(
     tag_id, number = asset["tagging"]["label_id"], asset["tag"]
     assert_envelope_ok(_request(requester, tag_id, approver_id))
 
-    assert_envelope_err(_lookup(client, number), 404, "not_found")
+    if number == asset["asset_code"]:
+        # Handoff 58: a label issued through the receipt gates carries the
+        # ASSET CODE as its number, so the number still finds the asset —
+        # as its code, never as an active tag.
+        hit = assert_envelope_ok(_lookup(client, number))["data"]
+        assert hit["matched_by"] == "asset_code"
+        assert hit["tag_state"] == "pending" and hit["tagged"] is False
+    else:
+        assert_envelope_err(_lookup(client, number), 404, "not_found")
 
     r = _lookup(client, asset["serial_number"])
     capture("barcode/lookup_pending_tag_by_serial", r)
@@ -561,7 +573,15 @@ def test_approving_scraps_the_label_mints_the_next_and_keeps_the_chain(
     assert after["tagging"]["label_id"] == new["id"]
 
     # The lookup routes: the old number is gone, the new one resolves.
-    assert_envelope_err(_lookup(client, old_number), 404, "not_found")
+    if old_number == asset["asset_code"]:
+        # Handoff 58: a gated label's number IS the asset code, which
+        # stays the asset's — so it still finds the asset, by its code and
+        # carrying the NEW label, never the scrapped one.
+        by_code = assert_envelope_ok(_lookup(client, old_number))["data"]
+        assert by_code["matched_by"] == "asset_code"
+        assert by_code["tag_id"] == new["id"]
+    else:
+        assert_envelope_err(_lookup(client, old_number), 404, "not_found")
     hit = assert_envelope_ok(_lookup(client, new["tag_number"]))["data"]
     assert hit["asset_id"] == asset["id"]
     assert hit["matched_by"] == "tag_number"

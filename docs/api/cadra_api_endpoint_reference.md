@@ -4186,7 +4186,7 @@ a deleted parameter's old value to twenty-four writing tests.
 
 # Endpoint index (grouped by area, alphabetical inside groups)
 
-Every first-party route under `/api/v1` — 115 of them as of handoff 52; the
+Every first-party route under `/api/v1` — 133 of them as of handoff 58 (115 at handoff 52); the
 first-party routes OUTSIDE `/api/v1` are `docs/api/EXTERNAL-SURFACES.md`'s.
 This table is held to the code by `tests/test_endpoint_reference.py` (handoff
 52 §6b), which re-derives the route census from every
@@ -4200,7 +4200,8 @@ A scope of `(none)` means the route names no scope: the auth routes and the
 self-describing meta routes. Two `@http.route` handlers check their scope
 INLINE rather than declaring it — `GET /assets/export.csv` (`export:read`)
 and `POST /integrations/employees/import` (`integrations:write`) — so their
-cells are stated here by hand; the guard compares method and path, not
+cells are stated here by hand, as is `PATCH /asset-categories/<id>`, whose
+either-or scope the route checks itself (handoff 58); the guard compares method and path, not
 scope. `GET /settings/sidebar` requires a signed-in caller and no scope, by
 design (handoff 48).
 
@@ -4219,126 +4220,131 @@ design (handoff 48).
 | 11 | GET    | `/api/v1/meta/database` | (none) |
 | 12 | GET    | `/api/v1/meta/diagnostics` | `admin` |
 | 13 | GET    | `/api/v1/meta/enums` | (none) |
-| 14 | GET    | `/api/v1/assets` | `assets:read` |
-| 15 | POST   | `/api/v1/assets` | `assets:write` |
-| 16 | GET    | `/api/v1/assets/<id>` | `assets:read` |
-| 17 | PATCH  | `/api/v1/assets/<id>` | `assets:write` |
-| 18 | POST   | `/api/v1/assets/<id>/approve-disposal` | `approvals:write` |
-| 19 | POST   | `/api/v1/assets/<id>/condemn` | `assets:write` |
-| 20 | GET    | `/api/v1/assets/<id>/custody` | `assets:read` |
-| 21 | GET    | `/api/v1/assets/<id>/depreciation` | `assets:read` |
-| 22 | GET    | `/api/v1/assets/<id>/history` | `assets:read` |
-| 23 | POST   | `/api/v1/assets/<id>/gates/submit` | `assets:write` |
-| 24 | POST   | `/api/v1/assets/<id>/gates/verify` | `vfm:verify` |
-| 25 | POST   | `/api/v1/assets/<id>/gates/approve` | `vfm:approve` |
-| 26 | POST   | `/api/v1/assets/<id>/gates/query` | `candidates:read` (+ `vfm:verify` or `vfm:approve`, checked by the model) |
-| 27 | POST   | `/api/v1/assets/<id>/gates/resubmit` | `assets:write` |
-| 28 | POST   | `/api/v1/assets/<id>/gates/reject` | `vfm:approve` |
-| 29 | POST   | `/api/v1/assets/<id>/gates/request-tagging` | `tagging:request` |
-| 30 | POST   | `/api/v1/assets/<id>/gates/register` | `register:make` |
-| 31 | POST   | `/api/v1/assets/<id>/gates/approve-registration` | `register:check` |
-| 32 | POST   | `/api/v1/assets/<id>/gates/return-registration` | `register:check` |
-| 33 | GET    | `/api/v1/candidates` | `candidates:read` |
-| 34 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
-| 35 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
-| 36 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
-| 37 | POST   | `/api/v1/assets/<id>/tag-affixed` | `tagging:write` |
-| 38 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
-| 39 | POST   | `/api/v1/assets/<id>/verify` | `assets:write` |
-| 40 | GET    | `/api/v1/assets/by-tag/<tag>` | `assets:read` |
-| 41 | GET    | `/api/v1/assets/export` | `export:read` |
-| 42 | GET    | `/api/v1/assets/export.csv` | `export:read` |
-| 43 | GET    | `/api/v1/asset-categories` | `assets:read` |
-| 44 | POST   | `/api/v1/asset-categories` | `settings:write` |
-| 45 | DELETE | `/api/v1/asset-categories/<id>` | `settings:write` |
-| 46 | PATCH  | `/api/v1/asset-categories/<id>` | `settings:write` |
-| 47 | GET    | `/api/v1/locations` | `locations:read` |
-| 48 | POST   | `/api/v1/locations` | `locations:write` |
-| 49 | GET    | `/api/v1/locations/<id>` | `locations:read` |
-| 50 | PATCH  | `/api/v1/locations/<id>` | `locations:write` |
-| 51 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
-| 52 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
-| 53 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
-| 54 | GET    | `/api/v1/requests` | `requests:read` |
-| 55 | POST   | `/api/v1/requests` | `requests:write` |
-| 56 | GET    | `/api/v1/requests/<id>` | `requests:read` |
-| 57 | PATCH  | `/api/v1/requests/<id>` | `requests:write` |
-| 58 | POST   | `/api/v1/requests/<id>/assign` | `requests:write` |
-| 59 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
-| 60 | POST   | `/api/v1/requests/<id>/transition` | `requests:write` |
-| 61 | GET    | `/api/v1/requests/by-reference/<reference>` | `requests:read` |
-| 62 | GET    | `/api/v1/approvals` | `assets:read` |
-| 63 | GET    | `/api/v1/approvals/<id>` | `assets:read` |
-| 64 | POST   | `/api/v1/approvals/<id>/approve` | `approvals:write` |
-| 65 | POST   | `/api/v1/approvals/<id>/reject` | `approvals:write` |
-| 66 | POST   | `/api/v1/approvals/<id>/renominate` | `assets:write` |
-| 67 | POST   | `/api/v1/approvals/<id>/withdraw` | `assets:write` |
-| 68 | GET    | `/api/v1/approvals/approvers` | `assets:write` |
-| 69 | GET    | `/api/v1/dashboard/fleet-command` | `operations:read` |
-| 70 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
-| 71 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
-| 72 | GET    | `/api/v1/security/kpis` | `operations:read` |
-| 73 | GET    | `/api/v1/security/map-data` | `operations:read` |
-| 74 | GET    | `/api/v1/security/recent` | `operations:read` |
-| 75 | GET    | `/api/v1/security/trend` | `operations:read` |
-| 76 | GET    | `/api/v1/fleet` | `operations:read` |
-| 77 | GET    | `/api/v1/fleet/<id>` | `operations:read` |
-| 78 | GET    | `/api/v1/fleet/dashboard` | `operations:read` |
-| 79 | GET    | `/api/v1/fleet/map` | `operations:read` |
-| 80 | GET    | `/api/v1/fm/dashboard` | `operations:read` |
-| 81 | POST   | `/api/v1/barcode/generate` | `tagging:write` |
-| 82 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
-| 83 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
-| 84 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
-| 85 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
-| 86 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
-| 87 | GET    | `/api/v1/tags/<id>` | `assets:read` |
-| 88 | POST   | `/api/v1/tags/<id>/approve-replacement` | `approvals:write` |
-| 89 | POST   | `/api/v1/tags/<id>/reject-replacement` | `approvals:write` |
-| 90 | POST   | `/api/v1/tags/<id>/request-replacement` | `tagging:write` |
-| 91 | GET    | `/api/v1/tags/lookup` | `assets:read` |
-| 92 | GET    | `/api/v1/tags/pending-replacements` | `assets:read` |
-| 93 | GET    | `/api/v1/tags/replacements` | `assets:read` |
-| 94 | GET    | `/api/v1/home/form-data` | `requests:read` |
-| 95 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
-| 96 | POST   | `/api/v1/integrations/employees/import` | `integrations:write` |
-| 97 | GET    | `/api/v1/integrations/employees/import/<job_id>` | `integrations:write` |
-| 98 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
-| 99 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
-| 100 | GET    | `/api/v1/reports/access-changes` | `access:read` |
-| 101 | GET    | `/api/v1/reports/asset-register` | `assets:read` |
-| 102 | GET    | `/api/v1/reports/configuration-changes` | `settings:read` |
-| 103 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
-| 104 | GET    | `/api/v1/reports/disposals` | `assets:read` |
-| 105 | GET    | `/api/v1/identity/employees` | `identity:read` |
-| 106 | GET    | `/api/v1/identity/employees/<id>` | `identity:read` |
-| 107 | GET    | `/api/v1/identity/employees/<id>/assets` | `identity:read` + `assets:read` |
-| 108 | GET    | `/api/v1/identity/employees/by-ir/<ir_number>` | `identity:read` |
-| 109 | GET    | `/api/v1/users` | `admin` |
-| 110 | POST   | `/api/v1/users` | `admin` |
-| 111 | GET    | `/api/v1/users/<user_id>` | `admin` |
-| 112 | POST   | `/api/v1/users/<user_id>/deactivate` | `admin` |
-| 113 | POST   | `/api/v1/users/<user_id>/invite` | `admin` |
-| 114 | POST   | `/api/v1/users/<user_id>/reactivate` | `admin` |
-| 115 | POST   | `/api/v1/users/<user_id>/roles` | `admin` |
-| 116 | GET    | `/api/v1/roles` | `admin` |
-| 117 | GET    | `/api/v1/settings` | `assets:read` |
-| 118 | GET    | `/api/v1/settings/approvals` | `assets:read` |
-| 119 | GET    | `/api/v1/settings/branding` | `assets:read` |
-| 120 | PATCH  | `/api/v1/settings/branding` | `settings:write` |
-| 121 | GET    | `/api/v1/settings/depreciation` | `assets:read` |
-| 122 | PATCH  | `/api/v1/settings/depreciation` | `settings:write` |
-| 123 | POST   | `/api/v1/settings/depreciation/recompute` | `settings:write` |
-| 124 | PATCH  | `/api/v1/settings/receipt-gate` | `settings:write` |
-| 125 | GET    | `/api/v1/settings/sidebar` | (any signed-in caller) |
-| 126 | PATCH  | `/api/v1/settings/sidebar` | `admin` |
-| 127 | GET    | `/api/v1/brand` | (none) |
-| 128 | GET    | `/api/v1/brand/logo` | (none) |
+| 14 | GET    | `/api/v1/meta/readiness` | (none — no token; handoff 58) |
+| 15 | GET    | `/api/v1/assets` | `assets:read` |
+| 16 | POST   | `/api/v1/assets` | `assets:write` |
+| 17 | GET    | `/api/v1/assets/<id>` | `assets:read` |
+| 18 | PATCH  | `/api/v1/assets/<id>` | `assets:write` |
+| 19 | POST   | `/api/v1/assets/<id>/approve-disposal` | `approvals:write` |
+| 20 | POST   | `/api/v1/assets/<id>/condemn` | `assets:write` |
+| 21 | GET    | `/api/v1/assets/<id>/custody` | `assets:read` |
+| 22 | GET    | `/api/v1/assets/<id>/depreciation` | `assets:read` |
+| 23 | GET    | `/api/v1/assets/<id>/history` | `assets:read` |
+| 24 | POST   | `/api/v1/assets/<id>/gates/submit` | `assets:write` |
+| 25 | POST   | `/api/v1/assets/<id>/gates/verify` | `vfm:verify` |
+| 26 | POST   | `/api/v1/assets/<id>/gates/approve` | `vfm:approve` |
+| 27 | POST   | `/api/v1/assets/<id>/gates/query` | `candidates:read` (+ `vfm:verify` or `vfm:approve`, checked by the model) |
+| 28 | POST   | `/api/v1/assets/<id>/gates/resubmit` | `assets:write` |
+| 29 | POST   | `/api/v1/assets/<id>/gates/reject` | `vfm:approve` |
+| 30 | POST   | `/api/v1/assets/<id>/gates/request-tagging` | `tagging:request` |
+| 31 | POST   | `/api/v1/assets/<id>/gates/register` | `register:make` |
+| 32 | POST   | `/api/v1/assets/<id>/gates/approve-registration` | `register:check` |
+| 33 | POST   | `/api/v1/assets/<id>/gates/return-registration` | `register:check` |
+| 34 | GET    | `/api/v1/candidates` | `candidates:read` |
+| 35 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
+| 36 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
+| 37 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
+| 38 | POST   | `/api/v1/assets/<id>/tag-affixed` | `tagging:write` |
+| 39 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
+| 40 | POST   | `/api/v1/assets/<id>/verify` | `assets:write` |
+| 41 | GET    | `/api/v1/assets/by-tag/<tag>` | `assets:read` |
+| 42 | GET    | `/api/v1/assets/export` | `export:read` |
+| 43 | GET    | `/api/v1/assets/export.csv` | `export:read` |
+| 44 | GET    | `/api/v1/asset-categories` | `assets:read` |
+| 45 | POST   | `/api/v1/asset-categories` | `settings:write` |
+| 46 | DELETE | `/api/v1/asset-categories/<id>` | `settings:write` |
+| 47 | PATCH  | `/api/v1/asset-categories/<id>` | `settings:write`, or `settings:classes` for `identification_mode` / `class_attributes_schema` alone (checked in the route) |
+| 48 | GET    | `/api/v1/locations` | `locations:read` |
+| 49 | POST   | `/api/v1/locations` | `locations:write` |
+| 50 | GET    | `/api/v1/locations/<id>` | `locations:read` |
+| 51 | PATCH  | `/api/v1/locations/<id>` | `locations:write` |
+| 52 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
+| 53 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
+| 54 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
+| 55 | GET    | `/api/v1/requests` | `requests:read` |
+| 56 | POST   | `/api/v1/requests` | `requests:write` |
+| 57 | GET    | `/api/v1/requests/<id>` | `requests:read` |
+| 58 | PATCH  | `/api/v1/requests/<id>` | `requests:write` |
+| 59 | POST   | `/api/v1/requests/<id>/assign` | `requests:write` |
+| 60 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
+| 61 | POST   | `/api/v1/requests/<id>/transition` | `requests:write` |
+| 62 | GET    | `/api/v1/requests/by-reference/<reference>` | `requests:read` |
+| 63 | GET    | `/api/v1/approvals` | `assets:read` |
+| 64 | GET    | `/api/v1/approvals/<id>` | `assets:read` |
+| 65 | POST   | `/api/v1/approvals/<id>/approve` | `approvals:write` |
+| 66 | POST   | `/api/v1/approvals/<id>/reject` | `approvals:write` |
+| 67 | POST   | `/api/v1/approvals/<id>/renominate` | `assets:write` |
+| 68 | POST   | `/api/v1/approvals/<id>/withdraw` | `assets:write` |
+| 69 | GET    | `/api/v1/approvals/approvers` | `assets:write` |
+| 70 | GET    | `/api/v1/dashboard/fleet-command` | `operations:read` |
+| 71 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
+| 72 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
+| 73 | GET    | `/api/v1/security/kpis` | `operations:read` |
+| 74 | GET    | `/api/v1/security/map-data` | `operations:read` |
+| 75 | GET    | `/api/v1/security/recent` | `operations:read` |
+| 76 | GET    | `/api/v1/security/trend` | `operations:read` |
+| 77 | GET    | `/api/v1/fleet` | `operations:read` |
+| 78 | GET    | `/api/v1/fleet/<id>` | `operations:read` |
+| 79 | GET    | `/api/v1/fleet/dashboard` | `operations:read` |
+| 80 | GET    | `/api/v1/fleet/map` | `operations:read` |
+| 81 | GET    | `/api/v1/fm/dashboard` | `operations:read` |
+| 82 | POST   | `/api/v1/barcode/generate` | `tagging:write` |
+| 83 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
+| 84 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
+| 85 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
+| 86 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
+| 87 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
+| 88 | GET    | `/api/v1/tags/<id>` | `assets:read` |
+| 89 | POST   | `/api/v1/tags/<id>/approve-replacement` | `approvals:write` |
+| 90 | POST   | `/api/v1/tags/<id>/reject-replacement` | `approvals:write` |
+| 91 | POST   | `/api/v1/tags/<id>/request-replacement` | `tagging:write` |
+| 92 | GET    | `/api/v1/tags/lookup` | `assets:read` |
+| 93 | GET    | `/api/v1/tags/pending-replacements` | `assets:read` |
+| 94 | GET    | `/api/v1/tags/replacements` | `assets:read` |
+| 95 | GET    | `/api/v1/home/form-data` | `requests:read` |
+| 96 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
+| 97 | POST   | `/api/v1/integrations/employees/import` | `integrations:write` |
+| 98 | GET    | `/api/v1/integrations/employees/import/<job_id>` | `integrations:write` |
+| 99 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
+| 100 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
+| 101 | GET    | `/api/v1/reports/access-changes` | `access:read` |
+| 102 | GET    | `/api/v1/reports/asset-register` | `assets:read` |
+| 103 | GET    | `/api/v1/reports/configuration-changes` | `settings:read` |
+| 104 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
+| 105 | GET    | `/api/v1/reports/disposals` | `assets:read` |
+| 106 | GET    | `/api/v1/identity/employees` | `identity:read` |
+| 107 | GET    | `/api/v1/identity/employees/<id>` | `identity:read` |
+| 108 | GET    | `/api/v1/identity/employees/<id>/assets` | `identity:read` + `assets:read` |
+| 109 | GET    | `/api/v1/identity/employees/by-ir/<ir_number>` | `identity:read` |
+| 110 | GET    | `/api/v1/users` | `admin` |
+| 111 | POST   | `/api/v1/users` | `admin` |
+| 112 | GET    | `/api/v1/users/<user_id>` | `admin` |
+| 113 | POST   | `/api/v1/users/<user_id>/deactivate` | `admin` |
+| 114 | POST   | `/api/v1/users/<user_id>/invite` | `admin` |
+| 115 | POST   | `/api/v1/users/<user_id>/reactivate` | `admin` |
+| 116 | POST   | `/api/v1/users/<user_id>/roles` | `admin` |
+| 117 | GET    | `/api/v1/roles` | `admin` |
+| 118 | GET    | `/api/v1/settings` | `assets:read` |
+| 119 | GET    | `/api/v1/settings/approvals` | `assets:read` |
+| 120 | GET    | `/api/v1/settings/branding` | `assets:read` |
+| 121 | PATCH  | `/api/v1/settings/branding` | `settings:write` |
+| 122 | GET    | `/api/v1/settings/depreciation` | `assets:read` |
+| 123 | PATCH  | `/api/v1/settings/depreciation` | `settings:write` |
+| 124 | POST   | `/api/v1/settings/depreciation/recompute` | `settings:write` |
+| 125 | PATCH  | `/api/v1/settings/receipt-gate` | `settings:write` |
+| 126 | GET    | `/api/v1/settings/role-exclusions` | `settings:read` |
+| 127 | POST   | `/api/v1/settings/role-exclusions` | `settings:write` |
+| 128 | PATCH  | `/api/v1/settings/role-exclusions/<id>` | `settings:write` |
+| 129 | GET    | `/api/v1/settings/conflicting-grants` | `settings:write` |
+| 130 | GET    | `/api/v1/settings/sidebar` | (any signed-in caller) |
+| 131 | PATCH  | `/api/v1/settings/sidebar` | `admin` |
+| 132 | GET    | `/api/v1/brand` | (none) |
+| 133 | GET    | `/api/v1/brand/logo` | (none) |
 
 
-## 11.8 GET `/api/v1/settings` and PATCH `/api/v1/settings/receipt-gate` — are receipts gated? (handoff 57, scaffolding)
+## 11.8 GET `/api/v1/settings` and PATCH `/api/v1/settings/receipt-gate` — are receipts gated? (handoff 57, kept by 58)
 
-GET scope **`assets:read`**, for §11.7's reason: the Candidates page, the asset page's banner and the register all behave differently when receipts are gated. PATCH scope **`settings:write`**, like every write on that controller (`admin` is a wildcard and the source guard refuses it there). **Known weakness, published rather than hidden:** the Asset Manager holds `settings:write`, so the person the gates constrain can switch them off; every switch is a row in `/reports/configuration-changes` naming who and when. Handoff 58 is expected to make this read-only over the API, like §11.7.
+GET scope **`assets:read`**, for §11.7's reason: the Candidates page, the asset page's banner and the register all behave differently when receipts are gated. PATCH scope **`settings:write`**, like every write on that controller (`admin` is a wildcard and the source guard refuses it there). **Known weakness, published rather than hidden:** the Asset Manager holds `settings:write`, so the person the gates constrain can switch them off; every switch is a row in `/reports/configuration-changes` naming who and when. Handoff 58 did not change this; making it read-only over the API, like §11.7, is on report 58 §9's go-live list.
 
 The parameter is `cadra.receipt.gated`, read with raw SQL; **absent means OFF**. When on, `POST /api/v1/assets` (INT-03) creates the record as a `captured` candidate with no tag, and SAP gets the asset master at registration, not at affix (see §14).
 
@@ -4719,15 +4725,16 @@ the person who last wrote it. Switching on what nobody switched off writes
 no row; switching back on writes `on` and never deletes, because a deleted
 parameter leaves no tombstone in that report.
 
-## 14 · The receipt gates (handoff 57 — SCAFFOLDING, replaced by handoff 58)
+## 14 · The receipt gates (handoff 57, kept by handoff 58)
 
-**Read this first.** These routes are the one-night scaffolding for Addendum A
-(NRS, 7 October 2026: *a received unit is not an asset until Internal Audit has
-sighted it, a tag is on it, and a maker-checker pair has registered it*). The
-gate machine lives on `nrs.asset` as one field, `register_state`; handoff 58
-replaces it with a separate candidate model and its own routes. **Do not build
-an integration against §14.** Vendra is unaffected: INT-03 still calls
-`POST /api/v1/assets` exactly as before (§3.4).
+**Read this first.** These routes are Addendum A's chain (NRS, 7 October
+2026: *a received unit is not an asset until Internal Audit has sighted it, a
+tag is on it, and a maker-checker pair has registered it*). The gate machine
+lives on `nrs.asset` as one field, `register_state` — built by handoff 57 in
+one night and KEPT by handoff 58 (`docs/ADDENDUM-A-EVALUATION.md` §8), so
+these routes are stable and may be integrated against. INT-03 still calls
+`POST /api/v1/assets` (§3.4); with the switch on it answers a candidate, and
+since handoff 58 refuses what the unit's class cannot accept (§14.6).
 
 ### 14.1 What changes when the tenant's switch is on (§11.8)
 
@@ -4833,3 +4840,128 @@ register list too and needs `candidates:read` (`403` without it). Held by
 Asset User (so by every role that implies it), the Auditor, and the five gate
 roles: IAD Value-for-Money Officer, IAD Value-for-Money Approver, Asset
 Controller, Register Maker, Register Checker.
+
+
+### 14.6 Section 12 — how a received unit is identified (handoff 58)
+
+Each asset category says how a unit of it is identified, on `GET
+/api/v1/asset-categories` (`class_attributes_schema: null` on PATCH resets a
+class to its mode's default):
+
+```json
+{"id": 19, "name": "Office Furniture", "identification_mode": "tag_id",
+ "class_attributes_schema": {"mandatory": ["name", "make", "model_name",
+                                           "colour", "material", "dimensions"]}}
+```
+
+`identification_mode` is `serial` (the default — vehicles, electronics),
+`tag_id` (no manufacturer serial — furniture) or `pool` (declared; refused at
+receipt until Addendum A Phase E). `class_attributes_schema.mandatory` names
+the `POST /assets` fields a receipt of the class must carry (`name` is the
+description); it is always the effective schema, and the shape `PATCH
+/asset-categories/<id>` accepts back. A change applies to units received
+from then on: a unit keeps the mode it arrived with, published on the asset
+as `identification_mode` (null for anything not received through the gates).
+
+With the switch on, `POST /api/v1/assets` refuses, `400 validation_failed`,
+nothing written:
+
+| Refusal | Message |
+|---|---|
+| `serial` class, no `serial_number` | `Generator: 0 of 1 serial numbers captured. Capture one serial number per accepted unit.` |
+| a mandatory attribute missing (`details.missing_fields`) | `Office Furniture is identified by tag and attributes, so a unit of it must arrive with its colour (`colour`).` |
+| `pool` class | `Pool identification is not built yet (Addendum A Phase E).` |
+| `serial_number` already on any asset (empty serials never compared) | `Serial number SN-1 is already registered as an asset in Cadra (NRS-AST-000150).` |
+| `custodian_id` sent | `409 conflict`, `details.reason = "not_on_the_register"` (§14.8) |
+
+**Affix of a `tag_id` unit.** There is no manufacturer serial to scan: the
+tagger reads the label and confirms the item matches — `POST
+/assets/<id>/tag-affixed` with `{"tag_number": "...", "attributes_confirmed":
+true}`. Without `attributes_confirmed: true` it is `400 validation_failed`.
+The gate's event records which check was made: `label_and_serial`,
+`label_and_attributes` or `label_only`.
+
+### 14.7 The affix refusal has the gates' shape (handoff 58, D3)
+
+The person who fired another gate on a candidate cannot tag it: `POST
+/assets/<id>/tag-affixed` answers **`409 conflict`,
+`details.reason = "segregation_of_duties"`**, `details.earlier`, the sentence
+*"You verified this unit on 12 Oct; a different person must tag it."* — as
+every gate route does (§14.4). Until handoff 58 this one refusal was a `400
+validation_failed`. Every other affix refusal keeps its 400.
+
+### 14.8 A candidate is not on the register (handoff 58, P5)
+
+A unit that has not passed the gates cannot be given a custodian, moved,
+transferred or disposed of — `PATCH /assets/<id>`, `/move`,
+`/transfer-custody`, `/condemn`, a receipt carrying `custodian_id` or
+`state: "disposed"`, and a move or custody request raised against it are
+refused **before anything is written**:
+
+```json
+{"error": {"code": "conflict",
+  "message": "This unit is not on the register yet (waiting on IAD approval); a custodian can be assigned once it is registered.",
+  "details": {"reason": "not_on_the_register", "register_state": "vfm_verified",
+              "waiting_on": "iad_approver", "asset_id": 4242, "http_status": 409}}}
+```
+
+### 14.9 SAP's number and the maker's (handoff 58, P4)
+
+The Register Maker types the SAP asset code at `register`. When SAP's INT-06
+answer carries the **same** number, `sap.code_source` becomes `confirmed`
+(*entered by hand, confirmed by SAP*) and nothing else changes. When it
+carries a **different** one, the entered number stays in `sap.asset_number`,
+`sap.reconciliation_state` is `exception` (so the unit is on
+`?sap_reconciliation_state=exception`), and `sap.discrepancy` names both:
+
+```json
+"discrepancy": {"maker_number": "100004512", "sap_number": "100004513",
+                "maker": {"id": 61, "name": "Temitope Oyelaran"},
+                "checker": {"id": 62, "name": "Obinna Ezeagu"},
+                "raised_at": "2026-10-12 10:14:03"}
+```
+
+`sap.discrepancy` is null on every other asset.
+
+### 14.10 GET `/api/v1/meta/readiness` — is this database at its code's level? (handoff 58, P8)
+
+No token. `200 {"data": {"ready": true, "database": "test19"}}`, or `503`
+`server_misconfigured` listing every stored column the code expects and this
+database lacks (`details.missing`, `details.modules`) — the state of a tenant
+whose modules were not upgraded after a deploy. Since handoff 57 the register
+filter reads `nrs_asset.register_state` on every asset search, so such a
+tenant fails every asset list; any API route meeting a missing column now
+answers the same `503 server_misconfigured` naming it, instead of `500
+internal_error`.
+
+## 15 · Role exclusions — Addendum A §4, rule 2 (handoff 58)
+
+Some roles may not be held by one person. The table, seeded with Addendum
+A's defaults (the Asset Officer — Store — with any IAD role, the Asset
+Controller, the Tag-Issuing Unit, the Register Maker or the Register
+Checker; the Register Maker with the Register Checker; the IAD officer with
+the IAD approver), is enforced when a role is GRANTED, on the model, by
+every writer: `POST /users/<id>/roles` and `POST /users` refuse `403
+forbidden`, preview included:
+
+```json
+{"error": {"code": "forbidden",
+  "message": "Register Maker and Register Checker cannot be held by one person: A registration is made by one person and checked by another. (Role exclusion — Settings → Role exclusions.)"}}
+```
+
+Nobody already holding a pair is revoked.
+
+| Method | Path | Scope | Body |
+|---|---|---|---|
+| GET | `/api/v1/settings/role-exclusions` | `settings:read` | — |
+| POST | `/api/v1/settings/role-exclusions` | `settings:write` | `role_a`, `role_b` (role keys as on `/roles`), `reason` |
+| PATCH | `/api/v1/settings/role-exclusions/<id>` | `settings:write` | `active` and/or `reason` |
+| GET | `/api/v1/settings/conflicting-grants` | `settings:write` | — |
+
+A row: `{id, role_a: {key, name}, role_b: {key, name}, active, reason,
+holders}` — `holders` is the people holding both now. The conflicting-grants
+list is `[{user: {id, name, login, active}, pairs: [{exclusion_id, role_a,
+role_b, reason}]}]` with `meta.total` and `meta.statement`. There is no
+DELETE: switch an exclusion off. Every create and change is a row in
+`/reports/configuration-changes` (`cadra.role_exclusion.<id>`); a change of a
+class's identification mode is one too (`cadra.class_identification.<id>`).

@@ -20,6 +20,9 @@ but a full list reads as an ANSWER.
 import time
 import uuid
 
+import pytest
+
+from . import gates
 from .conftest import (assert_envelope_ok, assert_envelope_err,
                        assert_fields_refused, ids_matching)
 
@@ -32,6 +35,8 @@ SAP_KEYS = (
     "capitalisation_date", "capitalised_amount", "net_book_value",
     "accumulated_depreciation", "code_source", "posting_state",
     "reconciliation_state", "synced_at",
+    # Handoff 58, P4: the maker's and SAP's numbers when they disagree.
+    "discrepancy",
 )
 
 RECONCILIATION_STATES = ["not_tagged", "pending", "reconciled", "exception"]
@@ -43,10 +48,14 @@ def _uniq():
 
 
 def _new_asset(client, name=None, **extra):
+    """An asset as a CLIENT creates it — what every test here is about:
+    nothing a client sends reaches the SAP block. Received through
+    `tests/gates.py` and deliberately NOT walked onto the register: with the
+    receipt gates on (handoff 58) the Register Maker records the SAP asset
+    code at the `register` gate, so a walked unit carries one this suite's
+    client never sent. Read back by id, which reaches a candidate."""
     name = name or f"pytest-sap-{_uniq()}"
-    r = client.post("/api/v1/assets",
-                    json={"name": name, "category_id": 1, **extra})
-    return assert_envelope_ok(r, expected_status=201)["data"]
+    return gates.receive(client, name=name, category_id=1, **extra)
 
 
 # ─── the block is published at all ───────────────────────────────────
@@ -72,15 +81,26 @@ def test_sap_block_present_on_every_asset(client, test_asset, capture):
     )
 
 
-def test_a_new_asset_is_not_tagged_and_not_posted(client):
+@pytest.mark.parametrize("gated", [True, False],
+                         ids=["switch_on", "switch_off"])
+def test_a_new_asset_is_not_tagged_and_not_posted(client, receipt_switch,
+                                                  gated):
     """The honest opening state, and the one that is NOT a finding.
 
     INT-06 fires on tagging confirmed, so an asset nobody has tagged has no
     SAP code because it is not yet due one. Colouring that as an exception
     would bury the real findings in eleven thousand false ones, and an
     exception report nobody can read is the same as no exception report.
+
+    The receipt path, so both switch states (handoff 58 §2): with the gates
+    on a receipt is a `captured` candidate and the opening state is the
+    same — INT-06 then fires on the Register Checker's approval instead.
     """
-    sap = _new_asset(client)["sap"]
+    receipt_switch(gated)
+    received = _new_asset(client)
+    assert received["register_state"] == (
+        "captured" if gated else "registered")
+    sap = received["sap"]
 
     assert sap["asset_number"] is None
     assert sap["code_source"] is None
@@ -233,8 +253,12 @@ def test_has_sap_code_true_and_false_are_complements(client):
     made = {_new_asset(client, name=f"{marker}-{n}")["id"] for n in (1, 2)}
 
     def ids(**params):
+        # Every register state: with the receipt gates on the two assets
+        # are candidates (see `_new_asset`); switch off, `any` is the
+        # register itself.
         body = assert_envelope_ok(client.get(
-            "/api/v1/assets", params={"q": marker, "limit": 100, **params}))
+            "/api/v1/assets", params={"q": marker, "limit": 100,
+                                      "register_state": "any", **params}))
         return {a["id"] for a in body["data"]}
 
     unfiltered = ids()
@@ -350,14 +374,15 @@ def test_sap_fields_are_not_writable_on_create(client, capture):
     asset sent without the four fields is created with an empty SAP block.
     """
     name = f"pytest-sapwrite-{_uniq()}"
-    r = client.post("/api/v1/assets", json={
-        "name": name,
-        "category_id": 1,
-        "sap_asset_number": "100000001234",
-        "sap_reconciliation_state": "reconciled",
-        "sap_code_source": "integration",
-        "sap_synced_at": "2026-09-06T10:00:00",
-    })
+    r = client.post("/api/v1/assets", json=gates.receipt_body(
+        client,
+        name=name,
+        category_id=1,
+        sap_asset_number="100000001234",
+        sap_reconciliation_state="reconciled",
+        sap_code_source="integration",
+        sap_synced_at="2026-09-06T10:00:00",
+    ))
     capture("sap/create_rejects_sap_fields", r)
     assert_fields_refused(r, "sap_asset_number", "sap_reconciliation_state",
                           "sap_code_source", "sap_synced_at")
@@ -437,8 +462,11 @@ def test_the_openapi_document_describes_the_sap_block(client):
 
     assert sap["properties"]["reconciliation_state"]["enum"] == \
         RECONCILIATION_STATES
+    # `confirmed` since handoff 58 (P4): entered by the Register Maker and
+    # then confirmed by SAP's INT-06 answer — the model's selection, in its
+    # order (rule 4: the published enum follows the model).
     assert sap["properties"]["code_source"]["enum"] == \
-        ["integration", "import", "manual"]
+        ["integration", "import", "manual", "confirmed"]
     assert sap["properties"]["posting_state"]["enum"] == \
         ["none", "queued", "posted", "failed"]
 

@@ -118,7 +118,7 @@ API_GRANTABLE_XMLIDS = (
     'myservice_asset_register.group_asset_manager',
     'myservice_asset_register.group_tag_issuing_unit',
     'myservice_api.group_auditor',
-    # Handoff 57 (scaffolding, replaced by 58): the five receipt-gate roles,
+    # Handoff 57 (kept by 58): the five receipt-gate roles,
     # named by the handoff (§2e) — an administrator grants them on the Users
     # screen, or the people in the room have no way to hold them.
     'myservice_asset_register.group_iad_vfm_officer',

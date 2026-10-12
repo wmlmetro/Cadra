@@ -2,12 +2,10 @@
  * The receipt gates on one record: the banner that says a unit is not yet on
  * the register, and the buttons that move it on.
  *
- * SCAFFOLDING — 2026-10-07, handoff 57. The gate machine sits on `nrs.asset`
- * as one field (`register_state`) so tonight's demonstration reuses every
- * proven path unchanged. That design was ruled against for the real build
- * (docs/ADDENDUM-A-EVALUATION.md §4.6); handoff 58 replaces it with a
- * separate candidate model, and this file is rewritten against that model,
- * not extended.
+ * Handoff 57, kept by handoff 58. The gate machine sits on `nrs.asset` as
+ * one field (`register_state`); handoff 58 kept that design rather than move
+ * candidates to a separate model (docs/ADDENDUM-A-EVALUATION.md §8, reversing
+ * §4.6), so this file is extended, not rewritten.
  *
  * The buttons are the SERVER's answer, never a guess: `gates.available` lists
  * the actions the caller's scopes earn for the record's state, with the

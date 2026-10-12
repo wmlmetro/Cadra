@@ -1,0 +1,16 @@
+Spec 57 alone, switch OFF (test19, 2026-10-12, run after e2e-switch-off.txt to name its 12 switch-dependent skips; switch set back ON afterwards):
+
+skipped: setup: a received unit arrives as a candidate, unlabelled and off the register -- cadra.receipt.gated is not on for test19 (GET /settings → {"receipt_gated":false,"receipt_gate":{"enabled":false,"config
+skipped: store: submits the unit to IAD from the Candidates page -- setup did not create a candidate
+skipped: IAD officer: verify is refused without the four checks and evidence, then verifies -- setup did not create a candidate
+skipped: IAD approver: approves -- setup did not create a candidate
+skipped: Asset Controller: requests tagging, and the label is minted then -- setup did not create a candidate
+skipped: tagger: confirms the label affixed — the existing route moves the gate -- setup did not create a candidate
+skipped: refusal: nobody approves a registration that was never submitted -- setup did not create a candidate
+skipped: Register Maker: the SAP code is required, then submits with code and cost -- setup did not create a candidate
+skipped: Register Checker: approves on the asset page, and the unit joins the register -- setup did not create a candidate
+skipped: refusals: approve without verify, and the same person at two gates -- receipt gating is off
+skipped: a tag_id unit: received with attributes and no serial, seven gates, the tagger affixes by label and tick -- cadra.receipt.gated is not on for test19 (GET /settings → {"receipt_gated":false,"receipt_gate":{"enabled":false,"config
+skipped: D3: the person who fired another gate opens the affix dialog and is refused 409 in the server's own sentence -- cadra.receipt.gated is not on for test19 (GET /settings → {"receipt_gated":false,"receipt_gate":{"enabled":false,"config
+
+stats: expected=0 skipped=12 unexpected=0 flaky=0

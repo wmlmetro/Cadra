@@ -7,6 +7,7 @@ import time
 
 import pytest
 
+from . import gates
 from .conftest import assert_envelope_ok
 
 
@@ -42,7 +43,9 @@ def depreciating_asset(client, test_location, any_category_id):
     not depend on how the tenant's categories happen to be configured.
     """
     ts = int(time.time())
-    r = client.post("/api/v1/assets", json={
+    # On the register whichever way the receipt switch is set (handoff 58
+    # §2, `tests/gates.py`): the depreciation module never sees a candidate.
+    r = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-depreciation-{ts}",
         "category_id": any_category_id,
         "condition": "new",
@@ -54,10 +57,10 @@ def depreciating_asset(client, test_location, any_category_id):
         "depreciation_method": "straight_line",
         "useful_life_months": LIFE_MONTHS,
         "salvage_rate": SALVAGE_RATE,
-    })
+    }))
     if r.status_code != 201:
         pytest.fail(f"fixture failed: HTTP {r.status_code} {r.text[:300]}")
-    return r.json()["data"]
+    return gates.on_the_register(client, r.json()["data"])
 
 
 # ── The serialized block ─────────────────────────────────────────────────────
@@ -90,13 +93,14 @@ def test_writable_policy_fields_are_not_rejected(client, test_location, any_cate
     changes into the schedule tests.
     """
     ts = int(time.time())
-    created = client.post("/api/v1/assets", json={
+    created = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-depr-writable-{ts}",
         "category_id": any_category_id,
         "location_id": test_location["id"],
-    })
+    }))
     assert created.status_code == 201, created.text[:300]
-    asset_id = created.json()["data"]["id"]
+    created_asset = gates.on_the_register(client, created.json()["data"])
+    asset_id = created_asset["id"]
 
     policy = {
         "use_category_policy": False,
@@ -198,16 +202,17 @@ def test_non_depreciating_asset_returns_an_empty_board(client, test_location,
                                                        any_category_id):
     """An asset with no policy is a valid state, not an error."""
     ts = int(time.time())
-    created = client.post("/api/v1/assets", json={
+    created = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-depr-none-{ts}",
         "category_id": any_category_id,
         "location_id": test_location["id"],
         "use_category_policy": False,
         "depreciation_method": "none",
-    })
+    }))
     assert created.status_code == 201, created.text[:300]
+    created_asset = gates.on_the_register(client, created.json()["data"])
 
-    r = client.get(f"/api/v1/assets/{created.json()['data']['id']}/depreciation")
+    r = client.get(f"/api/v1/assets/{created_asset['id']}/depreciation")
     d = assert_envelope_ok(r)["data"]
     assert d["period_count"] == 0
     assert d["periods"] == []
@@ -222,16 +227,17 @@ def test_erp_managed_figures_are_stored_not_computed(client, test_location,
     """NRS spec §6.2 — Cadra reads but does not compute. Figures written from
     outside must survive, and no schedule is generated."""
     ts = int(time.time())
-    created = client.post("/api/v1/assets", json={
+    created = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-depr-erp-{ts}",
         "category_id": any_category_id,
         "location_id": test_location["id"],
         "acquisition_cost": 1_000_000.0,
         "use_category_policy": False,
         "depreciation_method": "erp_managed",
-    })
+    }))
     assert created.status_code == 201, created.text[:300]
-    asset_id = created.json()["data"]["id"]
+    created_asset = gates.on_the_register(client, created.json()["data"])
+    asset_id = created_asset["id"]
 
     fed = client.patch(f"/api/v1/assets/{asset_id}", json={
         "accumulated_depreciation": 250_000.0,

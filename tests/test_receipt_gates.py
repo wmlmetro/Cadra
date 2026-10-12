@@ -1,4 +1,4 @@
-"""The receipt gates over HTTP — handoff 57 (SCAFFOLDING, replaced by 58).
+"""The receipt gates over HTTP — handoff 57, kept by handoff 58.
 
 The whole chain needs seven different people (the no-two-gates rule), which
 one API credential cannot be; it is walked in-registry by
@@ -13,13 +13,13 @@ What THIS file proves is what only the published surface can show:
   409 with `details.reason = segregation_of_duties`, a wrong state as a 409
   `invalid_state`, an unaccepted body key as a 400 with nothing written.
 
-The switch is put back as it was found, whatever happens.
+The switch is put back as it was found, whatever happens (`receipt_switch`,
+tests/conftest.py).
 """
 import time
 import uuid
 
-import pytest
-
+from . import gates
 from .conftest import assert_envelope_err, assert_envelope_ok
 
 
@@ -27,31 +27,13 @@ def _uniq(prefix):
     return f"{prefix}-{int(time.time())}-{uuid.uuid4().hex[:8]}"
 
 
-def _gated(client):
-    data = assert_envelope_ok(client.get("/api/v1/settings"))["data"]
-    return bool(data.get("receipt_gated"))
-
-
-def _set(client, on):
-    assert_envelope_ok(client.patch("/api/v1/settings/receipt-gate",
-                                    json={"enabled": on}))
-
-
-@pytest.fixture
-def switch(client, admin_scope):
-    """Yields a setter; restores the tenant's own value afterwards."""
-    was = _gated(client)
-    try:
-        yield lambda on: _set(client, on)
-    finally:
-        _set(client, was)
-
-
 def _receive(client, **body):
-    """INT-03's call, as Vendra makes it: a create, answered 201."""
-    body.setdefault("category_id", 1)
-    return assert_envelope_ok(client.post("/api/v1/assets", json=body),
-                              201)["data"]
+    """INT-03's call, as Vendra makes it: a create, answered 201. The body
+    is filled in by `tests/gates.py` (a serial-mode class takes a serial,
+    make and model when the gates are on — handoff 58, Section 12)."""
+    return assert_envelope_ok(
+        client.post("/api/v1/assets", json=gates.receipt_body(client, **body)),
+        201)["data"]
 
 
 def _ids(client, path, **params):
@@ -60,8 +42,8 @@ def _ids(client, path, **params):
 
 
 def test_with_the_switch_on_a_receipt_is_a_candidate_the_register_hides(
-        client, switch):
-    switch(True)
+        client, receipt_switch):
+    receipt_switch(True)
     name = _uniq("pytest-gates-candidate")
     a = _receive(client, name=name, serial_number=_uniq("SN"),
                  grn_reference="GRN-PYTEST-57")
@@ -85,8 +67,8 @@ def test_with_the_switch_on_a_receipt_is_a_candidate_the_register_hides(
 
 
 def test_with_the_switch_off_a_receipt_is_registered_and_tagged_at_once(
-        client, switch):
-    switch(False)
+        client, receipt_switch):
+    receipt_switch(False)
     a = _receive(client, name=_uniq("pytest-gates-legacy"))
     assert a["register_state"] == "registered"
     assert a["tag"], "switch off: the label is minted at creation, as before"
@@ -94,8 +76,8 @@ def test_with_the_switch_off_a_receipt_is_registered_and_tagged_at_once(
                           "available": []}
 
 
-def test_the_refusals_have_the_envelope_and_write_nothing(client, switch):
-    switch(True)
+def test_the_refusals_have_the_envelope_and_write_nothing(client, receipt_switch):
+    receipt_switch(True)
     a = _receive(client, name=_uniq("pytest-gates-refusals"))
     base = f"/api/v1/assets/{a['id']}/gates"
 

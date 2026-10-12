@@ -2309,3 +2309,88 @@ scanners, and 5 mil is at the floor of common lasers too. The decision —
 grow the QR at the Code 128's expense on `small` (and possibly `standard`),
 or leave the artwork — is a one-file template change
 (`asset_tag_report.xml` cfg) the owner can make before the demo.
+
+## 29 · Handoff 58 — the gates, kept: what stands between them and NRS production, 2026-10-12
+
+The receipt gates (handoffs 57, 58) are on for the demo tenant `staging` and
+off everywhere else. Turning them on for an NRS production tenant is the
+owner's decision; this is everything the Builder would want true first, each
+with who owns it. `[open]` unless marked.
+
+1. **Named people for every gate** — *NRS* names them, *us* provisions them.
+   At least: one or more Store Officers (Asset Officer), an IAD
+   Value-for-Money Officer AND a different IAD Approver, an Asset Controller,
+   the taggers (Asset User + Tag-Issuing Unit), a Register Maker AND a
+   different Register Checker. With fewer than seven distinct people the
+   no-two-gates rule makes the chain impossible to finish — it does not
+   degrade, it stops. Each needs an email address (approval notifications
+   fail for an actor with none — §22).
+2. **The class list, serial versus `tag_id`, and each class's mandatory
+   attributes** — *NRS* decides, *us* sets it (Settings → Asset Categories,
+   or the Asset Controller with `settings:classes`). The migration seeded
+   only furniture as `tag_id`; NRS's real register uses its own classes
+   (`nrs19`: *IT Equipment* 10,259 assets, *Fleet / Vehicles* 1,619 — both
+   serial by default). A class left `serial` refuses every receipt without
+   a serial.
+3. **Vendra sends the attributes for a `tag_id` line** — *us* (Vendra 54,
+   which reads `identification_mode` and `class_attributes_schema`). Until
+   it is deployed, a furniture receipt from Vendra with the gates on is
+   refused for its missing colour, material and dimensions.
+4. **The conflicting grants** — *the owner* decides each. Measured before
+   the seed: 0 of 17 people on `staging`; re-measure the production tenant
+   on the day (`GET /api/v1/settings/conflicting-grants`, or
+   `docs/handoffs/58-evidence/conflicting_grants.sql` through the
+   read-only `db-query` workflow). Nothing is revoked automatically.
+5. **INT-06 against the real SAP endpoint** — *SAP* (endpoint, credentials,
+   the asset-class mapping) and *us*. Today the asset master is sent to the
+   dev endpoint; never yet to SAP's. Three things only the real one can
+   prove: that it accepts the payload with the maker's cost centre and
+   capitalisation date; what it answers for the asset number (mode D2 — does
+   SAP generate it, or confirm the one the maker typed? P4 now keeps the
+   maker's and raises a discrepancy when they differ, which is the safe
+   reading of either); and the SAP asset-class mapping
+   (`nrs.asset.category.sap_asset_class` is blank by default and a blank
+   class is sent as null, so SAP rejects the master — §5.1 of the INT-06
+   requirements).
+6. **What an in-flight candidate does if the switch is turned off** —
+   *us*, measured (`tests/test_gates_kept.py::test_turning_the_switch_off_
+   leaves_an_in_flight_unit_in_the_chain`): nothing happens to it. The
+   switch decides only how a NEW receipt enters; a unit already in the chain
+   stays a candidate, hidden from the register, and its remaining gates still
+   fire — it reaches the register only when its checker approves. There is
+   no "release all candidates" action, by design: registering a unit nobody
+   checked would be the bypass. So switching off with units in flight means
+   finishing them, or leaving them (they stay on the Candidates page).
+7. **Who may switch the gates off** — *the owner* rules, *us* builds. Today
+   `PATCH /settings/receipt-gate` needs `settings:write`, which the Asset
+   Manager holds: the person the gates constrain can turn them off (the
+   change is on the configuration record, naming them). Report 57 proposed
+   making it what `/settings/approvals` is — read-only over the API, set by
+   an administrator's command. Not done in 58 (not asked).
+8. **Legacy serials** — *NRS* decides, *us* cleans. A gated receipt is
+   refused when its serial is already on ANY asset, and `nrs19` holds 1,291
+   serials on more than one asset, many placeholders (`PROBOOK` ×94, handoff
+   38). A real new unit will not collide with them, but a placeholder typed
+   at receipt will — and should.
+9. **A rejected unit has no way back** — *NRS*/*us*, Phase B. `vfm_rejected`
+   is terminal, and A3 (the GRN reversal request to Vendra) is not built: a
+   rejected unit stays a candidate nobody can act on, and Vendra still holds
+   the GRN as received.
+10. **Nobody is told a unit is waiting on them** — *NRS* (D9, SLA durations)
+    and *us*, Phase E. The Candidates page filters on *waiting on me*; there
+    is no email, no SLA clock, no digest.
+11. **The label** — *Architect*/*NRS*. The small and standard labels' Code
+    128 does not read on a camera (report 54, 0 of 24 each); the QR does.
+    Handoff 55 (the label QR) is on hold behind §4.3.
+12. **The deployed check, after every deploy** — *the owner*, because
+    Turnstile blocks anything scripted on the cluster: `curl
+    https://<tenant>/api/v1/meta/readiness` answers `{"ready": true}` (no
+    token), then the five-step browser check at the top of report 58.
+13. **The demo personas come off the production tenant** — *us*
+    (`scripts/demo_personas.sh <db> remove`; the seed refuses `production`).
+14. **Three follow-ups the verification pass left** — *us*. A SAP
+    discrepancy lives in two overwritable fields and the chatter, not an
+    append-only event; INT-09 lifecycle events for a unit in discrepancy
+    carry the maker's number (resolve the discrepancy before disposing it);
+    a back-office *Duplicate* of a candidate produces a registered asset
+    with no gate events. `docs/DECISIONS.md`, 2026-10-12.

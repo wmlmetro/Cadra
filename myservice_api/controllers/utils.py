@@ -31,6 +31,12 @@ from odoo.http import request
 
 from .query_params import BadFilter, parse_int
 
+# A receipt-gate refusal carries its own kind; `cadra_route` maps it in one
+# place (`gate_refusal`). `myservice_api` depends on the asset register.
+from odoo.addons.myservice_asset_register.models.asset_gates import (
+    GateRefused,
+)
+
 _logger = logging.getLogger(__name__)
 
 API_VERSION = "v1"
@@ -257,16 +263,23 @@ SCOPE_SETTINGS_WRITE     = "settings:write"
 # ruling in `v1_assets.py` rightly rejects.
 SCOPE_SETTINGS_READ      = "settings:read"
 SCOPE_ADMIN              = "admin"
-# Handoff 57 (SCAFFOLDING, replaced by handoff 58): the receipt gates.
-# `candidates:read` lets a caller see a unit that has not yet passed the
-# gates (`GET /candidates`, `?register_state=any|<value>`); the other five
-# fire one gate each. Their groups are the Addendum A §4 roles.
+# The receipt gates (handoff 57, kept by handoff 58). `candidates:read`
+# lets a caller see a unit that has not yet passed the gates (`GET
+# /candidates`, `?register_state=any|<value>`); the other five fire one gate
+# each. Their groups are the Addendum A §4 roles.
 SCOPE_CANDIDATES_READ    = "candidates:read"
 SCOPE_VFM_VERIFY         = "vfm:verify"
 SCOPE_VFM_APPROVE        = "vfm:approve"
 SCOPE_TAGGING_REQUEST    = "tagging:request"
 SCOPE_REGISTER_MAKE      = "register:make"
 SCOPE_REGISTER_CHECK     = "register:check"
+# Handoff 58 §4: how a class is identified at receipt (Section 12) — a
+# class's `identification_mode` and mandatory attributes, and nothing else
+# about it. The Asset Controller's, who decides how a unit is tagged; the
+# Asset Manager's too, who holds `settings:write` over the whole taxonomy.
+# Carved out so the Controller can set a class's mode without being handed
+# the depreciation policy, the branding and the sidebar.
+SCOPE_SETTINGS_CLASSES   = "settings:classes"
 
 ALL_SCOPES = frozenset({
     SCOPE_ASSETS_READ, SCOPE_ASSETS_WRITE,
@@ -286,6 +299,7 @@ ALL_SCOPES = frozenset({
     SCOPE_SETTINGS_READ,
     SCOPE_CANDIDATES_READ, SCOPE_VFM_VERIFY, SCOPE_VFM_APPROVE,
     SCOPE_TAGGING_REQUEST, SCOPE_REGISTER_MAKE, SCOPE_REGISTER_CHECK,
+    SCOPE_SETTINGS_CLASSES,
     SCOPE_ADMIN,
 })
 
@@ -357,6 +371,10 @@ GROUP_SCOPES = (
         # them; withholding it would leave the change log readable only by
         # the auditor and not by the person answering to them.
         SCOPE_SETTINGS_READ,
+        # Handoff 58: a class's identification mode is part of the taxonomy
+        # this role already configures under `settings:write`; held here
+        # too so the categories screen has ONE scope to declare.
+        SCOPE_SETTINGS_CLASSES,
         # The SPA's Bulk Import page (nominal-roll xlsx -> employees) is in
         # the top-level nav and is the only thing that page does. Without
         # this an Asset Manager who imported a roll yesterday gets a 403
@@ -370,7 +388,7 @@ GROUP_SCOPES = (
     # system said so twice.
     ("myservice_asset_register.group_tag_issuing_unit", (SCOPE_TAGGING_WRITE,)),
 
-    # The receipt gates (handoff 57, scaffolding; Addendum A §4). Each
+    # The receipt gates (handoff 57, kept by 58; Addendum A §4). Each
     # implies Asset User, so `candidates:read` arrives that way too and is
     # repeated here only so the row says what the role is FOR.
     ("myservice_asset_register.group_iad_vfm_officer", (
@@ -378,7 +396,9 @@ GROUP_SCOPES = (
     ("myservice_asset_register.group_iad_vfm_approver", (
         SCOPE_CANDIDATES_READ, SCOPE_VFM_APPROVE)),
     ("myservice_asset_register.group_asset_controller", (
-        SCOPE_CANDIDATES_READ, SCOPE_TAGGING_REQUEST)),
+        SCOPE_CANDIDATES_READ, SCOPE_TAGGING_REQUEST,
+        # Handoff 58 §4: the Controller decides how a class is identified.
+        SCOPE_SETTINGS_CLASSES)),
     ("myservice_asset_register.group_register_maker", (
         SCOPE_CANDIDATES_READ, SCOPE_REGISTER_MAKE)),
     ("myservice_asset_register.group_register_checker", (
@@ -524,12 +544,49 @@ SCOPE_GROUPS = {
     SCOPE_TAGGING_REQUEST:    ("myservice_asset_register.group_asset_controller",),
     SCOPE_REGISTER_MAKE:      ("myservice_asset_register.group_register_maker",),
     SCOPE_REGISTER_CHECK:     ("myservice_asset_register.group_register_checker",),
+    SCOPE_SETTINGS_CLASSES:   ("myservice_asset_register.group_asset_controller",),
     SCOPE_INTEGRATIONS_WRITE: ("myservice_identity.group_identity_manager",),
     SCOPE_TAGGING_WRITE:      ("myservice_asset_register.group_tag_issuing_unit",),
     # SCOPE_WEBHOOKS_ADMIN and SCOPE_ADMIN map to nothing on purpose — see the
     # note above. An `admin` client's user is an ordinary internal user; the
     # wildcard lives in the token, where `require_jwt` can see it.
 }
+
+
+def gate_refusal(e):
+    """A `GateRefused` (`myservice_asset_register/models/asset_gates.py`) as
+    the envelope — the one place its kinds become statuses.
+
+    * `invalid_state`, `segregation_of_duties`, `not_on_the_register` →
+      409 `conflict`, the kind in `details.reason`;
+    * `forbidden` → 403;
+    * anything else (`validation_failed`) → 400 `validation_failed`.
+    """
+    details = dict(e.details or {})
+    if e.kind in ("invalid_state", "segregation_of_duties",
+                  "not_on_the_register"):
+        details["reason"] = e.kind
+        return err(ERR_CONFLICT, str(e.args[0]), status=409, details=details)
+    if e.kind == "forbidden":
+        return err(ERR_FORBIDDEN, str(e.args[0]), status=403, details=details)
+    return err(ERR_VALIDATION_FAILED, str(e.args[0]), details=details)
+
+
+def schema_behind(e):
+    """The envelope for a database that has not been upgraded to its code
+    (`UndefinedColumn` / `UndefinedTable`), naming what is missing and the
+    upgrade — see `GET /api/v1/meta/readiness` for the whole list."""
+    missing = (getattr(e, "diag", None) and e.diag.message_primary) or str(e)
+    db = request.env.cr.dbname if request else None
+    return err(
+        ERR_MISCONFIGURED,
+        "This tenant's database (%s) has not been upgraded to the code it "
+        "is running: %s. Upgrade its modules (the per-tenant fan-out in "
+        "CLAUDE.md) before using it; GET /api/v1/meta/readiness lists "
+        "everything that is missing." % (db, missing.strip()),
+        status=503,
+        details={"database": db, "missing": missing.strip(),
+                 "remedy": "module_upgrade"})
 
 
 def groups_for_scopes(env, scopes):
@@ -1755,6 +1812,15 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
             except AccessError as e:
                 request.env.cr.rollback()
                 return _http_response(err(ERR_FORBIDDEN, str(e), status=403))
+            except GateRefused as e:
+                # A receipt-gate refusal from the model — BEFORE the generic
+                # `UserError` below, which it subclasses. One mapping for
+                # every route that can meet one (handoff 58, D3): the gate
+                # routes, the affix route, a move, a custody change, a
+                # disposal, a receipt. An exception, so the rollback below
+                # undoes anything the request had begun.
+                request.env.cr.rollback()
+                return _http_response(gate_refusal(e))
             except MissingError as e:
                 request.env.cr.rollback()
                 return _http_response(err(ERR_NOT_FOUND, str(e), status=404))
@@ -1830,6 +1896,17 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                                           or None,
                              "column": e.diag.column_name},
                 ))
+            except (psycopg2.errors.UndefinedColumn,
+                    psycopg2.errors.UndefinedTable) as e:
+                # The code is ahead of this tenant's database: a stored field
+                # or a model landed and this database was not upgraded
+                # (handoff 57 finding P8 — the register filter reads
+                # `register_state` on EVERY asset search, so one missed
+                # tenant fails every list). Said for what it is rather than
+                # as "Unhandled server error"; 503 because it is the
+                # deployment's to fix and a retry after the upgrade succeeds.
+                request.env.cr.rollback()
+                return _http_response(schema_behind(e))
             except Exception:
                 # catch-all: reported — the last line of the envelope. It is
                 # BROAD BY DESIGN: every route in this API ends here, and a

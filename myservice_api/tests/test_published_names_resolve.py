@@ -220,7 +220,7 @@ _BODY_ROUTES = {
         (None, None,
          "writes `ir.config_parameter` rows (`cadra.sidebar.*`), not fields "
          "of a record; the keys are the catalog in `v1_sidebar.py`"),
-    # Handoff 57 (scaffolding, replaced by 58). Each gate's body is the
+    # Handoff 57 (kept by 58). Each gate's body is the
     # gate's own evidence — a reason, a checklist, attachments, the maker's
     # SAP code and cost — refused outside `v1_gates._BODY_KEYS`; the
     # register's three fields are written by `_fire_gate`, not by name.
@@ -244,6 +244,16 @@ _BODY_ROUTES = {
         (None, None, _GATE_BODY),
     ("POST", "/api/v1/assets/<int:id>/gates/return-registration"):
         (None, None, _GATE_BODY),
+    # Handoff 58 §5. `role_a` / `role_b` are ROLE KEYS (as on `/roles`),
+    # resolved to `group_a` / `group_b` by the route through the role
+    # vocabulary; `reason` and `active` are the row's own. Refused outside
+    # `_POST_KEYS` / `_PATCH_KEYS`, and the row is published whole.
+    ("POST", "/api/v1/settings/role-exclusions"):
+        (None, None,
+         "role keys resolved to groups by the route, and the row's reason; "
+         "the answer is the whole row"),
+    ("PATCH", "/api/v1/settings/role-exclusions/<int:id>"):
+        (None, None, "`active` and `reason` on the row, published whole"),
     # Handoff 57. `enabled` writes one `ir.config_parameter` row.
     ("PATCH", "/api/v1/settings/receipt-gate"):
         (None, None,
@@ -658,6 +668,9 @@ _GUARDED_READS = {
     # `request` is werkzeug's, not a record: these read per-request state
     # the API puts there itself.
     ("utils.py", "_meta", "request", "cadra_request_id"): None,
+    # Handoff 58 (P8): psycopg2's `diag` on a missing-column error — an
+    # attribute of the exception, not of a record.
+    ("utils.py", "schema_behind", "e", "diag"): None,
     ("utils.py", "_new_request_id", "request", "cadra_request_id"): None,
     ("utils.py", "_set_request_user", "request", "update_env"): None,
     ("utils.py", "caller_holds", "request", "jwt_claims"): None,
@@ -725,6 +738,11 @@ _WRITE_ONLY = {
     # REQUIRES them — the guard proves the fix. `mobile` is no longer
     # accepted at all (0 of 15,780 employees held one, 0 of 321 payloads
     # ever sent it, 2026-10-03), so there is nothing left to waive.
+    ("nrs.asset.category", "class_attributes_schema"):
+        "published as `class_attributes_schema` through "
+        "`_effective_schema()` — the EFFECTIVE schema, the mode's default "
+        "where none is stored — so no parser sees the field name read "
+        "(handoff 58 §4); `tests/test_gates_kept.py` reads it back",
     ("request.request", "generic_location_id"):
         "read through `_location_field(r)` at runtime, so no parser sees "
         "the name here; `GET /requests/<id>` publishes it as `location`",

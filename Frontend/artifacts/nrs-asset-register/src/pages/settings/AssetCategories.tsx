@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
   fetchAssetCategories, updateAssetCategory, createAssetCategory, deleteAssetCategory,
-  type AssetCategoryConfig, type CategoryIdentity,
+  CAPTURABLE_ATTRIBUTES, IDENTIFICATION_MODE_WORDS,
+  type AssetCategoryConfig, type CategoryIdentity, type CategoryClassIdentification,
+  type CapturableAttribute, type IdentificationMode,
 } from "@/lib/dataProvider";
 // Both FM domain dropdowns on this screen were filled from `FM_DOMAINS`, a
 // hand-written constant in dataProvider that had an identical twin 630 lines
@@ -27,18 +29,57 @@ const inputCls =
   "w-full rounded-lg border border-border bg-background px-2 py-1 text-[12px] " +
   "focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40";
 
+/** Each mode's default schema, as the server applies it when a class has
+ *  none stored (handoff 58 §4, AD-32). Used only to carry a row that was
+ *  still on its old mode's default over to the new mode's default when the
+ *  mode is changed in the draft — a list somebody had edited is left as
+ *  they left it. The server, not this table, decides what is effective. */
+const MODE_DEFAULT_ATTRIBUTES: Record<IdentificationMode, CapturableAttribute[]> = {
+  serial: ["make", "model_name"],
+  tag_id: ["name", "make", "model_name", "colour", "material", "dimensions"],
+  pool: [],
+};
+
+const MODES = Object.keys(IDENTIFICATION_MODE_WORDS) as IdentificationMode[];
+
+/** The capturable set's order, so a ticked list compares and sends in one
+ *  shape whatever order the boxes were clicked in. */
+const ATTR_ORDER = CAPTURABLE_ATTRIBUTES.map(a => a.field) as CapturableAttribute[];
+const ordered = (xs: readonly CapturableAttribute[]) => ATTR_ORDER.filter(f => xs.includes(f));
+const sameList = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((x, i) => x === b[i]);
+
+/** The class half of a row as the server published it. A server older than
+ *  handoff 58 publishes neither key; read that as the model's default. */
+function classOf(cat: AssetCategoryConfig): CategoryClassIdentification {
+  const mode = cat.identification_mode ?? "serial";
+  return {
+    identification_mode: mode,
+    class_attributes_schema: {
+      mandatory: ordered(cat.class_attributes_schema?.mandatory ?? MODE_DEFAULT_ATTRIBUTES[mode]),
+    },
+  };
+}
+
 /** One row, with a local draft so a half-typed value never fires a request. */
 function Row({
-  cat, busy, readOnly, onSave, onDelete, saving, deleting,
+  cat, busy, identityLocked, classLocked, fullEdit, onSave, onDelete, saving, deleting,
 }: {
   cat: AssetCategoryConfig;
   busy: boolean;
-  /** No `settings:write` (handoff 46): the row's fields are disabled by
-   *  `busy` and its Save and Delete are not drawn. */
-  readOnly: boolean;
+  /** No `settings:write` (handoff 46): the name, code, domain and interval
+   *  are disabled. */
+  identityLocked: boolean;
+  /** Neither `settings:write` nor `settings:classes` (handoff 58): the
+   *  identification mode and the mandatory attributes are disabled too, and
+   *  Save is not drawn. */
+  classLocked: boolean;
+  /** `settings:write`: Delete is drawn. A `settings:classes`-only person
+   *  changes how a class is identified and nothing else about it. */
+  fullEdit: boolean;
   saving: boolean;
   deleting: boolean;
-  onSave: (id: number, body: Partial<CategoryIdentity>) => void;
+  onSave: (id: number, body: Partial<CategoryIdentity & CategoryClassIdentification>) => void;
   onDelete: (cat: AssetCategoryConfig) => void;
 }) {
   const initial: CategoryIdentity = {
@@ -49,46 +90,117 @@ function Row({
     sequence: cat.sequence,
     pm_interval_days: cat.pm_interval_days,
   };
+  const initialClass = classOf(cat);
   const [draft, setDraft] = useState<CategoryIdentity>(initial);
-  useEffect(() => { setDraft(initial); /* eslint-disable-next-line */ }, [cat]);
+  const [classDraft, setClassDraft] = useState<CategoryClassIdentification>(initialClass);
+  useEffect(() => {
+    setDraft(initial);
+    setClassDraft(initialClass);
+    /* eslint-disable-next-line */
+  }, [cat]);
   const domains = useEnum("domain");
 
-  const dirty = (Object.keys(initial) as (keyof CategoryIdentity)[])
+  const identityDirty = (Object.keys(initial) as (keyof CategoryIdentity)[])
     .some(k => draft[k] !== initial[k]);
+  const classDirty =
+    classDraft.identification_mode !== initialClass.identification_mode
+    || !sameList(classDraft.class_attributes_schema.mandatory,
+                 initialClass.class_attributes_schema.mandatory);
+  const dirty = (identityDirty && !identityLocked) || (classDirty && !classLocked);
+
+  const mandatory = classDraft.class_attributes_schema.mandatory;
+  const setMode = (mode: IdentificationMode) => setClassDraft(prev => ({
+    identification_mode: mode,
+    class_attributes_schema: {
+      // Still on the old mode's default → the new mode's default; edited →
+      // kept. Either way the boxes show what will be sent before Save.
+      mandatory: sameList(prev.class_attributes_schema.mandatory,
+                          MODE_DEFAULT_ATTRIBUTES[prev.identification_mode])
+        ? [...MODE_DEFAULT_ATTRIBUTES[mode]]
+        : prev.class_attributes_schema.mandatory,
+    },
+  }));
+  const toggleAttr = (field: CapturableAttribute) => setClassDraft(prev => {
+    const cur = prev.class_attributes_schema.mandatory;
+    return {
+      ...prev,
+      class_attributes_schema: {
+        mandatory: ordered(cur.includes(field) ? cur.filter(f => f !== field) : [...cur, field]),
+      },
+    };
+  });
+
+  // What Save sends. The identity keys go only from a `settings:write`
+  // holder (any other key from a `settings:classes`-only caller is a 403
+  // naming `settings:write`); the two class keys only when they changed, so
+  // an edit of a name alone sends what it sent before handoff 58.
+  const body = (): Partial<CategoryIdentity & CategoryClassIdentification> => ({
+    ...(identityLocked ? {} : draft),
+    ...(classDirty && !classLocked ? classDraft : {}),
+  });
 
   return (
-    <tr className="border-b border-border last:border-0">
+    <tr className="border-b border-border last:border-0 align-top">
       <td className="py-2 pr-2">
-        <input className={inputCls} disabled={busy} value={draft.name}
+        <input className={inputCls} disabled={busy || identityLocked} value={draft.name}
                onChange={e => setDraft({ ...draft, name: e.target.value })} />
       </td>
       <td className="py-2 pr-2 w-24">
-        <input className={inputCls} disabled={busy} value={draft.code ?? ""} placeholder="—"
+        <input className={inputCls} disabled={busy || identityLocked} value={draft.code ?? ""} placeholder="—"
                onChange={e => setDraft({ ...draft, code: e.target.value || null })} />
       </td>
       <td className="py-2 pr-2">
-        <select className={inputCls} disabled={busy} value={draft.domain ?? ""}
+        <select className={inputCls} disabled={busy || identityLocked} value={draft.domain ?? ""}
                 onChange={e => setDraft({ ...draft, domain: e.target.value || null })}>
           <option value="">—</option>
           {domains.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
         </select>
       </td>
       <td className="py-2 pr-2 w-28">
-        <input className={inputCls} type="number" min={0} disabled={busy}
+        <input className={inputCls} type="number" min={0} disabled={busy || identityLocked}
                value={draft.pm_interval_days ?? ""} placeholder="—"
                onChange={e => setDraft({
                  ...draft,
                  pm_interval_days: e.target.value === "" ? null : Number(e.target.value),
                })} />
       </td>
+      <td className="py-2 pr-2 w-44">
+        <select className={inputCls} disabled={busy || classLocked}
+                value={classDraft.identification_mode}
+                data-testid={`select-identification-mode-${cat.id}`}
+                aria-label={`How ${cat.name} is identified`}
+                onChange={e => setMode(e.target.value as IdentificationMode)}>
+          {MODES.map(m => <option key={m} value={m}>{IDENTIFICATION_MODE_WORDS[m]}</option>)}
+        </select>
+      </td>
+      <td className="py-2 pr-2 w-64">
+        <fieldset disabled={busy || classLocked} className="flex flex-wrap gap-x-3 gap-y-1 disabled:opacity-40"
+                  aria-label={`Attributes a receipt of ${cat.name} must carry`}>
+          {CAPTURABLE_ATTRIBUTES.map(({ field, label }) => (
+            <label key={field} className="inline-flex items-center gap-1 text-[11px] text-foreground whitespace-nowrap cursor-pointer">
+              <input
+                type="checkbox"
+                checked={mandatory.includes(field)}
+                onChange={() => toggleAttr(field)}
+                data-testid={`attr-${field}-${cat.id}`}
+                className="h-3 w-3 rounded border-border accent-[hsl(var(--primary))]"
+              />
+              {label}
+            </label>
+          ))}
+        </fieldset>
+        {mandatory.length === 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1">None — a receipt need carry no attribute.</p>
+        )}
+      </td>
       <td className="py-2 pr-2 text-right text-[12px] tabular-nums text-muted-foreground w-20">
         {cat.asset_count.toLocaleString()}
       </td>
       <td className="py-2 text-right whitespace-nowrap">
-        {!readOnly && (<>
+        {!classLocked && (<>
         <button
           disabled={!dirty || busy}
-          onClick={() => onSave(cat.id, draft)}
+          onClick={() => onSave(cat.id, body())}
           data-testid={`save-cat-${cat.id}`}
           className={cn(
             "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border mr-1",
@@ -100,6 +212,7 @@ function Row({
           {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
           Save
         </button>
+        {fullEdit && (
         <button
           disabled={busy || cat.asset_count > 0}
           onClick={() => onDelete(cat)}
@@ -118,6 +231,7 @@ function Row({
         >
           {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
         </button>
+        )}
         </>)}
       </td>
     </tr>
@@ -139,6 +253,9 @@ export default function AssetCategoriesPage() {
   // would be — not three controls the server refuses.
   const scopes = useScopes();
   const readOnly = !scopes.has(SCOPE.settingsWrite);
+  // Handoff 58: how a class is identified is also the Asset Controller's
+  // (`settings:classes`), who may change those two columns and nothing else.
+  const classLocked = readOnly && !scopes.has(SCOPE.settingsClasses);
 
   useEffect(() => {
     setTitle("Settings — Asset Categories");
@@ -161,7 +278,7 @@ export default function AssetCategoriesPage() {
   };
 
   const save = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: Partial<CategoryIdentity> }) =>
+    mutationFn: ({ id, body }: { id: number; body: Partial<CategoryIdentity & CategoryClassIdentification> }) =>
       updateAssetCategory(id, body),
     onSuccess: (d) => { setNote(`Saved ${d.name}.`); refresh(); },
     onSettled: () => setSavingId(null),
@@ -228,8 +345,10 @@ export default function AssetCategoriesPage() {
           </div>
         </div>
         {readOnly ? (
-          <p className="text-[11px] text-muted-foreground" data-testid="settings-read-only">
-            Changing this needs the settings:write scope.
+          <p className="text-[11px] text-muted-foreground max-w-xs text-right" data-testid="settings-read-only">
+            {classLocked
+              ? "Changing this needs the settings:write scope."
+              : "You can change how a class is identified and what a receipt of it must carry. Everything else here needs the settings:write scope."}
           </p>
         ) : (
           <button
@@ -315,13 +434,21 @@ export default function AssetCategoriesPage() {
       )}
 
       <section className="bg-card border border-border rounded-2xl p-5 overflow-x-auto">
-        <table className="w-full min-w-[820px]">
+        {/* AD-31: the mode a unit is RECEIVED under is fixed on the unit, so
+            a change here never re-reads one already in the building. */}
+        <p className="text-[11px] text-muted-foreground mb-3" data-testid="identification-note">
+          <span className="font-medium text-foreground">Identification and mandatory attributes:</span>{" "}
+          Changes apply to units received from now on; units already received keep the mode they arrived with.
+        </p>
+        <table className="w-full min-w-[1180px]">
           <thead>
             <tr className="text-left text-muted-foreground border-b border-border">
               <th className="py-2 text-[11px] font-medium">Name</th>
               <th className="py-2 text-[11px] font-medium">Code</th>
               <th className="py-2 text-[11px] font-medium">FM domain</th>
               <th className="py-2 text-[11px] font-medium">PM interval (days)</th>
+              <th className="py-2 text-[11px] font-medium">Identification</th>
+              <th className="py-2 text-[11px] font-medium">Mandatory attributes</th>
               <th className="py-2 text-[11px] font-medium text-right">Assets</th>
               <th className="py-2" />
             </tr>
@@ -329,7 +456,8 @@ export default function AssetCategoriesPage() {
           <tbody>
             {(categories.data ?? []).map(c => (
               <Row
-                key={c.id} cat={c} busy={busy || readOnly} readOnly={readOnly}
+                key={c.id} cat={c} busy={busy}
+                identityLocked={readOnly} classLocked={classLocked} fullEdit={!readOnly}
                 saving={savingId === c.id}
                 deleting={deletingId === c.id}
                 onSave={(id, body) => { setSavingId(id); save.mutate({ id, body }); }}

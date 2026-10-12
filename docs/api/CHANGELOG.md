@@ -33,11 +33,90 @@ live at was never the point.
 
 ---
 
+## 2026-10-12 — handoff 58: the gates, kept · `myservice_api` 19.0.3.30.0, `myservice_asset_register` 19.0.1.27.0
+
+**The receipt gates of 2026-10-07 are the product, not a stand-in** — the
+routes, scopes and keys below stand and may be integrated against
+(`docs/ADDENDUM-A-EVALUATION.md` §8). Vendra keeps calling `POST
+/api/v1/assets` for INT-03; there is no `/candidates/ingest`.
+
+- **Additive: `identification_mode` and `class_attributes_schema` on `GET
+  /api/v1/asset-categories`** — `serial` | `tag_id` | `pool` (default
+  `serial`), and `{"mandatory": [field, ...]}` over the `POST /assets`
+  names `name`, `make`, `model_name`, `manufacturer`, `colour`, `material`,
+  `dimensions` (always the effective schema; what is read can be PATCHed
+  back). Both accepted on `PATCH` / `POST /asset-categories` — `PATCH` by a
+  holder of `settings:write`, or of the new **`settings:classes`** for these
+  two keys alone (any other key from such a caller is a 403). A change
+  applies to units received from then on (AD-31). Vendra 54 reads them.
+- **Additive: `colour`, `material`, `dimensions`** (writable on `POST` /
+  `PATCH /assets`, published on every asset, null when unset) and
+  **`identification_mode`** (read-only, published on every asset: the mode a
+  unit was received under through the gates; null for anything else).
+- **BEHAVIOUR CHANGE, only on a tenant whose switch is on:** `POST
+  /api/v1/assets` refuses `400 validation_failed`, nothing written, a unit
+  its class cannot accept — a `serial` class with no `serial_number`
+  (*"<class>: 0 of 1 serial numbers captured. Capture one serial number per
+  accepted unit."* — Vendra's sentence), any class missing a mandatory
+  attribute (`details.missing_fields`, named in the message), a `pool` class
+  (*"Pool identification is not built yet (Addendum A Phase E)."*), and a
+  `serial_number` already on any asset (empty serials are never compared).
+  And it refuses a receipt carrying `custodian_id` (`409 conflict`,
+  `details.reason = "not_on_the_register"`). Switch off: none of this is
+  asked.
+- **Additive: `attributes_confirmed`** (boolean) on `POST
+  /assets/<id>/tag-affixed`. REQUIRED (`true`) for a unit received as
+  `tag_id` — no manufacturer serial to scan — and refused 400 without it;
+  ignored for every other asset.
+- **BREAKING (status code), affix only:** a no-two-gates refusal at
+  `POST /assets/<id>/tag-affixed` — the person who fired another gate on a
+  candidate trying to tag it — is now **`409 conflict`,
+  `details.reason = "segregation_of_duties"`, `details.earlier`**, like
+  every gate route; it was `400 validation_failed`. Same sentence. Every
+  other affix refusal keeps its 400.
+- **BEHAVIOUR CHANGE, candidates only:** assigning a custodian, moving,
+  transferring or disposing of a unit that is not on the register is refused
+  `409 conflict`, `details.reason = "not_on_the_register"`,
+  `details.waiting_on` — *"This unit is not on the register yet (waiting on
+  <who>); a custodian can be assigned once it is registered."* — on `PATCH
+  /assets/<id>`, `/move`, `/transfer-custody`, `/condemn`, and on `POST
+  /assets` carrying `custodian_id` or `state: "disposed"`. Approving a
+  request that would move a candidate answers the approvals route's own
+  `409 conflict` (`details.request_id`) with the candidate sentence.
+  Registered assets: unchanged.
+- **Additive: `data.sap.discrepancy`** — null, or `{maker_number,
+  sap_number, maker, checker, raised_at}` when SAP's INT-06 answer carried
+  an asset number different from the one the Register Maker entered. The
+  entered number stays in `sap.asset_number` (it is no longer replaced) and
+  `sap.reconciliation_state` is `exception` — until the entered number is
+  corrected to SAP's (back office), which closes it as `confirmed`. **Additive enum value:
+  `sap.code_source = "confirmed"`** — entered by hand, then returned
+  unchanged by SAP.
+- **Additive: role exclusions** — `GET /api/v1/settings/role-exclusions`
+  (`settings:read`), `POST` and `PATCH /api/v1/settings/role-exclusions[/<id>]`
+  (`settings:write`), `GET /api/v1/settings/conflicting-grants`
+  (`settings:write`). **BEHAVIOUR CHANGE:** `POST /users/<id>/roles` (and
+  `POST /users`) refuse `403 forbidden` a grant that would give one person
+  both roles of an active exclusion, preview included, naming both roles and
+  the reason. Existing holders are not revoked.
+- **Additive: `GET /api/v1/meta/readiness`** — no token; 200 `{ready: true}`
+  or 503 `server_misconfigured` listing every column this database lacks and
+  the module to upgrade. **BEHAVIOUR CHANGE:** any route meeting a missing
+  column or table answers `503 server_misconfigured` naming it (was `500
+  internal_error`, "Unhandled server error").
+- **Additive scope: `settings:classes`** (Asset Controller, Asset Manager).
+- **Docs:** `gates.waiting_on` has seven values — `iad_approver` was served
+  and not listed (D6).
+
 ## 2026-10-07 — handoff 57: the receipt gates (SCAFFOLDING) · `myservice_api` 19.0.3.29.0, `myservice_asset_register` 19.0.1.26.0, `myservice_workflow` 19.0.3.2.0
 
 **Scaffolding for one demonstration; handoff 58 replaces all of it with a
 separate candidate model and its own routes. Do not integrate against the
 gate routes.** Endpoint reference §14.
+
+**Kept by handoff 58 (2026-10-12) — see the entry above: the gate routes
+stand and are integrated against; the sentence before this one is the
+record of what was said on 2026-10-07.**
 
 - **Additive: `register_state` and `gates`** on every serialised asset
   (`GET /assets`, `/assets/<id>`, every write's answer). `register_state` is

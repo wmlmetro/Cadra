@@ -1,0 +1,12 @@
+# Handoff 58 §8.3 — P8 on a throwaway copy of test19 (p8probe58), register_state dropped
+## GET /api/v1/meta/readiness (no token)
+HTTP 503
+This tenant's database (p8probe58) has not been upgraded to the code it is running: 1 column(s) missing, first nrs_asset.register_state. Upgrade myservice_asset_register on p8probe58 (the per-tenant fan-out in CLAUDE.md) before using it.
+missing_count 1 modules ['myservice_asset_register']
+first [{'module': 'myservice_asset_register', 'model': 'nrs.asset', 'table': 'nrs_asset', 'column': 'register_state'}]
+## GET /api/v1/assets with a token (test19's credential, copied with the database)
+token 200
+HTTP 503
+server_misconfigured — This tenant's database (p8probe58) has not been upgraded to the code it is running: column nrs_asset.register_state does not exist. Upgrade its modules (the per-tenant fan-out in CLAUDE.md) before using it; GET /api/v1/meta/readiness lists everything that is missing.
+## the same on test19 itself
+{"data": {"ready": true, "database": "test19"}} HTTP 200
