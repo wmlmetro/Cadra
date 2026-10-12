@@ -809,6 +809,12 @@ class TestAssetHistoryRecordedEvents(AssetHistoryCase):
         self.assertTrue(kinds["affix_refused"]["statement"].startswith(
             "No affix confirmation has been refused"))
         self.assertNotIn("message log", kinds["affix_refused"]["statement"])
+        # So has a receipt gate (handoff 57): the gates arrived with their
+        # event, and on a tenant with the switch off none has ever fired.
+        self.assertIsNone(kinds["gate_fired"]["recording_began_at"])
+        self.assertTrue(kinds["gate_fired"]["statement"].startswith(
+            "No receipt gate has fired"))
+        self.assertNotIn("message log", kinds["gate_fired"]["statement"])
 
     def test_what_is_never_recorded_no_longer_claims_these_leave_nothing(
             self):
