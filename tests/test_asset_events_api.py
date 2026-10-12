@@ -1547,6 +1547,17 @@ def test_the_history_says_from_when_each_kind_of_event_is_recorded(
     for entry in entries:
         assert set(entry) == {"event", "recording_began_at", "statement"}
         assert entry["statement"]
+        if entry["event"] == "gate_fired" and not entry["recording_began_at"]:
+            # This test writes no gate (a gate needs a candidate, which
+            # needs the tenant's switch on — `test_receipt_gates.py`). On a
+            # tenant where none has ever fired — CI's fresh database, every
+            # tenant with the switch off — "not yet" is the true answer, and
+            # it must be said in words, not as an earlier record to look for.
+            # It passed on test19 only because spec 57 had fired gates there.
+            assert entry["statement"].startswith("No receipt gate has fired"), \
+                entry["statement"]
+            assert "message log" not in entry["statement"], entry["statement"]
+            continue
         assert entry["recording_began_at"], (
             "this suite has just written a `%s` on this tenant, so recording "
             "has begun" % entry["event"])

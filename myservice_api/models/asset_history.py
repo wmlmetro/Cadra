@@ -714,6 +714,21 @@ class NRSAssetHistory(models.Model):
                     "or delete it. There is no earlier record to look for: "
                     "before then a refusal left nothing behind at all."
                     % _when(began))
+            elif stored == "gate_fired":
+                # No message-log fallback either: the receipt gates arrived
+                # with their event (handoff 57), so a gate has never been
+                # recorded any other way. On a tenant with the switch off —
+                # every fresh database — none has ever fired, and the generic
+                # sentence would send a reader looking for log lines that do
+                # not exist.
+                statement = (
+                    "No receipt gate has fired on this system yet, for any "
+                    "asset. Every gate a received unit passes is recorded so "
+                    "that nobody can edit or delete it." if not began else
+                    "From %s, when the first one fired here, every receipt "
+                    "gate a unit passes is recorded so that nobody can edit "
+                    "or delete it. There is no earlier record to look for: "
+                    "the gates did not exist before then." % _when(began))
             elif not began:
                 statement = (
                     "No record of this kind has been written on this system "
