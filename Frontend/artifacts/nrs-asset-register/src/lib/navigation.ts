@@ -11,7 +11,7 @@ import {
   Users, ScanBarcode, Upload, RefreshCw,
   Wrench, Tag, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
   Hourglass, ShieldCheck, History, PanelLeft,
-  FileCog, Trash2, Camera, Download, Inbox,
+  FileCog, Trash2, Camera, Download, Inbox, UserX,
   type LucideIcon,
 } from "lucide-react";
 
@@ -87,9 +87,9 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     // queue rather than a page — an approval nobody notices is a move that
     // never happens (handoff 35).
     { key: "approvals",               name: "Approvals",               path: "/approvals",            icon: Hourglass, badge: "approvals", scope: "assets:read" },
-    // Units received but not yet on the register (handoff 57 — scaffolding
-    // for 58's candidate model). The register itself hides them, so this is
-    // the only list that shows them.
+    // Units received but not yet on the register (handoff 57, kept by 58).
+    // The register itself hides them, so this is the only list that shows
+    // them.
     { key: "candidates",              name: "Candidates",              path: "/candidates",           icon: Inbox,           scope: "candidates:read" },
     { key: "new_asset",               name: "+ New Asset",             path: "/assets/new",           icon: BookOpen,        scope: "assets:write" },
   ]},
@@ -127,13 +127,20 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
   // screens need the categories and the brand, so what is withheld from a
   // person without the write is the change, and the page is the change.
   { key: "settings", label: "Settings", items: [
-    { key: "asset_categories",        name: "Asset Categories",        path: "/settings/categories",   icon: Layers,            scope: "settings:write" },
+    // `settings:classes` since handoff 58: the Asset Controller sets a
+    // class's identification mode here and holds that scope alone; the
+    // Asset Manager holds it beside `settings:write` and edits the rest.
+    { key: "asset_categories",        name: "Asset Categories",        path: "/settings/categories",   icon: Layers,            scope: "settings:classes" },
     { key: "branding",                name: "Branding",                path: "/settings/branding",     icon: Palette,           scope: "settings:write" },
     { key: "depreciation_settings",   name: "Depreciation",            path: "/settings/depreciation", icon: SlidersHorizontal, scope: "settings:write" },
     // Whether a received unit must pass the gates before it is an asset
     // (handoff 57, `cadra.receipt.gated`). `settings:write`, as the
     // server's PATCH is.
     { key: "receipt_gate",            name: "Receipt gates",           path: "/settings/receipt-gate", icon: ShieldCheck,       scope: "settings:write" },
+    // Which two roles one person may not hold together (handoff 58 §5).
+    // `settings:write`, as the server's writes and its conflicting-grants
+    // read are; `settings:read` alone can open the page and see the table.
+    { key: "role_exclusions",         name: "Role exclusions",         path: "/settings/role-exclusions", icon: UserX,         scope: "settings:write" },
     // Which of these items this tenant shows (handoff 48). `admin`, as the
     // server's PATCH is. The one item that cannot be switched off, with its
     // group: it is where they are switched back on.

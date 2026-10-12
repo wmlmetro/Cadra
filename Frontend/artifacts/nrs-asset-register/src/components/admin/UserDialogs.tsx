@@ -117,7 +117,12 @@ export function CreatePersonDialog({ open, onOpenChange, roles, onCreated }: Cre
 
   return (
     <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
-      <DialogContent className="sm:max-w-md" data-testid="dialog-create-user">
+      {/* Scrolls inside the viewport: since handoff 57 there are ten
+          grantable roles, and the list pushed the dialog past a 720px-tall
+          screen with Create below its bottom edge and nothing to scroll —
+          the person could fill the form and not submit it (found by spec 43
+          in handoff 58's run). */}
+      <DialogContent className="sm:max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto" data-testid="dialog-create-user">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus size={16} className="text-primary" /> Create person

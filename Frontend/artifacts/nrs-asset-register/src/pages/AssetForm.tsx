@@ -43,6 +43,11 @@ type FormShape = {
   make: string;
   model_name: string;
   manufacturer: string;
+  // Section 12 (handoff 58): what a unit with no manufacturer serial — a
+  // `tag_id` class, furniture — is identified by at receipt.
+  colour: string;
+  material: string;
+  dimensions: string;
   asset_level: string;
   domain: string;
   department: string;
@@ -97,6 +102,7 @@ type FormShape = {
 const blank: FormShape = {
   name: "", asset_tag: "", legacy_asset_code: "", serial_number: "",
   make: "", model_name: "", manufacturer: "",
+  colour: "", material: "", dimensions: "",
   asset_level: ENUM_DEFAULT.asset_level, domain: "", department: "",
   condition: ENUM_DEFAULT.condition, state: ENUM_DEFAULT.asset_state,
   category_id: null, subcategory_id: null, asset_type_id: null,
@@ -146,6 +152,9 @@ function toBody(f: FormShape, terminal = false, original?: FormShape | null): As
   assignIfSet("make", f.make);
   assignIfSet("model_name", f.model_name);
   assignIfSet("manufacturer", f.manufacturer);
+  assignIfSet("colour", f.colour);
+  assignIfSet("material", f.material);
+  assignIfSet("dimensions", f.dimensions);
   assignIfSet("asset_level", f.asset_level);
   assignIfSet("domain", f.domain);
   assignIfSet("department", f.department);
@@ -335,6 +344,9 @@ export default function AssetForm({ mode }: Props) {
         make: (e.make as string) ?? "",
         model_name: (e.model as string) ?? "",
         manufacturer: (e.manufacturer as string) ?? "",
+        colour: (e.colour as string) ?? "",
+        material: (e.material as string) ?? "",
+        dimensions: (e.dimensions as string) ?? "",
         // Taken verbatim. A stored value this build does not recognise is kept
         // rather than coerced to a default — withCurrent() puts it in the
         // select so the user can save the record back untouched.
@@ -526,6 +538,18 @@ export default function AssetForm({ mode }: Props) {
         </Field>
         <Field label="Model">
           <input className={inputCls} value={form.model_name} onChange={e => set("model_name", e.target.value)} />
+        </Field>
+        {/* Section 12 (handoff 58): mandatory at a gated receipt for a class
+            identified by tag and attributes — the categories screen says
+            which. */}
+        <Field label="Colour">
+          <input className={inputCls} data-testid="input-colour" value={form.colour} onChange={e => set("colour", e.target.value)} />
+        </Field>
+        <Field label="Material">
+          <input className={inputCls} data-testid="input-material" value={form.material} onChange={e => set("material", e.target.value)} />
+        </Field>
+        <Field label="Dimensions">
+          <input className={inputCls} data-testid="input-dimensions" value={form.dimensions} onChange={e => set("dimensions", e.target.value)} />
         </Field>
       </Section>
 

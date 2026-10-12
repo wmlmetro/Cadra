@@ -1,12 +1,11 @@
 /**
  * Settings — Receipt gates (handoff 57).
  *
- * SCAFFOLDING, 7 October 2026. One switch, `cadra.receipt.gated`: when on, a
- * unit received from a goods receipt is a CANDIDATE, hidden from the
- * register, until Internal Audit, the tagging team and a maker-checker pair
- * have passed it. Tonight the gates ride on the asset record itself
- * (`register_state`); handoff 58 replaces that with a separate candidate
- * model, and this screen moves with it or goes.
+ * One switch, `cadra.receipt.gated`: when on, a unit received from a goods
+ * receipt is a CANDIDATE, hidden from the register, until Internal Audit,
+ * the tagging team and a maker-checker pair have passed it. The gates ride
+ * on the asset record itself (`register_state`) — handoff 57's design, kept
+ * by handoff 58.
  *
  * The sentence describing what the switch does comes from the server
  * (`statement`), so the screen and the API cannot describe it differently.

@@ -77,6 +77,7 @@ const AssetCategoriesSettings    = lazy(() => import("@/pages/settings/AssetCate
 const BrandingSettings           = lazy(() => import("@/pages/settings/Branding"));
 const SidebarSettings            = lazy(() => import("@/pages/settings/Sidebar"));
 const ReceiptGateSettings        = lazy(() => import("@/pages/settings/ReceiptGate"));
+const RoleExclusionsSettings     = lazy(() => import("@/pages/settings/RoleExclusions"));
 const MaintenanceReadinessReport = lazy(() => import("@/pages/reports/MaintenanceReadinessReport"));
 const LocationCoverageReport     = lazy(() => import("@/pages/reports/LocationCoverageReport"));
 const TagAdoptionReport          = lazy(() => import("@/pages/reports/TagAdoptionReport"));
@@ -200,6 +201,7 @@ function AppRoutes() {
           <Route path="/settings/branding"              component={BrandingSettings}             />
           <Route path="/settings/sidebar"               component={SidebarSettings}              />
           <Route path="/settings/receipt-gate"          component={ReceiptGateSettings}          />
+          <Route path="/settings/role-exclusions"       component={RoleExclusionsSettings}       />
           <Route path="/reports/maintenance-readiness"  component={MaintenanceReadinessReport}  />
           <Route path="/reports/location-coverage"      component={LocationCoverageReport}      />
           <Route path="/reports/tag-adoption"           component={TagAdoptionReport}           />

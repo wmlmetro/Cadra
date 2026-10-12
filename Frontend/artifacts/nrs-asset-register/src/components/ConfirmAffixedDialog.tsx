@@ -72,6 +72,16 @@ import { SCAN_FORMAT_LABELS, type ScanFormat } from "@/lib/scanFormats";
  * what was read before they commit, so a misread costs a glance instead of
  * a false record (or a refusal that names the issued number, see above).
  * Confirm is one more tap, or Enter, exactly as for a typed number.
+ *
+ * Handoff 58 (Section 12): a unit whose class is identified by TAG ID —
+ * furniture, mostly — has no manufacturer serial to scan. For one of those
+ * the dialog asks for the label reading only, offers no serial field at all
+ * (and not the "no serial on file" sentence either, which would read as a
+ * gap in the record when it is the design), and asks instead for a tick
+ * that the item in front of the tagger matches its description, make and
+ * colour. Confirm stays dark until it is ticked and the server refuses the
+ * affix without it. The tick names the attributes, not the tag number: the
+ * rule above is unchanged.
  */
 
 const inputCls = "mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20";
@@ -124,6 +134,12 @@ interface Props {
    *  has none the serial field is not offered — the route would refuse any
    *  value — and the dialog says why. */
   hasSerialOnFile: boolean;
+  /** The mode the unit was RECEIVED under (handoff 58). `tag_id` replaces
+   *  the serial field with the attributes tick; anything else — `serial`,
+   *  or null for a unit received before 58 — is the dialog as it was. */
+  identificationMode?: "serial" | "tag_id" | null;
+  /** What the tick names for a `tag_id` unit; empty parts are skipped. */
+  attributes?: { name?: string | null; make?: string | null; colour?: string | null };
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** The label was recorded as affixed by THIS confirmation. */
@@ -133,11 +149,16 @@ interface Props {
 }
 
 export function ConfirmAffixedDialog({
-  assetId, assetName, hasSerialOnFile, open, onOpenChange, onConfirmed, onAlready,
+  assetId, assetName, hasSerialOnFile, identificationMode, attributes,
+  open, onOpenChange, onConfirmed, onAlready,
 }: Props) {
   const qc = useQueryClient();
+  const byTag = identificationMode === "tag_id";
+  const matchWords = [attributes?.name, attributes?.make, attributes?.colour]
+    .map(v => (v ?? "").trim()).filter(Boolean).join(", ");
   const [tagNumber, setTagNumber] = useState("");
   const [serial, setSerial] = useState("");
+  const [attributesConfirmed, setAttributesConfirmed] = useState(false);
   const [fittedBy, setFittedBy] = useState("");
   // Which symbology the camera read each value off — handoff 54. Sent as
   // `scanned_format` / `serial_format` so the refused-affix record can say
@@ -173,9 +194,14 @@ export function ConfirmAffixedDialog({
       // whether the server recorded anything.
       const before = await fetchAssetTagging(assetId);
       const res = await confirmTagAffixed(assetId, {
-        tag_number: tagNumber, serial_number: serial, affixed_by_name: fittedBy,
+        tag_number: tagNumber,
+        // A `tag_id` unit has no serial to check; the field is not drawn,
+        // so nothing could be in it, and nothing is sent.
+        serial_number: byTag ? undefined : serial,
+        affixed_by_name: fittedBy,
         scanned_format: tagFormat ?? undefined,
-        serial_format: serial.trim() ? serialFormat ?? undefined : undefined,
+        serial_format: !byTag && serial.trim() ? serialFormat ?? undefined : undefined,
+        attributes_confirmed: byTag ? attributesConfirmed : undefined,
       });
       // Same label, already affixed before the POST, same instant after it.
       // The `label_id` comparison matters only for an asset carrying more
@@ -209,13 +235,14 @@ export function ConfirmAffixedDialog({
     },
   });
   const err = mutation.error as CadraApiError | null;
-  const ready = tagNumber.trim().length > 0;
+  const ready = tagNumber.trim().length > 0 && (!byTag || attributesConfirmed);
 
   const setOpen = (next: boolean, done = false) => {
     if (!next && mutation.isPending && !done) return;
     if (!next) {
       setTagNumber("");
       setSerial("");
+      setAttributesConfirmed(false);
       setFittedBy("");
       setTagFormat(null);
       setSerialFormat(null);
@@ -324,7 +351,27 @@ export function ConfirmAffixedDialog({
             />
           </div>
 
-          {hasSerialOnFile ? (
+          {byTag ? (
+            <label className="flex items-start gap-2 rounded-xl border border-border p-3 cursor-pointer" htmlFor="affix-attributes-confirm">
+              <input
+                id="affix-attributes-confirm"
+                type="checkbox"
+                checked={attributesConfirmed}
+                onChange={e => setAttributesConfirmed(e.target.checked)}
+                disabled={locked}
+                required
+                data-testid="affix-attributes-confirm"
+                className="mt-0.5 h-3.5 w-3.5 rounded border-border accent-[hsl(var(--primary))]"
+              />
+              <span className="text-[12px] text-foreground leading-snug">
+                {matchWords ? `The item matches: ${matchWords}` : "The item matches its description"}
+                <span className="block text-[11px] text-muted-foreground mt-0.5">
+                  This class is identified by its tag and its attributes, not a manufacturer serial.
+                  Check the item in front of you against them before confirming.
+                </span>
+              </span>
+            </label>
+          ) : hasSerialOnFile ? (
             <div>
               <div className="flex items-center justify-between gap-2">
                 <label htmlFor="affix-serial" className={labelCls}>Serial number on the asset</label>
