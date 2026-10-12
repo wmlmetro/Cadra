@@ -21,7 +21,7 @@ EVENT_STATUS_CHANGED = 'status_changed'
 EVENT_REFERENCE_CHANGED = 'reference_changed'
 EVENT_WARRANTY_CHANGED = 'warranty_changed'
 EVENT_AFFIX_REFUSED = 'affix_refused'
-# Handoff 57 (SCAFFOLDING — replaced by handoff 58's candidate model). One
+# Handoff 57, kept by handoff 58. One
 # row per transition of `nrs.asset.register_state`, written by
 # `nrs.asset._fire_gate` and by nothing else. `gate` is the segregation-of-
 # duties gate the actor fired (NULL for a system step or for an action that

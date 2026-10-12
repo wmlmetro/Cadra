@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Handoff 58 §5 — Addendum A §4, rule 2: the role combinations nobody
+        may be granted. noupdate: an owner's edit on Settings → Role
+        exclusions survives every upgrade. Store is the Asset Officer (the
+        role that fires the receipt gate), not Asset User — every gate role
+        implies Asset User; `models/role_exclusion.py` says why in full.
+    -->
+    <data noupdate="1">
+        <record id="role_exclusion_store_iad_officer" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_asset_officer"/>
+            <field name="group_b" ref="myservice_asset_register.group_iad_vfm_officer"/>
+            <field name="reason">Store receives a unit and Internal Audit verifies it; the person who received it cannot be the one who checks it</field>
+        </record>
+        <record id="role_exclusion_store_iad_approver" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_asset_officer"/>
+            <field name="group_b" ref="myservice_asset_register.group_iad_vfm_approver"/>
+            <field name="reason">Store receives a unit and Internal Audit approves its value for money; the person who received it cannot be the one who approves it</field>
+        </record>
+        <record id="role_exclusion_store_controller" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_asset_officer"/>
+            <field name="group_b" ref="myservice_asset_register.group_asset_controller"/>
+            <field name="reason">Store receives a unit and the Asset Controller decides it is ready to be tagged; the two acts are independent</field>
+        </record>
+        <record id="role_exclusion_store_tagging" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_asset_officer"/>
+            <field name="group_b" ref="myservice_asset_register.group_tag_issuing_unit"/>
+            <field name="reason">The team that creates asset records must not be the team that confirms the label went onto the unit</field>
+        </record>
+        <record id="role_exclusion_store_maker" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_asset_officer"/>
+            <field name="group_b" ref="myservice_asset_register.group_register_maker"/>
+            <field name="reason">Store receives a unit and the Register Maker puts it on the register with its SAP code and cost; the two acts are independent</field>
+        </record>
+        <record id="role_exclusion_store_checker" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_asset_officer"/>
+            <field name="group_b" ref="myservice_asset_register.group_register_checker"/>
+            <field name="reason">Store receives a unit and the Register Checker approves its registration; the person who received it cannot be the one who approves it</field>
+        </record>
+        <record id="role_exclusion_maker_checker" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_register_maker"/>
+            <field name="group_b" ref="myservice_asset_register.group_register_checker"/>
+            <field name="reason">A registration is made by one person and checked by another</field>
+        </record>
+        <record id="role_exclusion_iad_officer_approver" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_iad_vfm_officer"/>
+            <field name="group_b" ref="myservice_asset_register.group_iad_vfm_approver"/>
+            <field name="reason">Value for money is verified by one IAD officer and approved by another</field>
+        </record>
+    </data>
+</odoo>

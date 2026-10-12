@@ -91,8 +91,8 @@ TAG_ISSUING_UNIT = "myservice_asset_register.group_tag_issuing_unit"
 AUDITOR = "myservice_api.group_auditor"
 SYSTEM = "base.group_system"
 ASSET_OFFICER = "myservice_asset_register.group_asset_officer"
-# Handoff 57 — the five gate roles of Addendum A (scaffolding: the gates ride
-# on `nrs.asset.register_state` until handoff 58's candidate model). Each
+# Handoff 57 — the five gate roles of Addendum A (the gates ride on
+# `nrs.asset.register_state`, kept there by handoff 58). Each
 # implies Asset User, so each persona can read the register it is gating.
 IAD_VFM_OFFICER = "myservice_asset_register.group_iad_vfm_officer"
 IAD_VFM_APPROVER = "myservice_asset_register.group_iad_vfm_approver"

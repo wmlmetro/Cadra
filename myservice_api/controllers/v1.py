@@ -2150,7 +2150,8 @@ class MyserviceApiV1(http.Controller):
                             },
                             "code_source": {
                                 "type": "string", "nullable": True,
-                                "enum": ["integration", "import", "manual"],
+                                "enum": ["integration", "import", "manual",
+                                         "confirmed"],
                                 "description": (
                                     "How the SAP asset number got onto this "
                                     "record. `integration` means SAP "
@@ -2161,7 +2162,11 @@ class MyserviceApiV1(http.Controller):
                                     "they did. The dual-code control is an "
                                     "audit control, so the two must not look "
                                     "alike — only the integration itself may "
-                                    "record `integration`."),
+                                    "record `integration`. `confirmed` "
+                                    "(handoff 58): a number the Register "
+                                    "Maker entered that SAP's INT-06 answer "
+                                    "then returned unchanged — also written "
+                                    "only by the integration."),
                             },
                             "posting_state": {
                                 "type": "string",
@@ -2202,6 +2207,28 @@ class MyserviceApiV1(http.Controller):
                             # RFC 3339 that `date-time` promises, and
                             # claiming the format would make a strict parser
                             # reject a perfectly readable value.
+                            "discrepancy": {
+                                "type": "object", "nullable": True,
+                                "description": (
+                                    "Handoff 58 (P4). Null, unless SAP's "
+                                    "INT-06 answer carried an asset number "
+                                    "DIFFERENT from the one the Register "
+                                    "Maker entered: the entered number stays "
+                                    "in `asset_number`, "
+                                    "`reconciliation_state` is `exception`, "
+                                    "and this names both numbers, the maker "
+                                    "and the checker."),
+                                "properties": {
+                                    "maker_number": {"type": "string"},
+                                    "sap_number": {"type": "string"},
+                                    "maker": {"type": "object",
+                                              "nullable": True},
+                                    "checker": {"type": "object",
+                                                "nullable": True},
+                                    "raised_at": {"type": "string",
+                                                  "nullable": True},
+                                },
+                            },
                             "synced_at": {
                                 "type": "string", "nullable": True,
                                 "description": (
@@ -2698,6 +2725,18 @@ class MyserviceApiV1(http.Controller):
                 }
 
             spec["paths"].setdefault(spec_path, {})[method_lc] = op
+
+        # `PATCH /asset-categories/<id>` declares no scope to the decorator
+        # because its rule is EITHER-OR (`settings:write`, or
+        # `settings:classes` for the two Section 12 keys — handoff 58), which
+        # the decorator cannot say; the route checks it first. Published here
+        # as what it is: a token is required, and which scopes answer.
+        _cat = spec["paths"].get("/api/v1/asset-categories/{id}", {}).get(
+            "patch")
+        if _cat is not None:
+            _cat["security"] = [{"bearerAuth": []}]
+            _cat["x-cadra-scopes-any-of"] = ["settings:write",
+                                             "settings:classes"]
 
         # Override the auto-generated /auth/whoami entry so it advertises
         # bearerAuth (the registry strips security tags when scopes=[]).

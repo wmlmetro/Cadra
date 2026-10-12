@@ -491,6 +491,12 @@ class NRSAsset(models.Model):
         # BEFORE anything is written, and here rather than in a route for the
         # reason everything else in `write` is here.
         self._assert_disposed_is_terminal(vals)
+        # A receipt candidate is not on the register: no custodian, no move,
+        # no disposal (handoff 58, P5). Before the approval gate, which has
+        # exemptions this rule must not inherit, and after the terminal rule,
+        # which speaks first for the same reason it does on the routes.
+        # Defined with the gates, in `asset_gates.py`.
+        self._assert_on_the_register(vals)
         # And, since handoff 35, whether a second person has agreed to it.
         # Same placement, same argument: `location_id` has twelve writers and
         # `custodian_id` thirteen, and a rule enforced in the three the app

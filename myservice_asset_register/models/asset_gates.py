@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
-"""SCAFFOLDING — handoff 57, written the night of 7 October 2026.
-REPLACED BY HANDOFF 58 (`nrs.asset.candidate`, a separate model).
+"""The receipt gates — Addendum A's chain, on `nrs.asset` (handoffs 57, 58).
 
-What this is, plainly: NRS ruled on 7 October that a received unit is not
-an asset until Internal Audit has sighted it, a tag is on it and a maker-
-checker pair has registered it (Addendum A). The correct build is a
-separate candidate model (`docs/ADDENDUM-A-EVALUATION.md` §4.6, the
-Architect's ruling) and takes a week. This file is NOT that build. It puts
-the gate machine on the existing `nrs.asset` record as one field,
-`register_state`, and hides any asset that has not passed the gates from
-the register — exactly the design §4.6 rules against for the real thing,
-chosen for one night BECAUSE it reuses every proven path unchanged: INT-03
-still creates the record, the label still prints, the affix dialog still
-checks serial and label, the history still renders, SAP still gets the
-master. Every report, count and dashboard now has to filter on this flag;
-that cost is the reason 58 replaces it. Do not build on it.
+What this is, plainly: NRS ruled on 7 October 2026 that a received unit is
+not an asset until Internal Audit has sighted it, a tag is on it and a
+maker-checker pair has registered it (Addendum A). This file is that chain.
+A unit that has not passed it is a CANDIDATE: the same `nrs.asset` record,
+carrying `register_state` anything but `registered`. Handoff 57 built it in
+one night as a stand-in for a separate candidate model; handoff 58 KEPT it
+(`docs/ADDENDUM-A-EVALUATION.md` §8, reversing §4.6), because report 57
+measured the one property a separate model was supposed to buy and found it
+already held: no list, count, report, export or dashboard shows a candidate.
+
+The register filter in `_search` is LOAD-BEARING (handoff 57 finding P8).
+It is the only thing that keeps a candidate off every register route —
+22 routes list or count assets and two of them share a helper, so the
+filter lives where all of them meet. Code that forgets the context flag
+cannot FIND a candidate; it cannot SHOW one. That is the safe failure, and
+it is why the flag must never be set by default. The cost is that the
+column is read by every asset search: a tenant whose module was not
+upgraded fails every asset list, not only the new column — upgrade every
+database before the code ships (`CLAUDE.md`, the fan-out), and the API
+answers such a tenant with `server_misconfigured`, naming the upgrade.
 
 The machine is ONE table (`TRANSITIONS`) and ONE method (`_fire_gate`).
 Nothing else changes `register_state`: `write` refuses the field without
@@ -24,7 +30,13 @@ The no-two-gates rule (Addendum A §4, enforcement rule 1): a user who
 fired one gate on a unit may not fire a DIFFERENT gate on it. The refusal
 names the earlier act, its date and the person — never "permission
 denied". The officer/approver and maker/checker separations are this rule;
-they are not written a second time.
+they are not written a second time. Rule 2 — the combinations of roles
+nobody may be GRANTED — is `nrs.role.exclusion` in `myservice_api`.
+
+A candidate is not on the register, so nothing that only a register asset
+can have happen to it may happen to it (handoff 58, P5): no custodian, no
+move, no transfer, no disposal — refused on the model under every writer
+(`_assert_on_the_register`), the message naming whom the unit waits on.
 """
 import base64
 import binascii
@@ -75,6 +87,17 @@ WAITING_ON = {
 }
 WAITING_ON_VALUES = ('store', 'iad', 'iad_approver', 'controller',
                      'tagging', 'maker', 'checker')
+# The same, as a person reads it — for the refusals that say whom a unit
+# that is not on the register is still waiting on (handoff 58, P5).
+WAITING_ON_WORDS = {
+    'store': 'Store',
+    'iad': 'IAD verification',
+    'iad_approver': 'IAD approval',
+    'controller': 'the Asset Controller',
+    'tagging': 'tagging',
+    'maker': 'the Register Maker',
+    'checker': 'the Register Checker',
+}
 
 # ── The gates (Addendum A §4 rule 1) and how a refusal says them ─────
 GATE_RECEIPT = 'receipt'
@@ -181,8 +204,10 @@ class GateRefused(UserError):
     """A gate refusal, carrying what the API needs to say it.
 
     `kind` is one of `invalid_state`, `forbidden`, `validation_failed`,
-    `segregation_of_duties`; the route maps it onto the envelope. A
-    `UserError` so any non-API caller still gets the sentence.
+    `segregation_of_duties`, `not_on_the_register`; the API maps it onto the
+    envelope in ONE place (`myservice_api` `controllers/utils.py`,
+    `gate_refusal`) for every route, the affix route included (handoff 58,
+    D3). A `UserError` so any non-API caller still gets the sentence.
     """
 
     def __init__(self, message, kind, details=None):
@@ -196,6 +221,15 @@ def _lagos_day(dt):
         return ''
     local = pytz.utc.localize(dt).astimezone(_LAGOS)
     return '%d %s' % (local.day, local.strftime('%b'))
+
+
+def _m2o(value):
+    """The id a many2one write names — an int, a record, or a command."""
+    if isinstance(value, models.BaseModel):
+        return value.id
+    if isinstance(value, (list, tuple)):
+        return value[0] if value else False
+    return value or False
 
 
 def _row(action, state):
@@ -214,9 +248,9 @@ class NRSAssetGates(models.Model):
         # which nobody can alter; a chatter line too would put each gate in
         # the asset's history twice.
         required=True, index=True, copy=False,
-        help='Handoff 57 scaffolding. Anything but Registered is a receipt '
-             'candidate: hidden from the register, its counts and its '
-             'reports, and moved only by the receipt gates.')
+        help='Anything but Registered is a receipt candidate: hidden from '
+             'the register, its counts and its reports, and moved only by '
+             'the receipt gates (handoffs 57, 58).')
     # The Register Maker's entries (handoff 57 §2a). The cost goes into
     # `acquisition_cost`, the SAP code into `sap_asset_number` as a code
     # ENTERED BY HAND — these two had nowhere to go.
@@ -282,7 +316,76 @@ class NRSAssetGates(models.Model):
                     'A record enters the register either as a captured '
                     'receipt or as a registered asset; "%s" is reached only '
                     'through the receipt gates.') % state)
+            if state == 'captured':
+                # A receipt arrives with nobody holding it (P5), and with
+                # what its class says identifies it (Section 12). Both
+                # BEFORE anything is written.
+                if vals.get('state') == 'disposed':
+                    raise GateRefused(
+                        self._not_on_the_register_message(
+                            'captured', 'disposal'),
+                        'not_on_the_register',
+                        {'register_state': 'captured',
+                         'waiting_on': WAITING_ON['captured']})
+                if vals.get('custodian_id'):
+                    raise GateRefused(
+                        self._not_on_the_register_message(
+                            'captured', 'custodian'),
+                        'not_on_the_register',
+                        {'register_state': 'captured',
+                         'waiting_on': WAITING_ON['captured']})
+                vals.update(self.browse()._check_receipt_identity(vals))
         return super().create(vals_list)
+
+    # ── a candidate is not on the register (handoff 58, P5) ───────────
+
+    @api.model
+    def _not_on_the_register_message(self, state, act):
+        """The sentence refusing `act` on a unit at `state`."""
+        tails = {
+            'custodian': _('a custodian can be assigned once it is '
+                           'registered.'),
+            'move': _('it can be moved once it is registered.'),
+            'transfer': _('it can be transferred once it is registered.'),
+            'disposal': _('it can be disposed of once it is registered.'),
+        }
+        who = WAITING_ON.get(state)
+        if who:
+            return _('This unit is not on the register yet (waiting on '
+                     '%(who)s); %(tail)s', who=WAITING_ON_WORDS[who],
+                     tail=tails[act])
+        return _('This unit is not on the register — Internal Audit '
+                 'rejected it; %(tail)s', tail=tails[act])
+
+    def _refuse_off_the_register(self, act):
+        """Raise for the first candidate in `self`, if any."""
+        for rec in self:
+            if rec.register_state and rec.register_state != REGISTERED:
+                raise GateRefused(
+                    self._not_on_the_register_message(rec.register_state, act),
+                    'not_on_the_register',
+                    {'register_state': rec.register_state,
+                     'waiting_on': WAITING_ON.get(rec.register_state),
+                     'asset_id': rec.id})
+
+    def _assert_on_the_register(self, vals):
+        """Called from `nrs.asset._write_recorded`, beside the disposal and
+        approval guards — under every ORM writer, with no exemption: a
+        custodian, a move and a disposal are things only a register asset
+        can have happen to it. A write that NAMES a field without changing
+        it passes (the edit form re-sends everything), and so does CLEARING
+        a custodian or a location — that takes nothing onto a candidate."""
+        if not any(r.register_state != REGISTERED for r in self):
+            return
+        for rec in self.filtered(lambda r: r.register_state != REGISTERED):
+            if vals.get('custodian_id') \
+                    and _m2o(vals['custodian_id']) != rec.custodian_id.id:
+                rec._refuse_off_the_register('custodian')
+            if vals.get('location_id') \
+                    and _m2o(vals['location_id']) != rec.location_id.id:
+                rec._refuse_off_the_register('move')
+            if vals.get('state') == 'disposed' and rec.state != 'disposed':
+                rec._refuse_off_the_register('disposal')
 
     def write(self, vals):
         if 'register_state' in vals \
@@ -603,15 +706,23 @@ class NRSAssetTagLabelGates(models.Model):
         # A REPEAT confirmation on a tagged candidate goes to the base, which
         # answers it idempotently (handoff 39) — refused only at the first.
         if candidate and asset.register_state == 'tag_issued':
-            found = asset._two_gates_refusal(GATE_TAGGING)
-            if found:
-                raise ValidationError(found[0])
+            # The same refusal, code and status as every other gate — a 409
+            # `segregation_of_duties` (handoff 58, D3). Until 58 this one was
+            # a ValidationError and the affix route answered it 400
+            # `validation_failed`, the only gate whose refusal had another
+            # shape. `_assert_two_gates` raises it with `details.earlier`.
+            asset._assert_two_gates(GATE_TAGGING)
         was_affixed = self.label_state == 'affixed'
         result = super()._mark_affixed(scanned_tag_number, *args, **kwargs)
         if candidate and not was_affixed and self.label_state == 'affixed' \
                 and asset.register_state == 'tag_issued':
+            # Which check the tagger made (Section 12): the label and the
+            # serial, the label and the attributes (a `tag_id` unit, no
+            # serial to scan), or the label alone. Declared by the affix
+            # route, which is where the body is read.
+            check = self.env.context.get('cadra_affix_check') or 'label_only'
             asset._gate_move('tagged', 'affix', GATE_TAGGING,
-                             notes={'tag_number': self.name})
+                             notes={'tag_number': self.name, 'check': check})
         return result
 
 

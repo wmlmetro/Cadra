@@ -119,7 +119,7 @@ NOT_RECORDED = (
      "complete account of it."),
 )
 
-#: Handoff 57 (scaffolding): the history's sentence per gate action.
+#: Handoff 57: the history's sentence per gate action.
 _GATE_SENTENCES = {
     "submit": "Submitted to Internal Audit",
     "verify": "Sighted and verified by Internal Audit",
@@ -162,7 +162,7 @@ _EVENT_TITLES = {
     # seconds apart — must read refusal-first when both land in one second.
     "affix_refused": "Affix confirmation refused",
     "tag_affixed": "Tag affixed",
-    # Handoff 57 (scaffolding, replaced by 58): a receipt gate fired.
+    # Handoff 57 (kept by 58): a receipt gate fired.
     "gate_fired": "Receipt gate",
     "tag_scrapped": "Tag scrapped",
     "custody_changed": "Custodian changed",
@@ -615,7 +615,7 @@ class NRSAssetHistory(models.Model):
                 detail.update(scanned=ev.to_value or None, reason=reason,
                               scanned_format=ev.scanned_format or None)
             elif etype == "gate_fired":
-                # Handoff 57 (scaffolding, replaced by 58). One row per move
+                # Handoff 57 (kept by 58). One row per move
                 # of the register state, by `nrs.asset._fire_gate` alone.
                 published = "gate_fired"
                 summary = _GATE_SENTENCES.get(

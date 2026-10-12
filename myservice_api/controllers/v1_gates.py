@@ -1,10 +1,10 @@
-"""The receipt gates over HTTP — handoff 57.
+"""The receipt gates over HTTP — handoff 57, kept by handoff 58.
 
-SCAFFOLDING, written the night of 7 October 2026. REPLACED BY HANDOFF 58
-(`nrs.asset.candidate`, a separate model with its own routes). The gate
-machine lives on `nrs.asset` for one night only because that reuses every
-proven path unchanged; see `myservice_asset_register/models/asset_gates.py`
-for what this is and is not. Do not build on these paths: 58 retires them.
+The gate machine lives on `nrs.asset` (`register_state`); handoff 58 kept it
+there rather than move it to a separate candidate model
+(`docs/ADDENDUM-A-EVALUATION.md` §8). See
+`myservice_asset_register/models/asset_gates.py` for the design, and why its
+register filter is load-bearing.
 
 WHAT THIS PUBLISHES
 -------------------
@@ -45,8 +45,6 @@ from odoo.addons.myservice_asset_register.models.asset_gates import (
 )
 
 from .utils import (
-    ERR_CONFLICT,
-    ERR_FORBIDDEN,
     ERR_INVALID_REQUEST,
     ERR_VALIDATION_FAILED,
     SCOPE_ASSETS_WRITE,
@@ -57,6 +55,7 @@ from .utils import (
     SCOPE_VFM_APPROVE,
     SCOPE_VFM_VERIFY,
     err,
+    gate_refusal,
     get_params,
     ok,
     paginate,
@@ -98,14 +97,9 @@ _BODY_KEYS = {
 
 
 def _refusal(e):
-    """A `GateRefused` as the envelope."""
-    details = dict(e.details or {})
-    if e.kind in ("invalid_state", "segregation_of_duties"):
-        details["reason"] = e.kind
-        return err(ERR_CONFLICT, str(e.args[0]), status=409, details=details)
-    if e.kind == "forbidden":
-        return err(ERR_FORBIDDEN, str(e.args[0]), status=403, details=details)
-    return err(ERR_VALIDATION_FAILED, str(e.args[0]), details=details)
+    """A `GateRefused` as the envelope — `utils.gate_refusal`, the one
+    mapping every route shares since handoff 58 (D3)."""
+    return gate_refusal(e)
 
 
 def _fire(asset_id, action, body, *, reason=None, payload=None):

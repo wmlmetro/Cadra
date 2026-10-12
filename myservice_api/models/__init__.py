@@ -10,6 +10,9 @@ from . import access_recorder
 # AFTER the recorder, so the guard WRAPS it: a refused change is judged on
 # the diff the recorder also sees, and the exception takes its rows back.
 from . import access_guard
+# Handoff 58 §5: the role combinations nobody may be granted (Addendum A §4,
+# rule 2). After the guard, which it imports, and judged after it.
+from . import role_exclusion
 from . import audit_access
 # Handoff 43: the door (`b2b` as a constant), the letters, the host-correct
 # link and the invitation stamps on `res.users`.

@@ -283,3 +283,85 @@ class MyserviceApiV1Meta(http.Controller):
             # correct answer: a person is not a test credential.
             "credential_is_test": bool(client and client.is_test_credential),
         }
+
+
+# ─── readiness: is this database at the level of its code? ───────────
+#
+# Handoff 58 (finding P8 of report 57). One Odoo process serves every
+# database from one codebase, so the moment a stored field lands in the
+# Python, a database that was not upgraded has a registry that names a column
+# its tables lack — and since handoff 57 the register filter reads
+# `nrs_asset.register_state` on EVERY asset search, so such a tenant fails
+# every asset list, not only the new column. Until 58 it said so as
+# `500 internal_error "Unhandled server error"` while `/web/login` — what the
+# k8s probes and the compose healthchecks ask — went on answering 200.
+#
+# Two answers, in the two places that cost least: every API route now maps
+# the missing-column error to `503 server_misconfigured` naming the column
+# and the upgrade (`utils.schema_behind`), and this route lists EVERYTHING
+# missing, per module, without a token — because the person who needs it is
+# checking a deploy, and on the cluster nothing scripted can sign in
+# (Turnstile). It names tables, columns and module names; no data.
+
+def _schema_gaps(env):
+    """`[{module, model, table, column}]` — stored columns the registry
+    expects that this database does not have. One catalogue query."""
+    env.cr.execute(
+        "SELECT table_name, column_name FROM information_schema.columns "
+        "WHERE table_schema = current_schema()")
+    have = {}
+    for table, column in env.cr.fetchall():
+        have.setdefault(table, set()).add(column)
+    gaps = []
+    for name in sorted(env.registry.models):
+        model = env.registry[name]
+        if model._abstract or not model._auto or not model._table:
+            continue
+        columns = have.get(model._table)
+        for fname, field in model._fields.items():
+            if not (field.store and field.column_type):
+                continue
+            if columns is None or fname not in columns:
+                gaps.append({"module": field._module or None, "model": name,
+                             "table": model._table, "column": fname})
+    return gaps
+
+
+class MyserviceApiV1Readiness(http.Controller):
+
+    @http.route("/api/v1/meta/readiness", type="http", auth="none",
+                methods=["GET"], csrf=False)
+    def readiness(self, **kwargs):
+        """200 `{ready: true}`, or 503 `server_misconfigured` naming every
+        missing column and the module to upgrade. The tenant is the one the
+        host routes to (`ODOO_DBFILTER`)."""
+        import json
+        from odoo import api, SUPERUSER_ID
+        from .utils import ERR_MISCONFIGURED
+        db = request.db
+        if not db:
+            body, status = {"error": {
+                "code": ERR_MISCONFIGURED,
+                "message": "No database is selected for this host."}}, 503
+        else:
+            env = api.Environment(request.env.cr, SUPERUSER_ID, {})
+            gaps = _schema_gaps(env)
+            if not gaps:
+                body, status = {"data": {"ready": True, "database": db}}, 200
+            else:
+                modules = sorted({g["module"] or "?" for g in gaps})
+                body, status = {"error": {
+                    "code": ERR_MISCONFIGURED,
+                    "message": (
+                        "This tenant's database (%s) has not been upgraded "
+                        "to the code it is running: %d column(s) missing, "
+                        "first %s.%s. Upgrade %s on %s (the per-tenant "
+                        "fan-out in CLAUDE.md) before using it." % (
+                            db, len(gaps), gaps[0]["table"],
+                            gaps[0]["column"], ", ".join(modules), db)),
+                    "details": {"database": db, "ready": False,
+                                "modules": modules, "missing": gaps[:200],
+                                "missing_count": len(gaps)}}}, 503
+        return request.make_response(
+            json.dumps(body, default=str), status=status,
+            headers=[("Content-Type", "application/json")])

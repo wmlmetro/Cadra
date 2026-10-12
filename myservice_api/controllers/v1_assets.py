@@ -515,6 +515,11 @@ def _serialize_sap(a):
         # When SAP last answered for this asset. The discriminator above, and
         # on its own the answer to "are these figures stale?".
         "synced_at": _date(a.sap_synced_at),
+        # Handoff 58, P4: when SAP's INT-06 answer carried an asset number
+        # DIFFERENT from the one the Register Maker entered, the entered one
+        # stays in `asset_number` and this names both numbers, the maker and
+        # the checker; `reconciliation_state` is `exception`. Null otherwise.
+        "discrepancy": a._sap_discrepancy(),
     }
 
 
@@ -825,6 +830,14 @@ def serialize_asset(a, *, include=()):
         "make": a.make or None,
         "model": a.model_name or None,
         "manufacturer": a.manufacturer or None,
+        # Section 12 (handoff 58 §4): the attributes a unit with no
+        # manufacturer serial is identified by, and the identification mode
+        # the unit was RECEIVED under — fixed at receipt (AD-31), null for
+        # anything received with the gates off.
+        "colour": a.colour or None,
+        "material": a.material or None,
+        "dimensions": a.dimensions or None,
+        "identification_mode": a.identification_mode or None,
         "category": _ref(a.category_id),
         "subcategory": _ref(a.subcategory_id),
         "asset_type": _ref(a.asset_type_id),
@@ -919,9 +932,8 @@ def serialize_asset(a, *, include=()):
         "verification_notes": a.verification_notes or None,
         "pm_count": a.pm_count,
         "request_count": a.request_count,
-        # Handoff 57 (SCAFFOLDING, replaced by handoff 58's candidate
-        # model). Anything but `registered` is a receipt candidate, hidden
-        # from every list and count by default. `gates` says who it is
+        # Handoff 57, kept by 58. Anything but `registered` is a receipt
+        # candidate, hidden from every list and count by default. `gates` says who it is
         # waiting on and which gate actions THIS CALLER may fire now — the
         # no-two-gates rule already applied, so the app draws no button the
         # server would refuse.
@@ -1157,6 +1169,8 @@ def _list_domain(qs):
 _WRITABLE_FIELDS = {
     "name", "legacy_asset_code", "serial_number",
     "make", "model_name", "manufacturer",
+    # Section 12 (handoff 58 §4): what a `tag_id` unit is identified by.
+    "colour", "material", "dimensions",
     "category_id", "subcategory_id", "asset_type_id", "asset_level", "domain",
     "parent_id",
     # `building_id`, `floor_id` and `room_id` were here until handoff 30 and
@@ -1594,6 +1608,14 @@ class CadraAssetsV1(http.Controller):
                          "make": {"type": "string", "nullable": True},
                          "model_name": {"type": "string", "nullable": True},
                          "manufacturer": {"type": "string", "nullable": True},
+                         "colour": {"type": "string", "nullable": True,
+                                    "description": "Section 12 attribute "
+                                                   "(handoff 58). Mandatory "
+                                                   "at a gated receipt when "
+                                                   "the class's schema says "
+                                                   "so."},
+                         "material": {"type": "string", "nullable": True},
+                         "dimensions": {"type": "string", "nullable": True},
                          "category_id": {"type": "integer", "nullable": True},
                          "subcategory_id": {"type": "integer", "nullable": True},
                          "asset_type_id": {"type": "integer", "nullable": True},
@@ -1710,10 +1732,14 @@ class CadraAssetsV1(http.Controller):
         # custody. `nrs.asset.create` records the link; this says where it
         # came from, so the row does not read as an anonymous direct write.
         Asset = request.env["nrs.asset"].sudo()
-        # Handoff 57 §2b (scaffolding): with the tenant's receipt gate on, a
+        # Handoff 57 §2b, kept by 58: with the tenant's receipt gate on, a
         # receipt enters as a CANDIDATE — `captured`, and no label minted
-        # (the mint moved to `request-tagging`). Switch off: byte for byte
-        # what this route always did.
+        # (the mint moved to `request-tagging`). The model then refuses what
+        # the class cannot accept (Section 12: a serial-mode unit with no
+        # serial, a `tag_id` unit missing an attribute, a `pool` unit, a
+        # serial already on the register) and a custodian (P5), each a
+        # `GateRefused` the envelope maps (`utils.gate_refusal`). Switch off:
+        # none of that is asked, and the route does what it always did.
         if Asset._receipt_gated():
             vals["register_state"] = "captured"
         rec = Asset.with_context(
@@ -1805,6 +1831,10 @@ class CadraAssetsV1(http.Controller):
         # which pinned the old wording rather than letting it later read as
         # a regression. Both ACTION routes already got this right.
         rec._assert_disposed_is_terminal(vals)
+        # A receipt candidate is not on the register: no custodian, no move,
+        # no disposal (handoff 58, P5) — before the approval refusal below,
+        # whose remedy (`/move`, `/transfer-custody`) would not work either.
+        rec._assert_on_the_register(vals)
         if _approval_required():
             # `vals[f]` truthy: CLEARING is not a grant and is not gated —
             # see `nrs.asset._assert_change_is_approved`, where the rule
@@ -1936,6 +1966,8 @@ class CadraAssetsV1(http.Controller):
         # number does not, so a refused move used to leave a gap in the
         # transfer references, one per attempt, that no transfer explained.
         rec._assert_disposed_is_terminal({"location_id": to_loc.id})
+        # Handoff 58, P5: a receipt candidate is moved by nobody.
+        rec._refuse_off_the_register("move")
 
         # ── Nobody moves an asset alone (handoff 35) ─────────────────
         #
@@ -2268,6 +2300,9 @@ class CadraAssetsV1(http.Controller):
                        details={"asset_id": rec.id, "state": rec.state,
                                 "disposal_date": _date(rec.disposal_date)})
         before = _last_event_id(rec)
+        # Handoff 58, P5: a receipt candidate is not on the register, so it
+        # cannot leave it either — before anything is written.
+        rec._refuse_off_the_register("disposal")
         rec.with_context(cadra_event_source="api_condemn").action_condemn(
             reason=reason)
         return {
@@ -2364,6 +2399,8 @@ class CadraAssetsV1(http.Controller):
         # pending slot until somebody withdrew it. Introduced by this handoff
         # and found by its verification pass.
         rec._assert_disposed_is_terminal({"custodian_id": to_cust.id})
+        # Handoff 58, P5: nobody holds a unit that is not on the register.
+        rec._refuse_off_the_register("custodian")
 
         # ── Nobody hands an asset over alone (handoff 35) ────────────
         #
@@ -2614,6 +2651,17 @@ class CadraAssetsV1(http.Controller):
                                             "same semantics as "
                                             "`scanned_format`. Recorded only "
                                             "on a refused serial check."},
+                         "attributes_confirmed": {
+                             "type": "boolean", "nullable": True,
+                             "description": "Handoff 58 (Section 12). For a "
+                                            "unit received as `tag_id` — no "
+                                            "manufacturer serial — the "
+                                            "tagger confirms the item "
+                                            "matches its description, make "
+                                            "and colour; REQUIRED (`true`) "
+                                            "for such a unit and refused "
+                                            "400 without it. Ignored for "
+                                            "every other asset."},
                          "affixed_by_name": {
                              "type": "string", "nullable": True,
                              "description": "Name of the Tag-Issuing Unit "
@@ -2684,6 +2732,29 @@ class CadraAssetsV1(http.Controller):
                        "This asset has no active tag to confirm",
                        details={"asset_id": rec.id})
 
+        # Section 12 (handoff 58 §4): a unit received as `tag_id` has no
+        # manufacturer serial to scan, so its second check is the tagger's
+        # confirmation that the item matches its attributes. Required for
+        # such a unit — and asked of nothing else, so every other affix is
+        # what it was.
+        confirmed = body.get("attributes_confirmed")
+        if confirmed is not None and not isinstance(confirmed, bool):
+            return err(ERR_INVALID_REQUEST,
+                       "`attributes_confirmed` must be true or false",
+                       details={"field": "attributes_confirmed"})
+        tag_id_unit = rec.identification_mode == "tag_id"
+        # Only for a FIRST confirmation: a repeat on a label already on the
+        # unit is answered idempotently (handoff 39), tick or no tick.
+        if tag_id_unit and confirmed is not True \
+                and label.label_state != "affixed":
+            return err(ERR_VALIDATION_FAILED,
+                       "Confirm the item matches its description — "
+                       "description, make and colour — before confirming "
+                       "the label",
+                       details={"asset_id": rec.id,
+                                "field": "attributes_confirmed",
+                                "identification_mode": "tag_id"})
+
         # The serial-to-tag match. Optional because a fixed asset with no
         # legible serial still has to be taggable, but verified whenever the
         # caller can supply it — the tag check alone proves the label is the
@@ -2751,8 +2822,13 @@ class CadraAssetsV1(http.Controller):
         # model on its own cursor so the decorator's rollback cannot unwind
         # it; `api_affix` is this route declaring where that row came from,
         # the same way `/verify` declares `api_verify`.
+        # Which check this was, for the gate's event (Section 12).
+        check = ("label_and_attributes" if tag_id_unit
+                 else "label_and_serial" if scanned_serial
+                 else "label_only")
         label.with_context(
             cadra_event_source="api_affix",
+            cadra_affix_check=check,
         )._mark_affixed(tag_number,
                         affixed_by_name=body.get("affixed_by_name"),
                         affixed_date=affixed_at,

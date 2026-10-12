@@ -125,6 +125,10 @@
             <field name="code">FURN</field>
             <field name="domain">furniture</field>
             <field name="pm_interval_days">0</field>
+            <!-- Handoff 58 §4 (D11): furniture has no manufacturer serial;
+                 it is identified by its tag and attributes. noupdate, so a
+                 fresh install gets it and an owner's later change stands. -->
+            <field name="identification_mode">tag_id</field>
         </record>
         <record id="cat_vehicle" model="nrs.asset.category">
             <field name="name">Vehicle</field>

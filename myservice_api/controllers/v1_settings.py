@@ -17,8 +17,12 @@ from .utils import (
     ERR_CONFLICT,
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
+    ERR_FORBIDDEN,
     SCOPE_ASSETS_READ,
+    SCOPE_SETTINGS_CLASSES,
+    SCOPE_SETTINGS_READ,
     SCOPE_SETTINGS_WRITE,
+    caller_holds,
     err,
     get_params,
     ok,
@@ -48,7 +52,15 @@ _CATEGORY_IDENTITY_FIELDS = {
     "verification_interval_days",
 }
 
-_CATEGORY_WRITABLE = _CATEGORY_POLICY_FIELDS | _CATEGORY_IDENTITY_FIELDS
+#: How a received unit of the class is identified — Section 12, handoff 58
+#: §4. The ONLY keys a caller holding `settings:classes` without
+#: `settings:write` may send (the Asset Controller's).
+_CATEGORY_CLASS_FIELDS = {"identification_mode", "class_attributes_schema"}
+
+_CATEGORY_WRITABLE = (_CATEGORY_POLICY_FIELDS | _CATEGORY_IDENTITY_FIELDS
+                      | _CATEGORY_CLASS_FIELDS)
+
+_IDENTIFICATION_MODES = ["serial", "tag_id", "pool"]
 
 #: Mirrors the Selection on nrs.asset.category.
 _FM_DOMAINS = [
@@ -77,13 +89,41 @@ def _serialize_category(c):
             "declining_rate": c.declining_rate or None,
             "salvage_rate": c.salvage_rate or None,
         },
+        # Section 12 (handoff 58 §4), read by Vendra's receipt: how a unit
+        # of this class is identified, and what a receipt of it must carry
+        # — the EFFECTIVE schema, never null, in the shape PATCH accepts.
+        "identification_mode": c.identification_mode or "serial",
+        "class_attributes_schema": c._effective_schema(),
     }
 
 
-# ── Receipt gates (handoff 57) ───────────────────────────────────────
-#
-# SCAFFOLDING, 7 October 2026: the routes after `/settings/approvals` say what
-# this is and what replaces it (handoff 58).
+def _class_field_error(vals):
+    """The 400 for a bad mode or schema, or None."""
+    from odoo.addons.myservice_asset_register.models.asset_identification \
+        import parse_schema
+    mode = vals.get("identification_mode")
+    if "identification_mode" in vals and mode not in _IDENTIFICATION_MODES:
+        return err(ERR_INVALID_REQUEST,
+                   "`identification_mode` must be one of: %s"
+                   % ", ".join(_IDENTIFICATION_MODES),
+                   details={"field": "identification_mode",
+                            "allowed_values": _IDENTIFICATION_MODES})
+    if "class_attributes_schema" in vals and vals[
+            "class_attributes_schema"] is None:
+        # `null` resets the class to its mode's default schema (stored
+        # empty); what GET publishes is then that default.
+        vals["class_attributes_schema"] = False
+    elif "class_attributes_schema" in vals:
+        try:
+            names = parse_schema(vals["class_attributes_schema"])
+        except ValueError as e:
+            return err(ERR_INVALID_REQUEST, str(e),
+                       details={"field": "class_attributes_schema"})
+        vals["class_attributes_schema"] = {"mandatory": list(names)}
+    return None
+
+
+# ── Receipt gates (handoff 57, kept by handoff 58) ───────────────────
 
 #: The parameter `nrs.asset._receipt_gated()` reads (raw SQL, absent = off).
 #: Written here as `true`/`false`, never deleted, so the row keeps its writer.
@@ -171,8 +211,12 @@ class CadraConfigV1(http.Controller):
         return [_serialize_category(c) for c in cats]
 
     @cadra_route("/api/v1/asset-categories/<int:id>", method="PATCH",
-                 summary="Update a category's depreciation policy",
-                 scopes=[SCOPE_SETTINGS_WRITE],
+                 summary="Update a category's policy, identity or "
+                         "identification mode",
+                 # `settings:write` for every key, OR `settings:classes` for
+                 # the two Section 12 keys alone (handoff 58 §4) — checked in
+                 # the route, because the decorator's list is all-of.
+                 scopes=[],
                  request_schema={
                      "type": "object",
                      "properties": {
@@ -185,6 +229,19 @@ class CadraConfigV1(http.Controller):
                          "salvage_rate": {"type": "number"},
                          "pm_interval_days": {"type": "integer"},
                          "verification_interval_days": {"type": "integer"},
+                         "identification_mode": {
+                             "type": "string", "enum": _IDENTIFICATION_MODES,
+                             "description": "Handoff 58 (Section 12). New "
+                                            "receipts only (AD-31). Needs "
+                                            "`settings:write` or "
+                                            "`settings:classes`."},
+                         "class_attributes_schema": {
+                             "type": "object",
+                             "description": "{\"mandatory\": [field, ...]} — "
+                                            "what a receipt of this class "
+                                            "must carry, from: name, make, "
+                                            "model_name, manufacturer, "
+                                            "colour, material, dimensions."},
                      },
                  },
                  request_example={
@@ -195,6 +252,19 @@ class CadraConfigV1(http.Controller):
     def patch_category(self, id, **kwargs):
         """Change a category's policy and push it down to the assets that
         follow it. Assets with a per-asset override are left alone."""
+        # The scope FIRST — before existence and before the body — so a
+        # caller holding neither scope is refused 403 and learns nothing
+        # about which categories exist (the decorator cannot say either-or;
+        # found by the verification pass: it answered 404/400 instead).
+        if not (caller_holds(SCOPE_SETTINGS_WRITE)
+                or caller_holds(SCOPE_SETTINGS_CLASSES)):
+            return err(ERR_FORBIDDEN,
+                       "Changing a category needs the `settings:write` "
+                       "scope (or `settings:classes`, for its "
+                       "identification mode alone)",
+                       status=403,
+                       details={"required_scopes": [
+                           SCOPE_SETTINGS_WRITE, SCOPE_SETTINGS_CLASSES]})
         cat = request.env["nrs.asset.category"].sudo().browse(int(id))
         if not cat.exists():
             return err(ERR_NOT_FOUND, f"Category {id} not found", status=404)
@@ -207,6 +277,20 @@ class CadraConfigV1(http.Controller):
         if not vals:
             return err(ERR_INVALID_REQUEST, "No writable fields supplied",
                        details={"writable": sorted(_CATEGORY_WRITABLE)})
+        if not caller_holds(SCOPE_SETTINGS_WRITE):
+            beyond = sorted(set(vals) - _CATEGORY_CLASS_FIELDS)
+            if beyond:
+                return err(ERR_FORBIDDEN,
+                           "`settings:classes` changes a class's "
+                           "identification mode and mandatory attributes "
+                           "only; %s needs `settings:write`"
+                           % ", ".join("`%s`" % k for k in beyond),
+                           status=403,
+                           details={"fields": beyond,
+                                    "required_scopes": [SCOPE_SETTINGS_WRITE]})
+        error = _class_field_error(vals)
+        if error:
+            return error
 
         if vals.get("domain") and vals["domain"] not in _FM_DOMAINS:
             # Handoff 25 C2. Every other refusal in this API publishes the
@@ -228,11 +312,17 @@ class CadraConfigV1(http.Controller):
 
         # Policy is inherited, so the assets need re-deriving — otherwise the
         # register would keep reporting the old useful life until the next cron.
-        assets = request.env["nrs.asset"].sudo().search([
-            ("category_id", "=", cat.id), ("use_category_policy", "=", True),
-        ])
-        assets._sync_policy_from_category()
-        assets._apply_depreciation()
+        # Only when the POLICY changed: an identification-mode change (handoff
+        # 58) re-deriving every asset of the class would be 12,715 rewrites on
+        # `test19`'s category 1 for nothing (verification pass).
+        assets = request.env["nrs.asset"].browse()
+        if _CATEGORY_POLICY_FIELDS & set(vals):
+            assets = request.env["nrs.asset"].sudo().search([
+                ("category_id", "=", cat.id),
+                ("use_category_policy", "=", True),
+            ])
+            assets._sync_policy_from_category()
+            assets._apply_depreciation()
 
         data = _serialize_category(cat)
         data["assets_recomputed"] = len(assets)
@@ -276,6 +366,9 @@ class CadraConfigV1(http.Controller):
 
         vals = {k: v for k, v in body.items() if k in _CATEGORY_WRITABLE}
         vals["name"] = name
+        error = _class_field_error(vals)
+        if error:
+            return error
         if vals.get("domain") and vals["domain"] not in _FM_DOMAINS:
             # Handoff 25 C2, second of three sites. `allowed` is deprecated;
             # both keys carry the same list until the next major version.
@@ -616,11 +709,9 @@ class CadraConfigV1(http.Controller):
 
     # ── Receipt gates: GET /api/v1/settings, PATCH …/receipt-gate ────
     #
-    # SCAFFOLDING, 7 October 2026 (handoff 57). This switch turns on the gate
-    # machine that tonight rides on `nrs.asset.register_state`, a design
-    # handoff 58 replaces with a separate candidate model. When 58 lands the
-    # switch either moves with it or is retired; until then it is the one
-    # place a tenant says "a received unit is not an asset yet".
+    # Handoff 57, kept by 58: the one place a tenant says "a received unit
+    # is not an asset yet". The gate machine it turns on is
+    # `nrs.asset.register_state` (`asset_gates.py`).
 
     @cadra_route("/api/v1/settings", method="GET",
                  summary="Tenant-wide switches every screen may need to know",
@@ -651,9 +742,11 @@ class CadraConfigV1(http.Controller):
                  # hidden: the Asset Manager holds `settings:write`, so the
                  # person the gates constrain can switch them off — and the
                  # switch is recorded in the configuration-change report, which
-                 # is the only thing between that and nobody knowing. Handoff
-                 # 58 should make this what `/settings/approvals` is: read-only
-                 # over the API, set by an administrator's command.
+                 # is the only thing between that and nobody knowing. Report
+                 # 57 suggested making this what `/settings/approvals` is
+                 # (read-only over the API, set by an administrator's
+                 # command); handoff 58 did not ask for it, so it is on report
+                 # 58 §9's go-live list instead of changed here.
                  scopes=[SCOPE_SETTINGS_WRITE],
                  success_status=200,
                  request_schema={

@@ -20,7 +20,9 @@ from . import asset_sap
 # Both `_inherit = 'nrs.asset'`, so they must load after `asset`.
 from . import asset_disposal
 from . import asset_snapshot
-# Handoff 57 SCAFFOLDING (replaced by handoff 58): the receipt gates on
-# `nrs.asset`. Last, because it overrides `asset_tag`'s `_generate_tag` and
-# the label's `_mark_affixed`.
+# Section 12 — how a received unit is identified, per class (handoff 58).
+# Before the gates, whose `create` calls its receipt check.
+from . import asset_identification
+# The receipt gates on `nrs.asset` (handoff 57, kept by 58). Last, because it
+# overrides `asset_tag`'s `_generate_tag` and the label's `_mark_affixed`.
 from . import asset_gates

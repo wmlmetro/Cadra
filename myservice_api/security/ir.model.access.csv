@@ -5,3 +5,5 @@ access_myservice_api_refresh_token_system,myservice.api.refresh_token system,mod
 access_myservice_api_access_change_employee,myservice.api.access.change employee,model_myservice_api_access_change,base.group_user,1,0,0,0
 access_myservice_api_access_change_auditor,myservice.api.access.change auditor,model_myservice_api_access_change,myservice_api.group_auditor,1,0,0,0
 access_myservice_api_access_change_system,myservice.api.access.change system,model_myservice_api_access_change,base.group_system,1,0,0,0
+access_nrs_role_exclusion_employee,nrs.role.exclusion employee,model_nrs_role_exclusion,base.group_user,1,0,0,0
+access_nrs_role_exclusion_system,nrs.role.exclusion system,model_nrs_role_exclusion,base.group_system,1,1,1,1

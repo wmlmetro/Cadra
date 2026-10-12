@@ -1131,6 +1131,16 @@ class NRSAssetChangeRequest(models.Model):
         integration to keep sending it without the value.
         """
         for vals in vals_list:
+            # A receipt candidate is not on the register, so nobody may ask
+            # to move it or hand it over (handoff 58, P5) — refused when the
+            # request is RAISED, because with approval on nothing is written
+            # to the asset until a second person agrees, and the model guard
+            # on the write would only speak at approval.
+            if vals.get('asset_id'):
+                self.env['nrs.asset'].sudo().browse(
+                    vals['asset_id'])._refuse_off_the_register(
+                    'custodian' if vals.get('change_type') == CHANGE_CUSTODY
+                    else 'move')
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code(
                     'nrs.asset.change.request') or '/'
