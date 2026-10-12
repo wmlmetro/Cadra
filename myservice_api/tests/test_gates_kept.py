@@ -41,7 +41,7 @@ class TestGatesKept(GateCrew, CadraTransactionCase):
         self._setup_crew()
         self.furniture = self.env['nrs.asset.category'].create(
             {'name': 'Kept Test Furniture', 'code': 'K58',
-             'identification_mode': 'tag_id'})
+             'identification_mode': 'tag_id', 'sap_asset_class': '2000'})
         self.location = self.env['generic.location'].sudo().search(
             [], limit=1)
         self.employee = self.env['hr.employee'].sudo().create(

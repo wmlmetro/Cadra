@@ -72,7 +72,10 @@ def test_every_class_publishes_its_identification(client):
     rows = _categories(client)
     assert rows
     for row in rows:
-        assert row["identification_mode"] in ("serial", "tag_id", "pool")
+        # `record_only` since handoff 59 (additive): a test category of it
+        # exists on any tenant the handoff-59 suite has run on.
+        assert row["identification_mode"] in ("serial", "tag_id", "pool",
+                                              "record_only")
         assert isinstance(row["class_attributes_schema"]["mandatory"], list)
 
 

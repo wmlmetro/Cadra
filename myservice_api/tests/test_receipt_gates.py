@@ -42,8 +42,11 @@ class GateCrew:
             'name': 'SAP (gates test)', 'purpose': 'sap_assets',
             'adapter_type': 'stub', 'event_enabled': True,
             'sap_company_code': 'NRS1'})
+        # A SAP asset class, because a registration of a class with none is
+        # refused (handoff 59 §1) — the way a tenant going live has them.
         self.category = self.env['nrs.asset.category'].create(
-            {'name': 'Gates Test Category', 'code': 'G57'})
+            {'name': 'Gates Test Category', 'code': 'G57',
+             'sap_asset_class': '3000'})
 
         def person(login, *xmlids):
             groups = [(4, self.env.ref('base.group_user').id)]

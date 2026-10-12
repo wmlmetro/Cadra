@@ -29,6 +29,13 @@ approves, Asset Controller requests the tag, tagger affixes, Register Maker
 registers, Register Checker approves. A tenant without the file cannot be
 tested with the gates on, and the helper FAILS saying so — never skips: a
 skip would turn a switch-on run green by proving nothing.
+
+Handoff 59: a unit of a `record_only` class (land, buildings, software)
+passes FIVE gates — IAD's approval skips the two tagging gates — so the walk
+reads the next gate off the unit's state at every step rather than off a
+fixed list. And a registration needs its class to carry SAP's asset class
+(§1), so before the maker's step the helper gives a class with none one,
+as the Asset Controller, the way a tenant going live would.
 """
 import pathlib
 import time
@@ -52,8 +59,11 @@ CREW = (
 #: The state each gate moves a unit FROM, so the walk starts where it is.
 _FROM = {
     "captured": 0, "vfm_pending": 1, "vfm_verified": 2, "vfm_approved": 3,
-    "tag_requested": 4, "tag_issued": 4, "tagged": 5, "reg_submitted": 6,
+    "tag_requested": 4, "tag_issued": 4, "tagged": 5, "reg_ready": 5,
+    "reg_submitted": 6,
 }
+#: What the helper gives a test class with no SAP asset class (§1).
+FIXTURE_SAP_CLASS = "3000"
 
 _tokens = {}
 
@@ -95,6 +105,10 @@ def receipt_body(client, **body):
         mode, mandatory = _class_needs(client, body["category_id"])
         if mode == "serial":
             body.setdefault("serial_number", _uniq("SN58"))
+        elif mode == "record_only":
+            # No serial, ever (handoff 59 §2): a test about something else
+            # that sent one by habit is told so here, not at the door.
+            body.pop("serial_number", None)
         for field in mandatory:
             body.setdefault(field, _uniq(field)[:40])
     return body
@@ -166,12 +180,13 @@ def _fire(client, asset, action, key, until):
                     "attachments": [{"name": "sighted.txt",
                                      "data": "c2lnaHRlZA=="}]}
         elif action == "register":
+            _class_has_sap_class(client, asset)
             # The unit's OWN cost, when it has one: the Register Maker's
             # figure is written onto `acquisition_cost`, and a test that
             # created an asset at a cost (depreciation) must not find the
             # walk has restated it. 1000.0 only for a unit with none.
             own_cost = (asset.get("financial") or {}).get("acquisition_cost")
-            body = {"sap_asset_code": _uniq("SAP58")[:30],
+            body = {"sap_asset_code": _uniq("SAP58")[:30].upper(),
                     "cost": own_cost if own_cost and own_cost > 0 else 1000.0,
                     "cost_centre": "CC-58",
                     "capitalisation_date": time.strftime("%Y-%m-%d"),
@@ -188,16 +203,37 @@ def _fire(client, asset, action, key, until):
     return got.json()["data"]
 
 
+def _class_has_sap_class(client, asset):
+    """Give the unit's class a SAP asset class if it has none (§1), as the
+    Asset Controller — `settings:classes`, the role that sets it."""
+    category = asset.get("category") or {}
+    category_id = category.get("id") if isinstance(category, dict) else None
+    if not category_id:
+        return
+    rows = client.get("/api/v1/asset-categories").json()["data"]
+    row = next((r for r in rows if r["id"] == category_id), None)
+    if row is None or row.get("sap_asset_class"):
+        return
+    r = _as(client, "asset_controller", "PATCH",
+            f"/asset-categories/{category_id}",
+            {"sap_asset_class": FIXTURE_SAP_CLASS})
+    assert r.status_code == 200, (
+        f"setting a SAP class on category {category_id}: HTTP "
+        f"{r.status_code} {r.text[:300]}")
+
+
 def _walk(client, asset, until):
     state = asset.get("register_state") or "registered"
-    if state == "registered" or state == until:
-        return asset
-    assert state in _FROM, f"cannot walk a unit at {state!r} to {until}"
-    for action, key in CREW[_FROM[state]:]:
-        asset = _fire(client, asset, action, key, until)
-        if asset["register_state"] == until:
+    # One gate at a time, the next read off the state the last one left:
+    # a `record_only` unit goes from IAD's approval to the maker (§2).
+    for _step in range(len(CREW) + 1):
+        if state in ("registered", until):
             return asset
-    assert asset["register_state"] == until, asset["register_state"]
+        assert state in _FROM, f"cannot walk a unit at {state!r} to {until}"
+        action, key = CREW[_FROM[state]]
+        asset = _fire(client, asset, action, key, until)
+        state = asset["register_state"]
+    assert state == until, state
     return asset
 
 

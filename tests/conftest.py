@@ -395,6 +395,9 @@ class ApiClient:
     def patch(self, path, **kw):
         return self.session.patch(self._url(path), timeout=30, **kw)
 
+    def put(self, path, **kw):
+        return self.session.put(self._url(path), timeout=30, **kw)
+
     def delete(self, path, **kw):
         return self.session.delete(self._url(path), timeout=30, **kw)
 
