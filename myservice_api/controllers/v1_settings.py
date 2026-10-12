@@ -53,14 +53,16 @@ _CATEGORY_IDENTITY_FIELDS = {
 }
 
 #: How a received unit of the class is identified — Section 12, handoff 58
-#: §4. The ONLY keys a caller holding `settings:classes` without
-#: `settings:write` may send (the Asset Controller's).
-_CATEGORY_CLASS_FIELDS = {"identification_mode", "class_attributes_schema"}
+#: §4 — and which SAP asset class it maps to (handoff 59 §1). The ONLY keys
+#: a caller holding `settings:classes` without `settings:write` may send
+#: (the Asset Controller's).
+_CATEGORY_CLASS_FIELDS = {"identification_mode", "class_attributes_schema",
+                          "sap_asset_class"}
 
 _CATEGORY_WRITABLE = (_CATEGORY_POLICY_FIELDS | _CATEGORY_IDENTITY_FIELDS
                       | _CATEGORY_CLASS_FIELDS)
 
-_IDENTIFICATION_MODES = ["serial", "tag_id", "pool"]
+_IDENTIFICATION_MODES = ["serial", "tag_id", "pool", "record_only"]
 
 #: Mirrors the Selection on nrs.asset.category.
 _FM_DOMAINS = [
@@ -94,6 +96,10 @@ def _serialize_category(c):
         # — the EFFECTIVE schema, never null, in the shape PATCH accepts.
         "identification_mode": c.identification_mode or "serial",
         "class_attributes_schema": c._effective_schema(),
+        # Handoff 59 §1: SAP's four-digit asset class for this category, or
+        # null — and a registration of a class with none is refused, because
+        # INT-06 would send SAP a null class and SAP rejects the master.
+        "sap_asset_class": c.sap_asset_class or None,
     }
 
 
@@ -120,6 +126,19 @@ def _class_field_error(vals):
             return err(ERR_INVALID_REQUEST, str(e),
                        details={"field": "class_attributes_schema"})
         vals["class_attributes_schema"] = {"mandatory": list(names)}
+    if "sap_asset_class" in vals:
+        from odoo.addons.myservice_asset_register.models.asset_identification \
+            import SAP_CLASS_RE, SAP_CLASS_SENTENCE
+        value = vals["sap_asset_class"]
+        value = value.strip() if isinstance(value, str) else value
+        if value in (None, ""):
+            vals["sap_asset_class"] = False
+        elif not isinstance(value, str) or not SAP_CLASS_RE.match(value):
+            return err(ERR_INVALID_REQUEST, SAP_CLASS_SENTENCE,
+                       details={"field": "sap_asset_class",
+                                "example": "3000"})
+        else:
+            vals["sap_asset_class"] = value
     return None
 
 
@@ -194,6 +213,70 @@ def _receipt_gate_block(env):
     }
 
 
+#: Said on the Asset Categories screen, from here (handoff 59 §3).
+PLACEHOLDER_STATEMENT = (
+    "A value on this list is not a serial number. With the receipt gates on, "
+    "a unit received with one is refused — \"'XXXX' is a placeholder, not a "
+    "serial number. Capture the serial printed on the item.\" — and a "
+    "placeholder already on a legacy asset is never the reason a real serial "
+    "is refused. Nothing already on the register is changed; with the gates "
+    "off, nothing is checked.")
+
+_PLACEHOLDER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "exact": {"type": "array", "items": {"type": "string"}},
+        "patterns": {"type": "array", "items": {"type": "string"}},
+        "configured": {"type": "boolean"},
+        "parameter": {"type": "string"},
+        "statement": {"type": "string"},
+        "changed_by": {"type": "object", "nullable": True,
+                       "properties": {"id": {"type": "integer"},
+                                      "name": {"type": "string"}}},
+        "changed_at": {"type": "string", "format": "date-time",
+                       "nullable": True},
+        "legacy": {
+            "type": "object",
+            "description": "Every asset record on this tenant, measured now: "
+                           "how many carry a serial, how many of those a "
+                           "placeholder, and the commonest.",
+            "properties": {
+                "assets": {"type": "integer"},
+                "with_serial": {"type": "integer"},
+                "placeholders": {"type": "integer"},
+                "top": {"type": "array", "items": {
+                    "type": "object",
+                    "properties": {"value": {"type": "string"},
+                                   "count": {"type": "integer"}}}},
+            },
+        },
+    },
+}
+
+
+def _placeholder_block(env):
+    from odoo.addons.myservice_asset_register.models import (
+        serial_placeholders)
+    lists = serial_placeholders.load(env)
+    env.cr.execute(
+        "SELECT write_uid, write_date FROM ir_config_parameter "
+        "WHERE key = %s", (serial_placeholders.PARAM,))
+    row = env.cr.fetchone()
+    writer = env["res.users"].sudo().browse(row[0]).exists() \
+        if row and row[0] else None
+    return {
+        "exact": lists["exact"],
+        "patterns": lists["patterns"],
+        "configured": lists["configured"],
+        "parameter": serial_placeholders.PARAM,
+        "statement": PLACEHOLDER_STATEMENT,
+        "changed_by": ({"id": writer.id, "name": writer.name}
+                       if writer else None),
+        "changed_at": (row[1].isoformat() if row and row[1] else None),
+        "legacy": serial_placeholders.measure(env),
+    }
+
+
 class CadraConfigV1(http.Controller):
 
     # ── Categories ─────────────────────────────────────────────────
@@ -241,7 +324,16 @@ class CadraConfigV1(http.Controller):
                                             "what a receipt of this class "
                                             "must carry, from: name, make, "
                                             "model_name, manufacturer, "
-                                            "colour, material, dimensions."},
+                                            "colour, material, dimensions, "
+                                            "reference."},
+                         "sap_asset_class": {
+                             "type": "string", "nullable": True,
+                             "pattern": "^[0-9]{4}$",
+                             "description": "Handoff 59. SAP's four-digit "
+                                            "asset class code; null or an "
+                                            "empty string clears it. Needs "
+                                            "`settings:write` or "
+                                            "`settings:classes`."},
                      },
                  },
                  request_example={
@@ -261,7 +353,7 @@ class CadraConfigV1(http.Controller):
             return err(ERR_FORBIDDEN,
                        "Changing a category needs the `settings:write` "
                        "scope (or `settings:classes`, for its "
-                       "identification mode alone)",
+                       "identification mode and SAP asset class alone)",
                        status=403,
                        details={"required_scopes": [
                            SCOPE_SETTINGS_WRITE, SCOPE_SETTINGS_CLASSES]})
@@ -282,8 +374,8 @@ class CadraConfigV1(http.Controller):
             if beyond:
                 return err(ERR_FORBIDDEN,
                            "`settings:classes` changes a class's "
-                           "identification mode and mandatory attributes "
-                           "only; %s needs `settings:write`"
+                           "identification mode, mandatory attributes and "
+                           "SAP asset class only; %s needs `settings:write`"
                            % ", ".join("`%s`" % k for k in beyond),
                            status=403,
                            details={"fields": beyond,
@@ -778,6 +870,74 @@ class CadraConfigV1(http.Controller):
             RECEIPT_GATE_PARAM, "true" if enabled else "false")
         request.env.flush_all()
         return _receipt_gate_block(request.env)
+
+    # ── Placeholder serials: GET/PUT /api/v1/settings/serial-placeholders ─
+    #
+    # Handoff 59 §3. The list a gated receipt refuses as "not a serial"
+    # (`myservice_asset_register/models/serial_placeholders.py`). Beside the
+    # receipt switch because it is consulted at a gated receipt and nowhere
+    # else; with the switch off it changes nothing.
+
+    @cadra_route("/api/v1/settings/serial-placeholders", method="GET",
+                 summary="The placeholder serials a gated receipt refuses, "
+                         "and how many legacy assets carry one",
+                 scopes=[SCOPE_SETTINGS_READ],
+                 response_schema=_PLACEHOLDER_SCHEMA)
+    def get_serial_placeholders(self, **kwargs):
+        return _placeholder_block(request.env)
+
+    @cadra_route("/api/v1/settings/serial-placeholders", method="PUT",
+                 summary="Replace the placeholder-serial list",
+                 # `settings:write`, as every write on this controller is.
+                 scopes=[SCOPE_SETTINGS_WRITE],
+                 success_status=200,
+                 request_schema={
+                     "type": "object",
+                     "required": ["exact", "patterns"],
+                     "properties": {
+                         "exact": {"type": "array",
+                                   "items": {"type": "string"},
+                                   "description": "Values compared stripped, "
+                                                  "upper-cased, internal "
+                                                  "spaces collapsed."},
+                         "patterns": {"type": "array",
+                                      "items": {"type": "string"},
+                                      "description": "Regular expressions, "
+                                                     "matched "
+                                                     "case-insensitively "
+                                                     "against the same "
+                                                     "normalised value."},
+                     },
+                 },
+                 request_example={"exact": ["4A12345FD", "N/A", "NONE"],
+                                  "patterns": ["^X+$", "^0+$"]},
+                 response_schema=_PLACEHOLDER_SCHEMA)
+    def put_serial_placeholders(self, **kwargs):
+        """The whole list, both keys — a PUT, so the screen sends what it
+        shows and nothing is merged behind it. One parameter row, so the
+        change is on the configuration record with who and when."""
+        from odoo.addons.myservice_asset_register.models import (
+            serial_placeholders)
+        body = get_params()
+        allowed = {"exact", "patterns"}
+        rejected = [k for k in body if k not in allowed]
+        if rejected:
+            return refuse_unwritable(rejected, allowed)
+        missing = sorted(allowed - set(body))
+        if missing:
+            return err(ERR_INVALID_REQUEST,
+                       "Send the whole list: %s %s required."
+                       % (" and ".join("`%s`" % k for k in missing),
+                          "is" if len(missing) == 1 else "are"),
+                       details={"missing_fields": missing})
+        try:
+            serial_placeholders.store(request.env, body["exact"],
+                                      body["patterns"])
+        except ValueError as e:
+            return err(ERR_INVALID_REQUEST, str(e),
+                       details={"fields": ["exact", "patterns"]})
+        request.env.flush_all()
+        return _placeholder_block(request.env)
 
     @cadra_route("/api/v1/settings/depreciation/recompute", method="POST",
                  summary="Recompute book values across the register",

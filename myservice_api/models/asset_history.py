@@ -130,6 +130,9 @@ _GATE_SENTENCES = {
     "request-tagging": "Tagging requested",
     "issue-tag": "Tag issued",
     "affix": "Tag affixed",
+    # Handoff 59 §2: a unit with no label to fix passes the two tagging
+    # gates by being skipped; the event's reason says why.
+    "skip-tagging": "Tagging skipped",
     "register": "Submitted for registration",
     "approve-registration": "Registration approved — on the register",
     "return-registration": "Registration returned to the maker",
@@ -139,7 +142,8 @@ _REGISTER_STATE_WORDS = {
     "vfm_verified": "verified", "vfm_approved": "VfM approved",
     "vfm_query": "queried", "vfm_rejected": "rejected",
     "tag_requested": "tagging requested", "tag_issued": "tag issued",
-    "tagged": "tagged", "reg_submitted": "registration submitted",
+    "tagged": "tagged", "reg_ready": "ready for registration (no label)",
+    "reg_submitted": "registration submitted",
     "registered": "registered",
 }
 

@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Register & PM Schedules',
-    'version': '19.0.1.27.0',
+    'version': '19.0.1.28.0',
     'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
@@ -33,6 +33,8 @@
         # menu off `menu_asset_root`. Handoff 35.
         'views/asset_change_request_views.xml',
         'data/asset_cron.xml',
+        # The placeholder-serial list a gated receipt refuses (handoff 59 §3).
+        'data/serial_placeholders.xml',
     ],
     'assets': {
         'web.assets_backend': [

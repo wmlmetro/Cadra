@@ -174,7 +174,11 @@ class BarcodeStationController(http.Controller):
             # Count assets with no active tag directly. Subtracting the active
             # tag count from the asset count goes negative as soon as one asset
             # carries more than one active tag.
-            'untagged': Asset.search_count([('active_tag_id', '=', False)]),
+            # Not a unit identified by its SAP record (handoff 59): it can
+            # never carry a label, so it is never "waiting for one".
+            'untagged': Asset.search_count([
+                ('active_tag_id', '=', False),
+                ('identification_mode', '!=', 'record_only')]),
         }
 
     @http.route('/barcode/recent_tags', type='json', auth='user')
@@ -213,7 +217,9 @@ class BarcodeStationController(http.Controller):
             limit = max(1, min(int(limit), 500))
         except (TypeError, ValueError):
             limit = 100
-        domain = [('active_tag_id', '=', False)]
+        # Never a `record_only` unit (handoff 59): it carries no label.
+        domain = [('active_tag_id', '=', False),
+                  ('identification_mode', '!=', 'record_only')]
         if q:
             q = q.strip()
             domain += ['|', '|',
@@ -267,6 +273,12 @@ class BarcodeStationController(http.Controller):
                     'reason': 'already_tagged',
                     'tag_number': asset.active_tag_id.name,
                 })
+                continue
+            if asset.identification_mode == 'record_only':
+                # Skipped, not refused: one plot of land in a batch of fifty
+                # laptops must not roll the fifty back (handoff 59).
+                skipped.append({'asset_id': asset_id,
+                                'reason': 'record_only'})
                 continue
             tag = asset._generate_tag(source='manual')
             generated.append({

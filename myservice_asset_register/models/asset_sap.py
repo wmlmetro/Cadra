@@ -225,16 +225,25 @@ class NRSAssetSAP(models.Model):
         duplicate actually came from.
         """
         for record in self:
-            if not record.sap_asset_number:
+            if not (record.sap_asset_number or '').strip():
                 continue
-            # A receipt candidate's typed SAP code counts (handoff 57).
-            duplicate = self.sudo().with_context(
-                cadra_candidates=True).search([
-                ('id', '!=', record.id),
-                ('sap_asset_number', '=', record.sap_asset_number),
-                ('sap_company_code', '=', record.sap_company_code or False),
-                ('sap_asset_subnumber', '=', record.sap_asset_subnumber or False),
-            ], limit=1)
+            # Compared stripped and upper-cased (handoff 59 §4): SAP writes
+            # its numbers upper-case, so a legacy code typed in lower case is
+            # the same SAP asset as SAP's own spelling of it. Raw SQL, so a receipt candidate's typed code
+            # counts (handoff 57) without the register filter in the way.
+            self.flush_model(['sap_asset_number', 'sap_company_code',
+                                  'sap_asset_subnumber'])
+            self.env.cr.execute(
+                "SELECT id FROM nrs_asset WHERE id <> %s "
+                "AND upper(btrim(sap_asset_number)) = upper(btrim(%s)) "
+                "AND coalesce(btrim(sap_company_code), '') = %s "
+                "AND coalesce(btrim(sap_asset_subnumber), '') = %s "
+                "ORDER BY id LIMIT 1",
+                (record.id, record.sap_asset_number,
+                 (record.sap_company_code or '').strip(),
+                 (record.sap_asset_subnumber or '').strip()))
+            row = self.env.cr.fetchone()
+            duplicate = self.sudo().browse(row[0]) if row else self.browse()
             if duplicate:
                 raise ValidationError(_(
                     'SAP asset number %(number)s is already linked to asset '

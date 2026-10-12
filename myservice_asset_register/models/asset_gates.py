@@ -33,6 +33,19 @@ denied". The officer/approver and maker/checker separations are this rule;
 they are not written a second time. Rule 2 — the combinations of roles
 nobody may be GRANTED — is `nrs.role.exclusion` in `myservice_api`.
 
+A unit of a `record_only` class (handoff 59 §2 — land, buildings,
+software, works in progress) has nothing a label can be fixed to. Its chain
+is the same table with the two tagging gates SKIPPED, not fired: IAD's
+approval moves it on to `reg_ready`, waiting on the Register Maker, and the
+skip is an event of its own saying why. Five people instead of seven; the
+no-two-gates rule is unchanged. A row that applies to some modes only says
+so in `modes`; a row without it applies to every mode.
+
+Before a registration is submitted or approved, the class must carry SAP's
+asset class (handoff 59 §1): SAP rejects an asset master with none, and the
+maker should learn that from Cadra, not from SAP after two people have
+signed.
+
 A candidate is not on the register, so nothing that only a register asset
 can have happen to it may happen to it (handoff 58, P5): no custodian, no
 move, no transfer, no disposal — refused on the model under every writer
@@ -66,6 +79,10 @@ REGISTER_STATES = [
     ('tag_requested', 'Tagging requested'),
     ('tag_issued', 'Tag issued'),
     ('tagged', 'Tagged'),
+    # A `record_only` unit after IAD's approval: no label, and none due —
+    # waiting on the Register Maker (handoff 59 §2). Not `tagged`, which
+    # would say a label is on a plot of land.
+    ('reg_ready', 'Ready for registration — no label'),
     ('reg_submitted', 'Registration submitted'),
     (REGISTERED, 'Registered'),
 ]
@@ -81,6 +98,7 @@ WAITING_ON = {
     'tag_requested': 'tagging',
     'tag_issued': 'tagging',
     'tagged': 'maker',
+    'reg_ready': 'maker',
     'reg_submitted': 'checker',
     'vfm_rejected': None,
     REGISTERED: None,
@@ -137,11 +155,19 @@ S_TAGGING_REQUEST = 'tagging:request'
 S_REGISTER_MAKE = 'register:make'
 S_REGISTER_CHECK = 'register:check'
 
+# The identification modes a row may be limited to (`asset_identification`
+# defines them; spelled here because it imports this module's GateRefused).
+MODE_RECORD_ONLY = 'record_only'
+_LABELLED = ('serial', 'tag_id', 'pool')
+
 # ── THE table. (from states, to, action, scopes [any of], gate, needs) ─
 # `gate` is the gate the actor fires (None: not a gate). `acts_as` is the
 # gate the no-two-gates rule checks the actor against when the action is
 # not itself a gate (a query is IAD acting, a return is the checker
 # acting). `needs` names the one free-text field the action requires.
+# `modes`, when present, limits the row to units received under those
+# identification modes (handoff 59 §2); a unit received with the gates off
+# has none and counts as `serial`.
 TRANSITIONS = (
     dict(action='submit', frm=('captured',), to='vfm_pending',
          scopes=(S_ASSETS_WRITE,), gate=GATE_RECEIPT),
@@ -159,21 +185,34 @@ TRANSITIONS = (
          to='vfm_rejected', scopes=(S_VFM_APPROVE,), gate=None,
          acts_as=GATE_APPROVE, needs='reason'),
     dict(action='request-tagging', frm=('vfm_approved',), to='tag_requested',
-         scopes=(S_TAGGING_REQUEST,), gate=GATE_TAG_REQUEST),
+         scopes=(S_TAGGING_REQUEST,), gate=GATE_TAG_REQUEST, modes=_LABELLED),
     dict(action='register', frm=('tagged',), to='reg_submitted',
-         scopes=(S_REGISTER_MAKE,), gate=GATE_MAKE),
+         scopes=(S_REGISTER_MAKE,), gate=GATE_MAKE, modes=_LABELLED),
+    dict(action='register', frm=('reg_ready',), to='reg_submitted',
+         scopes=(S_REGISTER_MAKE,), gate=GATE_MAKE, modes=(MODE_RECORD_ONLY,)),
     dict(action='approve-registration', frm=('reg_submitted',),
          to=REGISTERED, scopes=(S_REGISTER_CHECK,), gate=GATE_CHECK),
     dict(action='return-registration', frm=('reg_submitted',), to='tagged',
          scopes=(S_REGISTER_CHECK,), gate=None, acts_as=GATE_CHECK,
-         needs='reason'),
+         needs='reason', modes=_LABELLED),
+    dict(action='return-registration', frm=('reg_submitted',),
+         to='reg_ready', scopes=(S_REGISTER_CHECK,), gate=None,
+         acts_as=GATE_CHECK, needs='reason', modes=(MODE_RECORD_ONLY,)),
 )
-# The two system steps. Not in the table a caller can fire from.
+# The system steps. Not in the table a caller can fire from.
 SYSTEM_TRANSITIONS = (
-    dict(action='issue-tag', frm=('tag_requested',), to='tag_issued'),
-    dict(action='affix', frm=('tag_issued',), to='tagged', gate=GATE_TAGGING),
+    dict(action='issue-tag', frm=('tag_requested',), to='tag_issued',
+         modes=_LABELLED),
+    dict(action='affix', frm=('tag_issued',), to='tagged', gate=GATE_TAGGING,
+         modes=_LABELLED),
+    # Fired inside `approve` for a unit with no label to fix (handoff 59
+    # §2): the two tagging gates are SKIPPED — no gate is fired, nobody's
+    # act is recorded as a tagging, and the event says why.
+    dict(action='skip-tagging', frm=('vfm_approved',), to='reg_ready',
+         modes=(MODE_RECORD_ONLY,)),
 )
-ACTIONS = tuple(t['action'] for t in TRANSITIONS)
+SKIP_TAGGING = SYSTEM_TRANSITIONS[-1]
+ACTIONS = tuple(dict.fromkeys(t['action'] for t in TRANSITIONS))
 REASON_REQUIRED = {t['action'] for t in TRANSITIONS if t.get('needs')}
 
 VERIFY_CHECKLIST = ('quantity', 'specification', 'condition', 'price')
@@ -232,11 +271,50 @@ def _m2o(value):
     return value or False
 
 
-def _row(action, state):
+def _mode_fits(row, mode):
+    return 'modes' not in row or (mode or 'serial') in row['modes']
+
+
+def _row(action, state, mode=None):
     for row in TRANSITIONS:
-        if row['action'] == action and state in row['frm']:
+        if row['action'] == action and state in row['frm'] \
+                and _mode_fits(row, mode):
             return row
     return None
+
+
+#: The first digit of SAP's 11-digit asset numbers, per class, where it is
+#: NOT the class code's own first digit — measured on NRS's October 2026
+#: export (report 59): 146,165 of 146,224 numeric numbers start with their
+#: class's first digit, and the other 59 are every numeric number of class
+#: 3500, which start `5000…`. Without this, every software asset would be
+#: warned about.
+SAP_NUMBER_FIRST_DIGIT = {'3500': '5'}
+#: Which class a first digit says, for the sentence. `9` is two classes.
+_CLASS_OF_DIGIT = {'1': '1000', '2': '2000', '3': '3000', '4': '4000',
+                   '5': '3500', '6': '6000', '7': '7000', '8': '8000',
+                   '9': '9000 or 9300'}
+
+
+def sap_number_class_warning(number, sap_class):
+    """The class-digit warning (handoff 59 §4), or None.
+
+    SAP's numeric asset numbers are 11 digits whose first digit says the
+    class (`2…` is class 2000). A legacy alphanumeric code says nothing
+    about its class and is never warned on. A warning, not a refusal: the
+    maker may be right and the mapping wrong.
+    """
+    number = (number or '').strip()
+    sap_class = (sap_class or '').strip()
+    if not (len(number) == 11 and number.isdigit() and sap_class
+            and sap_class[:1].isdigit()):
+        return None
+    expected = SAP_NUMBER_FIRST_DIGIT.get(sap_class, sap_class[0])
+    if number[0] == expected:
+        return None
+    return ('%s looks like a class %s number; this category maps to %s.'
+            % (number, _CLASS_OF_DIGIT.get(number[0], number[0] + '000'),
+               sap_class))
 
 
 class NRSAssetGates(models.Model):
@@ -468,7 +546,8 @@ class NRSAssetGates(models.Model):
         held = self._gate_scopes(scopes)
         available = []
         for row in TRANSITIONS:
-            if self.register_state not in row['frm']:
+            if self.register_state not in row['frm'] \
+                    or not _mode_fits(row, self.identification_mode):
                 continue
             if not set(row['scopes']) & held:
                 continue
@@ -494,7 +573,7 @@ class NRSAssetGates(models.Model):
         self.ensure_one()
         payload = payload or {}
         state = self.register_state
-        row = _row(action, state)
+        row = _row(action, state, self.identification_mode)
         if row is None:
             if action not in ACTIONS:
                 raise GateRefused(
@@ -527,6 +606,9 @@ class NRSAssetGates(models.Model):
                         reason=text or None, notes=notes)
         if action == 'request-tagging':
             self._gate_issue_tag()
+        if row['to'] == SKIP_TAGGING['frm'][0] \
+                and _mode_fits(SKIP_TAGGING, self.identification_mode):
+            self._gate_skip_tagging()
         if row['to'] == REGISTERED:
             self._on_registered()
         return self
@@ -585,19 +667,31 @@ class NRSAssetGates(models.Model):
                     'files': decoded}
         if action == 'register':
             code = payload.get('sap_asset_code')
-            code = code.strip() if isinstance(code, str) else ''
+            # Both of SAP's shapes are accepted — 11 digits whose first is
+            # the class's, and the 2013–14 load's codes of letters and
+            # digits — and stored as SAP writes them: stripped, upper-case
+            # (handoff 59 §4). Uniqueness is judged on that form, so a code
+            # typed in lower case is the same code as SAP's.
+            code = code.strip().upper() if isinstance(code, str) else ''
             if not code:
                 raise GateRefused(_(
                     'The SAP asset code is required to submit a '
                     'registration.'), 'validation_failed',
                     {'field': 'sap_asset_code'})
-            clash = self.sudo().with_context(
-                **{CANDIDATES_CTX: True}).search_count([
-                ('sap_asset_number', '=', code), ('id', '!=', self.id)])
+            # Raw SQL: every record, candidates included, compared in the
+            # stored form's normalisation.
+            self.flush_model(['sap_asset_number'])
+            self.env.cr.execute(
+                "SELECT asset_code FROM nrs_asset "
+                "WHERE upper(btrim(sap_asset_number)) = %s AND id <> %s "
+                "ORDER BY id LIMIT 1", (code, self.id))
+            clash = self.env.cr.fetchone()
             if clash:
                 raise GateRefused(_(
-                    'SAP asset code %s is already on another asset.') % code,
-                    'validation_failed', {'field': 'sap_asset_code'})
+                    'SAP asset code %(code)s is already on another asset '
+                    '(%(asset)s).', code=code, asset=clash[0]),
+                    'validation_failed', {'field': 'sap_asset_code',
+                                          'asset_code': clash[0]})
             cost = payload.get('cost')
             if isinstance(cost, bool) or not isinstance(cost, (int, float)) \
                     or cost <= 0:
@@ -627,6 +721,8 @@ class NRSAssetGates(models.Model):
                     'Confirm the asset class: send `asset_class` as the id '
                     'of an asset category.'), 'validation_failed',
                     {'field': 'asset_class'})
+            self._assert_sap_class(
+                self.env['nrs.asset.category'].sudo().browse(klass))
             return {'sap_asset_number': code, 'acquisition_cost': float(cost),
                     'cost_centre': centre, 'capitalisation_date': cap,
                     'category_id': klass}
@@ -636,7 +732,24 @@ class NRSAssetGates(models.Model):
                     'This registration carries no SAP asset code; return it '
                     'to the maker rather than approving it.'),
                     'validation_failed', {'field': 'sap_asset_code'})
+            self._assert_sap_class(self.category_id)
         return None
+
+    @api.model
+    def _assert_sap_class(self, category):
+        """Refuse a registration whose class has no SAP asset class
+        (handoff 59 §1). INT-06 sends the class as SAP's; a blank one goes
+        as null and SAP rejects the master — after the maker and the
+        checker have both signed. Checked at the maker's submission and
+        again at the checker's approval, since a class can be cleared in
+        between."""
+        if (category.sap_asset_class or '').strip():
+            return
+        raise GateRefused(_(
+            '%(cls)s has no SAP asset class, so SAP would reject this asset. '
+            'An Asset Controller sets it under Settings → Asset Categories.',
+            cls=category.name or _('This category')), 'validation_failed',
+            {'field': 'sap_asset_class', 'category_id': category.id or None})
 
     def _gate_apply(self, action, payload, evidence):
         """The action's own effect. Returns the evidence for the event."""
@@ -664,6 +777,11 @@ class NRSAssetGates(models.Model):
                 capitalisation_date=fields.Date.to_string(
                     vals['capitalisation_date']),
                 asset_class=vals['category_id'])
+            warning = self._sap_number_warning()
+            if warning:
+                # On the event too, so the checker and an auditor see what
+                # the maker was told.
+                notes['warning'] = warning
         elif action == 'resubmit':
             pass
         return notes or None
@@ -683,6 +801,22 @@ class NRSAssetGates(models.Model):
             self.sudo().write({'asset_tag': self.asset_code})
         self._gate_move('tag_issued', 'issue-tag', None,
                         notes={'tag_number': tag.name})
+
+    def _gate_skip_tagging(self):
+        """VFM_APPROVED → REG_READY, inside `approve`, for a unit with no
+        label to fix (handoff 59 §2). No gate is fired: the event's `gate`
+        is empty, so nobody is recorded as having tagged it and the
+        no-two-gates rule counts nothing here. No label is minted."""
+        klass = self.category_id.name or _('its class')
+        self._gate_move(
+            SKIP_TAGGING['to'], SKIP_TAGGING['action'], None,
+            reason=_('no label: %s is identified by its record') % klass)
+
+    def _sap_number_warning(self):
+        """`sap_number_class_warning` for this unit as it now stands."""
+        self.ensure_one()
+        return sap_number_class_warning(self.sap_asset_number,
+                                        self.category_id.sap_asset_class)
 
     def _on_registered(self):
         """REGISTERED is reached. `myservice_workflow` queues the INT-06
@@ -739,4 +873,14 @@ class NRSAssetTagGates(models.Model):
         # label with nothing after it (found by the verification pass).
         if self.register_state in _BEFORE_THE_TAG:
             return self.env['nrs.asset.tag.label']
+        # Never for a unit received as `record_only` (handoff 59 §2): it
+        # has nothing a label can be fixed to, so nothing after its receipt
+        # — the back-office station's Generate included — mints one.
+        for rec in self:
+            if rec.identification_mode == MODE_RECORD_ONLY:
+                raise UserError(_(
+                    '%(code)s is identified by its SAP record and carries no '
+                    'label (%(cls)s); no tag is minted for it.',
+                    code=rec.asset_code or rec.display_name,
+                    cls=rec.category_id.name or _('its class')))
         return super()._generate_tag(source=source)
