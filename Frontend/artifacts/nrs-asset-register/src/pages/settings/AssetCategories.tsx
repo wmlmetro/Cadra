@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
   fetchAssetCategories, updateAssetCategory, createAssetCategory, deleteAssetCategory,
-  CAPTURABLE_ATTRIBUTES, IDENTIFICATION_MODE_WORDS,
+  fetchSerialPlaceholders, updateSerialPlaceholders,
+  CAPTURABLE_ATTRIBUTES, IDENTIFICATION_MODE_WORDS, SAP_ASSET_CLASS_HINTS, isSapAssetClass,
   type AssetCategoryConfig, type CategoryIdentity, type CategoryClassIdentification,
-  type CapturableAttribute, type IdentificationMode,
+  type CategorySapClass, type CapturableAttribute, type IdentificationMode,
 } from "@/lib/dataProvider";
 // Both FM domain dropdowns on this screen were filled from `FM_DOMAINS`, a
 // hand-written constant in dataProvider that had an identical twin 630 lines
@@ -21,7 +22,7 @@ import BrandPill from "@/components/BrandPill";
 import {
   AlertCircle, Clock, Check, Loader2, Plus, Trash2, X, Info,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIsoDateTime } from "@/lib/utils";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
@@ -37,8 +38,17 @@ const inputCls =
 const MODE_DEFAULT_ATTRIBUTES: Record<IdentificationMode, CapturableAttribute[]> = {
   serial: ["make", "model_name"],
   tag_id: ["name", "make", "model_name", "colour", "material", "dimensions"],
+  // Handoff 59 §2: description, plus what the record is known by.
+  record_only: ["name", "reference"],
   pool: [],
 };
+
+/** Everything a row's Save may send. */
+type CategoryRowBody = Partial<CategoryIdentity & CategoryClassIdentification & CategorySapClass>;
+
+/** The datalist the SAP class inputs share — a HINT: any four digits are
+ *  accepted, because NRS may use classes SAP's export did not show. */
+const SAP_HINTS_ID = "sap-asset-class-hints";
 
 const MODES = Object.keys(IDENTIFICATION_MODE_WORDS) as IdentificationMode[];
 
@@ -79,7 +89,7 @@ function Row({
   fullEdit: boolean;
   saving: boolean;
   deleting: boolean;
-  onSave: (id: number, body: Partial<CategoryIdentity & CategoryClassIdentification>) => void;
+  onSave: (id: number, body: CategoryRowBody) => void;
   onDelete: (cat: AssetCategoryConfig) => void;
 }) {
   const initial: CategoryIdentity = {
@@ -93,9 +103,13 @@ function Row({
   const initialClass = classOf(cat);
   const [draft, setDraft] = useState<CategoryIdentity>(initial);
   const [classDraft, setClassDraft] = useState<CategoryClassIdentification>(initialClass);
+  // SAP's class code (handoff 59 §1), as typed. "" is no class.
+  const initialSap = cat.sap_asset_class ?? "";
+  const [sapDraft, setSapDraft] = useState(initialSap);
   useEffect(() => {
     setDraft(initial);
     setClassDraft(initialClass);
+    setSapDraft(initialSap);
     /* eslint-disable-next-line */
   }, [cat]);
   const domains = useEnum("domain");
@@ -106,7 +120,11 @@ function Row({
     classDraft.identification_mode !== initialClass.identification_mode
     || !sameList(classDraft.class_attributes_schema.mandatory,
                  initialClass.class_attributes_schema.mandatory);
-  const dirty = (identityDirty && !identityLocked) || (classDirty && !classLocked);
+  const sapTyped = sapDraft.trim();
+  const sapDirty = sapTyped !== initialSap;
+  const sapValid = sapTyped === "" || isSapAssetClass(sapTyped);
+  const dirty = (identityDirty && !identityLocked)
+    || ((classDirty || sapDirty) && !classLocked);
 
   const mandatory = classDraft.class_attributes_schema.mandatory;
   const setMode = (mode: IdentificationMode) => setClassDraft(prev => ({
@@ -134,9 +152,11 @@ function Row({
   // holder (any other key from a `settings:classes`-only caller is a 403
   // naming `settings:write`); the two class keys only when they changed, so
   // an edit of a name alone sends what it sent before handoff 58.
-  const body = (): Partial<CategoryIdentity & CategoryClassIdentification> => ({
+  const body = (): CategoryRowBody => ({
     ...(identityLocked ? {} : draft),
     ...(classDirty && !classLocked ? classDraft : {}),
+    // Cleared → null, which the server takes as "no class".
+    ...(sapDirty && !classLocked ? { sap_asset_class: sapTyped || null } : {}),
   });
 
   return (
@@ -173,6 +193,33 @@ function Row({
           {MODES.map(m => <option key={m} value={m}>{IDENTIFICATION_MODE_WORDS[m]}</option>)}
         </select>
       </td>
+      <td className="py-2 pr-2 w-24">
+        <input
+          className={cn(inputCls, "font-mono", !sapValid && "border-red-400 focus:ring-red-400")}
+          disabled={busy || classLocked}
+          value={sapDraft}
+          placeholder="—"
+          inputMode="numeric"
+          maxLength={4}
+          list={SAP_HINTS_ID}
+          data-testid={`input-sap-class-${cat.id}`}
+          aria-label={`SAP asset class of ${cat.name}`}
+          aria-invalid={!sapValid}
+          onChange={e => setSapDraft(e.target.value)}
+        />
+        {!sapValid && (
+          <p className="text-[10px] text-red-600 dark:text-red-400 mt-1" data-testid={`sap-class-invalid-${cat.id}`}>
+            Four digits, for example 3000.
+          </p>
+        )}
+        {sapValid && sapTyped === "" && (
+          // What a blank costs, beside the blank: the register gates refuse
+          // to submit or approve a unit of this class until it is set.
+          <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1" data-testid={`sap-class-missing-${cat.id}`}>
+            Not set — cannot be registered.
+          </p>
+        )}
+      </td>
       <td className="py-2 pr-2 w-64">
         <fieldset disabled={busy || classLocked} className="flex flex-wrap gap-x-3 gap-y-1 disabled:opacity-40"
                   aria-label={`Attributes a receipt of ${cat.name} must carry`}>
@@ -199,12 +246,12 @@ function Row({
       <td className="py-2 text-right whitespace-nowrap">
         {!classLocked && (<>
         <button
-          disabled={!dirty || busy}
+          disabled={!dirty || busy || !sapValid}
           onClick={() => onSave(cat.id, body())}
           data-testid={`save-cat-${cat.id}`}
           className={cn(
             "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium border mr-1",
-            dirty && !busy
+            dirty && !busy && sapValid
               ? "border-primary text-primary hover:bg-primary/5"
               : "border-transparent text-muted-foreground/40 cursor-default",
           )}
@@ -238,6 +285,150 @@ function Row({
   );
 }
 
+/** One value per line, blanks and repeats dropped, order kept. */
+const linesOf = (text: string) =>
+  Array.from(new Set(text.split("\n").map(l => l.trim()).filter(Boolean)));
+
+/**
+ * The tenant's placeholder serials (handoff 59 §3) — `0`, `XXXX`,
+ * `4A12345FD`: values SAP's register carries where a serial should be. A
+ * gated receipt refuses one as a placeholder, and the serial-uniqueness check
+ * ignores legacy assets that carry one. Lives here because the class settings
+ * do; no sidebar item of its own (a nav item is a published key).
+ *
+ * Editable with `settings:write`, read-only with `settings:read`; the PUT
+ * replaces both lists whole and lands on the configuration record as
+ * `cadra.serial_placeholders`. Nothing here rewrites a serial already stored:
+ * the legacy figure is a measurement, and cleaning it is NRS's call.
+ */
+function SerialPlaceholdersSection({ canEdit }: { canEdit: boolean }) {
+  const qc = useQueryClient();
+  const list = useQuery({
+    queryKey: ["serial-placeholders"],
+    queryFn: fetchSerialPlaceholders,
+    staleTime: 30_000,
+  });
+  const [exactText, setExactText] = useState("");
+  const [patternText, setPatternText] = useState("");
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    if (!list.data) return;
+    setExactText(list.data.exact.join("\n"));
+    setPatternText(list.data.patterns.join("\n"));
+  }, [list.data]);
+
+  const exact = linesOf(exactText);
+  const patterns = linesOf(patternText);
+  const dirty = !!list.data && (
+    !sameList(exact, list.data.exact) || !sameList(patterns, list.data.patterns));
+
+  const save = useMutation({
+    mutationFn: () => updateSerialPlaceholders({ exact, patterns }),
+    onSuccess: (d) => {
+      qc.setQueryData(["serial-placeholders"], d);
+      setSaved(true);
+    },
+  });
+  const err = (list.error ?? save.error) as CadraApiError | null;
+  const d = list.data;
+
+  return (
+    <section className="bg-card border border-border rounded-2xl p-5 space-y-3" data-testid="serial-placeholders">
+      <div>
+        <h2 className="text-[13px] font-bold">Placeholder serials</h2>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          Values that stand where a serial number should be. A receipt carrying one is refused, and an existing
+          asset carrying one never makes a real serial look like a duplicate.
+        </p>
+      </div>
+
+      {list.isLoading && <p className="text-[11px] text-muted-foreground">Loading…</p>}
+      {err && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3 flex items-start gap-2"
+             data-testid="serial-placeholders-error">
+          <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <ApiErrorMessage err={err} stacked />
+        </div>
+      )}
+
+      {d && (<>
+        {/* The server's own sentence, as written. */}
+        <p className="text-[12px] text-foreground" data-testid="serial-placeholders-statement">{d.statement}</p>
+        <p className="text-[11px] text-muted-foreground" data-testid="serial-placeholders-changed">
+          {d.changed_at
+            ? <>Last changed {formatIsoDateTime(d.changed_at)}{d.changed_by ? <> by <span className="font-medium text-foreground">{d.changed_by.name}</span></> : null}.</>
+            : d.configured ? "Changed, with no record of who or when." : "The seeded list — nobody has changed it on this tenant."}
+          {" "}Recorded on the configuration record as <span className="font-mono">{d.parameter}</span>.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="placeholders-exact" className="text-[11px] text-muted-foreground">
+              Exact values (one per line; case, spacing and surrounding blanks ignored)
+            </label>
+            <textarea id="placeholders-exact" rows={8}
+              className={cn(inputCls, "font-mono")} disabled={!canEdit || save.isPending}
+              value={exactText} onChange={e => { setSaved(false); setExactText(e.target.value); }}
+              data-testid="input-placeholders-exact" />
+          </div>
+          <div>
+            <label htmlFor="placeholders-patterns" className="text-[11px] text-muted-foreground">
+              Patterns (one regular expression per line, e.g. ^X+$)
+            </label>
+            <textarea id="placeholders-patterns" rows={8}
+              className={cn(inputCls, "font-mono")} disabled={!canEdit || save.isPending}
+              value={patternText} onChange={e => { setSaved(false); setPatternText(e.target.value); }}
+              data-testid="input-placeholders-patterns" />
+          </div>
+        </div>
+
+        {canEdit ? (
+          <div className="flex items-center gap-3">
+            <button
+              disabled={!dirty || save.isPending}
+              onClick={() => save.mutate()}
+              data-testid="button-save-placeholders"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border",
+                dirty && !save.isPending
+                  ? "border-primary text-primary hover:bg-primary/5"
+                  : "border-border text-muted-foreground/50 cursor-default",
+              )}
+            >
+              {save.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Save placeholder list
+            </button>
+            {saved && !dirty && (
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-400" data-testid="placeholders-saved">Saved.</span>
+            )}
+          </div>
+        ) : (
+          <p className="text-[11px] text-muted-foreground" data-testid="placeholders-read-only">
+            Changing this list needs the settings:write scope.
+          </p>
+        )}
+
+        {/* Measured, never cleaned (§3): what the register already holds. */}
+        <div className="rounded-xl border border-border bg-muted/30 px-3 py-2" data-testid="serial-placeholders-legacy">
+          <p className="text-[12px] text-foreground">
+            <span className="font-semibold tabular-nums">{d.legacy.placeholders.toLocaleString()}</span> of{" "}
+            <span className="tabular-nums">{d.legacy.with_serial.toLocaleString()}</span> assets with a serial carry a
+            placeholder ({d.legacy.assets.toLocaleString()} assets in all). Nothing here changes them.
+          </p>
+          {d.legacy.top.length > 0 && (
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Most common:{" "}
+              {d.legacy.top.map((t, i) => (
+                <span key={t.value}>{i > 0 && " · "}<span className="font-mono">{t.value}</span> ×{t.count.toLocaleString()}</span>
+              ))}
+            </p>
+          )}
+        </div>
+      </>)}
+    </section>
+  );
+}
+
 export default function AssetCategoriesPage() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const qc = useQueryClient();
@@ -256,6 +447,9 @@ export default function AssetCategoriesPage() {
   // Handoff 58: how a class is identified is also the Asset Controller's
   // (`settings:classes`), who may change those two columns and nothing else.
   const classLocked = readOnly && !scopes.has(SCOPE.settingsClasses);
+  // Handoff 59 §3: the placeholder list is read with `settings:read` and
+  // changed with `settings:write`; somebody with neither is not shown it.
+  const placeholdersVisible = scopes.has(SCOPE.settingsRead) || !readOnly;
 
   useEffect(() => {
     setTitle("Settings — Asset Categories");
@@ -278,7 +472,7 @@ export default function AssetCategoriesPage() {
   };
 
   const save = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: Partial<CategoryIdentity & CategoryClassIdentification> }) =>
+    mutationFn: ({ id, body }: { id: number; body: CategoryRowBody }) =>
       updateAssetCategory(id, body),
     onSuccess: (d) => { setNote(`Saved ${d.name}.`); refresh(); },
     onSettled: () => setSavingId(null),
@@ -348,7 +542,7 @@ export default function AssetCategoriesPage() {
           <p className="text-[11px] text-muted-foreground max-w-xs text-right" data-testid="settings-read-only">
             {classLocked
               ? "Changing this needs the settings:write scope."
-              : "You can change how a class is identified and what a receipt of it must carry. Everything else here needs the settings:write scope."}
+              : "You can change how a class is identified, its SAP asset class and what a receipt of it must carry. Everything else here needs the settings:write scope."}
           </p>
         ) : (
           <button
@@ -440,7 +634,20 @@ export default function AssetCategoriesPage() {
           <span className="font-medium text-foreground">Identification and mandatory attributes:</span>{" "}
           Changes apply to units received from now on; units already received keep the mode they arrived with.
         </p>
-        <table className="w-full min-w-[1180px]">
+        {/* Handoff 59 §1. The hint is SAP's export, not a closed list. */}
+        <p className="text-[11px] text-muted-foreground mb-3" data-testid="sap-class-note">
+          <span className="font-medium text-foreground">SAP asset class:</span>{" "}
+          SAP's four-digit code for the class. A unit whose class has none cannot be submitted to or approved onto
+          the register, because SAP would reject its asset master. The classes SAP's own register for NRS uses:{" "}
+          {SAP_ASSET_CLASS_HINTS.map((h, i) => (
+            <span key={h.code}>{i > 0 && " · "}<span className="font-mono">{h.code}</span> {h.name}</span>
+          ))}
+          . The names are read off SAP's descriptions and need NRS to confirm; any four-digit code is accepted.
+        </p>
+        <datalist id={SAP_HINTS_ID}>
+          {SAP_ASSET_CLASS_HINTS.map(h => <option key={h.code} value={h.code}>{h.name}</option>)}
+        </datalist>
+        <table className="w-full min-w-[1280px]">
           <thead>
             <tr className="text-left text-muted-foreground border-b border-border">
               <th className="py-2 text-[11px] font-medium">Name</th>
@@ -448,6 +655,7 @@ export default function AssetCategoriesPage() {
               <th className="py-2 text-[11px] font-medium">FM domain</th>
               <th className="py-2 text-[11px] font-medium">PM interval (days)</th>
               <th className="py-2 text-[11px] font-medium">Identification</th>
+              <th className="py-2 text-[11px] font-medium">SAP class</th>
               <th className="py-2 text-[11px] font-medium">Mandatory attributes</th>
               <th className="py-2 text-[11px] font-medium text-right">Assets</th>
               <th className="py-2" />
@@ -472,6 +680,8 @@ export default function AssetCategoriesPage() {
           </p>
         )}
       </section>
+
+      {placeholdersVisible && <SerialPlaceholdersSection canEdit={!readOnly} />}
 
       <Dialog open={deleteOpen} onOpenChange={(next) => { if (!next && remove.isPending) return; setDeleteOpen(next); }}>
         <DialogContent className="sm:max-w-md" data-testid="dialog-delete-category">

@@ -3,7 +3,7 @@ import { request as pwRequest, type APIRequestContext } from "@playwright/test";
 import { test, expect, type Page } from "../fixtures/test";
 import { ORIGIN, appPath } from "../config";
 import { markedName, recordCreated } from "../fixtures/marker";
-import { onTheRegister, readyToAffix } from "../fixtures/gates";
+import { ensureSapClass, fixedCategory, onTheRegister, readyToAffix } from "../fixtures/gates";
 
 /**
  * Handoff 57 — the receipt gates, driven as the people who keep them.
@@ -44,6 +44,15 @@ import { onTheRegister, readyToAffix } from "../fixtures/gates";
  * in the Confirm-affixed dialog (the label reading, the tick, and no serial
  * field at all); and the D3 sentence — the person who fired another gate on
  * a unit opens that dialog and is refused 409 in the server's own words.
+ *
+ * Handoff 59 §2 adds the third block: a `record_only` unit (an invented
+ * "Land" class) through the FIVE gates as five people — the two tagging
+ * gates skipped by the server, never fired — with `waiting_on` read at every
+ * step and never the Asset Controller or Tagging, no label at any point, the
+ * skip's sentence in the asset's history, and the register count moving only
+ * at the checker. And since 59 §1 the register gate refuses a category with
+ * no SAP asset class, so the first two blocks pick a serial class and give it
+ * one first (the Asset Controller's PATCH, idempotent — `fixtures/gates.ts`).
  *
  *   (cd e2e && E2E_ORIGIN=http://test19.localhost:8069 npx playwright test 57-)
  */
@@ -136,6 +145,22 @@ async function shot(page: Page, name: string) {
   await page.screenshot({ path: `${dir}/${TENANT}-57-${n}-${signedInAs}-${name}.png`, fullPage: true });
 }
 
+/**
+ * A category identified by SERIAL for the seven-gate path — the seed's first
+ * when it is one (category 1, as `tests/gates.py` uses), never one of spec
+ * 59's fixed fixture classes — with a SAP asset class, which the register
+ * gate has required since handoff 59 §1.
+ */
+async function aRegistrableSerialClass(s: Session): Promise<number> {
+  const rows: any[] = (await call(s, "GET", "/asset-categories")).body?.data ?? [];
+  const serial = rows.filter((r) => (r.identification_mode ?? "serial") === "serial"
+    && !String(r.name).startsWith("e2e-59"));
+  const one = serial.find((r) => Number(r.id) === 1) ?? serial[0];
+  if (!one) throw new Error("no asset category on this tenant is identified by serial");
+  await ensureSapClass(one.id);
+  return Number(one.id);
+}
+
 async function confirmGate(page: Page, action: string) {
   const dialog = page.getByTestId(`dialog-gate-${action}`);
   await expect(dialog).toBeVisible();
@@ -198,8 +223,7 @@ test.describe("57 — the gates, tonight", () => {
     // The store creates it, as INT-03 would: same route, same body shape.
     const store = await apiSession(P[WHO.store]);
     try {
-      const cats = await call(store, "GET", "/asset-categories");
-      const categoryId = cats.body?.data?.[0]?.id;
+      const categoryId = await aRegistrableSerialClass(store);
       const name = markedName("spec57-candidate");
       const created = await call(store, "POST", "/assets", {
         name, category_id: categoryId, serial_number: `S57-${Date.now()}`,
@@ -360,12 +384,11 @@ test.describe("57 — the gates, tonight", () => {
 
     // A second unit, received and submitted by the administrator — who holds
     // every gate's scope, which is exactly who the no-two-gates rule is for.
-    const cats = await call(admin!, "GET", "/asset-categories");
     const name = markedName("spec57-two-gates");
     // With its class's identification (handoff 58, Section 12) — a bare name
     // is refused 400 at the door now, which is not the refusal this is about.
     const created = await call(admin!, "POST", "/assets", {
-      name, category_id: cats.body?.data?.[0]?.id,
+      name, category_id: await aRegistrableSerialClass(admin!),
       serial_number: `S57R-${Date.now()}`, make: "Spec57 Make", model_name: "Spec57 Model",
     });
     expect([200, 201], JSON.stringify(created.body).slice(0, 300)).toContain(created.status);
@@ -579,5 +602,231 @@ test.describe("58 — a tag_id unit, and the affix refusal's sentence", () => {
     const after = await api.get<any>(`/api/v1/assets/${id}`);
     expect(after.register_state).toBe("tag_issued");
     expect(after.tagging.label_state).not.toBe("affixed");
+  });
+});
+
+/* ── Handoff 59 §2: a record_only unit — five gates, no label ──────────────── */
+
+/** Spec 57's invented land class: one fixed name, found or created and set
+ *  every run (a category holding assets can never be deleted). */
+const LAND_CATEGORY = "e2e-59 Land (record_only)";
+const LAND_SAP_CLASS = "6000";
+
+test.describe("59 — a record_only unit: five gates, no label", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test.describe.configure({ mode: "serial" });
+
+  const P = personas();
+  let admin: Session | null = null;
+  let landId = 0;
+  let landName = "";
+  let unitId = 0;
+  let unitCode = "";
+  let registerBefore = -1;
+  /** `waiting_on` as the server said it after each step — printed at the end. */
+  const waitingLog: string[] = [];
+
+  const registerCount = async () => {
+    const r = await call(admin!, "GET", "/assets?limit=1");
+    expect(r.status).toBe(200);
+    return r.body?.pagination?.total_estimate as number;
+  };
+
+  /** The unit as the server holds it now, with the invariants of a unit
+   *  that has no label: never waiting on the Asset Controller or Tagging,
+   *  never a tag, never a label — whatever the step. */
+  const readUnit = async (step: string) => {
+    const a = (await call(admin!, "GET", `/assets/${unitId}`)).body?.data;
+    const waiting = a?.gates?.waiting_on ?? null;
+    waitingLog.push(`${step}: register_state=${a?.register_state} waiting_on=${waiting}`);
+    console.log(`[spec 59 record_only] ${step}: register_state=${a?.register_state} waiting_on=${waiting}`);
+    expect(["controller", "tagging"], `waiting on ${waiting} at "${step}"`).not.toContain(waiting);
+    expect(a?.tag ?? null, `a tag number appeared at "${step}"`).toBeNull();
+    expect(a?.tagging?.label_id ?? null, `a label was minted at "${step}"`).toBeNull();
+    expect(a?.tagging?.tag_number ?? null, `a label number appeared at "${step}"`).toBeNull();
+    return a;
+  };
+  const assertRegisterUnchanged = async (step: string) => {
+    expect(await registerCount(), `the register count moved at "${step}"`).toBe(registerBefore);
+  };
+
+  test.beforeAll(async () => {
+    if (P.administrator) admin = await apiSession(P.administrator);
+  });
+  test.afterAll(async () => {
+    if (waitingLog.length) console.log(`[spec 59 record_only] waiting_on, step by step:\n  ${waitingLog.join("\n  ")}`);
+    await admin?.ctx.dispose();
+  });
+
+  test("setup: a Land class identified by its record; a receipt with a serial is refused, one with a reference is accepted", async () => {
+    test.skip(Object.keys(P).length === 0, `no ${CREDS} — run scripts/demo_personas.sh ${TENANT} seed`);
+    for (const k of [...Object.values(WHO), "administrator"]) test.skip(!P[k], `persona "${k}" missing from ${CREDS}`);
+    const settings = await call(admin!, "GET", "/settings");
+    test.skip(settings.body?.data?.receipt_gated !== true,
+      `cadra.receipt.gated is not on for ${TENANT} (GET /settings → ${JSON.stringify(settings.body?.data ?? settings.status)})`);
+
+    const land = await fixedCategory(LAND_CATEGORY, {
+      identification_mode: "record_only",
+      sap_asset_class: LAND_SAP_CLASS,
+      class_attributes_schema: { mandatory: ["name", "reference"] },
+    });
+    landId = land.id;
+    landName = land.name;
+    expect(land.identification_mode).toBe("record_only");
+    expect(land.sap_asset_class).toBe(LAND_SAP_CLASS);
+
+    registerBefore = await registerCount();
+    const store = await apiSession(P[WHO.store]);
+    try {
+      // A serial on a unit that has none is refused, whoever sends it — and
+      // nothing is written.
+      const refusedName = markedName("spec59-land-with-serial");
+      const refused = await call(store, "POST", "/assets", {
+        name: refusedName, category_id: landId, reference: `PLOT-E2E-${Date.now()}`,
+        serial_number: `S59-${Date.now()}`,
+      });
+      expect(refused.status, JSON.stringify(refused.body).slice(0, 400)).toBe(400);
+      expect(JSON.stringify(refused.body?.error ?? {})).toMatch(/serial/i);
+      const leftover = await call(admin!, "GET",
+        `/assets?q=${encodeURIComponent(refusedName)}&register_state=any&limit=5`);
+      expect(leftover.body?.data ?? [], "a refused receipt left a record behind").toHaveLength(0);
+
+      // Name + reference, no serial: accepted as a candidate.
+      const name = markedName("spec59-land plot");
+      const created = await call(store, "POST", "/assets", {
+        name, category_id: landId, reference: `PLOT-E2E-${Date.now()}`,
+        purchase_order_reference: "PO-59-DEMO", grn_reference: `GRN-59-${Date.now()}`,
+      });
+      expect(created.status, JSON.stringify(created.body).slice(0, 400)).toBe(201);
+      unitId = created.body.data.id;
+      unitCode = created.body.data.asset_code;
+      recordCreated({ kind: "asset", id: unitId, name });
+      expect(created.body.data.register_state).toBe("captured");
+      expect(created.body.data.identification_mode).toBe("record_only");
+      expect(created.body.data.serial_number || null).toBeNull();
+      expect(created.body.data.reference).toMatch(/^PLOT-E2E-/);
+    } finally {
+      await store.ctx.dispose();
+    }
+    const a = await readUnit("received");
+    expect(a.gates.waiting_on).toBe("store");
+    await assertRegisterUnchanged("received");
+  });
+
+  test("store submits; the Candidates row says who it waits on", async ({ page }) => {
+    test.skip(!unitId, "setup did not create a record_only candidate");
+    await signIn(page, P[WHO.store]);
+    const row = await onCandidatesRow(page, unitId, "store");
+    await expect(row.getByTestId("candidate-mode")).toHaveText("SAP record");
+    await expect(row.getByTestId("candidate-waiting")).toHaveText("Store");
+    await row.getByTestId("gate-submit").click();
+    await confirmGate(page, "submit");
+    const a = await readUnit("submitted");
+    expect(a.register_state).toBe("vfm_pending");
+    expect(a.gates.waiting_on).toBe("iad");
+    await assertRegisterUnchanged("submitted");
+  });
+
+  test("IAD officer verifies", async ({ page }) => {
+    test.skip(!unitId, "setup did not create a record_only candidate");
+    await signIn(page, P[WHO.iadOfficer]);
+    const row = await onCandidatesRow(page, unitId, "iad");
+    await expect(row.getByTestId("candidate-waiting")).toHaveText("IAD officer");
+    await row.getByTestId("gate-verify").click();
+    const dialog = page.getByTestId("dialog-gate-verify");
+    for (const k of ["quantity", "specification", "condition", "price"]) await dialog.getByTestId(`check-${k}`).check();
+    await dialog.getByTestId("input-evidence").setInputFiles({
+      name: "title-deed.txt", mimeType: "text/plain", buffer: Buffer.from("Sighted the title against PO-59-DEMO."),
+    });
+    await confirmGate(page, "verify");
+    const a = await readUnit("verified");
+    expect(a.register_state).toBe("vfm_verified");
+    expect(a.gates.waiting_on).toBe("iad_approver");
+    await assertRegisterUnchanged("verified");
+  });
+
+  test("IAD approver approves — and the server skips both tagging gates", async ({ page }) => {
+    test.skip(!unitId, "setup did not create a record_only candidate");
+    await signIn(page, P[WHO.iadApprover]);
+    const row = await onCandidatesRow(page, unitId, "iad_approver");
+    await row.getByTestId("gate-approve").click();
+    await confirmGate(page, "approve");
+    const a = await readUnit("approved");
+    // Never `vfm_approved` / waiting on the Asset Controller: straight on.
+    expect(a.register_state).toBe("reg_ready");
+    expect(a.gates.waiting_on).toBe("maker");
+    // The asset page says it in words.
+    await page.goto(appPath(`/assets/${unitId}`));
+    await expect(page.getByTestId("candidate-banner")).toBeVisible();
+    await expect(page.getByTestId("candidate-banner-state")).toHaveText("Ready for registration — no label");
+    await expect(page.getByTestId("candidate-banner-waiting")).toHaveText("Register Maker");
+    await expect(page.getByTestId("candidate-banner-no-label")).toBeVisible();
+    await shot(page, "record-only-reg-ready");
+    await assertRegisterUnchanged("approved (tagging skipped)");
+  });
+
+  test("Register Maker submits — the dialog never says tagged, and shows the class's SAP code", async ({ page }) => {
+    test.skip(!unitId, "setup did not create a record_only candidate");
+    await signIn(page, P[WHO.maker]);
+    const row = await onCandidatesRow(page, unitId, "maker");
+    await expect(row.getByTestId("candidate-waiting")).toHaveText("Register Maker");
+    await row.getByTestId("gate-register").click();
+    const dialog = page.getByTestId("dialog-gate-register");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("gate-dialog-sentence")).not.toContainText(/tagged/i);
+    await expect(dialog.getByTestId("gate-dialog-sentence")).toContainText("no label");
+    // Drawn once the category list is read — a slow read on a busy tenant
+    // (it counts every category's assets), so a generous wait.
+    await expect(dialog.getByTestId("gate-sap-class")).toContainText(LAND_SAP_CLASS, { timeout: 30_000 });
+    await expect(dialog.getByTestId("gate-no-sap-class")).toHaveCount(0);
+    // An invented number in SAP's numeric shape, its first digit the class's
+    // — so no class-digit warning, and the dialog closes on success.
+    const sapNumber = LAND_SAP_CLASS[0] + String(Date.now()).slice(-10).padStart(10, "0");
+    await dialog.getByTestId("input-sap-asset-code").fill(sapNumber);
+    await dialog.getByTestId("input-cost").fill("25000000");
+    await dialog.getByTestId("input-cost-centre").fill("CC-59");
+    await expect(dialog.getByTestId("gate-sap-digit-hint")).toHaveCount(0);
+    await confirmGate(page, "register");
+    const a = await readUnit("submitted to the register");
+    expect(a.register_state).toBe("reg_submitted");
+    expect(a.gates.waiting_on).toBe("checker");
+    await assertRegisterUnchanged("submitted to the register");
+  });
+
+  test("Register Checker approves; the register gains exactly this unit, with no label and the skip in its history", async ({ page }) => {
+    test.skip(!unitId, "setup did not create a record_only candidate");
+    await signIn(page, P[WHO.checker]);
+    await page.goto(appPath(`/assets/${unitId}`));
+    await expect(page.getByTestId("candidate-banner-waiting")).toHaveText("Register Checker");
+    await page.getByTestId("gate-approve-registration").click();
+    await confirmGate(page, "approve-registration");
+    await expect(page.getByTestId("candidate-banner")).toBeHidden();
+    const a = await readUnit("registered");
+    expect(a.register_state).toBe("registered");
+    expect(a.gates?.waiting_on ?? null).toBeNull();
+    expect(await registerCount(), "the register did not gain exactly the one unit").toBe(registerBefore + 1);
+    const hit = await call(admin!, "GET", `/assets?q=${encodeURIComponent(unitCode)}&limit=5`);
+    expect((hit.body?.data ?? []).map((x: { id: number }) => x.id)).toContain(unitId);
+
+    // The skip is an event, not a silence: a gate_fired row naming why.
+    const history = (await call(admin!, "GET", `/assets/${unitId}/history`)).body?.data;
+    const events: any[] = history?.events ?? [];
+    const skip = events.find((e) => e.type === "gate_fired" && e.detail?.action === "skip-tagging");
+    expect(skip, "no gate_fired row for the skipped tagging gates").toBeTruthy();
+    const why = `no label: ${landName} is identified by its record`;
+    expect(skip.detail.reason).toBe(why);
+    // No tagging gate ever FIRED: skipped, not fired.
+    const fired = events.filter((e) => e.type === "gate_fired").map((e) => e.detail?.action);
+    expect(fired).not.toContain("request-tagging");
+    expect(fired).not.toContain("affix");
+
+    // And the sentence reads on the asset's history, in the browser.
+    await page.getByTestId("tab-audit-review").click();
+    await expect(page.getByTestId("asset-history-event").filter({ hasText: why }).first()).toBeVisible({ timeout: 20_000 });
+    await shot(page, "record-only-registered-history");
+    // The tag row says there is none — not the asset code dressed as one
+    // (the mapped asset falls back to the code when there is no tag).
+    await page.getByTestId("tab-details").click();
+    await expect(page.getByText("None — identified by its SAP record")).toBeVisible();
   });
 });

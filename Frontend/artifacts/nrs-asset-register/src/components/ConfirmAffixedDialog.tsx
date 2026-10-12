@@ -136,8 +136,11 @@ interface Props {
   hasSerialOnFile: boolean;
   /** The mode the unit was RECEIVED under (handoff 58). `tag_id` replaces
    *  the serial field with the attributes tick; anything else — `serial`,
-   *  or null for a unit received before 58 — is the dialog as it was. */
-  identificationMode?: "serial" | "tag_id" | null;
+   *  or null for a unit received before 58 — is the dialog as it was.
+   *  `record_only` (handoff 59) never reaches here: no label is minted for
+   *  it, so there is nothing to scan; it is typed so the station can pass the
+   *  server's value through without a cast. */
+  identificationMode?: "serial" | "tag_id" | "record_only" | null;
   /** What the tick names for a `tag_id` unit; empty parts are skipped. */
   attributes?: { name?: string | null; make?: string | null; colour?: string | null };
   open: boolean;

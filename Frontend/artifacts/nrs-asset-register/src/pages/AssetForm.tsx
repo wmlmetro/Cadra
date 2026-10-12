@@ -22,7 +22,7 @@ import { useLocation, useParams } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import RecordPicker from "@/components/RecordPicker";
-import { createAsset, updateAsset, type AssetWriteBody } from "@/lib/dataProvider";
+import { createAsset, updateAsset, fetchAssetCategories, type AssetWriteBody } from "@/lib/dataProvider";
 import { invalidateAssetQueries } from "@/components/AssetActionDialogs";
 import { apiGet, CadraApiError } from "@/lib/api";
 import type { ApiLocation } from "@/lib/adapters";
@@ -48,6 +48,10 @@ type FormShape = {
   colour: string;
   material: string;
   dimensions: string;
+  // Handoff 59 §2: what a `record_only` unit — land, a building, a licence —
+  // is identified by instead of a serial: title or plot number, licence key,
+  // contract.
+  reference: string;
   asset_level: string;
   domain: string;
   department: string;
@@ -102,7 +106,7 @@ type FormShape = {
 const blank: FormShape = {
   name: "", asset_tag: "", legacy_asset_code: "", serial_number: "",
   make: "", model_name: "", manufacturer: "",
-  colour: "", material: "", dimensions: "",
+  colour: "", material: "", dimensions: "", reference: "",
   asset_level: ENUM_DEFAULT.asset_level, domain: "", department: "",
   condition: ENUM_DEFAULT.condition, state: ENUM_DEFAULT.asset_state,
   category_id: null, subcategory_id: null, asset_type_id: null,
@@ -129,7 +133,11 @@ const blank: FormShape = {
 // the server's copy, which for a warranty would make one impossible to take
 // off. So a warranty field that was filled when the form opened and is empty
 // now is sent as `null`; one that was empty and still is, is not sent at all.
-function toBody(f: FormShape, terminal = false, original?: FormShape | null): AssetWriteBody {
+//
+// `recordOnly` is a unit of a `record_only` class (handoff 59): it has no
+// serial, and the server refuses a receipt that carries one, so a serial typed
+// before the class was chosen is not sent.
+function toBody(f: FormShape, terminal = false, original?: FormShape | null, recordOnly = false): AssetWriteBody {
   const out: AssetWriteBody = {};
   const assignIfSet = <K extends keyof AssetWriteBody>(key: K, val: AssetWriteBody[K]) => {
     if (val === "" || val === null || val === undefined) return;
@@ -148,13 +156,14 @@ function toBody(f: FormShape, terminal = false, original?: FormShape | null): As
   // the tag itself when the asset is created; the input below is read-only
   // and says so.
   assignIfSet("legacy_asset_code", f.legacy_asset_code);
-  assignIfSet("serial_number", f.serial_number);
+  if (!recordOnly) assignIfSet("serial_number", f.serial_number);
   assignIfSet("make", f.make);
   assignIfSet("model_name", f.model_name);
   assignIfSet("manufacturer", f.manufacturer);
   assignIfSet("colour", f.colour);
   assignIfSet("material", f.material);
   assignIfSet("dimensions", f.dimensions);
+  assignIfSet("reference", f.reference.trim());
   assignIfSet("asset_level", f.asset_level);
   assignIfSet("domain", f.domain);
   assignIfSet("department", f.department);
@@ -347,6 +356,7 @@ export default function AssetForm({ mode }: Props) {
         colour: (e.colour as string) ?? "",
         material: (e.material as string) ?? "",
         dimensions: (e.dimensions as string) ?? "",
+        reference: (e.reference as string) ?? "",
         // Taken verbatim. A stored value this build does not recognise is kept
         // rather than coerced to a default — withCurrent() puts it in the
         // select so the user can save the record back untouched.
@@ -399,10 +409,23 @@ export default function AssetForm({ mode }: Props) {
     && existing.isFetchedAfterMount
     && (existing.data as Record<string, unknown> | undefined)?.state === "disposed";
 
+  // How the chosen class is identified (handoff 59): a `record_only` class
+  // has no serial — the field is withdrawn and the reference required. Read
+  // from the category list; while it is unread nothing is withdrawn, and the
+  // server's refusal still lands in the panel below.
+  const categories = useQuery({
+    queryKey: ["asset-categories"],
+    queryFn: fetchAssetCategories,
+    staleTime: 10 * 60_000,
+  });
+  const chosenCategory = (categories.data ?? []).find(c => c.id === form.category_id);
+  const recordOnly = chosenCategory?.identification_mode === "record_only";
+  const referenceMissing = recordOnly && mode === "create" && !form.reference.trim();
+
   const mutation = useMutation({
     mutationFn: () => mode === "edit"
-      ? updateAsset(id!, toBody(form, isDisposed, original))
-      : createAsset(toBody(form)),
+      ? updateAsset(id!, toBody(form, isDisposed, original, recordOnly))
+      : createAsset(toBody(form, false, null, recordOnly)),
     onSuccess: (asset) => {
       // The shared list, not a shorter one of this form's own. This form can
       // change `state` — it is how a missing asset is put back — so a save
@@ -468,10 +491,10 @@ export default function AssetForm({ mode }: Props) {
           </button>
           <button
             onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !form.name.trim()}
+            disabled={mutation.isPending || !form.name.trim() || referenceMissing}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl",
-              form.name.trim() && !mutation.isPending
+              form.name.trim() && !referenceMissing && !mutation.isPending
                 ? "bg-primary text-white hover:opacity-90"
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}
@@ -528,7 +551,29 @@ export default function AssetForm({ mode }: Props) {
           <input className={inputCls} value={form.legacy_asset_code} onChange={e => set("legacy_asset_code", e.target.value)} />
         </Field>
         <Field label="Serial number">
-          <input className={inputCls} value={form.serial_number} onChange={e => set("serial_number", e.target.value)} />
+          <input
+            className={cn(inputCls, recordOnly && "bg-muted/50 text-muted-foreground cursor-not-allowed")}
+            value={recordOnly ? "" : form.serial_number}
+            onChange={e => set("serial_number", e.target.value)}
+            disabled={recordOnly}
+            placeholder={recordOnly ? "None — identified by its record" : undefined}
+            data-testid="input-serial-number"
+          />
+          {recordOnly && (
+            <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-serial-record-only">
+              {chosenCategory!.name} is identified by its SAP record, not by a serial or a label, so no serial is taken.
+              Give its reference instead.
+            </p>
+          )}
+        </Field>
+        <Field label={recordOnly ? "Reference (required)" : "Reference"}>
+          <input className={inputCls} value={form.reference} onChange={e => set("reference", e.target.value)}
+                 placeholder="Title or plot number, licence key, contract" data-testid="input-reference" />
+          {referenceMissing && (
+            <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-reference-required">
+              Required for {chosenCategory!.name}: it is what this asset is known by.
+            </p>
+          )}
         </Field>
         <Field label="Manufacturer">
           <input className={inputCls} value={form.manufacturer} onChange={e => set("manufacturer", e.target.value)} />

@@ -616,7 +616,12 @@ export function apiAssetHistoryEventToEvent(e: ApiAssetHistoryEvent): AssetHisto
     source: e.source ?? undefined,
     // A custody link and a change of status carry their reason on the event;
     // a move carries it on the transfer paperwork it was joined to.
-    reason: detail.reason ?? detail.transfer?.reason ?? undefined,
+    // A receipt gate's summary already ends with its reason (handoff 57's
+    // sentence; handoff 59's "no label: … is identified by its record"), so
+    // it is not printed a second time underneath.
+    reason: e.type === "gate_fired" && detail.reason && (e.summary ?? "").includes(detail.reason)
+      ? undefined
+      : detail.reason ?? detail.transfer?.reason ?? undefined,
     transferReference: detail.transfer?.reference ?? undefined,
     // Only ever read off a `maintenance_request`: `detail.reference` is a
     // loose enough key that another event type may one day use it for

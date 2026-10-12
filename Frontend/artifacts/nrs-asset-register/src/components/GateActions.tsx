@@ -12,6 +12,12 @@
  * no-two-gates rule already applied to this caller. An action with
  * `can_fire: false` is drawn as its sentence, not as a button — a button the
  * server would refuse is a button that lies.
+ *
+ * Handoff 59: a `record_only` unit (land, a building, a licence) skips both
+ * tagging gates — the server moves it from IAD approval to `reg_ready`, on
+ * the Register Maker, and never mints a label — so nothing here may call it
+ * tagged. The register dialog also says, before the server does, when the
+ * chosen class has no SAP asset class (SAP would reject the master).
  */
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
@@ -24,7 +30,7 @@ import {
   type CandidateRow, type GateAction, type GateAvailability, type GateBody,
   type GateWaitingOn, type RegisterState,
 } from "@/lib/dataProvider";
-import { CadraApiError } from "@/lib/api";
+import { CadraApiError, type WithWarnings } from "@/lib/api";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { invalidateAssetQueries } from "@/components/AssetActionDialogs";
 import { cn, formatIsoDateTime, lagosToday } from "@/lib/utils";
@@ -42,6 +48,7 @@ export const REGISTER_STATE_WORDS: Record<RegisterState, string> = {
   tag_requested: "Tag requested",
   tag_issued:    "Tag issued — awaiting the label on the asset",
   tagged:        "Tagged — awaiting submission to the register",
+  reg_ready:     "Ready for registration — no label",
   reg_submitted: "Submitted — awaiting register approval",
   registered:    "On the register",
 };
@@ -57,6 +64,7 @@ export const REGISTER_STATE_SHORT: Record<RegisterState, string> = {
   tag_requested: "Tag requested",
   tag_issued:    "Tag issued",
   tagged:        "Tagged",
+  reg_ready:     "Ready (no label)",
   reg_submitted: "Submitted",
   registered:    "Registered",
 };
@@ -98,6 +106,25 @@ const ACTION_SENTENCES: Record<GateAction, string> = {
   "return-registration":  "Sends the submission back to the Register Maker with your reason.",
 };
 
+/** A unit with no label (handoff 59): received under `record_only`, or
+ *  waiting at the state only such a unit reaches. */
+const isRecordOnly = (row: Pick<CandidateRow, "identification_mode" | "register_state">) =>
+  row.identification_mode === "record_only" || row.register_state === "reg_ready";
+
+/** The dialog's sentence for THIS unit. Only the register gate differs: a
+ *  `record_only` unit was never tagged, and the sentence must not say so. */
+function actionSentence(action: GateAction, row: CandidateRow): string {
+  if (action === "register" && isRecordOnly(row)) {
+    return "Submits this unit to the register with its SAP asset code and cost. It carries no label — it is identified by its SAP record. A different person approves it.";
+  }
+  return ACTION_SENTENCES[action];
+}
+
+/** The server's refusal, said first (handoff 59 §1) — same words, so the
+ *  person reads one sentence whichever of the two says it. */
+const noSapClassSentence = (category: string) =>
+  `${category} has no SAP asset class, so SAP would reject this asset. An Asset Controller sets it under Settings → Asset Categories.`;
+
 /** The order the buttons are drawn in — forward first, then the side doors. */
 const ACTION_ORDER: GateAction[] = [
   "submit", "resubmit", "verify", "approve", "request-tagging", "register",
@@ -110,7 +137,7 @@ const DESTRUCTIVE = new Set<GateAction>(["reject", "query", "return-registration
 
 /** Shown on a candidate's asset page so nobody mistakes it for a register
  *  asset. Draws nothing for a registered one. */
-export function CandidateBanner({ row }: { row: Pick<CandidateRow, "register_state" | "gates"> }) {
+export function CandidateBanner({ row }: { row: Pick<CandidateRow, "register_state" | "gates" | "identification_mode"> }) {
   if (!row.register_state || row.register_state === "registered") return null;
   const rejected = row.register_state === "vfm_rejected";
   const waiting = row.gates?.waiting_on;
@@ -143,6 +170,12 @@ export function CandidateBanner({ row }: { row: Pick<CandidateRow, "register_sta
               <ScanBarcode size={11} className="inline -mt-0.5" /> Barcode Station
             </Link>
             ; the unit moves to <em>Tagged</em> when the label is confirmed.
+          </p>
+        )}
+        {isRecordOnly(row) && (
+          <p className="text-muted-foreground" data-testid="candidate-banner-no-label">
+            No label: this class is identified by its SAP record, so the two
+            tagging steps are skipped and no label is ever printed for it.
           </p>
         )}
       </div>
@@ -252,6 +285,11 @@ function GateDialog({ row, action, spec, onClose }: {
   const [costCentre, setCostCentre] = useState("");
   const [capDate, setCapDate] = useState(lagosToday());
   const [assetClass, setAssetClass] = useState<number | null>(row.category?.id ?? null);
+  // The server's `_warnings.sap_asset_number` on a register that SUCCEEDED
+  // (handoff 59 §4): the number's first digit disagrees with the class. Not a
+  // refusal — the dialog stays open to say it in words. (The app-wide toast
+  // says it too, and outlives the dialog when the row leaves a filtered list.)
+  const [sapWarning, setSapWarning] = useState<string | null>(null);
 
   const isReason = action === "query" || action === "reject" || action === "return-registration";
   const isResponse = action === "resubmit";
@@ -282,6 +320,19 @@ function GateDialog({ row, action, spec, onClose }: {
     if (!assetClass) missing.push("the asset class");
   }
 
+  // The chosen class's SAP code, from the category list. `undefined` while
+  // the list is not read (or the server is older than 59) — then nothing is
+  // claimed either way; `null` is a class nobody has mapped.
+  const chosen = (categories.data ?? []).find(c => c.id === assetClass);
+  const chosenSap = chosen ? chosen.sap_asset_class : undefined;
+  // Numeric SAP numbers are eleven digits beginning with the class digit (a
+  // class 2000 number starts with 2). The server warns rather than refuses;
+  // said here first as a hint.
+  const code = sapCode.trim();
+  const digitMismatch = isRegister && /^\d{11}$/.test(code) && chosenSap && code[0] !== chosenSap[0]
+    ? `${code} looks like a class ${code[0]}000 number; this category maps to ${chosenSap}.`
+    : null;
+
   const mutation = useMutation({
     mutationFn: async () => {
       const body: GateBody = {};
@@ -301,8 +352,10 @@ function GateDialog({ row, action, spec, onClose }: {
       }
       return fireGate(row.id, action, body);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidateGateQueries(qc, row.id);
+      const w = (data as WithWarnings<CandidateRow>)._warnings?.sap_asset_number;
+      if (typeof w === "string" && w) { setSapWarning(w); return; }
       close(true);
     },
   });
@@ -330,7 +383,7 @@ function GateDialog({ row, action, spec, onClose }: {
           <DialogDescription>
             <span className="font-semibold text-foreground">{row.asset_code}</span> · {row.name}
             <br />
-            {ACTION_SENTENCES[action]}
+            <span data-testid="gate-dialog-sentence">{actionSentence(action, row)}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -394,6 +447,14 @@ function GateDialog({ row, action, spec, onClose }: {
                 <label htmlFor="gate-sap" className={LABEL}>SAP asset code</label>
                 <input id="gate-sap" value={sapCode} onChange={e => setSapCode(e.target.value)}
                   className={INPUT} placeholder="As SAP issued it" data-testid="input-sap-asset-code" />
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Either shape SAP uses: eleven digits beginning with the class digit (e.g. 3xxxxxxxxxx), or a legacy code of letters and digits (e.g. ABC12DEF345).
+                </p>
+                {digitMismatch && (
+                  <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400" data-testid="gate-sap-digit-hint">
+                    {digitMismatch}
+                  </p>
+                )}
               </div>
               <div>
                 <label htmlFor="gate-cost" className={LABEL}>Cost (₦)</label>
@@ -432,7 +493,20 @@ function GateDialog({ row, action, spec, onClose }: {
                 <p className="mt-1 text-[10px] text-muted-foreground">
                   Confirm the class Vendra gave it, or correct it.
                 </p>
+                {chosenSap && (
+                  <p className="mt-1 text-[11px] text-foreground" data-testid="gate-sap-class">
+                    SAP asset class <span className="font-mono font-semibold">{chosenSap}</span>
+                  </p>
+                )}
               </div>
+              {chosen && chosenSap === null && (
+                // Not in `missing`: the button stays live so the server
+                // answers too — the sentence is the same either way.
+                <p className="col-span-2 flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-400"
+                   data-testid="gate-no-sap-class">
+                  <AlertCircle size={12} className="shrink-0 mt-0.5" /> {noSapClassSentence(chosen.name)}
+                </p>
+              )}
             </div>
           )}
 
@@ -458,6 +532,16 @@ function GateDialog({ row, action, spec, onClose }: {
             </p>
           )}
 
+          {sapWarning && (
+            <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/30 rounded-xl p-3"
+                 data-testid="gate-sap-warning">
+              <AlertCircle size={14} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-[12px] text-amber-800 dark:text-amber-300">
+                Submitted. {sapWarning}
+              </p>
+            </div>
+          )}
+
           {err && (
             <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3"
                  data-testid="gate-error">
@@ -468,6 +552,12 @@ function GateDialog({ row, action, spec, onClose }: {
         </div>
 
         <DialogFooter>
+          {sapWarning ? (
+            <button type="button" onClick={() => close(true)} data-testid="button-close-gate"
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90">
+              Close
+            </button>
+          ) : (<>
           <button type="button" onClick={() => close()}
             className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
             Cancel
@@ -486,6 +576,7 @@ function GateDialog({ row, action, spec, onClose }: {
             {mutation.isPending && <Loader2 size={12} className="animate-spin" />}
             {ACTION_WORDS[action]}
           </button>
+          </>)}
         </DialogFooter>
       </DialogContent>
     </Dialog>

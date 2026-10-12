@@ -165,6 +165,10 @@ export default function AssetDetail() {
     staleTime: 15_000,
   });
   const isCandidate = !!gateRow?.register_state && gateRow.register_state !== "registered";
+  // Handoff 59 §2: a `record_only` unit never has a label. The mapped
+  // `assetTag` falls back to the asset code, which here would read as a label
+  // that exists, so the tag is said to be none wherever it is shown.
+  const noLabel = gateRow?.identification_mode === "record_only";
 
   const [moveOpen, setMoveOpen] = useState(false);
   const [custodyOpen, setCustodyOpen] = useState(false);
@@ -503,7 +507,7 @@ export default function AssetDetail() {
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-foreground leading-snug">{asset.name}</h1>
             <p className="text-xs text-muted-foreground font-mono mt-0.5">
-              {asset.assetTag && <span>{asset.assetTag} · </span>}
+              {asset.assetTag && !noLabel && <span>{asset.assetTag} · </span>}
               {asset.legacyCode}
             </p>
             <div className="flex flex-wrap gap-2 mt-3" data-testid="asset-hero-badges">
@@ -533,9 +537,11 @@ export default function AssetDetail() {
                   {/* `assetTag` falls back to the asset code when there is
                       no tag, which on a candidate reads as a label that was
                       never issued (the mint moved to request-tagging). */}
-                  <DetailRow label="Asset Tag" value={isCandidate
-                    ? (gateRow?.tag ?? "Not issued yet")
-                    : asset.assetTag} />
+                  <DetailRow label="Asset Tag" value={noLabel
+                    ? "None — identified by its SAP record"
+                    : isCandidate
+                      ? (gateRow?.tag ?? "Not issued yet")
+                      : asset.assetTag} />
                   <DetailRow label="Serial / VIN" value={asset.serial} />
                   <DetailRow label="Manufacturer" value={asset.manufacturer} />
                   <DetailRow label="Model" value={asset.model} />
@@ -546,6 +552,7 @@ export default function AssetDetail() {
                   <DetailRow label="Colour" value={gateRow?.colour} />
                   <DetailRow label="Material" value={gateRow?.material} />
                   <DetailRow label="Dimensions" value={gateRow?.dimensions} />
+                  <DetailRow label="Reference" value={gateRow?.reference} />
                   <DetailRow label="Identified by" value={gateRow?.identification_mode
                     ? IDENTIFICATION_MODE_WORDS[gateRow.identification_mode] : undefined} />
                   <DetailRow label="Asset Type" value={asset.assetType} />

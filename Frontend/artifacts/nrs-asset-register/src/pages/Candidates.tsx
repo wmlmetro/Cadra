@@ -212,7 +212,7 @@ export default function Candidates() {
                 <th className="text-left font-semibold px-3 py-2">Mode</th>
                 <th className="text-left font-semibold px-3 py-2">PO</th>
                 <th className="text-left font-semibold px-3 py-2">GRN</th>
-                <th className="text-left font-semibold px-3 py-2">Serial</th>
+                <th className="text-left font-semibold px-3 py-2">Serial / reference</th>
                 <th className="text-left font-semibold px-3 py-2">In state</th>
                 <th className="text-left font-semibold px-3 py-2">Waiting on</th>
                 <th className="text-left font-semibold px-5 py-2">Your action</th>
@@ -248,9 +248,11 @@ export default function Candidates() {
                   </td>
                   <td className="px-3 py-2.5">{r.provenance?.purchase_order_reference ?? "—"}</td>
                   <td className="px-3 py-2.5">{r.provenance?.grn_reference ?? "—"}</td>
-                  <td className="px-3 py-2.5">{r.serial_number ?? "—"}</td>
+                  {/* A `record_only` unit has no serial (handoff 59): its
+                      reference is what it is known by. */}
+                  <td className="px-3 py-2.5">{r.serial_number || r.reference || "—"}</td>
                   <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{ageOf(r.gates?.state_since, now)}</td>
-                  <td className="px-3 py-2.5 whitespace-nowrap">
+                  <td className="px-3 py-2.5 whitespace-nowrap" data-testid="candidate-waiting">
                     {r.gates?.waiting_on ? WAITING_ON_WORDS[r.gates.waiting_on] : "—"}
                   </td>
                   <td className="px-5 py-2.5">
