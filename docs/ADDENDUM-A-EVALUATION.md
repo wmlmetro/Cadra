@@ -201,3 +201,33 @@ what each one fixes in the build:
 | 4.5 | WhatsApp, RFID, vendor portal | **Skip WhatsApp and RFID for now.** Vendor portal stays in Phase F. | Section 7 channels are in-app and email only. AD-20's `rfid_tag_id` field is built nullable and nothing reads a reader. |
 
 §4.6 (candidate is a separate model) stands as the Architect's ruling.
+
+---
+
+## 8 · Revision — Architect, 12 October 2026
+
+**§4.6 is reversed.** The candidate stays a state (`register_state`) on
+`nrs.asset`. It does not become a separate `nrs.asset.candidate` model.
+
+§4.6's objection was that a flag would make every report, count and
+dashboard filter on it forever. Cadra's handoff 57 put that filter in one
+place, `nrs.asset._search`, so new code is filtered by default. Report 57's
+probe read every route that lists or counts assets, before and after a
+candidate arrived, and none of the register routes moved. The failure mode
+is the safe one: code that forgets the context flag can't *find* a
+candidate; it can't *show* one. The seven-gate chain is built, tested
+10 of 10 in the browser, deployed, and was demonstrated to NRS on 8 October.
+A second model would rebuild it for one property we already have.
+
+Consequences:
+
+- **INT-03 is the hand-off.** Vendra keeps calling `POST /api/v1/assets`.
+  With the gates on, Cadra creates the unit at `captured`. There is no
+  `/candidates/ingest` route, and Vendra doesn't read the switch.
+- **Store's *Submit to IAD* is in Cadra**, as it is in 57.
+- **Cadra 58 is re-cut** as *The gates, kept*. The draft that built the
+  separate model is in `docs/handoffs/_superseded/`.
+- **Vendra 54 is re-cut** to the receipt's identification mode (Section 12)
+  only. The delivery schedule (AD-01/02) moves to a later Vendra handoff.
+- Phases B to F keep their scope. They act on `register_state`, not on a
+  second model.
