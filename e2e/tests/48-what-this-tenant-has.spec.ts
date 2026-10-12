@@ -322,7 +322,12 @@ test.describe("48 — what this tenant has", () => {
     // The role opens it, the tenant has it off: not drawn.
     for (const k of plan.hides) expect(drawn, `${k} drawn for the Store Officer`).not.toContain(k);
     // The tenant shows it, the role does not open it: not drawn.
-    for (const k of ["users", "sidebar_settings", "new_asset"]) {
+    // `receipt_gate` (settings:write) replaced `new_asset` (assets:write): the
+    // Store Officer persona holds the Asset Officer role since handoff 57
+    // (`scripts/seed_demo_personas.py`, so it can submit a receipt), and
+    // `assets:write` now opens + New Asset for it — correctly. The meaning
+    // is unchanged: a third item the tenant shows and this role does not open.
+    for (const k of ["users", "sidebar_settings", "receipt_gate"]) {
       expect(sidebar.hidden_items).not.toContain(k);
       expect(drawn, `${k} drawn for the Store Officer`).not.toContain(k);
     }

@@ -35,6 +35,9 @@ type AccessEvent = {
   actor: { id: number | null; name: string } | null;
 };
 
+/** The role the grant journey adds to `h41_manager` — see the first test. */
+const SECOND_ROLE = "auditor";
+
 async function openUsers(page: Page) {
   await gotoApp(page, "/admin/users");
   await expectShell(page);
@@ -119,16 +122,22 @@ test("a grant through the screen lands on the row and is recorded with the perso
   const manager = await findUser(api, "h41_manager");
   test.skip(!manager, "h41_manager is not on this tenant's roster (test19 has it, from handoff 41 part B)");
   const grantable = await grantableRoles(api);
-  const tiu = grantable.find((r) => r.key === "tag_issuing_unit");
-  test.skip(!tiu, "tag_issuing_unit is not a grantable role on this tenant");
+  // The role granted was the Tag-Issuing Unit until handoff 58 §5 seeded the
+  // role exclusions: the manager implies the Asset Officer, and *Asset
+  // Officer + Tag-Issuing Unit* is a forbidden pair, so that grant is now
+  // refused 403 — correctly. The Auditor is excluded with nothing (the pytest
+  // twin, `tests/test_user_roles.py`, grants the same), so the journey — tick,
+  // preview, apply, the actor on the record, revert — is unchanged.
+  const second = grantable.find((r) => r.key === SECOND_ROLE);
+  test.skip(!second, `${SECOND_ROLE} is not a grantable role on this tenant`);
   const me = await api.whoami();
   expect(me?.name, "whoami carries a name").toBeTruthy();
 
-  // Start from a known state: h41_manager without Tag-Issuing Unit. A
+  // Start from a known state: h41_manager without the second role. A
   // previous run that failed between Apply and the revert leaves it on, and
   // the spec would then "grant" nothing.
-  const baseline = directGrantable(manager!, grantable).filter((k) => k !== tiu!.key);
-  if (directGrantable(manager!, grantable).includes(tiu!.key)) {
+  const baseline = directGrantable(manager!, grantable).filter((k) => k !== second!.key);
+  if (directGrantable(manager!, grantable).includes(second!.key)) {
     await api.post(`/api/v1/users/${manager!.id}/roles`, { roles: baseline });
   }
   test.info().annotations.push({ type: "baseline-direct-grantable", description: baseline.join(",") || "(none)" });
@@ -144,7 +153,7 @@ test("a grant through the screen lands on the row and is recorded with the perso
     await searchFor(page, "h41_manager");
     const row = page.locator('[data-testid="user-row"][data-login="h41_manager"]');
     await expect(row).toBeVisible({ timeout: 20_000 });
-    await expect(row.locator(`[data-testid="role-pill-direct"][data-role="${tiu!.name}"]`)).toHaveCount(0);
+    await expect(row.locator(`[data-testid="role-pill-direct"][data-role="${second!.name}"]`)).toHaveCount(0);
     await row.click();
 
     const panel = page.getByTestId("user-detail");
@@ -156,24 +165,24 @@ test("a grant through the screen lands on the row and is recorded with the perso
     // Before anything is ticked, Apply is dark: there is no preview yet.
     await expect(section.getByTestId("button-apply-roles")).toBeDisabled();
 
-    const box = section.locator('[data-testid="role-checkbox"][data-role="tag_issuing_unit"]');
+    const box = section.locator(`[data-testid="role-checkbox"][data-role="${SECOND_ROLE}"]`);
     await expect(box).not.toBeChecked();
     await box.check();
 
     // Preview is a dry run of the real route: what it shows is what the
-    // server will do. Held gains Tag-Issuing Unit; can-act-as keeps the
-    // implied Asset User and gains Tag-Issuing Unit.
+    // server will do. Held gains the Auditor; can-act-as keeps the implied
+    // Asset User and gains the Auditor.
     await section.getByTestId("button-preview-roles").click();
     const preview = section.getByTestId("roles-preview");
     await expect(preview).toBeVisible({ timeout: 20_000 });
     await expect(preview).toHaveAttribute("data-applied", "false");
-    await expect(preview.getByTestId("roles-preview-grant")).toContainText(`Will grant: ${tiu!.name}`);
-    await expect(preview.getByTestId("roles-preview-grant")).toHaveAttribute("data-keys", "tag_issuing_unit");
+    await expect(preview.getByTestId("roles-preview-grant")).toContainText(`Will grant: ${second!.name}`);
+    await expect(preview.getByTestId("roles-preview-grant")).toHaveAttribute("data-keys", SECOND_ROLE);
     await expect(preview.getByTestId("roles-preview-revoke")).toContainText("Will revoke: nothing");
     const effAfter = (await preview.getByTestId("roles-preview-effective").getAttribute("data-after")) ?? "";
-    expect(effAfter.split("|"), "can act as, after").toEqual(expect.arrayContaining(["asset_user", "tag_issuing_unit"]));
+    expect(effAfter.split("|"), "can act as, after").toEqual(expect.arrayContaining(["asset_user", SECOND_ROLE]));
     const directAfter = (await preview.getByTestId("roles-preview-direct").getAttribute("data-after")) ?? "";
-    expect(directAfter.split("|"), "roles held, after").toContain("tag_issuing_unit");
+    expect(directAfter.split("|"), "roles held, after").toContain(SECOND_ROLE);
 
     // The preview wrote nothing.
     const stillBefore = await findUser(api, "h41_manager");
@@ -192,18 +201,18 @@ test("a grant through the screen lands on the row and is recorded with the perso
     const applied = section.getByTestId("roles-applied");
     await expect(applied).toBeVisible({ timeout: 20_000 });
     await expect(applied).toContainText("Applied.");
-    await expect(applied).toContainText(`Granted: ${tiu!.name}`);
-    await expect(applied).toHaveAttribute("data-granted", "tag_issuing_unit");
+    await expect(applied).toContainText(`Granted: ${second!.name}`);
+    await expect(applied).toHaveAttribute("data-granted", SECOND_ROLE);
 
     // The panel and the row now carry the role (the list is re-read).
-    await expect(panel.getByTestId("user-section-roles-direct")).toContainText(tiu!.name);
-    await expect(row.locator(`[data-testid="role-pill-direct"][data-role="${tiu!.name}"]`)).toBeVisible({ timeout: 20_000 });
+    await expect(panel.getByTestId("user-section-roles-direct")).toContainText(second!.name);
+    await expect(row.locator(`[data-testid="role-pill-direct"][data-role="${second!.name}"]`)).toBeVisible({ timeout: 20_000 });
 
     // Read back over the API: the register agrees, and the access-changes
     // report recorded WHO clicked — the admin session's own name — not
     // whatever the route ran as.
     const after = await findUser(api, "h41_manager");
-    expect(directGrantable(after!, grantable)).toEqual([...baseline, tiu!.key].sort());
+    expect(directGrantable(after!, grantable)).toEqual([...baseline, second!.key].sort());
 
     const granted = newestEvent(await allEvents(api, from, to), "granted", "h41_manager", since);
     expect(granted, "a `granted` event for h41_manager in the window").not.toBeNull();
@@ -214,8 +223,8 @@ test("a grant through the screen lands on the row and is recorded with the perso
     // Revert through the same screen, and the `removed` event lands too.
     await box.uncheck();
     await previewAndApply(page);
-    await expect(section.getByTestId("roles-applied")).toContainText(`Revoked: ${tiu!.name}`);
-    await expect(row.locator(`[data-testid="role-pill-direct"][data-role="${tiu!.name}"]`)).toHaveCount(0, { timeout: 20_000 });
+    await expect(section.getByTestId("roles-applied")).toContainText(`Revoked: ${second!.name}`);
+    await expect(row.locator(`[data-testid="role-pill-direct"][data-role="${second!.name}"]`)).toHaveCount(0, { timeout: 20_000 });
 
     const reverted = await findUser(api, "h41_manager");
     expect(directGrantable(reverted!, grantable)).toEqual(baseline);

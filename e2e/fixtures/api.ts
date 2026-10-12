@@ -1,5 +1,6 @@
 import { request as pwRequest, type APIRequestContext } from "@playwright/test";
 import { ORIGIN, USER, PASS } from "../config";
+import { newRegisteredAsset } from "./gates";
 
 /**
  * Thin REST client against the Cadra v1 API. Used by specs to discover REAL
@@ -219,10 +220,18 @@ export class ApiClient {
     return null;
   }
 
-  /** Create a minimal valid asset (name + required category_id). */
+  /**
+   * A minimal valid asset (name + required category_id), ON THE REGISTER
+   * whichever way the tenant's receipt switch is set (handoff 58 §2): it is
+   * `gates.newRegisteredAsset`, the one helper — switch off, the plain create
+   * this always was; switch on, the unit received and walked through the
+   * seven gates as the personas. A spec that needs the unit AS RECEIVED, or
+   * with its label issued and not yet affixed, calls `gates.receive` /
+   * `gates.readyToAffix` itself.
+   */
   async createAsset(name: string, extra: Record<string, unknown> = {}): Promise<any> {
     const category_id = await this.firstCategoryId();
-    return this.post("/api/v1/assets", { name, category_id, ...extra });
+    return newRegisteredAsset(this, { name, category_id, ...extra });
   }
 
   /** First asset that carries a scannable tag — needed by the barcode specs. */

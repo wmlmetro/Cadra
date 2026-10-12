@@ -42,6 +42,7 @@ import uuid
 
 import pytest
 
+from . import gates
 from .conftest import (assert_envelope_err, assert_envelope_ok,
                        assert_fields_refused)
 
@@ -119,9 +120,11 @@ def two_locations(client):
 def _raise(raiser, two_locations, approver_id):
     """A pending move request raised by `raiser`, naming `approver_id`."""
     here, there = two_locations
-    asset = assert_envelope_ok(raiser.post("/api/v1/assets", json={
-        "name": _uniq("pytest-renominate-asset"), "category_id": 1,
-        "location_id": here["id"]}), 201)["data"]
+    # On the register whichever way the receipt switch is set (handoff 58
+    # §2, `tests/gates.py`): a candidate cannot be moved.
+    asset = gates.new_registered_asset(
+        raiser, name=_uniq("pytest-renominate-asset"), category_id=1,
+        location_id=here["id"])
     r = raiser.post(f"/api/v1/assets/{asset['id']}/move", json={
         "to_location_id": there["id"], "approver_id": approver_id,
         "reason": "test_approvals_renomination"})

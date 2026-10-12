@@ -48,6 +48,7 @@ import time
 
 import pytest
 
+from . import gates
 from .conftest import (assert_envelope_ok, assert_envelope_err,
                        assert_fields_refused)
 
@@ -249,7 +250,7 @@ def _make_disposed_asset(client, test_location):
     depends on is an ordering coupling, and it reads as a real defect in the
     code the second time somebody hits it.
     """
-    r = client.post("/api/v1/assets", json={
+    body = {
         "name": f"pytest-approval-{int(time.time() * 1000)}",
         "category_id": 1,
         "condition": "poor",
@@ -257,13 +258,21 @@ def _make_disposed_asset(client, test_location):
         "location_id": test_location["id"],
         "disposal_date": _iso(_today()),
         "disposal_reason": "pytest — approve-disposal fixture",
-    })
-    if r.status_code != 201:
-        pytest.skip(
-            "could not create a disposed asset on this tenant "
-            f"(HTTP {r.status_code}): {r.text[:200]}. The approval "
-            "assertions would have nothing to act on.")
-    data = r.json()["data"]
+    }
+    if gates.receipt_gated(client):
+        # Handoff 58, P5: a receipt cannot arrive disposed; the unit is
+        # walked onto the register and disposed there (`tests/gates.py`). A
+        # disposal is approved on a register asset either way.
+        data = gates.disposed_on_the_register(client, **body)
+    else:
+        r = client.post("/api/v1/assets",
+                        json=gates.receipt_body(client, **body))
+        if r.status_code != 201:
+            pytest.skip(
+                "could not create a disposed asset on this tenant "
+                f"(HTTP {r.status_code}): {r.text[:200]}. The approval "
+                "assertions would have nothing to act on.")
+        data = r.json()["data"]
     assert data["disposal"]["approved_by"] is None, (
         "a freshly created disposal already carries an approver — the create "
         "path wrote one, which is the control this whole route exists to "

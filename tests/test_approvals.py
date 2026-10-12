@@ -51,6 +51,7 @@ import uuid
 
 import pytest
 
+from . import gates
 from .conftest import (assert_envelope_err, assert_envelope_ok,
                        assert_fields_refused)
 
@@ -118,8 +119,10 @@ def _asset(client, location_id, name, **extra):
     body = {"name": _uniq(name), "category_id": 1, **extra}
     if location_id:
         body["location_id"] = location_id
-    return assert_envelope_ok(client.post("/api/v1/assets", json=body),
-                              201)["data"]
+    # On the register whichever way the receipt switch is set (handoff 58
+    # §2): with the gates on a candidate cannot be moved or handed over,
+    # so `tests/gates.py` walks it onto the register first.
+    return gates.new_registered_asset(client, **body)
 
 
 def _read(client, asset_id):

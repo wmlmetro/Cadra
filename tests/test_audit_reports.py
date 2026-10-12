@@ -35,6 +35,7 @@ import time
 
 import pytest
 
+from . import gates
 from .conftest import (assert_envelope_ok, assert_envelope_err,
                        assert_fields_refused)
 
@@ -146,7 +147,14 @@ def disposed_assets(client, test_location):
             "disposal_date": disposal_date,
         }
         body.update(extra)
-        r = client.post("/api/v1/assets", json=body)
+        if gates.receipt_gated(client):
+            # Both reports read the REGISTER, and since handoff 58 a receipt
+            # cannot arrive disposed (P5): the unit is walked onto the
+            # register by `tests/gates.py` and then disposed, the order the
+            # register allows. Switch off: the one create below, as always.
+            return gates.disposed_on_the_register(client, **body)
+        r = client.post("/api/v1/assets",
+                        json=gates.receipt_body(client, **body))
         if r.status_code != 201:
             pytest.skip(
                 "could not create a disposed asset on this tenant "
@@ -633,13 +641,33 @@ def test_the_sap_position_is_a_statement_and_not_a_per_row_finding(
 
     # The fixture creates its disposals through the API, and
     # `sap_asset_number` is not writable there — deliberately, and asserted
-    # elsewhere in this file. So the bare/documented/partial trio contribute
-    # three rows with no SAP number, and the period cannot be `empty` or
-    # `complete`.
-    assert coverage["coverage"] in ("none", "partial")
-    assert coverage["without_sap_asset_number"] >= 3, (
-        "the fixture put three disposals with no SAP number in this period "
-        "and the coverage block counted fewer than three")
+    # elsewhere in this file. With the receipt gates OFF the bare/documented/
+    # partial trio therefore contribute three rows with no SAP number, and
+    # the period cannot be `empty` or `complete`.
+    #
+    # With the gates ON (handoff 58) the premise changes, not the control:
+    # a unit reaches the register only through the Register Maker, who
+    # TYPES its SAP code, so all three carry one. The expectation is read
+    # off the fixture's own rows rather than assumed — in both directions.
+    ours = {disposed_assets[k]["id"] for k in ("bare", "documented",
+                                                "partial")}
+    mine = [r for r in rows + first["data"]["unplaceable"]
+            if r["asset_id"] in ours]
+    assert len(mine) == 3, "the fixture's three disposals are in the period"
+    without = sum(1 for r in mine if not r["sap_asset_number"])
+    if without:
+        assert without == 3, (
+            "the fixture's three were made the same way and disagree about "
+            "carrying a SAP number")
+        assert coverage["coverage"] in ("none", "partial")
+        assert coverage["without_sap_asset_number"] >= 3, (
+            "the fixture put three disposals with no SAP number in this "
+            "period and the coverage block counted fewer than three")
+    else:
+        assert coverage["coverage"] in ("partial", "complete")
+        assert coverage["with_sap_asset_number"] >= 3, (
+            "the fixture put three disposals WITH the maker's SAP number in "
+            "this period and the coverage block counted fewer than three")
 
 
 def test_the_sap_statement_is_never_the_absolute_one_when_it_is_untrue(
@@ -672,7 +700,13 @@ def test_the_sap_statement_is_never_the_absolute_one_when_it_is_untrue(
         "the coverage count and the rows disagree about how many disposals "
         "reached SAP")
 
-    if with_number:
+    if with_number and with_number == coverage["total"]:
+        # Every disposal in the period carries one — the gates on, where the
+        # Register Maker types every unit's code (handoff 58). `complete`,
+        # and the absolute sentence about NONE is still never printed.
+        assert coverage["coverage"] == "complete"
+        assert _ABSOLUTE_SAP_SENTENCE not in coverage["statement"]
+    elif with_number:
         assert coverage["coverage"] == "partial"
         assert _ABSOLUTE_SAP_SENTENCE not in coverage["statement"], (
             f"{with_number} disposal(s) in this period carry a SAP asset "
@@ -844,28 +878,39 @@ def test_the_writable_disposal_fields_round_trip(client, test_location):
     `_WRITABLE_FIELDS`, so they must be settable and readable back under
     `data.disposal`. A field on the allow-list that does not round-trip is
     an allow-list entry that does nothing."""
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-disposal-writable-{int(time.time())}",
-        "category_id": 1,
-        "state": "disposed",
-        "location_id": test_location["id"],
-        "disposal_date": _iso(_today()),
-        "disposal_method": "scrapped",
-        "disposal_reference": "BOS/2026/PYTEST-WRITE",
-        "disposal_proceeds": 0.0,
-        "disposal_reason": "pytest — writable round trip",
-    })
-    # BEFORE the skip. Since handoff 31 a field that fell off the allow-list
-    # is a 400, and the skip below would have filed exactly the failure this
-    # test exists to catch under "could not create the asset".
-    refused = ((r.json().get("error") or {}).get("details") or {}).get(
-        "rejected_fields") if r.status_code == 400 else None
-    assert not refused, (
-        f"{refused} is on the writable allow-list and the create refused it")
-    if r.status_code != 201:
-        pytest.skip(f"could not create the asset: HTTP {r.status_code} "
-                    f"{r.text[:200]}")
-    data = r.json()["data"]
+    body = dict(
+        name=f"pytest-disposal-writable-{int(time.time())}",
+        category_id=1,
+        state="disposed",
+        location_id=test_location["id"],
+        disposal_date=_iso(_today()),
+        disposal_method="scrapped",
+        disposal_reference="BOS/2026/PYTEST-WRITE",
+        disposal_proceeds=0.0,
+        disposal_reason="pytest — writable round trip",
+    )
+    if gates.receipt_gated(client):
+        # Handoff 58, P5: a receipt cannot arrive disposed; the same three
+        # fields are written on the registered unit, where the allow-list is
+        # the same one (`_WRITABLE_FIELDS`, PATCH and POST alike).
+        # Every assertion below applies to it unchanged.
+        data = gates.disposed_on_the_register(client, **body)
+    else:
+        r = client.post("/api/v1/assets",
+                        json=gates.receipt_body(client, **body))
+        # BEFORE the skip. Since handoff 31 a field that fell off the
+        # allow-list is a 400, and the skip below would have filed exactly
+        # the failure this test exists to catch under "could not create the
+        # asset".
+        refused = ((r.json().get("error") or {}).get("details") or {}).get(
+            "rejected_fields") if r.status_code == 400 else None
+        assert not refused, (
+            f"{refused} is on the writable allow-list and the create "
+            "refused it")
+        if r.status_code != 201:
+            pytest.skip(f"could not create the asset: HTTP {r.status_code} "
+                        f"{r.text[:200]}")
+        data = r.json()["data"]
     disposal = data["disposal"]
     assert disposal["method"] == "scrapped"
     assert disposal["reference"] == "BOS/2026/PYTEST-WRITE"

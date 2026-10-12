@@ -2,6 +2,7 @@ import { test, expect } from "../fixtures/test";
 import type { Page } from "../fixtures/test";
 import { gotoApp, expectShell, pickRecord } from "../fixtures/helpers";
 import { markedName, recordCreated } from "../fixtures/marker";
+import { aSerialClass, receiptGated } from "../fixtures/gates";
 
 /**
  * Handoff 31 §B, the sweep — proved by acting.
@@ -57,6 +58,15 @@ const searchTerm = (name: unknown) =>
 test("asset create — every input this tenant can fill", async ({ page, api }) => {
   const seed = (await api.assets(50)).find((a) => a?.category?.id);
   expect(seed, "an existing asset to borrow a category from").toBeTruthy();
+  // Handoff 58: with the receipt gates on, this Save makes a RECEIPT. Its
+  // class must be one the form can identify (Section 12: a `serial` class —
+  // the form has serial, make and model and no `tag_id` attributes), and a
+  // receipt carries NO custodian: a unit is given one once it is on the
+  // register (P5), so `custodian_id` is the one input the server refuses
+  // here, by rule, in words. It is not typed into this Save; the refusal is
+  // asserted on its own below. Switch off, the sweep is what it always was.
+  const gated = await receiptGated(api);
+  const categoryId = gated ? await aSerialClass(api) : seed.category.id;
   const loc = await api.firstLocation();
   const emp = await api.firstEmployee();
   const name = markedName("Sweep asset");
@@ -69,7 +79,7 @@ test("asset create — every input this tenant can fill", async ({ page, api }) 
   await field(page, /^\s*manufacturer/i).fill("E2E Manufacturer");
   await field(page, /^\s*make/i).fill("E2E Make");
   await field(page, /^\s*model/i).fill("E2E Model");
-  await field(page, /^\s*category id/i).fill(String(seed.category.id));
+  await field(page, /^\s*category id/i).fill(String(categoryId));
   await field(page, /^\s*domain/i, "select").selectOption({ index: 1 });
   await field(page, /^\s*department/i).fill("E2E Department");
   await field(page, /^\s*parent asset id/i).fill(String(seed.id));
@@ -89,7 +99,7 @@ test("asset create — every input this tenant can fill", async ({ page, api }) 
   await field(page, /^\s*internal notes/i, "textarea").fill("E2E — sweep");
   const locQ = searchTerm(loc?.name);
   const pickedLoc = locQ ? await pickRecord(page, "Search locations", locQ) : null;
-  const empQ = searchTerm(emp?.name);
+  const empQ = gated ? "" : searchTerm(emp?.name);
   const pickedEmp = empQ ? await pickRecord(page, "Search employees", empQ) : null;
 
   const { body, data } = await savedBy(page, "POST", /\/api\/v1\/assets$/, () =>
@@ -112,6 +122,19 @@ test("asset create — every input this tenant can fill", async ({ page, api }) 
   const fresh = await api.get(`/api/v1/assets/${data.id}`);
   expect(fresh?.name).toBe(name);
   expect(fresh?.department).toBe("E2E Department");
+  if (gated) {
+    expect(fresh?.register_state, "with the gates on the form's Save is a receipt").toBe("captured");
+    // The input left out above: a receipt naming a custodian is refused in
+    // words, before anything is written (§14.8).
+    expect(emp?.id, "an employee on this tenant to name as a custodian").toBeTruthy();
+    const refused = await api.raw("POST", "/api/v1/assets", {
+      name: markedName("Sweep asset custodian"), category_id: categoryId, custodian_id: emp.id,
+      serial_number: `E2E-SN19C-${Date.now()}`, make: "E2E Make", model_name: "E2E Model",
+    });
+    expect(refused.status, JSON.stringify(refused.body).slice(0, 300)).toBe(409);
+    expect(refused.body?.error?.details?.reason).toBe("not_on_the_register");
+    expect(refused.body?.error?.message).toContain("a custodian can be assigned once it is registered");
+  }
 });
 
 test("location create, then edit — every input", async ({ page, api }) => {

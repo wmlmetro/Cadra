@@ -50,6 +50,7 @@ import uuid
 
 import pytest
 
+from . import gates
 from .conftest import (assert_envelope_err, assert_envelope_ok,
                        assert_fields_refused, ids_matching)
 
@@ -64,7 +65,7 @@ _EVENT_RECORD = "nrs.asset.event"
 # `affix_refused` is handoff 51's — the one type that records a write the
 # register REFUSED, written beside the check on its own cursor so the 400's
 # rollback cannot unwind it.
-# `gate_fired` is handoff 57's — a receipt gate (scaffolding, replaced by 58).
+# `gate_fired` is handoff 57's — a receipt gate (kept by 58).
 _RECORDED_TYPES = ["verified", "verification_date_set", "status_changed",
                    "provenance_changed", "warranty_changed", "affix_refused",
                    "gate_fired"]
@@ -74,13 +75,26 @@ _HIERARCHY_FIELDS = ("building_id", "floor_id", "room_id")
 
 # ─── helpers ─────────────────────────────────────────────────────────
 
-def _new_asset(client, test_location, name, **extra):
-    """An asset of this test's own, so its history is exactly what we did."""
+def _new_asset(client, test_location, name, registered=True, **extra):
+    """An asset of this test's own, so its history is exactly what we did.
+
+    ON THE REGISTER whichever way the receipt switch is set (handoff 58
+    §2): missing, found, condemned and verified are things that happen to a
+    register asset, and with the gates on a receipt is walked onto it by
+    `tests/gates.py`, the one helper.
+
+    `registered=False` for a test that asserts the asset's WHOLE event
+    record and needs nothing only a register asset can have done to it:
+    walking onto the register is itself recorded (seven `gate_fired`, the
+    Register Maker's SAP code as a `provenance_changed`), so such a test
+    gets the unit as received — a candidate with the gates on, read by id,
+    which reaches one; with them off, exactly the asset it always was."""
     body = {"name": name, "category_id": 1,
             "location_id": test_location["id"]}
     body.update(extra)
-    r = client.post("/api/v1/assets", json=body)
-    return assert_envelope_ok(r, expected_status=201)["data"]
+    if not registered:
+        return gates.receive(client, **body)
+    return gates.new_registered_asset(client, **body)
 
 
 def _asset(client, asset_id, **params):
@@ -782,14 +796,31 @@ def test_a_disposal_date_the_caller_sent_is_kept(client, test_location):
     assert data["condition"] == "decommissioned"
 
 
+@pytest.mark.parametrize("gated", [False, True], ids=["switch_off",
+                                                      "switch_on"])
 def test_an_asset_registered_as_already_disposed_is_given_no_date(
-        client, test_location):
+        client, test_location, receipt_switch, gated):
     """NOT on create — deliberately, and this is the edge of the rule.
 
     An asset REGISTERED as disposed was disposed of on some earlier day this
     system never saw. Stamping today would replace a finding the disposal
     report can show — no date — with a date that is wrong, which it cannot.
+
+    A receipt-path test (handoff 58 §2), so it asserts the switch's answer:
+    with the gates ON a receipt cannot arrive disposed at all (P5 — a unit
+    not on the register cannot leave it), refused 409 before anything is
+    written; with them OFF, the rule above.
     """
+    receipt_switch(gated)
+    if gated:
+        r = client.post("/api/v1/assets", json=gates.receipt_body(
+            client, name="pytest-events-stamp-create", category_id=1,
+            location_id=test_location["id"], state="disposed"))
+        err = assert_envelope_err(r, 409, "conflict")["error"]
+        assert err["details"]["reason"] == "not_on_the_register"
+        assert err["message"].endswith(
+            "it can be disposed of once it is registered.")
+        return
     asset = _new_asset(client, test_location, "pytest-events-stamp-create",
                        state="disposed")
     assert asset["state"] == "disposed"
@@ -1395,7 +1426,7 @@ def test_a_changed_reference_is_recorded_and_a_changed_vendor_is_not(
     rows it covers and leaves the third standing — not the whole message.
     """
     asset = _new_asset(client, test_location, "pytest-events-references",
-                       grn_reference="GRN-BEFORE",
+                       registered=False, grn_reference="GRN-BEFORE",
                        purchase_order_reference="PO-BEFORE",
                        purchase_vendor="Vendor Before Ltd")
     r = client.patch(f"/api/v1/assets/{asset['id']}", json={
@@ -1438,7 +1469,7 @@ def test_a_changed_reference_is_recorded_and_a_changed_vendor_is_not(
 def test_a_reference_sent_unchanged_is_not_an_event(client, test_location):
     """Vendra re-sends what it holds. A re-send is not a correction."""
     asset = _new_asset(client, test_location, "pytest-events-reference-same",
-                       grn_reference="GRN-UNCHANGED")
+                       registered=False, grn_reference="GRN-UNCHANGED")
     assert_envelope_ok(client.patch(
         f"/api/v1/assets/{asset['id']}",
         json={"grn_reference": "GRN-UNCHANGED", "notes": "re-sent"}))
@@ -1454,7 +1485,7 @@ def test_an_assets_opening_values_are_not_events(client, test_location):
     for a row that says only that it was created.
     """
     asset = _new_asset(client, test_location, "pytest-events-opening",
-                       state="in_repair", grn_reference="GRN-AT-BIRTH",
+                       registered=False, state="in_repair", grn_reference="GRN-AT-BIRTH",
                        last_verified_date="2026-01-15")
     assert _recorded(_history(client, asset["id"])) == []
 
@@ -1498,11 +1529,14 @@ def test_an_event_this_suite_wrote_says_so(client, test_location,
     assert_envelope_ok(_condemn(client, asset["id"], "label test"))
 
     recorded = _recorded(_history(client, asset["id"]))
-    # Every kind but `gate_fired` (handoff 57): a gate needs a receipt
-    # candidate, which exists only with the tenant's switch on, and is
-    # proved in `test_receipt_gates.py` on both sides.
-    assert sorted({e["type"] for e in recorded}) == sorted(
-        t for t in _RECORDED_TYPES if t != "gate_fired"), (
+    # Every kind but `gate_fired` (handoff 57) when the tenant's switch is
+    # off: a gate needs a receipt candidate, which exists only with it on.
+    # With it on, this asset was walked onto the register through the gates
+    # (`tests/gates.py`), so `gate_fired` is written too — and carries the
+    # same label, which is the point of this test.
+    expected = (_RECORDED_TYPES if gates.receipt_gated(client)
+                else [t for t in _RECORDED_TYPES if t != "gate_fired"])
+    assert sorted({e["type"] for e in recorded}) == sorted(expected), (
         "this test is meant to write one event of every kind")
     sources = {e["source"] for e in recorded}
     assert sources == {"test"}, (
@@ -1584,7 +1618,8 @@ def test_the_fidelity_block_is_on_an_asset_with_no_events_of_its_own(
     exactly as much as one with a long history, and an array that was only
     present when populated could not be told from a server that predates it.
     """
-    asset = _new_asset(client, test_location, "pytest-events-fidelity-empty")
+    asset = _new_asset(client, test_location, "pytest-events-fidelity-empty",
+                       registered=False)
     history = _history(client, asset["id"])
     assert _recorded(history) == []
     assert [e["event"] for e in history["fidelity"]["events"]] == \
@@ -1654,9 +1689,9 @@ def test_the_location_hierarchy_is_refused_on_create_and_creates_nothing(
     """
     name = f"pytest-events-hierarchy-post-{uuid.uuid4().hex[:8]}"
     assert ids_matching(client, "/api/v1/assets", name) == []
-    r = client.post("/api/v1/assets", json={
-        "name": name, "category_id": 1, "location_id": test_location["id"],
-        **{f: any_location for f in _HIERARCHY_FIELDS}})
+    r = client.post("/api/v1/assets", json=gates.receipt_body(
+        client, name=name, category_id=1, location_id=test_location["id"],
+        **{f: any_location for f in _HIERARCHY_FIELDS}))
     details = assert_fields_refused(r, *_HIERARCHY_FIELDS)
     assert "location_id" in details["writable"], (
         "the repair — move it with `location_id` — is not in the response")

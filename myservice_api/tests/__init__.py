@@ -22,3 +22,5 @@ from . import test_asset_officer_role
 from . import test_export_scope
 from . import test_words_classes
 from . import test_receipt_gates
+# Handoff 58: P4, P5, Section 12 and the role-exclusion table.
+from . import test_gates_kept

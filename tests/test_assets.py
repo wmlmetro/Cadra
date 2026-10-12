@@ -16,7 +16,16 @@ def _uniq():
     """
     return f"{int(time.time())}-{uuid.uuid4().hex[:8]}"
 
+from . import gates
 from .conftest import assert_envelope_ok
+
+
+def _registered(client, **body):
+    """An asset ON THE REGISTER, whichever way the receipt switch is set —
+    for a test about finding, filtering or correcting one (handoff 58 §2:
+    with the gates on, a receipt is a candidate the register hides until
+    `tests/gates.py` walks it through them)."""
+    return gates.new_registered_asset(client, **body)
 
 
 def test_list(client, capture):
@@ -61,20 +70,29 @@ def test_get_by_tag_not_found(client, capture):
     assert r.json()["error"]["code"] == "not_found"
 
 
-def test_create(client, test_location, capture):
-    """POST /api/v1/assets — create with 201."""
+@pytest.mark.parametrize("gated", [True, False],
+                         ids=["switch_on", "switch_off"])
+def test_create(client, test_location, capture, receipt_switch, gated):
+    """POST /api/v1/assets — create with 201.
+
+    The receipt path itself (INT-03), so both switch states (handoff 58 §2):
+    on, the 201 is a `captured` candidate; off, a registered asset."""
+    receipt_switch(gated)
     ts = int(time.time())
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-asset-create-{ts}",
-        "category_id": 1,
-        "condition": "new",
-        "state": "active",
-        "location_id": test_location["id"],
-    })
+    r = client.post("/api/v1/assets", json=gates.receipt_body(
+        client,
+        name=f"pytest-asset-create-{ts}",
+        category_id=1,
+        condition="new",
+        state="active",
+        location_id=test_location["id"],
+    ))
     capture("assets/create", r)
     body = assert_envelope_ok(r, expected_status=201)
     assert body["data"]["id"] > 0
     assert body["data"]["asset_code"]  # auto-generated
+    assert body["data"]["register_state"] == (
+        "captured" if gated else "registered")
 
 
 def test_patch(client, test_asset, capture):
@@ -173,8 +191,16 @@ def test_export(client, capture):
 # reverse lookup — the fields alone are only half of a traceable link.
 
 
-def test_create_with_provenance(client, test_location, capture):
-    """POST /api/v1/assets — GRN/PO/vendor and import_* round-trip on create."""
+@pytest.mark.parametrize("gated", [True, False],
+                         ids=["switch_on", "switch_off"])
+def test_create_with_provenance(client, test_location, capture,
+                                receipt_switch, gated):
+    """POST /api/v1/assets — GRN/PO/vendor and import_* round-trip on create.
+
+    INT-03's own call, so both switch states (handoff 58 §2): the
+    provenance round-trips on a candidate exactly as on a registered asset.
+    """
+    receipt_switch(gated)
     ts = _uniq()
     payload = {
         "name": f"pytest-provenance-{ts}",
@@ -187,10 +213,12 @@ def test_create_with_provenance(client, test_location, capture):
         "import_date": "2026-05-12",
         "import_ref": f"VENDRA-RCPT-{ts}",
     }
-    r = client.post("/api/v1/assets", json=payload)
+    r = client.post("/api/v1/assets",
+                    json=gates.receipt_body(client, **payload))
     capture("assets/create_with_provenance", r)
     body = assert_envelope_ok(r, expected_status=201)
     data = body["data"]
+    assert data["register_state"] == ("captured" if gated else "registered")
 
     prov = data["provenance"]
     assert prov["grn_reference"] == payload["grn_reference"]
@@ -213,22 +241,15 @@ def test_filter_by_grn_reference(client, test_location, capture):
     grn = f"GRN-PYTEST-FILTER-{ts}"
     wanted = set()
     for n in (1, 2):
-        r = client.post("/api/v1/assets", json={
-            "name": f"pytest-grn-{ts}-{n}",
-            "category_id": 1,
-            "location_id": test_location["id"],
-            "grn_reference": grn,
-        })
-        wanted.add(assert_envelope_ok(r, expected_status=201)["data"]["id"])
+        wanted.add(_registered(
+            client, name=f"pytest-grn-{ts}-{n}", category_id=1,
+            location_id=test_location["id"], grn_reference=grn)["id"])
     # A decoy on a different GRN — the filter has to exclude it, or an
     # auditor's GRN lookup over-reports what the receipt delivered.
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-grn-decoy-{ts}",
-        "category_id": 1,
-        "location_id": test_location["id"],
-        "grn_reference": f"GRN-PYTEST-DECOY-{ts}",
-    })
-    decoy_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    decoy_id = _registered(
+        client, name=f"pytest-grn-decoy-{ts}", category_id=1,
+        location_id=test_location["id"],
+        grn_reference=f"GRN-PYTEST-DECOY-{ts}")["id"]
 
     r = client.get("/api/v1/assets", params={"grn_reference": grn, "limit": 100})
     capture("assets/filter_by_grn", r)
@@ -242,13 +263,10 @@ def test_filter_by_purchase_order_reference(client, test_location):
     """GET /api/v1/assets?purchase_order_reference=… — exact match, no bleed."""
     ts = _uniq()
     po = f"PO-PYTEST-FILTER-{ts}"
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-po-{ts}",
-        "category_id": 1,
-        "location_id": test_location["id"],
-        "purchase_order_reference": po,
-    })
-    asset_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    asset_id = _registered(
+        client, name=f"pytest-po-{ts}", category_id=1,
+        location_id=test_location["id"],
+        purchase_order_reference=po)["id"]
 
     r = client.get("/api/v1/assets", params={"purchase_order_reference": po, "limit": 100})
     body = assert_envelope_ok(r)
@@ -258,13 +276,10 @@ def test_filter_by_purchase_order_reference(client, test_location):
 def test_patch_provenance_correction(client, test_location):
     """PATCH can correct a mis-keyed GRN — write-once in practice, not enforced."""
     ts = _uniq()
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-prov-patch-{ts}",
-        "category_id": 1,
-        "location_id": test_location["id"],
-        "grn_reference": f"GRN-TYPO-{ts}",
-    })
-    asset_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    asset_id = _registered(
+        client, name=f"pytest-prov-patch-{ts}", category_id=1,
+        location_id=test_location["id"],
+        grn_reference=f"GRN-TYPO-{ts}")["id"]
 
     corrected = f"GRN-CORRECT-{ts}"
     r = client.patch(f"/api/v1/assets/{asset_id}", json={"grn_reference": corrected})
@@ -291,12 +306,12 @@ def test_unknown_condition_is_400_not_500(client, test_location, capture):
     answer 500 — a status an integration retries forever.
     """
     ts = int(time.time())
-    r = client.post("/api/v1/assets", json={
+    r = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-bad-condition-{ts}",
         "category_id": 1,
         "location_id": test_location["id"],
         "condition": "damaged",
-    })
+    }))
     capture("assets/create_invalid_condition", r)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
     error = r.json()["error"]
@@ -314,15 +329,10 @@ def test_filter_by_vendor_and_import_fields(client, test_location):
     ts = _uniq()
     vendor = f"Pytest Vendor {ts}"
     ref = f"VENDRA-FILTER-{ts}"
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-vendor-{ts}",
-        "category_id": 1,
-        "location_id": test_location["id"],
-        "purchase_vendor": vendor,
-        "import_source": "other",
-        "import_ref": ref,
-    })
-    asset_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    asset_id = _registered(
+        client, name=f"pytest-vendor-{ts}", category_id=1,
+        location_id=test_location["id"], purchase_vendor=vendor,
+        import_source="other", import_ref=ref)["id"]
 
     for params in ({"purchase_vendor": vendor}, {"import_ref": ref}):
         body = assert_envelope_ok(
@@ -366,13 +376,9 @@ def test_q_matches_grn_reference(client, test_location):
     """Free-text search reaches the GRN — an auditor pastes it into the box."""
     ts = _uniq()
     grn = f"GRN-PYTEST-Q-{ts}"
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-q-grn-{ts}",
-        "category_id": 1,
-        "location_id": test_location["id"],
-        "grn_reference": grn,
-    })
-    asset_id = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    asset_id = _registered(
+        client, name=f"pytest-q-grn-{ts}", category_id=1,
+        location_id=test_location["id"], grn_reference=grn)["id"]
 
     body = assert_envelope_ok(client.get("/api/v1/assets", params={"q": grn, "limit": 50}))
     assert asset_id in {a["id"] for a in body["data"]}
@@ -386,14 +392,12 @@ def test_grn_filter_is_exact_not_prefix(client, test_location):
     """
     ts = _uniq()
     grn = f"GRN-PYTEST-EXACT-{ts}"
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-exact-{ts}", "category_id": 1,
-        "location_id": test_location["id"], "grn_reference": grn})
-    wanted = assert_envelope_ok(r, expected_status=201)["data"]["id"]
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-exact-longer-{ts}", "category_id": 1,
-        "location_id": test_location["id"], "grn_reference": grn + "9"})
-    longer = assert_envelope_ok(r, expected_status=201)["data"]["id"]
+    wanted = _registered(
+        client, name=f"pytest-exact-{ts}", category_id=1,
+        location_id=test_location["id"], grn_reference=grn)["id"]
+    longer = _registered(
+        client, name=f"pytest-exact-longer-{ts}", category_id=1,
+        location_id=test_location["id"], grn_reference=grn + "9")["id"]
 
     body = assert_envelope_ok(
         client.get("/api/v1/assets", params={"grn_reference": grn, "limit": 100}))
@@ -409,12 +413,12 @@ def test_unparseable_date_is_400_not_500(client, test_location, capture):
     the shape a bad INT-03 payload takes.
     """
     ts = int(time.time())
-    r = client.post("/api/v1/assets", json={
+    r = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-bad-date-{ts}",
         "category_id": 1,
         "location_id": test_location["id"],
         "import_date": "not-a-date",
-    })
+    }))
     capture("assets/create_invalid_date", r)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
     error = r.json()["error"]
@@ -425,12 +429,12 @@ def test_unparseable_date_is_400_not_500(client, test_location, capture):
 def test_non_numeric_cost_is_400_not_500(client, test_location):
     """Same for a non-numeric monetary value."""
     ts = int(time.time())
-    r = client.post("/api/v1/assets", json={
+    r = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-bad-cost-{ts}",
         "category_id": 1,
         "location_id": test_location["id"],
         "acquisition_cost": "abc",
-    })
+    }))
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
     assert r.json()["error"]["code"] == "validation_failed"
 
@@ -442,11 +446,11 @@ def test_non_integer_relation_id_is_400_not_500(client, test_location):
     separate path from the two above.
     """
     ts = int(time.time())
-    r = client.post("/api/v1/assets", json={
+    r = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-bad-m2o-{ts}",
         "category_id": 1,
         "location_id": "abc",
-    })
+    }))
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
     assert r.json()["error"]["code"] == "validation_failed"
 
@@ -459,13 +463,14 @@ def test_import_source_accepts_vendra(client, test_location):
     exists to carry.
     """
     ts = _uniq()
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-vendra-src-{ts}",
-        "category_id": 1,
-        "location_id": test_location["id"],
-        "import_source": "vendra",
-        "import_ref": f"VENDRA-RCPT-{ts}",
-    })
+    r = client.post("/api/v1/assets", json=gates.receipt_body(
+        client,
+        name=f"pytest-vendra-src-{ts}",
+        category_id=1,
+        location_id=test_location["id"],
+        import_source="vendra",
+        import_ref=f"VENDRA-RCPT-{ts}",
+    ))
     body = assert_envelope_ok(r, expected_status=201)
     assert body["data"]["provenance"]["import_source"] == "vendra"
     assert "_warnings" not in body["data"]
@@ -474,12 +479,12 @@ def test_import_source_accepts_vendra(client, test_location):
 def test_import_source_rejects_an_invented_value(client, test_location):
     """Adding `vendra` must not have loosened the enum."""
     ts = int(time.time())
-    r = client.post("/api/v1/assets", json={
+    r = client.post("/api/v1/assets", json=gates.receipt_body(client, **{
         "name": f"pytest-bad-src-{ts}",
         "category_id": 1,
         "location_id": test_location["id"],
         "import_source": "not-a-system",
-    })
+    }))
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:300]}"
     details = r.json()["error"].get("details") or {}
     assert details.get("field") == "import_source"

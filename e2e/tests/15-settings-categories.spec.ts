@@ -20,8 +20,11 @@ test.describe("/settings/categories", () => {
     await expect(rows.first()).toBeVisible();
     expect(await rows.count()).toBeGreaterThan(0);
     // Name is an input and FM domain a select — this is an editor, not a list.
+    // Since handoff 58 the row carries a SECOND select, how the class is
+    // identified (Section 12), so the FM domain's is named by excluding it.
     await expect(rows.first().locator("input").first()).toBeVisible();
-    await expect(rows.first().locator("select")).toBeVisible();
+    await expect(rows.first().locator('select:not([data-testid^="select-identification-mode-"])')).toBeVisible();
+    await expect(rows.first().locator('[data-testid^="select-identification-mode-"]')).toBeVisible();
   });
 
   test("a category holding assets cannot be deleted", async ({ page, api }) => {

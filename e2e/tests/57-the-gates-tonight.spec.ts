@@ -3,12 +3,13 @@ import { request as pwRequest, type APIRequestContext } from "@playwright/test";
 import { test, expect, type Page } from "../fixtures/test";
 import { ORIGIN, appPath } from "../config";
 import { markedName, recordCreated } from "../fixtures/marker";
+import { onTheRegister, readyToAffix } from "../fixtures/gates";
 
 /**
  * Handoff 57 — the receipt gates, driven as the people who keep them.
  *
- * SCAFFOLDING, 2026-10-07: the gate machine is one field on `nrs.asset`
- * (`register_state`) until handoff 58's candidate model replaces it.
+ * The gate machine is one field on `nrs.asset` (`register_state`) — handoff
+ * 57's design, kept by handoff 58 (evaluation §8).
  *
  * One received unit, created the way INT-03 creates one, walked through every
  * gate by a different person, each signed in through the real sign-in page:
@@ -36,6 +37,13 @@ import { markedName, recordCreated } from "../fixtures/marker";
  *
  * Needs the switch on (`receipt_gated` on `GET /api/v1/settings`) and the
  * personas file; skips loudly naming whichever is missing.
+ *
+ * Handoff 58 §8.6 adds the second describe block below: a `tag_id` unit
+ * (furniture — no manufacturer serial, its attributes instead) through all
+ * seven gates as the personas, the affix done IN THE BROWSER by the tagger
+ * in the Confirm-affixed dialog (the label reading, the tick, and no serial
+ * field at all); and the D3 sentence — the person who fired another gate on
+ * a unit opens that dialog and is refused 409 in the server's own words.
  *
  *   (cd e2e && E2E_ORIGIN=http://test19.localhost:8069 npx playwright test 57-)
  */
@@ -195,6 +203,9 @@ test.describe("57 — the gates, tonight", () => {
       const name = markedName("spec57-candidate");
       const created = await call(store, "POST", "/assets", {
         name, category_id: categoryId, serial_number: `S57-${Date.now()}`,
+        // Handoff 58 (Section 12): a `serial` class arrives with its serial
+        // AND its make and model, or the receipt is refused at the door.
+        make: "Spec57 Make", model_name: "Spec57 Model",
         purchase_order_reference: "PO-57-DEMO", grn_reference: `GRN-57-${Date.now()}`,
       });
       expect([200, 201], JSON.stringify(created.body).slice(0, 300)).toContain(created.status);
@@ -351,8 +362,13 @@ test.describe("57 — the gates, tonight", () => {
     // every gate's scope, which is exactly who the no-two-gates rule is for.
     const cats = await call(admin!, "GET", "/asset-categories");
     const name = markedName("spec57-two-gates");
-    const created = await call(admin!, "POST", "/assets", { name, category_id: cats.body?.data?.[0]?.id });
-    expect([200, 201]).toContain(created.status);
+    // With its class's identification (handoff 58, Section 12) — a bare name
+    // is refused 400 at the door now, which is not the refusal this is about.
+    const created = await call(admin!, "POST", "/assets", {
+      name, category_id: cats.body?.data?.[0]?.id,
+      serial_number: `S57R-${Date.now()}`, make: "Spec57 Make", model_name: "Spec57 Model",
+    });
+    expect([200, 201], JSON.stringify(created.body).slice(0, 300)).toContain(created.status);
     const id = created.body.data.id as number;
     recordCreated({ kind: "asset", id, name });
     expect((await call(admin!, "POST", `/assets/${id}/gates/submit`, {})).status).toBe(200);
@@ -387,5 +403,181 @@ test.describe("57 — the gates, tonight", () => {
     await expect(page.getByTestId("gate-verify")).toHaveCount(0);
     await expect(page.getByTestId("gate-refusal").first()).toContainText(/different person/i);
     await shot(page, "two-gates-refusal");
+  });
+});
+
+/* ── Handoff 58 §8.6: the tag_id path and the D3 sentence ─────────────────── */
+
+test.describe("58 — a tag_id unit, and the affix refusal's sentence", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test.describe.configure({ mode: "serial" });
+
+  const P = personas();
+  let admin: Session | null = null;
+
+  test.beforeAll(async () => {
+    if (P.administrator) admin = await apiSession(P.administrator);
+  });
+  test.afterAll(async () => { await admin?.ctx.dispose(); });
+
+  /** Skip, naming what is missing, unless this tenant can run the chain. */
+  const needTheGates = async () => {
+    test.skip(Object.keys(P).length === 0, `no ${CREDS} — run scripts/demo_personas.sh ${TENANT} seed`);
+    for (const k of [...Object.values(WHO), "administrator"]) test.skip(!P[k], `persona "${k}" missing from ${CREDS}`);
+    const settings = await call(admin!, "GET", "/settings");
+    test.skip(settings.body?.data?.receipt_gated !== true,
+      `cadra.receipt.gated is not on for ${TENANT} (GET /settings → ${JSON.stringify(settings.body?.data ?? settings.status)})`);
+  };
+
+  /** The station → the card → the Confirm-affixed dialog, for `tag`. */
+  const openAffixDialog = async (page: Page, tag: string) => {
+    await page.goto(appPath("/tools/barcode"));
+    const box = page.getByTestId("scan-box");
+    await expect(box).toBeVisible({ timeout: 20_000 });
+    await box.fill(tag);
+    await box.press("Enter");
+    await expect(page.getByTestId("lookup-matched-by")).toHaveText(/found by tag/i, { timeout: 20_000 });
+    await expect(page.getByTestId("button-confirm-affixed")).toBeVisible({ timeout: 20_000 });
+    await page.getByTestId("button-confirm-affixed").click();
+    const dialog = page.getByTestId("dialog-confirm-affixed");
+    await expect(dialog).toBeVisible();
+    return dialog;
+  };
+
+  test("a tag_id unit: received with attributes and no serial, seven gates, the tagger affixes by label and tick", async ({ page, api }) => {
+    await needTheGates();
+    const cats = await call(admin!, "GET", "/asset-categories");
+    const furniture = (cats.body?.data ?? []).find((c: any) => c.identification_mode === "tag_id");
+    test.skip(!furniture, `no category on ${TENANT} is identified by tag_id (Section 12's seeded furniture class is missing)`);
+    const mandatory: string[] = furniture.class_attributes_schema?.mandatory ?? [];
+
+    // Received by the store, as INT-03 receives one: the attributes, no serial.
+    const name = markedName("spec58-tag-id chair");
+    const body: Record<string, unknown> = {
+      name, category_id: furniture.id,
+      make: "Spec58 Seating", model_name: "S58-CHAIR", colour: "Charcoal",
+      material: "Steel and mesh", dimensions: "60 x 60 x 110 cm",
+    };
+    for (const f of mandatory) expect(body[f], `the class's schema names "${f}" and the spec sends it`).toBeTruthy();
+    const store = await apiSession(P[WHO.store]);
+    let received: any;
+    try {
+      const res = await call(store, "POST", "/assets", body);
+      expect(res.status, JSON.stringify(res.body).slice(0, 400)).toBe(201);
+      received = res.body.data;
+    } finally {
+      await store.ctx.dispose();
+    }
+    recordCreated({ kind: "asset", id: received.id, name });
+    expect(received.register_state).toBe("captured");
+    expect(received.identification_mode).toBe("tag_id");
+    expect(received.serial_number || null, "a tag_id unit has no serial").toBeNull();
+
+    // Store → IAD officer → IAD approver → Asset Controller, each as themselves
+    // (`fixtures/gates.ts`); proved one by one in the browser by the block above.
+    const issued = await readyToAffix(api, received);
+    expect(issued.register_state).toBe("tag_issued");
+    const tag: string = issued.tagging?.tag_number;
+    expect(tag, "request-tagging minted no label").toBeTruthy();
+    expect(tag, "the label carries the asset code (ruling 4.3)").toBe(issued.asset_code);
+
+    // The tagger, in the browser.
+    await signIn(page, P[WHO.tagger]);
+    const dialog = await openAffixDialog(page, tag);
+    // No serial to scan: no serial field, and not the "no serial on file"
+    // sentence either — for this class that is the design, not a gap.
+    await expect(dialog.getByTestId("input-affix-serial")).toHaveCount(0);
+    await expect(dialog.getByTestId("affix-no-serial")).toHaveCount(0);
+    const tick = dialog.getByTestId("affix-attributes-confirm");
+    await expect(tick).toBeVisible();
+    await expect(tick).not.toBeChecked();
+    const tickLabel = dialog.locator('label[for="affix-attributes-confirm"]');
+    await expect(tickLabel).toContainText(`The item matches: ${name}, Spec58 Seating, Charcoal`);
+    // The no-leak rule is unchanged: the expected number is nowhere in it.
+    expect(await dialog.evaluate((el) => el.outerHTML), "the dialog carries the expected tag number").not.toContain(tag);
+    await shot(page, "tag-id-affix-dialog");
+
+    // The label reading alone is not enough: the tick is required.
+    await dialog.getByTestId("input-affix-tag-number").fill(tag);
+    await expect(dialog.getByTestId("button-submit-affixed")).toBeDisabled();
+    await tick.check();
+    await expect(dialog.getByTestId("button-submit-affixed")).toBeEnabled();
+    const posted = page.waitForResponse((r) => r.url().includes(`/assets/${received.id}/tag-affixed`) && r.request().method() === "POST");
+    await dialog.getByTestId("button-submit-affixed").click();
+    const res = await posted;
+    const sent = res.request().postDataJSON() ?? {};
+    expect(res.status(), `POST …/tag-affixed → ${res.status()}: ${await res.text().catch(() => "")}`).toBe(200);
+    expect(sent.attributes_confirmed, "the tick rode the POST").toBe(true);
+    expect(sent, "a tag_id unit sends no serial").not.toHaveProperty("serial_number");
+    await expect(dialog).toBeHidden({ timeout: 20_000 });
+    await shot(page, "tag-id-affixed");
+
+    const tagged = await api.get<any>(`/api/v1/assets/${received.id}`);
+    expect(tagged.register_state).toBe("tagged");
+    expect(tagged.tagging.label_state).toBe("affixed");
+    // The gate's event records which check the tagger made.
+    const history = await api.get<any>(`/api/v1/assets/${received.id}/history`);
+    const affix = (history.events ?? []).find((e: any) => e.type === "gate_fired" && e.detail?.action === "affix");
+    expect(affix, "no gate_fired row for the affix").toBeTruthy();
+    expect(affix.detail.evidence?.check).toBe("label_and_attributes");
+    expect(affix.actor?.name ?? affix.actor_name).toBeTruthy();
+
+    // Register Maker → Register Checker, as themselves: on the register.
+    const registered = await onTheRegister(api, tagged);
+    expect(registered.register_state).toBe("registered");
+    const hit = await api.get<any[]>("/api/v1/assets", { q: registered.asset_code, limit: 5 });
+    expect((hit ?? []).map((a) => a.id)).toContain(received.id);
+  });
+
+  test("D3: the person who fired another gate opens the affix dialog and is refused 409 in the server's own sentence", async ({ page, api }) => {
+    await needTheGates();
+    // Received and SUBMITTED by the administrator — who holds every gate's
+    // scope, the affix's `tagging:write` among them, which is exactly who
+    // the no-two-gates rule is for.
+    const cats = await call(admin!, "GET", "/asset-categories");
+    const serialClass = (cats.body?.data ?? []).find((c: any) => (c.identification_mode ?? "serial") === "serial");
+    const name = markedName("spec58-d3");
+    const serial = `S58D3-${Date.now()}`;
+    const created = await call(admin!, "POST", "/assets", {
+      name, category_id: serialClass.id, serial_number: serial, make: "Spec58 Make", model_name: "Spec58 Model",
+    });
+    expect(created.status, JSON.stringify(created.body).slice(0, 400)).toBe(201);
+    const id = created.body.data.id as number;
+    recordCreated({ kind: "asset", id, name });
+    const submitted = await call(admin!, "POST", `/assets/${id}/gates/submit`, {});
+    expect(submitted.status, JSON.stringify(submitted.body).slice(0, 300)).toBe(200);
+    // IAD officer → IAD approver → Asset Controller, each themselves.
+    const issued = await readyToAffix(api, submitted.body.data);
+    expect(issued.register_state).toBe("tag_issued");
+    const tag: string = issued.tagging.tag_number;
+
+    await signIn(page, P.administrator);
+    const dialog = await openAffixDialog(page, tag);
+    await dialog.getByTestId("input-affix-tag-number").fill(tag);
+    // A serial class: the serial field is there, and the right serial is
+    // typed — so the ONLY thing wrong is who is holding the scanner.
+    await dialog.getByTestId("input-affix-serial").fill(serial);
+    const posted = page.waitForResponse((r) => r.url().includes(`/assets/${id}/tag-affixed`) && r.request().method() === "POST");
+    await dialog.getByTestId("button-submit-affixed").click();
+    const res = await posted;
+    const envelope = await res.json().catch(() => null);
+    expect(res.status(), JSON.stringify(envelope).slice(0, 400)).toBe(409);
+    expect(envelope?.error?.code).toBe("conflict");
+    expect(envelope?.error?.details?.reason).toBe("segregation_of_duties");
+    expect(envelope?.error?.details?.earlier?.action).toBe("submit");
+    const sentence: string = envelope?.error?.message ?? "";
+    expect(sentence).toMatch(/^You received this unit on \d{1,2} [A-Z][a-z]{2}; a different person must tag it\.$/);
+
+    // The screen shows the server's sentence, verbatim — not "permission denied".
+    const refusal = dialog.getByTestId("affix-refusal");
+    await expect(refusal).toBeVisible({ timeout: 20_000 });
+    await expect(refusal).toContainText(sentence);
+    await expect(refusal).not.toContainText(/permission denied/i);
+    await shot(page, "d3-affix-refusal");
+
+    // Nothing was written.
+    const after = await api.get<any>(`/api/v1/assets/${id}`);
+    expect(after.register_state).toBe("tag_issued");
+    expect(after.tagging.label_state).not.toBe("affixed");
   });
 });

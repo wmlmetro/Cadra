@@ -58,6 +58,8 @@ PUBLISHED_ITEMS = {
     "register_export",
     # The receipt gates (handoff 57): the Candidates list and the switch.
     "candidates", "receipt_gate",
+    # The role-exclusion table (handoff 58 §5), under Settings.
+    "role_exclusions",
 }
 
 _KEY = re.compile(r"^[a-z][a-z0-9_]*$")

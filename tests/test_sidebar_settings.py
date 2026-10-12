@@ -100,7 +100,8 @@ def test_the_payload_says_it_is_not_a_permission(client, capture):
     # register_export).
     # 32 since handoff 57: Candidates (Asset Register) and Receipt gates
     # (Settings).
-    assert len(keys) == len(set(keys)) == 32, keys
+    # 33 since handoff 58: Role exclusions (Settings, §5).
+    assert len(keys) == len(set(keys)) == 33, keys
     assert len(data["groups"]) == 10
     hidden = [it["key"] for g in data["groups"] for it in g["items"]
               if not it["shown"]]

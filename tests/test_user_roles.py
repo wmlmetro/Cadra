@@ -36,6 +36,17 @@ SET_ROLES = "/api/v1/users/{id}/roles"
 SET_ROLES_SPEC_PATH = "/api/v1/users/{user_id}/roles"
 ACCESS = "/api/v1/reports/access-changes"
 
+#: The role the grant/record/revert tests add to the manager, and the scope
+#: only it brings. It was the Tag-Issuing Unit (`tagging:write`) until
+#: handoff 58 §5 seeded the role exclusions: the Asset Manager implies the
+#: Asset Officer, and *Asset Officer + Tag-Issuing Unit* is now a forbidden
+#: pair, so that grant is refused 403 — correctly. The Auditor is excluded
+#: with nothing and is the one source of `export:read` (handoff 50), so the
+#: change is still visible in the scopes and on the access record.
+SECOND_ROLE = "auditor"
+SECOND_ROLE_SCOPE = "export:read"
+SECOND_ROLE_GROUP_WORD = "Audit"
+
 MANAGER_LOGIN = "h41_manager"
 
 ONLY_THESE = "Over the API only these roles can be granted or removed"
@@ -49,7 +60,7 @@ NOBODY_THEMSELVES = "Nobody grants themselves a role"
 GRANTABLE = frozenset({"asset_user", "asset_officer", "asset_manager",
                        "tag_issuing_unit", "auditor",
                        # Handoff 57 §2e: the five receipt-gate roles, named
-                       # by the handoff (scaffolding, replaced by 58).
+                       # by the handoff (kept by 58).
                        "iad_vfm_officer", "iad_vfm_approver",
                        "asset_controller", "register_maker",
                        "register_checker"})
@@ -136,19 +147,19 @@ def me(client, admin_scope, suite_user):
 # ─── the preview ─────────────────────────────────────────────────────
 
 def test_a_dry_run_previews_the_implication_and_writes_nothing(client, manager):
-    r = _set(client, manager["id"], ["asset_manager", "tag_issuing_unit"],
+    r = _set(client, manager["id"], ["asset_manager", SECOND_ROLE],
              dry_run=True)
     data = assert_envelope_ok(r)["data"]
     assert data["applied"] is False
-    assert data["granted"] == ["tag_issuing_unit"]
+    assert data["granted"] == [SECOND_ROLE]
     assert data["revoked"] == []
     assert _keys(data["before"]["roles_direct"]) == ["asset_manager"]
-    assert _keys(data["after"]["roles_direct"]) == ["asset_manager",
-                                                     "tag_issuing_unit"]
+    assert _keys(data["after"]["roles_direct"]) == sorted(
+        ["asset_manager", SECOND_ROLE])
     effective = _keys(data["after"]["roles_effective"])
     assert "asset_user" in effective, (
         "the preview did not apply implication: %s" % effective)
-    assert "tag_issuing_unit" in effective
+    assert SECOND_ROLE in effective
     assert data["user"]["id"] == manager["id"]
     assert set(data["user"]) == set(manager), "the `user` row is not a User row"
     # Nothing written.
@@ -161,18 +172,18 @@ def test_a_real_change_is_applied_recorded_and_reverted(client, manager,
                                                         suite_user):
     try:
         data = assert_envelope_ok(_set(
-            client, manager["id"], ["asset_manager", "tag_issuing_unit"]))["data"]
+            client, manager["id"], ["asset_manager", SECOND_ROLE]))["data"]
         assert data["applied"] is True
-        assert data["granted"] == ["tag_issuing_unit"]
+        assert data["granted"] == [SECOND_ROLE]
         after = _row(client, manager["id"])
-        assert _keys(after["roles_direct"]) == ["asset_manager",
-                                                 "tag_issuing_unit"]
+        assert _keys(after["roles_direct"]) == sorted(
+            ["asset_manager", SECOND_ROLE])
         assert after == data["user"], "the response row and GET disagree"
-        assert "tagging:write" in after["scopes"]
+        assert SECOND_ROLE_SCOPE in after["scopes"]
 
         events = _access_events(client, MANAGER_LOGIN)
         granted = [e for e in events if e["event"] == "granted"
-                   and "Tag" in (e["group"] or "")]
+                   and SECOND_ROLE_GROUP_WORD in (e["group"] or "")]
         assert granted, (
             "the access record shows no `granted` event for %r today "
             "(%d events for that login); the recorder did not see the "
@@ -188,7 +199,7 @@ def test_a_real_change_is_applied_recorded_and_reverted(client, manager,
 
     reverted = _row(client, manager["id"])
     assert _keys(reverted["roles_direct"]) == ["asset_manager"]
-    assert "tagging:write" not in reverted["scopes"]
+    assert SECOND_ROLE_SCOPE not in reverted["scopes"]
 
 
 # ─── the two refusals ────────────────────────────────────────────────
@@ -289,18 +300,18 @@ def test_a_replay_under_the_same_key_returns_the_identical_body(client, manager)
     key = "pytest-h42-%s" % uuid.uuid4().hex[:12]
     headers = {"X-Idempotency-Key": key}
     try:
-        r1 = _set(client, manager["id"], ["asset_manager", "tag_issuing_unit"],
+        r1 = _set(client, manager["id"], ["asset_manager", SECOND_ROLE],
                   headers=headers)
         body1 = assert_envelope_ok(r1)
         assert body1["data"]["applied"] is True
-        r2 = _set(client, manager["id"], ["asset_manager", "tag_issuing_unit"],
+        r2 = _set(client, manager["id"], ["asset_manager", SECOND_ROLE],
                   headers=headers)
         body2 = assert_envelope_ok(r2)
         assert body1 == body2, "the replay is not the original answer"
         assert body1["meta"]["request_id"] == body2["meta"]["request_id"]
         # The replay re-applied nothing: the state is the one change.
-        assert _keys(_row(client, manager["id"])["roles_direct"]) == [
-            "asset_manager", "tag_issuing_unit"]
+        assert _keys(_row(client, manager["id"])["roles_direct"]) == sorted(
+            ["asset_manager", SECOND_ROLE])
     finally:
         _restore(client, manager["id"], ["asset_manager"])
 

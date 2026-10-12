@@ -3,6 +3,7 @@ import { ApiClient } from "../fixtures/api";
 import { gotoApp, expectShell, pickRecord } from "../fixtures/helpers";
 import { markedName, recordCreated } from "../fixtures/marker";
 import { appPath } from "../config";
+import { receive } from "../fixtures/gates";
 
 /**
  * Asset lifecycle actions from the detail page.
@@ -76,7 +77,16 @@ test("detail tabs switch", async ({ page, api }) => {
  * whole time, because it clicks the tab and never reads it. These two read it.
  */
 test("audit & review says in words when there is no history", async ({ page, api }) => {
-  const id = await createAsset(api, "HistoryEmpty");
+  // The unit AS RECEIVED, not walked onto the register (handoff 58 §2, the
+  // pytest twin's `registered=False`): this asserts the WHOLE history, and a
+  // unit walked through the receipt gates has seven gate events, a label's
+  // affix and the maker's SAP code in it — which is what a gated unit's
+  // history is. Switch off, this is exactly the asset it always was; switch
+  // on, it is a candidate, read by id (which reaches one).
+  const name = markedName("HistoryEmpty");
+  const received = await receive(api, { name, category_id: await api.firstCategoryId() });
+  recordCreated({ kind: "asset", id: received?.id, name });
+  const id = String(received.id);
   await gotoApp(page, `/assets/${id}`);
   await expectShell(page);
   await page.getByTestId("tab-audit-review").click();

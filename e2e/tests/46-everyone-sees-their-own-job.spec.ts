@@ -71,7 +71,13 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/reports/location-coverage", probes: [G("/dashboard/kpis"), G("/locations?limit=1")] },
   { path: "/reports/tag-adoption", probes: [G("/barcode/kpis")] },
   { path: "/reports/depreciation", probes: [G("/reports/depreciation")] },
-  { path: "/settings/categories", probes: [W("POST", "/asset-categories")] },
+  // Handoff 58: the Asset Categories item declares `settings:classes` (Asset
+  // Manager AND Asset Controller hold it — the Controller decides how a class
+  // is identified), and the one write both may make is the either-or-gated
+  // PATCH; `POST /asset-categories` is `settings:write` alone and would read
+  // the Controller as "drawn but refused". A holder gets 404 on id 0, anyone
+  // else 403.
+  { path: "/settings/categories", probes: [W("PATCH", "/asset-categories/0")] },
   { path: "/settings/branding", probes: [W("PATCH", "/settings/branding")] },
   { path: "/settings/depreciation", probes: [W("PATCH", "/settings/depreciation")] },
   // Handoff 48. `admin`-only; the probe body is refused 400 to a holder.

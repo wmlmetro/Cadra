@@ -30,6 +30,7 @@ import uuid
 
 import pytest
 
+from . import gates
 from .conftest import assert_envelope_err, assert_envelope_ok
 
 
@@ -72,11 +73,9 @@ def _asset_with_an_fm_domain(client):
         "rather than letting the test pass on the branch that never broke."
     )
 
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-barcode-{uuid.uuid4().hex[:8]}",
-        "category_id": category["id"],
-    })
-    asset = assert_envelope_ok(r, expected_status=201)["data"]
+    asset = gates.new_registered_asset(
+        client, name=f"pytest-barcode-{uuid.uuid4().hex[:8]}",
+        category_id=category["id"])
     assert asset["domain"], (
         f"asset was created in category {category['id']} "
         f"({category['name']}, domain {category['domain']!r}) but came back "
@@ -200,14 +199,12 @@ def _serial():
 
 def _asset_with_serial(client, label, serial, **extra):
     """A tagged asset of this test's own carrying `serial`. Every asset the
-    API creates is tagged — see the module docstring."""
-    r = client.post("/api/v1/assets", json={
-        "name": f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
-        "category_id": 1,
-        "serial_number": serial,
-        **extra,
-    })
-    asset = assert_envelope_ok(r, expected_status=201)["data"]
+    API creates is tagged — see the module docstring. With the receipt
+    gates on (handoff 58) it is walked onto the register by
+    `tests/gates.py`, the label affixed on the way."""
+    asset = gates.new_registered_asset(
+        client, name=f"pytest-barcode-{label}-{uuid.uuid4().hex[:8]}",
+        category_id=1, serial_number=serial, **extra)
     assert asset["serial_number"] == serial, (
         "the serial sent was not the serial saved — nothing below means "
         "anything if the fixture does not carry what it claims")
@@ -242,7 +239,12 @@ def test_lookup_by_asset_code_says_so(client, capture):
     capture("barcode/lookup_by_asset_code", r)
     data = assert_envelope_ok(r)["data"]
     assert data["asset_id"] == asset["id"]
-    assert data["matched_by"] == "asset_code"
+    # Handoff 58: a label issued through the receipt gates is numbered WITH
+    # the asset code, so the code is also the tag number, and the tag is
+    # tried first. The code still finds the asset; it says it matched the
+    # tag, because it did.
+    assert data["matched_by"] == (
+        "tag_number" if asset["tag"] == asset["asset_code"] else "asset_code")
     assert data["tagged"] is True
     assert data["tag_number"] == asset["tag"]
 
@@ -332,7 +334,10 @@ def test_an_asset_code_beats_a_serial_that_reads_the_same(client):
     assert decoy["serial_number"] == first["asset_code"]
     data = assert_envelope_ok(_lookup(client, first["asset_code"]))["data"]
     assert data["asset_id"] == first["id"]
-    assert data["matched_by"] == "asset_code"
+    # Gated, the code IS the tag number (handoff 58), which wins before the
+    # code is even tried — the serial loses either way.
+    assert data["matched_by"] == (
+        "tag_number" if first["tag"] == first["asset_code"] else "asset_code")
 
 
 def test_a_serial_on_two_assets_is_a_miss_that_says_so(client, capture):
@@ -345,7 +350,18 @@ def test_a_serial_on_two_assets_is_a_miss_that_says_so(client, capture):
     """
     serial = _serial()
     a = _asset_with_serial(client, "ambiguous-a", serial)
-    b = _asset_with_serial(client, "ambiguous-b", serial)
+    if gates.receipt_gated(client):
+        # A gated receipt refuses a serial already in Cadra (Section 12,
+        # handoff 58), so the duplicate this test needs cannot be RECEIVED
+        # — it is the legacy kind (`nrs19`'s 1,291), and is written here the
+        # one way a register asset's serial still changes: a PATCH.
+        b = _asset_with_serial(client, "ambiguous-b", _serial())
+        b = assert_envelope_ok(client.patch(
+            f"/api/v1/assets/{b['id']}",
+            json={"serial_number": serial}))["data"]
+        assert b["serial_number"] == serial
+    else:
+        b = _asset_with_serial(client, "ambiguous-b", serial)
     assert a["id"] != b["id"]
 
     r = _lookup(client, serial)

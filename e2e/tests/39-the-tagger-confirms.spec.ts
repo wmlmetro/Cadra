@@ -2,6 +2,7 @@ import { test, expect, type Page } from "../fixtures/test";
 import { ApiClient } from "../fixtures/api";
 import { gotoApp, expectShell } from "../fixtures/helpers";
 import { markedName, recordCreated } from "../fixtures/marker";
+import { receive, readyToAffix } from "../fixtures/gates";
 
 /**
  * Handoff 39, in a browser: the tagger confirms the label is on the asset.
@@ -45,7 +46,12 @@ async function shot(page: Page, name: string) {
 async function createTaggedAsset(api: ApiClient, label: string) {
   const name = markedName(label);
   const serial = `E2E-SN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-  const asset = await api.createAsset(name, { serial_number: serial });
+  // Handoff 58 §2: a label ISSUED and not yet affixed — with the receipt
+  // gates on, the unit is received and walked to `tag_issued` by the
+  // personas (`fixtures/gates.ts`); switch off, the create already is.
+  const asset = await readyToAffix(api, await receive(api, {
+    name, category_id: await api.firstCategoryId(), serial_number: serial,
+  }));
   recordCreated({ kind: "asset", id: asset.id, name });
   return { id: asset.id as number, name, serial, tag: asset.tag as string | null, code: asset.asset_code as string };
 }
