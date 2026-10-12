@@ -4253,7 +4253,7 @@ design (handoff 48).
 | 44 | GET    | `/api/v1/asset-categories` | `assets:read` |
 | 45 | POST   | `/api/v1/asset-categories` | `settings:write` |
 | 46 | DELETE | `/api/v1/asset-categories/<id>` | `settings:write` |
-| 47 | PATCH  | `/api/v1/asset-categories/<id>` | `settings:write`, or `settings:classes` for `identification_mode` / `class_attributes_schema` alone (checked in the route) |
+| 47 | PATCH  | `/api/v1/asset-categories/<id>` | `settings:write`, or `settings:classes` for `identification_mode` / `class_attributes_schema` / `sap_asset_class` alone (checked in the route) |
 | 48 | GET    | `/api/v1/locations` | `locations:read` |
 | 49 | POST   | `/api/v1/locations` | `locations:write` |
 | 50 | GET    | `/api/v1/locations/<id>` | `locations:read` |
@@ -4336,10 +4336,12 @@ design (handoff 48).
 | 127 | POST   | `/api/v1/settings/role-exclusions` | `settings:write` |
 | 128 | PATCH  | `/api/v1/settings/role-exclusions/<id>` | `settings:write` |
 | 129 | GET    | `/api/v1/settings/conflicting-grants` | `settings:write` |
-| 130 | GET    | `/api/v1/settings/sidebar` | (any signed-in caller) |
-| 131 | PATCH  | `/api/v1/settings/sidebar` | `admin` |
-| 132 | GET    | `/api/v1/brand` | (none) |
-| 133 | GET    | `/api/v1/brand/logo` | (none) |
+| 130 | GET    | `/api/v1/settings/serial-placeholders` | `settings:read` |
+| 131 | PUT    | `/api/v1/settings/serial-placeholders` | `settings:write` |
+| 132 | GET    | `/api/v1/settings/sidebar` | (any signed-in caller) |
+| 133 | PATCH  | `/api/v1/settings/sidebar` | `admin` |
+| 134 | GET    | `/api/v1/brand` | (none) |
+| 135 | GET    | `/api/v1/brand/logo` | (none) |
 
 
 ## 11.8 GET `/api/v1/settings` and PATCH `/api/v1/settings/receipt-gate` — are receipts gated? (handoff 57, kept by 58)
@@ -4768,7 +4770,8 @@ since handoff 58 refuses what the unit's class cannot accept (§14.6).
 
 `register_state` is one of `captured`, `vfm_pending`, `vfm_verified`,
 `vfm_approved`, `vfm_query`, `vfm_rejected`, `tag_requested`, `tag_issued`,
-`tagged`, `reg_submitted`, `registered` — read-only, refused in any body.
+`tagged`, `reg_ready` (handoff 59: a `record_only` unit, no label, §14.11),
+`reg_submitted`, `registered` — read-only, refused in any body.
 `gates.available` lists the actions the **caller's scopes** earn from the
 current state; `can_fire: false` carries the no-two-gates sentence in
 `refusal`. For a registered asset: `{"waiting_on": null, "state_since": null,
@@ -4776,7 +4779,8 @@ current state; `can_fire: false` carries the no-two-gates sentence in
 
 `waiting_on`: `store` (captured, vfm_query) · `iad` (vfm_pending) ·
 `iad_approver` (vfm_verified) · `controller` (vfm_approved) · `tagging`
-(tag_requested, tag_issued) · `maker` (tagged) · `checker` (reg_submitted) ·
+(tag_requested, tag_issued) · `maker` (tagged, reg_ready) · `checker`
+(reg_submitted) ·
 `null` (registered, vfm_rejected).
 
 ### 14.3 The ten actions — POST `/api/v1/assets/<id>/gates/<action>`
@@ -4791,9 +4795,9 @@ current state; `can_fire: false` carries the no-two-gates sentence in
 | `reject` | vfm_pending / vfm_verified → vfm_rejected (terminal) | `vfm:approve` | `reason` (required) |
 | `request-tagging` | vfm_approved → tag_requested → tag_issued | `tagging:request` | `notes`? |
 | *(affix, existing)* | tag_issued → tagged | `tagging:write` | `POST /assets/<id>/tag-affixed` (§7), the scanned value is the asset code |
-| `register` | tagged → reg_submitted | `register:make` | `sap_asset_code`, `cost` (> 0), `cost_centre`, `capitalisation_date` (YYYY-MM-DD), `asset_class` (category id — the confirmation), `notes`? |
-| `approve-registration` | reg_submitted → registered | `register:check` | `notes`? |
-| `return-registration` | reg_submitted → tagged | `register:check` | `reason` (required) |
+| `register` | tagged (or reg_ready) → reg_submitted | `register:make` | `sap_asset_code` (stored stripped, upper-cased — §14.11), `cost` (> 0), `cost_centre`, `capitalisation_date` (YYYY-MM-DD), `asset_class` (category id — the confirmation; refused if it has no `sap_asset_class`), `notes`? |
+| `approve-registration` | reg_submitted → registered | `register:check` | `notes`? (refused if the unit's class has no `sap_asset_class`) |
+| `return-registration` | reg_submitted → tagged (reg_ready for a `record_only` unit) | `register:check` | `reason` (required) |
 
 Every success is `200` with the asset as it now stands. Every transition
 writes one append-only `gate_fired` event (`GET /assets/<id>/history`), with
@@ -4806,7 +4810,7 @@ the actor, `from`/`to`, the gate, the reason and — for `verify` and
 | Status | Code | When |
 |---|---|---|
 | 400 | `invalid_request` | a body key the action does not accept (`rejected_fields`, `writable`) |
-| 400 | `validation_failed` | a missing reason/response, a checklist item not `true`, no attachment, a missing or duplicate SAP code, a cost ≤ 0, no cost centre, a bad date, an unknown `asset_class`; `details.field` names it |
+| 400 | `validation_failed` | a missing reason/response, a checklist item not `true`, no attachment, a missing or duplicate SAP code, a cost ≤ 0, no cost centre, a bad date, an unknown `asset_class`, a class with no SAP asset class (`register`, `approve-registration`); `details.field` names it |
 | 403 | `forbidden` | the caller lacks the action's scope (named in the message) |
 | 404 | `not_found` | no such asset |
 | 409 | `conflict` | `details.reason = "invalid_state"`: not possible from this state; `details.reason = "segregation_of_duties"`: **the no-two-gates rule** |
@@ -4933,6 +4937,62 @@ filter reads `nrs_asset.register_state` on every asset search, so such a
 tenant fails every asset list; any API route meeting a missing column now
 answers the same `503 server_misconfigured` naming it, instead of `500
 internal_error`.
+
+### 14.11 What SAP already holds (handoff 59)
+
+**The SAP asset class on every category.** `GET /api/v1/asset-categories`
+publishes `sap_asset_class` (SAP's four-digit class code, or null); `PATCH`
+accepts it from `settings:write` or `settings:classes` (anything but four
+digits: `400 invalid_request`; null or `""` clears it). With the switch on,
+`register` and `approve-registration` refuse a unit whose class has none —
+`400 validation_failed`, `details.field = "sap_asset_class"`:
+
+```json
+{"error": {"code": "validation_failed",
+  "message": "IT Equipment has no SAP asset class, so SAP would reject this asset. An Asset Controller sets it under Settings → Asset Categories.",
+  "details": {"field": "sap_asset_class", "category_id": 21, "http_status": 400}}}
+```
+
+**`record_only` — a class nothing can be fixed to** (land, buildings,
+software, works in progress). A fourth `identification_mode`, default schema
+`{"mandatory": ["name", "reference"]}` — `reference` is a new asset field
+(title or plot number, licence key or contract). A receipt carrying a
+`serial_number` is refused, whoever sends it. The chain is five gates:
+`submit` → `verify` → `approve`, which moves the unit `vfm_approved →
+reg_ready` at once (the tagging gates SKIPPED — a `gate_fired` history row
+with `detail.action = "skip-tagging"`, `detail.gate = null`, reason *"no
+label: <class> is identified by its record"*) → `register` →
+`approve-registration`. `request-tagging` is never offered (409
+`invalid_state`); no label is ever minted.
+
+**Placeholder serials.** `GET /api/v1/settings/serial-placeholders`
+(`settings:read`) and `PUT` (`settings:write`, the whole list):
+
+```json
+{"exact": ["123456", "12345AB", "4A12345FD", "N/A", "NA", "NIL", "NO SERIAL", "NONE", "…"],
+ "patterns": ["^X+$", "^0+$"], "configured": true,
+ "parameter": "cadra.serial_placeholders", "statement": "A value on this list is not a serial number. …",
+ "changed_by": {"id": 2, "name": "Administrator"}, "changed_at": "2026-10-12T17:20:31",
+ "legacy": {"assets": 11955, "with_serial": 11332, "placeholders": 0, "top": []}}
+```
+
+Compared stripped, upper-cased, internal spaces collapsed; patterns
+case-insensitive. With the switch on, a receipt whose serial is on the list
+is refused BEFORE the uniqueness check — `400 validation_failed`,
+`details.placeholder = true`, *"'XXXX' is a placeholder, not a serial number.
+Capture the serial printed on the item."* — so a placeholder already on a
+legacy asset is never the reason a real serial is refused.
+
+**SAP asset numbers in both shapes.** `register` accepts SAP's 11-digit
+numbers and its legacy alphanumeric codes (which may contain `/`, `&`, `\`
+and spaces, up to 12 characters), stores the code stripped and upper-cased,
+and refuses a duplicate in that form, naming the asset that holds it. An
+11-digit number whose first digit is not the class's answers `200` with a
+warning (class 3500's numbers start `5`, as in SAP):
+
+```json
+"_warnings": {"sap_asset_number": "2xxxxxxxxxx looks like a class 2000 number; this category maps to 3000."}
+```
 
 ## 15 · Role exclusions — Addendum A §4, rule 2 (handoff 58)
 

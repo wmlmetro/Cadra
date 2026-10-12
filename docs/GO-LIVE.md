@@ -2331,7 +2331,11 @@ with who owns it. `[open]` unless marked.
    only furniture as `tag_id`; NRS's real register uses its own classes
    (`nrs19`: *IT Equipment* 10,259 assets, *Fleet / Vehicles* 1,619 — both
    serial by default). A class left `serial` refuses every receipt without
-   a serial.
+   a serial. **Handoff 59** added the fourth mode, `record_only` (land,
+   buildings, software, works in progress: no serial, no label, five gates),
+   and seeded nothing to it — measured, 0 of 381 categories on 10 tenants
+   carry such a name; which classes are label-less is part of the same
+   conversation with NRS as item 5's mapping.
 3. **Vendra sends the attributes for a `tag_id` line** — *us* (Vendra 54,
    which reads `identification_mode` and `class_attributes_schema`). Until
    it is deployed, a furniture receipt from Vendra with the gates on is
@@ -2351,7 +2355,17 @@ with who owns it. `[open]` unless marked.
    reading of either); and the SAP asset-class mapping
    (`nrs.asset.category.sap_asset_class` is blank by default and a blank
    class is sent as null, so SAP rejects the master — §5.1 of the INT-06
-   requirements).
+   requirements). **Handoff 59:** with the gates on, a registration whose
+   class has no SAP class is now refused at the maker's step and the
+   checker's, in words, before SAP is asked; the Asset Controller sets it on
+   Settings → Asset Categories. **The mapping itself is NRS's**: report 59
+   carries a proposed table for `nrs19` and `staging` built from SAP's own
+   export (IT Equipment → 3000 and Fleet / Vehicles → 1000 at high
+   confidence; UPS, printers/photocopiers and CCTV split across two classes;
+   `nrs19`'s one set value, `3100`, is not one of SAP's ten) — the owner
+   takes it to NRS. **Still open:** with the gates OFF, INT-06 still sends a
+   blank class as null (DECISIONS 2026-10-12, handoff 59) — hold it before a
+   gates-off tenant meets the real endpoint.
 6. **What an in-flight candidate does if the switch is turned off** —
    *us*, measured (`tests/test_gates_kept.py::test_turning_the_switch_off_
    leaves_an_in_flight_unit_in_the_chain`): nothing happens to it. The
@@ -2371,7 +2385,13 @@ with who owns it. `[open]` unless marked.
    refused when its serial is already on ANY asset, and `nrs19` holds 1,291
    serials on more than one asset, many placeholders (`PROBOOK` ×94, handoff
    38). A real new unit will not collide with them, but a placeholder typed
-   at receipt will — and should.
+   at receipt will — and should. **Handoff 59:** a tenant placeholder list
+   (Settings → Asset Categories; `0`, `XXXX`, `4A12345FD`… seeded) is refused
+   at a gated receipt AS a placeholder, never as a duplicate. Measured, not
+   cleaned: 0 of 25,659 serials on 10 tenants match the seeded list — but
+   `nrs19` carries near-misses (`N\A` ×3, `DEL` ×53, `TOG` ×44, `BAD` ×13)
+   that NRS may want on its list. SAP's own register: 33,092 of 80,128 active
+   serials are placeholders.
 9. **A rejected unit has no way back** — *NRS*/*us*, Phase B. `vfm_rejected`
    is terminal, and A3 (the GRN reversal request to Vendra) is not built: a
    rejected unit stays a candidate nobody can act on, and Vendra still holds

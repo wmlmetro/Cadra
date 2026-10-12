@@ -1,0 +1,8 @@
+category: IT Equipment serial
+assets on nrs19 already carrying the real-looking serial: 0
+a real-looking serial equal to nothing           -> accepted
+placeholder 'XXXX'                               -> REFUSED (validation_failed): 'XXXX' is a placeholder, not a serial number. Capture the serial printed on the item.
+placeholder '0'                                  -> REFUSED (validation_failed): '0' is a placeholder, not a serial number. Capture the serial printed on the item.
+placeholder '4A12345FD'                          -> REFUSED (validation_failed): '4A12345FD' is a placeholder, not a serial number. Capture the serial printed on the item.
+placeholder 'no serial'                          -> REFUSED (validation_failed): 'no serial' is a placeholder, not a serial number. Capture the serial printed on the item.
+an existing nrs19 serial (value withheld)        -> REFUSED (validation_failed): Serial number <withheld> is already registered …
