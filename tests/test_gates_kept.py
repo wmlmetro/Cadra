@@ -353,7 +353,10 @@ def person(client, admin_scope):
     """One invented person for the run, deactivated at the end."""
     r = client.post("/api/v1/users", json={
         "name": _uniq("pytest-58-person"),
-        "email": f"{_uniq('p58')}@example.invalid", "roles": ["asset_user"]})
+        "email": f"{_uniq('p58')}@example.invalid", "roles": ["asset_user"],
+        # No letter: a tenant with no outgoing mail (CI) answers 500 to an
+        # invitation it cannot send, and this fixture is about roles.
+        "send_invitation": False})
     data = assert_envelope_ok(r, 201)["data"]
     try:
         yield data

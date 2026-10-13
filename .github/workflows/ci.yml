@@ -108,6 +108,23 @@ jobs:
           fi
           echo "database '$DB' is marked 'test'"
 
+      - name: Seed the demo personas — the receipt gates need seven people
+        run: |
+          # Since handoff 58 the suite walks units through the receipt gates
+          # with the switch ON, as the seven demo personas, because the
+          # no-two-gates rule refuses one credential at the second gate
+          # (`tests/gates.py`, `e2e/fixtures/gates.ts`). It FAILS, never
+          # skips, without them — so CI seeds them the way every classified
+          # tenant has them (handoff 46), rather than exempting itself. The
+          # helper finds the file by the host it calls, `localhost` here.
+          # The wrapper never prints a password; the file is gitignored and
+          # not in the uploaded artifacts, and each password is masked too.
+          DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
+          scripts/demo_personas.sh "$DB" seed
+          awk '!/^#/ && NF == 3 {print "::add-mask::" $3}' "docs/api/.personas.${DB}"
+          cp "docs/api/.personas.${DB}" docs/api/.personas.localhost
+          echo "personas: $(grep -cv '^#' docs/api/.personas.localhost) seeded on '$DB'"
+
       - name: Run the pytest API suite
         run: pytest tests/ -v
 
