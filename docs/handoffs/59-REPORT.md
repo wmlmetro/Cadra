@@ -538,6 +538,35 @@ boot44 | {"data": {"ready": true, "database": "boot44"}} 200
    `nrs_asset.reference`.
 3. Then the check under *Needs the owner* — readiness first.
 
+## CI — red since handoff 58 merged, green now
+
+The owner found the PR's checks red after the report was pushed. **The cause
+predates this handoff:** `dev` had been red on every CI run since PR #117
+(handoff 58) — 8 failed and 2 errors each time — and report 58's "green" was
+local only. Two causes, both environmental, neither a product defect:
+
+1. **CI's fresh database has no demo personas.** Since 58 the HTTP suite
+   walks units through the gates as the seven personas and FAILS, by design,
+   when there are none: *"The receipt gates are ON on this tenant and
+   docs/api/.personas.localhost does not exist…"*. `test19` has the file;
+   CI never did. This handoff's own walks added seven more of the same.
+   **Fixed** by a CI step that seeds the personas the way every classified
+   tenant has them (`scripts/demo_personas.sh <db> seed`, masked, never
+   printed, not in the uploaded artifacts) — not by a skip, which would turn
+   a switch-on run green by proving nothing.
+2. **CI has no outgoing mail**, and handoff 58's role-exclusion fixture
+   created its person with an invitation letter → 500. **Fixed** with
+   `send_invitation: false`, the convention every other person-creating
+   test already follows.
+
+After the fix (`f1f224f`), CI on the PR: **pytest 1,353 passed, 39 skipped,
+0 failed** on CI's own database (different data and skips from `test19`, so
+a different count), the in-registry step and every other check green.
+One thing seen and not chased: the in-registry step's log, as `gh run view
+--log` serves it, stops mid-run (it did on PR #116's green run too), so
+CI's module-suite denominators cannot be read from it; the local ones above
+are the evidence.
+
 ## The verification pass (a fresh agent, not an author)
 
 Found and **fixed**, each with a test:
