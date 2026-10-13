@@ -1579,3 +1579,28 @@ failing silently, depending on whose phone it was. The engine changed.
   grants-before-seed.txt`).
 - **Not yet**: deployed — owner, after merge; the deployed check is the
   owner's, in the browser (Turnstile; report 58, top).
+
+## Handoff 59 — what SAP already holds
+
+- **§1 — the SAP asset class**: `sap_asset_class` published and editable on
+  every category (`settings:classes` or `settings:write`, four digits,
+  `cadra.class_sap_asset_class.<id>` on the configuration record); with the
+  gates on, `register` and `approve-registration` refuse a class with none,
+  in words. The proposed mapping for `nrs19`/`staging` is in report 59 §1,
+  for NRS to decide — nothing written to any real tenant.
+- **§2 — `record_only`**: a fourth identification mode for land, buildings,
+  software and works in progress — no serial (refused whoever sends it), a
+  `reference`, no label ever, five gates (IAD's approval skips tagging to
+  `reg_ready`, an event saying why). Seeded nothing: 0 of 381 categories on
+  10 tenants carry such a name.
+- **§3 — placeholder serials**: the tenant's list
+  (`cadra.serial_placeholders`, `GET`/`PUT /settings/serial-placeholders`),
+  refused at a gated receipt as a placeholder, before — and never as — a
+  duplicate. Measured: 0 of 25,659 serials on 10 tenants; SAP's export 33,092
+  of 80,128 active.
+- **§4 — SAP asset numbers**: both shapes were already accepted; now stored
+  and compared stripped and upper-cased (the gate and the model rule), the
+  class-digit warning on `register`/`approve-registration` (class 3500's
+  numbers start `5`, measured).
+- **§7** — the three gates that would jam at 70 units a day, ranked with the
+  smallest relief for each: report 59 §7.

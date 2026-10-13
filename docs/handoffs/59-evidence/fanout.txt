@@ -1,0 +1,45 @@
+test19 | handoff 59: placeholder serials on test19 — 0 of 2749 assets with a serial (of 16938 assets) carry a placeholder; top: none (first upgrade, before this handoff's own fixtures)
+test19 | handoff 59: categories on test19 whose names suggest a label-less class — 0 of 143 (none); none switched to record_only
+test19 | handoff 59: SAP on test19 — 0 of 143 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 743 assets with one)
+test19 | errors: 0
+cadra19 | handoff 59: placeholder serials on cadra19 — 0 of 13 assets with a serial (of 1335 assets) carry a placeholder; top: none 
+cadra19 | handoff 59: categories on cadra19 whose names suggest a label-less class — 0 of 28 (none); none switched to record_only 
+cadra19 | handoff 59: SAP on cadra19 — 0 of 28 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one) 
+cadra19 | errors: 0
+nrs19 | handoff 59: placeholder serials on nrs19 — 0 of 11332 assets with a serial (of 11955 assets) carry a placeholder; top: none 
+nrs19 | handoff 59: categories on nrs19 whose names suggest a label-less class — 0 of 22 (none); none switched to record_only 
+nrs19 | handoff 59: SAP on nrs19 — 1 of 22 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 2 assets with one) 
+nrs19 | errors: 0
+gtb19 | handoff 59: placeholder serials on gtb19 — 0 of 0 assets with a serial (of 156 assets) carry a placeholder; top: none 
+gtb19 | handoff 59: categories on gtb19 whose names suggest a label-less class — 0 of 29 (none); none switched to record_only 
+gtb19 | handoff 59: SAP on gtb19 — 0 of 29 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one) 
+gtb19 | errors: 0
+nrs | handoff 59: placeholder serials on nrs — 0 of 0 assets with a serial (of 1272 assets) carry a placeholder; top: none 
+nrs | handoff 59: categories on nrs whose names suggest a label-less class — 0 of 28 (none); none switched to record_only 
+nrs | handoff 59: SAP on nrs — 0 of 28 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one) 
+nrs | errors: 0
+lasg | handoff 59: placeholder serials on lasg — 0 of 0 assets with a serial (of 150 assets) carry a placeholder; top: none 
+lasg | handoff 59: categories on lasg whose names suggest a label-less class — 0 of 29 (none); none switched to record_only 
+lasg | handoff 59: SAP on lasg — 0 of 29 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one) 
+lasg | errors: 0
+gtb | handoff 59: placeholder serials on gtb — 0 of 0 assets with a serial (of 150 assets) carry a placeholder; top: none 
+gtb | handoff 59: categories on gtb whose names suggest a label-less class — 0 of 29 (none); none switched to record_only 
+gtb | handoff 59: SAP on gtb — 0 of 29 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one) 
+gtb | errors: 0
+jaizbankplc | handoff 59: placeholder serials on jaizbankplc — 0 of 210 assets with a serial (of 4164 assets) carry a placeholder; top: none 
+jaizbankplc | handoff 59: categories on jaizbankplc whose names suggest a label-less class — 0 of 29 (none); none switched to record_only 
+jaizbankplc | handoff 59: SAP on jaizbankplc — 0 of 29 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one) 
+jaizbankplc | errors: 0
+boot44 | handoff 59: placeholder serials on boot44 — 0 of 38 assets with a serial (of 231 assets) carry a placeholder; top: none 
+boot44 | handoff 59: categories on boot44 whose names suggest a label-less class — 0 of 22 (none); none switched to record_only 
+boot44 | handoff 59: SAP on boot44 — 0 of 22 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one) 
+boot44 | errors: 0
+cadra19 | readiness: {"data": {"ready": true, "database": "cadra19"}} 200
+nrs19 | readiness: {"data": {"ready": true, "database": "nrs19"}} 200
+gtb19 | readiness: {"data": {"ready": true, "database": "gtb19"}} 200
+test19 | readiness: {"data": {"ready": true, "database": "test19"}} 200
+nrs | readiness: {"data": {"ready": true, "database": "nrs"}} 200
+lasg | readiness: {"data": {"ready": true, "database": "lasg"}} 200
+gtb | readiness: {"data": {"ready": true, "database": "gtb"}} 200
+jaizbankplc | readiness: {"data": {"ready": true, "database": "jaizbankplc"}} 200
+boot44 | readiness: {"data": {"ready": true, "database": "boot44"}} 200

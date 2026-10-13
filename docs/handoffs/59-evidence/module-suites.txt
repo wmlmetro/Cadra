@@ -1,0 +1,4 @@
+myservice_api | 0 failed, 0 error(s) of 424 tests when loading database 'test19'  | CRITICAL: 0
+myservice_asset_register | 0 failed, 0 error(s) of 482 tests when loading database 'test19'  | CRITICAL: 0
+myservice_workflow | 0 failed, 0 error(s) of 96 tests when loading database 'test19'  | CRITICAL: 0
+myservice_barcode_station | 0 failed, 0 error(s) of 20 tests when loading database 'test19'  | CRITICAL: 0

@@ -40,6 +40,16 @@ import type { ApiClient } from "./api";
  * run green by proving nothing.
  *
  * No persona password is ever printed: only keys and statuses reach a message.
+ *
+ * Handoff 59: a `record_only` class (land, buildings, software) has no
+ * label, so the server skips both tagging gates — `vfm_approved` goes
+ * straight to `reg_ready`, on the Register Maker — and the walk follows the
+ * STATE rather than a fixed list, firing whichever gate the unit now waits
+ * on. And SAP rejects a master with no asset class, so `register` and
+ * `approve-registration` are refused for a category without one: before the
+ * register step the walk gives the unit's category a SAP class (as the Asset
+ * Controller, the person whose job it is) when it has none. `test19` is a
+ * test database; a class set here is a fixture value, not NRS's mapping.
  */
 
 const TENANT = new URL(ORIGIN).hostname.split(".")[0];
@@ -57,11 +67,17 @@ export const CREW = [
   ["approve-registration", "register_checker"],
 ] as const;
 
-/** The CREW index of the gate that moves a unit FROM each state. */
+/** The CREW index of the gate that moves a unit FROM each state. A
+ *  `record_only` unit's `reg_ready` (handoff 59) waits on the maker, the
+ *  same gate as a tagged unit. */
 const FROM: Record<string, number> = {
   captured: 0, vfm_pending: 1, vfm_verified: 2, vfm_approved: 3,
-  tag_requested: 4, tag_issued: 4, tagged: 5, reg_submitted: 6,
+  tag_requested: 4, tag_issued: 4, tagged: 5, reg_ready: 5, reg_submitted: 6,
 };
+
+/** The SAP class the walk gives a category that has none. A fixture value
+ *  on a test database (4 digits, the server's rule); never NRS's mapping. */
+export const E2E_SAP_CLASS = "3000";
 
 const uniq = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
@@ -110,6 +126,8 @@ export async function receiptBody(api: ApiClient, body: Record<string, any>) {
   if (out.category_id == null) out.category_id = 1;
   const { mode, mandatory } = await classNeeds(api, out.category_id);
   if (mode === "serial" && !out.serial_number) out.serial_number = uniq("SN58E");
+  // No serial on a unit that has none (handoff 59): the server refuses one.
+  if (mode === "record_only") delete out.serial_number;
   for (const field of mandatory) if (!out[field]) out[field] = uniq(field).slice(0, 40);
   return out;
 }
@@ -165,14 +183,35 @@ export async function personaToken(key: string): Promise<string> {
   return (await session(key)).token;
 }
 
-async function asPersona(key: string, method: "GET" | "POST", p: string, data?: unknown) {
+export async function asPersona(
+  key: string, method: "GET" | "POST" | "PATCH" | "PUT", p: string, data?: unknown,
+  extraHeaders: Record<string, string> = {},
+) {
   const s = await session(key);
   const res = await s.ctx.fetch(`/api/v1${p}`, {
     method,
-    headers: { Authorization: `Bearer ${s.token}`, Accept: "application/json", "Content-Type": "application/json" },
-    data: method === "POST" ? (data ?? {}) : undefined,
+    headers: { Authorization: `Bearer ${s.token}`, Accept: "application/json", "Content-Type": "application/json", ...extraHeaders },
+    data: method === "GET" ? undefined : (data ?? {}),
   });
   return { status: res.status(), body: await res.json().catch(() => null) };
+}
+
+/**
+ * The category, with a SAP asset class — set to `E2E_SAP_CLASS` by the Asset
+ * Controller when it has none, left alone when it has one. Idempotent.
+ * Returns the class it now carries.
+ */
+export async function ensureSapClass(categoryId: number): Promise<string> {
+  const id = Number(categoryId);
+  const rows = (await asPersona("asset_controller", "GET", "/asset-categories")).body?.data ?? [];
+  const row = rows.find((r: any) => Number(r.id) === id);
+  if (row?.sap_asset_class) return row.sap_asset_class;
+  const res = await asPersona("asset_controller", "PATCH", `/asset-categories/${id}`, { sap_asset_class: E2E_SAP_CLASS });
+  if (res.status !== 200) {
+    throw new Error(`could not give category ${id} a SAP class as asset_controller: HTTP ${res.status} ` +
+      JSON.stringify(res.body?.error ?? res.body).slice(0, 300));
+  }
+  return E2E_SAP_CLASS;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -197,6 +236,9 @@ async function fire(api: ApiClient, asset: any, action: string, key: string, unt
       // written onto `acquisition_cost`, and a spec that created an asset at
       // a cost must not find the walk has restated it.
       const own = Number(asset?.financial?.acquisition_cost ?? 0);
+      // SAP would reject a master with no class, so the server refuses the
+      // register gate for one (handoff 59 §1): give it one first.
+      await ensureSapClass(asset?.category?.id ?? asset?.category_id ?? 1);
       body = {
         sap_asset_code: uniq("SAP58E").slice(0, 30),
         cost: own > 0 ? own : 1000,
@@ -215,16 +257,52 @@ async function fire(api: ApiClient, asset: any, action: string, key: string, unt
   return api.get<any>(`/api/v1/assets/${id}`);
 }
 
-async function walk(api: ApiClient, asset: any, until: string) {
-  const state = asset?.register_state ?? "registered";
-  if (state === "registered" || state === until) return asset;
-  if (!(state in FROM)) throw new Error(`cannot walk a unit at "${state}" to ${until}`);
-  for (const [action, key] of CREW.slice(FROM[state])) {
-    asset = await fire(api, asset, action, key, until);
-    if (asset.register_state === until) return asset;
+/**
+ * A category with a FIXED name, found or created by the administrator persona
+ * and then PATCHed to `patch` every run, so its state is known whichever run
+ * left it. Fixed, not unique per run: a category holding assets can never be
+ * deleted, and a new one per run would pile up on the tenant. Returns the row
+ * as the PATCH answered it.
+ */
+export async function fixedCategory(name: string, patch: Record<string, unknown>): Promise<any> {
+  const rows: any[] = (await asPersona("administrator", "GET", "/asset-categories")).body?.data ?? [];
+  let row = rows.find((r) => r.name === name);
+  if (!row) {
+    const made = await asPersona("administrator", "POST", "/asset-categories", { name },
+      { "X-Idempotency-Key": uniq("cat59") });
+    if (made.status !== 201 && made.status !== 200) {
+      throw new Error(`could not create category "${name}": HTTP ${made.status} ` +
+        JSON.stringify(made.body?.error ?? made.body).slice(0, 300));
+    }
+    row = made.body.data;
   }
-  if (asset.register_state !== until) throw new Error(`walk ended at ${asset.register_state}, not ${until}`);
-  return asset;
+  const res = await asPersona("administrator", "PATCH", `/asset-categories/${row.id}`, patch);
+  if (res.status !== 200) {
+    throw new Error(`could not set category "${name}" to ${JSON.stringify(patch)}: HTTP ${res.status} ` +
+      JSON.stringify(res.body?.error ?? res.body).slice(0, 300));
+  }
+  return res.body.data;
+}
+
+async function walk(api: ApiClient, asset: any, until: string) {
+  // Driven by the STATE, one gate at a time: a `record_only` unit jumps
+  // from `vfm_approved` to `reg_ready` (handoff 59), so a fixed list of the
+  // seven would fire `request-tagging` at a unit that will never have one.
+  for (let step = 0; step < CREW.length + 1; step++) {
+    const state = asset?.register_state ?? "registered";
+    // Registered already: nothing to walk (the old walk's no-op, kept).
+    if (state === until || state === "registered") return asset;
+    if (!(state in FROM)) throw new Error(`cannot walk a unit at "${state}" to ${until}`);
+    const [action, key] = CREW[FROM[state]];
+    asset = await fire(api, asset, action, key, until);
+  }
+  throw new Error(`walk ended at ${asset?.register_state}, not ${until}`);
+}
+
+/** The asset walked to `until` — for a spec that needs a unit parked at a
+ *  particular gate (spec 59: `tagged`, to be registered in the browser). */
+export async function walkTo(api: ApiClient, asset: any, until: string): Promise<any> {
+  return walk(api, asset, until);
 }
 
 /** The asset, registered. A no-op for a registered asset (switch off). */

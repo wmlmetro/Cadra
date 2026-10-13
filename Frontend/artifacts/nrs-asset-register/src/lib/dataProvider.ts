@@ -27,7 +27,7 @@ import {
   mockBusBookings,
 } from "../mock/staffBus";
 import { mockIdentityRecords } from "../mock/identity";
-import { apiConfigured, apiGet, apiPost, apiPatch, apiDelete, apiUpload, newIdempotencyKey } from "./api";
+import { apiConfigured, apiGet, apiPost, apiPatch, apiPut, apiDelete, apiUpload, newIdempotencyKey } from "./api";
 import { ENUM_SEED } from "./enums";
 import { lagosToday, addDaysIso } from "./utils";
 import {
@@ -356,6 +356,9 @@ export interface AssetWriteBody {
   colour?: string | null;
   material?: string | null;
   dimensions?: string | null;
+  // Handoff 59: what a `record_only` unit (land, a building, a licence) is
+  // identified by — a title or plot number, a licence key, a contract.
+  reference?: string | null;
   category_id?: number | null;
   subcategory_id?: number | null;
   asset_type_id?: number | null;
@@ -2227,17 +2230,24 @@ export interface AssetCategoryConfig {
   /** The EFFECTIVE capture schema — the stored one, or the mode's default.
    *  What is read can be PATCHed back unchanged. */
   class_attributes_schema?: ClassAttributesSchema;
+  /** SAP's four-digit asset class code (handoff 59 §1), or null when nobody
+   *  has set it — and then SAP would reject the asset's master, so the
+   *  register gates refuse to submit or approve it. Optional because an
+   *  older server does not publish it. */
+  sap_asset_class?: string | null;
   /** Only present on the response to a PATCH. */
   assets_recomputed?: number;
 }
 
 /** `nrs.asset.category.identification_mode` (handoff 58 §4). */
-export type IdentificationMode = "serial" | "tag_id" | "pool";
+export type IdentificationMode = "serial" | "tag_id" | "record_only" | "pool";
 
-/** The three modes, in the server's words. */
+/** The four modes, in the server's words. `record_only` since handoff 59 §2:
+ *  a capitalised asset nobody can fix a label to. */
 export const IDENTIFICATION_MODE_WORDS: Record<IdentificationMode, string> = {
   serial: "Serial (manufacturer serial number)",
   tag_id: "Tag ID (attributes, no serial)",
+  record_only: "Identified by its SAP record — no physical label (land, buildings, software, works in progress)",
   pool: "Pool (not built yet — refused at receipt)",
 };
 
@@ -2245,6 +2255,7 @@ export const IDENTIFICATION_MODE_WORDS: Record<IdentificationMode, string> = {
 export const IDENTIFICATION_MODE_SHORT: Record<IdentificationMode, string> = {
   serial: "Serial",
   tag_id: "Tag ID",
+  record_only: "SAP record",
   pool: "Pool",
 };
 
@@ -2259,6 +2270,9 @@ export const CAPTURABLE_ATTRIBUTES = [
   { field: "colour",       label: "Colour" },
   { field: "material",     label: "Material" },
   { field: "dimensions",   label: "Dimensions" },
+  // Handoff 59: a `record_only` class's identity — title or plot number,
+  // licence key, contract. Its default schema is description + this.
+  { field: "reference",    label: "Reference (title, plot, licence or contract)" },
 ] as const;
 export type CapturableAttribute = typeof CAPTURABLE_ATTRIBUTES[number]["field"];
 
@@ -2300,6 +2314,33 @@ export interface CategoryClassIdentification {
   class_attributes_schema: ClassAttributesSchema;
 }
 
+/** SAP's class code for a category (handoff 59 §1) — writable by the same
+ *  two scopes as the identification mode. `null` (or "") clears it. */
+export interface CategorySapClass {
+  sap_asset_class: string | null;
+}
+
+/** The ten classes SAP's own asset master for NRS uses
+ *  (`docs/reference/sap-asset-master-2026-10.md`). A HINT, never a closed
+ *  list: NRS may hold classes the export did not happen to use, so the field
+ *  takes any four digits. The names are read off SAP's descriptions and are
+ *  NRS's to confirm. */
+export const SAP_ASSET_CLASS_HINTS: { code: string; name: string }[] = [
+  { code: "1000", name: "Motor vehicles" },
+  { code: "2000", name: "Furniture & fittings" },
+  { code: "3000", name: "ICT" },
+  { code: "3500", name: "Software & licences" },
+  { code: "4000", name: "Office equipment" },
+  { code: "6000", name: "Land" },
+  { code: "7000", name: "Plant & power" },
+  { code: "8000", name: "Buildings & renovations" },
+  { code: "9000", name: "Construction in progress" },
+  { code: "9300", name: "Projects / works in progress" },
+];
+
+/** The server's rule, checked first so the screen says it before a 400 does. */
+export const isSapAssetClass = (v: string) => /^\d{4}$/.test(v);
+
 /**
  * Only the named keys, and only those that are set. For the three settings
  * writes below, whose screens build a body by EDITING AN OBJECT THEY WERE
@@ -2327,7 +2368,7 @@ const CATEGORY_IDENTITY_KEYS = [
  *  from that caller is a 403 — so the screen sends them alone for that
  *  person and alongside the identity keys for a `settings:write` holder. */
 const CATEGORY_CLASS_KEYS = [
-  "identification_mode", "class_attributes_schema",
+  "identification_mode", "class_attributes_schema", "sap_asset_class",
 ] as const;
 /** `_CATEGORY_POLICY_FIELDS`, less the method — sent under its wire name. */
 const CATEGORY_POLICY_NUMBER_KEYS = [
@@ -2349,7 +2390,7 @@ const CATEGORY_POLICY_NUMBER_KEYS = [
  */
 export const updateAssetCategory = async (
   id: number,
-  body: Partial<CategoryPolicy & CategoryIdentity & CategoryClassIdentification>,
+  body: Partial<CategoryPolicy & CategoryIdentity & CategoryClassIdentification & CategorySapClass>,
 ) => {
   const wire: Record<string, unknown> = {
     ...pickSet(body, CATEGORY_IDENTITY_KEYS),
@@ -3100,6 +3141,9 @@ export async function fetchRegisterTotal(): Promise<number | null> {
 export type RegisterState =
   | "captured" | "vfm_pending" | "vfm_verified" | "vfm_approved" | "vfm_query"
   | "vfm_rejected" | "tag_requested" | "tag_issued" | "tagged"
+  // Handoff 59 §2: a `record_only` unit skips both tagging gates and waits
+  // here, on the Register Maker, with no label ever minted.
+  | "reg_ready"
   | "reg_submitted" | "registered";
 
 /** Whose move it is, computed by the server from the state. */
@@ -3149,6 +3193,9 @@ export interface CandidateRow {
    *  null for anything received with the gates off or before 58. Optional
    *  because an older server does not publish it. */
   identification_mode?: Exclude<IdentificationMode, "pool"> | null;
+  /** What a `record_only` unit is identified by (handoff 59) — title or
+   *  plot number, licence key, contract. */
+  reference?: string | null;
   /** The attributes a `tag_id` unit is identified by (handoff 58). */
   make?: string | null;
   model_name?: string | null;
@@ -3272,6 +3319,48 @@ export async function fetchReceiptGated(): Promise<boolean | null> {
     return null;
   }
 }
+
+// ─── PLACEHOLDER SERIALS (handoff 59 §3) ─────────────────────────────────────
+// SAP's register for NRS carries tens of thousands of "serials" that are not
+// serials — `0`, `XXXX`, `4A12345FD`. A gated receipt refuses one as a
+// placeholder, and the serial-uniqueness check ignores legacy assets that
+// carry one, so a real serial is never refused because of them. The list is
+// the tenant's (`cadra.serial_placeholders`); nothing here rewrites a serial.
+
+export interface SerialPlaceholders {
+  /** Matched case-insensitively, stripped, internal spaces collapsed. */
+  exact: string[];
+  /** Regular expressions, matched against the same normalised value. */
+  patterns: string[];
+  /** False while the tenant runs on the seeded list nobody has edited. */
+  configured: boolean;
+  /** The configuration parameter a change is recorded under. */
+  parameter: string;
+  /** The server's sentence about what the list does — shown as written. */
+  statement: string;
+  changed_by: { id: number; name: string } | null;
+  changed_at: string | null;
+  /** Measured, never cleaned: how many existing assets carry a placeholder. */
+  legacy: {
+    assets: number;
+    with_serial: number;
+    placeholders: number;
+    top: { value: string; count: number }[];
+  };
+}
+
+/** `settings:read`. */
+export const fetchSerialPlaceholders = async (): Promise<SerialPlaceholders> =>
+  (await apiGet<SerialPlaceholders>("/api/v1/settings/serial-placeholders")).data;
+
+/** `settings:write`. Both lists are required — the PUT replaces the list
+ *  whole — so the screen sends the full edited pair, never a delta. */
+export const updateSerialPlaceholders = async (
+  body: { exact: string[]; patterns: string[] },
+): Promise<SerialPlaceholders> =>
+  (await apiPut<SerialPlaceholders>("/api/v1/settings/serial-placeholders", {
+    exact: body.exact, patterns: body.patterns,
+  })).data;
 
 // ─── ROLE EXCLUSIONS (handoff 58 §5 — Addendum A §4, rule 2) ────────────────
 // Which two roles one person may not hold together. The table is enforced on

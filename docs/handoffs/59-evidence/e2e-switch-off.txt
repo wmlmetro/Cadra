@@ -1,0 +1,344 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 263 tests using 1 worker
+
+  ✓    1 [chromium] › tests/00-auth.spec.ts:14:7 › login flow (unauthenticated) › login form renders with branding and disabled submit (2.3s)
+  ✓    2 [chromium] › tests/00-auth.spec.ts:32:7 › login flow (unauthenticated) › show/hide password toggle works (1.9s)
+  ✓    3 [chromium] › tests/00-auth.spec.ts:43:7 › login flow (unauthenticated) › wrong credentials surface an error banner (1.7s)
+  ✓    4 [chromium] › tests/00-auth.spec.ts:56:7 › login flow (unauthenticated) › correct credentials log in and land on the shell (3.5s)
+  ✓    5 [chromium] › tests/00-auth.spec.ts:68:7 › authenticated session › sidebar session chip shows signed-in state (2.2s)
+  ✓    6 [chromium] › tests/00-auth.spec.ts:75:7 › authenticated session › theme toggle flips and persists the theme (2.4s)
+  ✓    7 [chromium] › tests/00-auth.spec.ts:91:7 › authenticated session › sign out returns to the login form (1.5s)
+  ✓    8 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders / (1.9s)
+  ✓    9 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /dashboards/fm (1.6s)
+  ✓   10 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /dashboards/fleet (1.7s)
+  ✓   11 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /dashboards/it (1.8s)
+  ✓   12 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /dashboards/security (1.7s)
+  ✓   13 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /tools/barcode (2.1s)
+  ✓   14 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /service-desk (1.7s)
+  ✓   15 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /service-desk/new (1.7s)
+  ✓   16 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /service-desk/triage (1.7s)
+  ✓   17 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /assets (3.2s)
+  ✓   18 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /assets/list (2.3s)
+  ✓   19 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /assets/new (1.9s)
+  ✓   20 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /locations (2.1s)
+  ✓   21 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /locations/new (3.1s)
+  ✓   22 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /reports/fleet-roster (1.9s)
+  ✓   23 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /reports/asset-inventory (1.6s)
+  ✓   24 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /reports/maintenance-readiness (1.5s)
+  ✓   25 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /reports/location-coverage (1.5s)
+  ✓   26 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /reports/tag-adoption (1.8s)
+  ✓   27 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /hr/sap-sync (1.8s)
+  ✓   28 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /hr/import (1.6s)
+  ✓   29 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /hr/employees (1.5s)
+  ✓   30 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /hr/identity (1.9s)
+  ✓   31 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /fleet (1.9s)
+  ✓   32 [chromium] › tests/01-navigation.spec.ts:42:9 › route reachability › renders /fleet/staff-bus (1.5s)
+  ✓   33 [chromium] › tests/01-navigation.spec.ts:50:7 › route reachability › unknown route renders the 404 page (1.7s)
+  ✓   34 [chromium] › tests/01-navigation.spec.ts:58:7 › dynamic detail routes (real IDs) › asset detail /assets/:id (2.8s)
+  ✓   35 [chromium] › tests/01-navigation.spec.ts:66:7 › dynamic detail routes (real IDs) › location detail /locations/:id (1.7s)
+  ✓   36 [chromium] › tests/01-navigation.spec.ts:74:7 › dynamic detail routes (real IDs) › employee detail /hr/employees/:id (1.6s)
+  ✓   37 [chromium] › tests/01-navigation.spec.ts:82:7 › dynamic detail routes (real IDs) › request detail /service-desk/:id (2.0s)
+  ✓   38 [chromium] › tests/01-navigation.spec.ts:114:7 › sidebar navigation › every visible nav item navigates to its route (1.7s)
+  ✓   39 [chromium] › tests/02-branding.spec.ts:13:5 › brand endpoint returns a valid tenant identity (224ms)
+  ✓   40 [chromium] › tests/02-branding.spec.ts:29:5 › document title and favicon present (1.7s)
+  ✓   41 [chromium] › tests/02-branding.spec.ts:37:5 › brand logo renders in the sidebar (2.8s)
+  ✓   42 [chromium] › tests/02-branding.spec.ts:48:5 › active nav item uses the brand primary colour (1.4s)
+  ✓   43 [chromium] › tests/03-dashboards.spec.ts:11:7 › Facility Command Center (home) › stat cards navigate to their sections (1.5s)
+  ✓   44 [chromium] › tests/03-dashboards.spec.ts:24:7 › Facility Command Center (home) › review queue table renders (or empty state) (2.1s)
+  ✓   45 [chromium] › tests/03-dashboards.spec.ts:32:7 › Facility Command Center (home) › the review-queue card goes somewhere (1.4s)
+  ✓   46 [chromium] › tests/03-dashboards.spec.ts:40:7 › Facility Command Center (home) › the status breakdown plots statuses a record can carry (2.0s)
+  ✓   47 [chromium] › tests/03-dashboards.spec.ts:65:7 › FM Operations dashboard loads and Refresh works (2.7s)
+  ✓   48 [chromium] › tests/03-dashboards.spec.ts:65:7 › Fleet Command dashboard loads and Refresh works (1.6s)
+  ✓   49 [chromium] › tests/03-dashboards.spec.ts:65:7 › IT Assets Command dashboard loads and Refresh works (1.5s)
+  ✓   50 [chromium] › tests/03-dashboards.spec.ts:65:7 › Security Operations dashboard loads and Refresh works (1.6s)
+  ✓   51 [chromium] › tests/04-assets-list.spec.ts:17:7 › /assets/list › view switcher toggles Kanban / List / Map (1.9s)
+  ✓   52 [chromium] › tests/04-assets-list.spec.ts:30:7 › /assets/list › search filters the register (2.1s)
+  ✓   53 [chromium] › tests/04-assets-list.spec.ts:42:7 › /assets/list › filter dropdowns open and clear (1.7s)
+  ✓   54 [chromium] › tests/04-assets-list.spec.ts:64:7 › /assets/list › the Status filter offers only statuses a record can carry (2.0s)
+  ✓   55 [chromium] › tests/04-assets-list.spec.ts:97:7 › /assets/list › the Status filter 'no SAP code' returns the real rows, each wearing that pill (2.7s)
+  ✓   56 [chromium] › tests/04-assets-list.spec.ts:153:7 › /assets/list › the other two statuses never show a row under a pill that contradicts them (2.3s)
+  ✓   57 [chromium] › tests/04-assets-list.spec.ts:171:7 › /assets/list › group-by select changes grouping (1.8s)
+  ✓   58 [chromium] › tests/04-assets-list.spec.ts:181:7 › /assets/list › + New Asset navigates to the create form (1.9s)
+  ✓   59 [chromium] › tests/04-assets-list.spec.ts:188:7 › /assets/list › a row opens the asset detail (3.0s)
+  ✓   60 [chromium] › tests/04-assets-list.spec.ts:204:7 › /assets dashboard › the KPI strip names what it counts (1.9s)
+  ✓   61 [chromium] › tests/04-assets-list.spec.ts:221:7 › /assets dashboard › dashboard controls render and New asset navigates (2.0s)
+  ✓   62 [chromium] › tests/05-assets-crud.spec.ts:11:5 › create form gates submit until Name is set (1.6s)
+  ✓   63 [chromium] › tests/05-assets-crud.spec.ts:20:5 › create an asset end-to-end (4.6s)
+  ✓   64 [chromium] › tests/05-assets-crud.spec.ts:64:5 › edit an asset and persist the change (4.0s)
+  ✓   65 [chromium] › tests/06-asset-actions.spec.ts:54:5 › detail tabs switch (2.0s)
+  ✓   66 [chromium] › tests/06-asset-actions.spec.ts:79:5 › audit & review says in words when there is no history (2.0s)
+  ✓   67 [chromium] › tests/06-asset-actions.spec.ts:103:5 › audit & review shows a verification, newest first, with what its record is worth (2.8s)
+  ✓   68 [chromium] › tests/06-asset-actions.spec.ts:129:5 › audit & review carries a reconstruction and a blank actor all the way to the screen (2.3s)
+  ✓   69 [chromium] › tests/06-asset-actions.spec.ts:185:5 › audit & review says where the location record begins, and a tapped label explains itself (2.3s)
+  ✓   70 [chromium] › tests/06-asset-actions.spec.ts:254:5 › mark verified (UI) (2.5s)
+  ✓   71 [chromium] › tests/06-asset-actions.spec.ts:270:5 › mark missing via the app dialog, and the page stops saying Cleared (UI) (3.5s)
+  ✓   72 [chromium] › tests/06-asset-actions.spec.ts:324:5 › mark missing fires no native browser dialog (4.0s)
+  ✓   73 [chromium] › tests/06-asset-actions.spec.ts:355:5 › condemn sets state and condition, and the page stops saying Cleared (UI) (3.5s)
+  ✓   74 [chromium] › tests/06-asset-actions.spec.ts:404:5 › a cancelled condemn does not reopen pre-filled (2.4s)
+  ✓   75 [chromium] › tests/06-asset-actions.spec.ts:417:5 › back goes to the register list, not the KPI dashboard (1.9s)
+  ✓   76 [chromium] › tests/06-asset-actions.spec.ts:437:5 › after marking an asset missing, the dashboard count and the edit form both know (6.6s)
+  ✓   77 [chromium] › tests/06-asset-actions.spec.ts:483:5 › mark found is offered on a missing asset and on no other (3.5s)
+  ✓   78 [chromium] › tests/06-asset-actions.spec.ts:510:5 › mark found via the app dialog: list → asset → act → back (UI, one session) (5.3s)
+  ✓   79 [chromium] › tests/06-asset-actions.spec.ts:580:5 › a stale Mark found gets the server's 409 in the dialog, and the page catches up (2.9s)
+  -   80 [chromium] › tests/06-asset-actions.spec.ts:613:5 › an asset with no location can be placed, and the dialog promises no transfer (UI)
+  -   81 [chromium] › tests/06-asset-actions.spec.ts:700:5 › move persists server-side (API)
+  -   82 [chromium] › tests/06-asset-actions.spec.ts:738:5 › move via UI closes the dialog and persists
+  -   83 [chromium] › tests/06-asset-actions.spec.ts:780:5 › transfer custody persists server-side (API)
+  ✓   84 [chromium] › tests/06-asset-actions.spec.ts:807:5 › transfer custody via UI closes the dialog and persists (4.9s)
+  -   85 [chromium] › tests/06-asset-actions.spec.ts:841:5 › move to the same location is rejected
+  ✓   86 [chromium] › tests/07-locations.spec.ts:12:7 › /locations list › list renders and + New Location navigates (1.4s)
+  ✓   87 [chromium] › tests/07-locations.spec.ts:23:7 › /locations list › view switchers and clear render (1.4s)
+  ✓   88 [chromium] › tests/07-locations.spec.ts:35:5 › create a location end-to-end (2.3s)
+  ✓   89 [chromium] › tests/07-locations.spec.ts:60:5 › edit a location and persist (2.1s)
+  ✓   90 [chromium] › tests/07-locations.spec.ts:80:5 › location detail renders (1.6s)
+  ✓   91 [chromium] › tests/08-requests.spec.ts:19:7 › /service-desk list › list controls + New Request navigation (1.5s)
+  ✓   92 [chromium] › tests/08-requests.spec.ts:34:7 › /service-desk list › a request row opens detail (1.8s)
+  ✓   93 [chromium] › tests/08-requests.spec.ts:47:5 › create form gates submit until Type + Request text (1.5s)
+  -   94 [chromium] › tests/08-requests.spec.ts:57:5 › create a request end-to-end
+  ✓   95 [chromium] › tests/08-requests.spec.ts:75:7 › request detail actions › priority change + comment + transition (1.6s)
+  ✓   96 [chromium] › tests/08-requests.spec.ts:104:7 › request detail actions › assign / reassign toggle reveals a picker (2.7s)
+  ✓   97 [chromium] › tests/09-employees.spec.ts:12:7 › /hr/employees › list renders with search and view switch (1.5s)
+  ✓   98 [chromium] › tests/09-employees.spec.ts:25:7 › /hr/employees › a row opens employee detail with tabs (1.6s)
+  ✓   99 [chromium] › tests/09-employees.spec.ts:38:7 › /hr/employees › by-IR redirects to the employee detail (1.6s)
+  ✓  100 [chromium] › tests/09-employees.spec.ts:49:5 › SAP sync page links to import and employees (1.5s)
+  ✓  101 [chromium] › tests/09-employees.spec.ts:59:5 › bulk import form renders and gates submit (1.4s)
+  ✓  102 [chromium] › tests/10-barcode.spec.ts:10:5 › KPI tiles render (1.4s)
+  ✓  103 [chromium] › tests/10-barcode.spec.ts:18:5 › lookup a real tag and open the asset (3.3s)
+  ✓  104 [chromium] › tests/10-barcode.spec.ts:45:5 › recent tags table renders (or empty state) (1.5s)
+  ✓  105 [chromium] › tests/11-reports.spec.ts:19:7 › /reports/fleet-roster renders and refreshes (1.4s)
+  ✓  106 [chromium] › tests/11-reports.spec.ts:19:7 › /reports/asset-inventory renders and refreshes (1.4s)
+  ✓  107 [chromium] › tests/11-reports.spec.ts:19:7 › /reports/maintenance-readiness renders and refreshes (1.5s)
+  ✓  108 [chromium] › tests/11-reports.spec.ts:19:7 › /reports/location-coverage renders and refreshes (1.4s)
+  ✓  109 [chromium] › tests/11-reports.spec.ts:19:7 › /reports/tag-adoption renders and refreshes (1.5s)
+  ✓  110 [chromium] › tests/11-reports.spec.ts:19:7 › /reports/depreciation renders and refreshes (1.5s)
+  ✓  111 [chromium] › tests/11-reports.spec.ts:32:5 › Location Coverage paginates (1.4s)
+  ✓  112 [chromium] › tests/11-reports.spec.ts:42:5 › Tag Adoption row opens an asset (1.5s)
+  ✓  113 [chromium] › tests/12-mock-pages.spec.ts:21:5 › Fleet page renders (mock) (1.5s)
+  ✓  114 [chromium] › tests/12-mock-pages.spec.ts:28:5 › Fleet detail renders (mock) (1.5s)
+  ✓  115 [chromium] › tests/12-mock-pages.spec.ts:34:5 › Staff Bus renders with inert Approve/Reject stubs (1.5s)
+  ✓  116 [chromium] › tests/12-mock-pages.spec.ts:52:5 › Identity (clearance) renders (mock) (1.5s)
+  ✓  117 [chromium] › tests/12-mock-pages.spec.ts:59:5 › the top bar offers no dead controls, and names who is signed in (1.5s)
+  ✓  118 [chromium] › tests/13-asset-depreciation.spec.ts:58:5 › asset detail has a Depreciation tab (2.4s)
+  ✓  119 [chromium] › tests/13-asset-depreciation.spec.ts:68:5 › a computed asset charts its value over time (2.0s)
+  ✓  120 [chromium] › tests/13-asset-depreciation.spec.ts:108:5 › an ERP-managed asset shows no schedule, and says why (1.8s)
+  ✓  121 [chromium] › tests/13-asset-depreciation.spec.ts:119:5 › a non-depreciating asset charts nothing (1.8s)
+  ✓  122 [chromium] › tests/14-settings-depreciation.spec.ts:66:7 › /settings/depreciation › renders the settings surface (3.7s)
+  ✓  123 [chromium] › tests/14-settings-depreciation.spec.ts:75:7 › /settings/depreciation › lists categories with an editable policy (4.1s)
+  ✓  124 [chromium] › tests/14-settings-depreciation.spec.ts:84:7 › /settings/depreciation › the straight-line switch persists across a reload (32.8s)
+  ✓  125 [chromium] › tests/14-settings-depreciation.spec.ts:150:7 › /settings/depreciation › recompute reports back (4.3s)
+  ✘  126 [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls (21.4s)
+  ✓  127 [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls (retry #1) (17.9s)
+  ✓  128 [chromium] › tests/15-settings-categories.spec.ts:17:7 › /settings/categories › lists categories with editable fields (7.6s)
+  ✓  129 [chromium] › tests/15-settings-categories.spec.ts:30:7 › /settings/categories › a category holding assets cannot be deleted (7.0s)
+  ✓  130 [chromium] › tests/15-settings-categories.spec.ts:39:7 › /settings/categories › creates and deletes a category (14.1s)
+  ✓  131 [chromium] › tests/15-settings-categories.spec.ts:73:7 › /settings/categories › links to depreciation settings without leaving the SPA (5.2s)
+  ✓  132 [chromium] › tests/16-settings-branding.spec.ts:17:7 › /settings/branding › shows the tenant's current brand (1.6s)
+  ✓  133 [chromium] › tests/16-settings-branding.spec.ts:25:7 › /settings/branding › rejects a malformed colour before allowing a save (1.8s)
+  ✓  134 [chromium] › tests/16-settings-branding.spec.ts:31:7 › /settings/branding › saving a colour repaints the app immediately (1.7s)
+  ✓  135 [chromium] › tests/17-disposed-is-terminal.spec.ts:38:5 › a disposed asset offers no change of status, place or custodian — and says why (UI, one session) (6.8s)
+  ✓  136 [chromium] › tests/17-disposed-is-terminal.spec.ts:123:5 › a disposed asset can still be verified, and stays disposed (UI) (3.5s)
+  ✓  137 [chromium] › tests/17-disposed-is-terminal.spec.ts:156:5 › a stale page still gets the server's refusal, in the server's words (2.8s)
+  ✓  138 [chromium] › tests/17-disposed-is-terminal.spec.ts:184:5 › the server refuses every route out of disposed (API) (1.3s)
+  ✓  139 [chromium] › tests/17-disposed-is-terminal.spec.ts:216:5 › mark missing without a reason is refused by the server too (API) (665ms)
+  ✓  140 [chromium] › tests/18-rejected-fields.spec.ts:52:5 › an ordinary edit sends nothing the server refuses — and is answered 200 (3.3s)
+  ✓  141 [chromium] › tests/18-rejected-fields.spec.ts:88:5 › a refused save names the fields in words, saves NOTHING, keeps what was typed — and then saves (6.7s)
+  ✓  142 [chromium] › tests/18-rejected-fields.spec.ts:146:5 › the server's hint about a refused field is shown with it (1.6s)
+  ✓  143 [chromium] › tests/18-rejected-fields.spec.ts:191:5 › a `_warnings` block on a SUCCESSFUL write is still shown, and a second does not erase the first (10.2s)
+[sweep] POST /api/v1/assets ← acquisition_cost, acquisition_date, asset_level, category_id, condition, current_value, custodian_id, department, domain, legacy_asset_code, location_id, make, manufacturer, model_name, name, notes, parent_id, purchase_date, purchase_value, replacement_cost, serial_number, state, warrantor, warranty_months, warranty_reference, warranty_start_date → 201
+  ✓  144 [chromium] › tests/19-every-save-is-accepted.spec.ts:58:5 › asset create — every input this tenant can fill (4.1s)
+[sweep] POST /api/v1/locations ← active, city, description, floor_number, latitude, location_type, longitude, name, parent_id, street, street2, zip, zone_code → 201
+[sweep] PATCH /api/v1/locations/45473 ← active, building_id, city, description, floor_number, latitude, location_type, longitude, name, parent_id, street, street2, zip, zone_code → 200
+  ✓  145 [chromium] › tests/19-every-save-is-accepted.spec.ts:140:5 › location create, then edit — every input (5.7s)
+[sweep] POST /api/v1/requests ← deadline_date, impact, location_id, nrs_asset_id, priority, request_text, type_id, urgency → 201
+[sweep] PATCH /api/v1/requests/18344 ← deadline_date, impact, location_id, priority, request_text, type_id, urgency → 200
+[sweep] PATCH /api/v1/requests/18344 ← priority → 200
+  ✓  146 [chromium] › tests/19-every-save-is-accepted.spec.ts:188:5 › a request raised with a location KEEPS it — create, detail, edit (6.5s)
+[sweep] POST /api/v1/asset-categories ← name → 201
+[sweep] PATCH /api/v1/asset-categories/29061 ← code, description, domain, name, pm_interval_days, sequence → 200
+[sweep] PATCH /api/v1/asset-categories/29061 ← declining_rate, depreciation_method, salvage_rate, useful_life_months → 200
+  ✓  147 [chromium] › tests/19-every-save-is-accepted.spec.ts:249:5 › category: create, edit its identity, save its depreciation policy, delete (11.4s)
+[sweep] PATCH /api/v1/settings/depreciation ← proration → 200
+[sweep] PATCH /api/v1/settings/depreciation ← proration → 200
+[sweep] PATCH /api/v1/settings/branding ← logo, name, primary, primary_dark, sender_email, short_name → 200
+[sweep] PATCH /api/v1/settings/branding ← logo, name, primary, primary_dark, sender_email, short_name → 200
+  ✓  148 [chromium] › tests/19-every-save-is-accepted.spec.ts:298:5 › depreciation settings and branding — a save, and the save that puts it back (28.7s)
+  ✓  149 [chromium] › tests/34-warranty.spec.ts:42:5 › a warranty entered as 24 months — form, asset page, register filter (UI, one session) (9.3s)
+  ✓  150 [chromium] › tests/35-approvals.spec.ts:51:5 › the register says whether it needs a second person, and an unset tenant says yes (366ms)
+  ✓  151 [chromium] › tests/35-approvals.spec.ts:70:5 › raising a request changes nothing about the asset (API) (2.5s)
+  ✓  152 [chromium] › tests/35-approvals.spec.ts:118:5 › a second request for the same asset is refused, naming the one in the way (1.4s)
+  ✓  153 [chromium] › tests/35-approvals.spec.ts:150:5 › you cannot ask yourself, and you cannot approve your own request (2.8s)
+  ✓  154 [chromium] › tests/35-approvals.spec.ts:187:5 › a body that names who decided is refused, not ignored (1.2s)
+  ✓  155 [chromium] › tests/35-approvals.spec.ts:207:5 › the approvals queue renders and shows what is waiting (UI) (1.7s)
+  ✓  156 [chromium] › tests/35-approvals.spec.ts:217:5 › a request I raised offers me no Approve button (UI) (2.5s)
+  -  157 [chromium] › tests/35-approvals.spec.ts:243:5 › list → asset → request → queue → approve → back, in one session
+  -  158 [chromium] › tests/35-approvals.spec.ts:310:5 › a rejected request leaves the asset alone and tells the requester why
+  -  159 [chromium] › tests/35-approvals.spec.ts:349:5 › a request whose asset changed underneath cannot be approved in silence
+  ✓  160 [chromium] › tests/38-serial-lookup-and-replacement.spec.ts:46:5 › tag, asset code, serial and serial-with-trailing-space all find the asset, and say how (3.9s)
+  ✓  161 [chromium] › tests/38-serial-lookup-and-replacement.spec.ts:86:5 › a serial nobody has is a miss that says so, not an error page (1.6s)
+  -  162 [chromium] › tests/38-serial-lookup-and-replacement.spec.ts:96:5 › service credential asks, admin approves in the browser: old scrapped, new minted, chain intact
+  -  163 [chromium] › tests/38-serial-lookup-and-replacement.spec.ts:158:5 › a rejection needs a reason and sends the label back to active
+  ✓  164 [chromium] › tests/39-the-tagger-confirms.spec.ts:73:5 › the dialog never shows the expected number; the wrong number is refused in the server's words; the right one records who and when (4.4s)
+  ✓  165 [chromium] › tests/39-the-tagger-confirms.spec.ts:165:5 › confirming the same label twice says already confirmed, and the original record stands (6.2s)
+  -  166 [chromium] › tests/39-the-tagger-confirms.spec.ts:219:5 › a label replaced since the card was loaded is refused: while pending there is no active tag, and once scrapped the number in hand is not the tag now issued
+  ✓  167 [chromium] › tests/41-who-has-what.spec.ts:69:5 › the roster lists accounts, marks API credentials, and the Inactive filter yields only inactive rows (2.1s)
+  ✓  168 [chromium] › tests/41-who-has-what.spec.ts:105:5 › h41_manager: Asset Manager under Roles held, Asset User via implication, and the scopes in words (1.6s)
+  ✓  169 [chromium] › tests/41-who-has-what.spec.ts:130:5 › the role filter is on EFFECTIVE membership: Asset User includes h41_manager (1.5s)
+  ✓  170 [chromium] › tests/41-who-has-what.spec.ts:155:5 › ABSENCE: nothing on either page changes anything — except handoff 42's role control and handoff 43's four lifecycle buttons (3.3s)
+  ✓  171 [chromium] › tests/41-who-has-what.spec.ts:222:5 › 'Access changes for this person' filters the report to that login (9.2s)
+  ✓  172 [chromium] › tests/41-who-has-what.spec.ts:261:5 › deep link /admin/users/<id> opens the panel directly (14.1s)
+  ✓  173 [chromium] › tests/42-the-grant-and-the-refusal.spec.ts:121:5 › a grant through the screen lands on the row and is recorded with the person who clicked (18.4s)
+  ✓  174 [chromium] › tests/42-the-grant-and-the-refusal.spec.ts:247:5 › ticking a role on one's own row is refused by the server, in its own words, and Apply stays dark (2.1s)
+  ✓  175 [chromium] › tests/42-the-grant-and-the-refusal.spec.ts:289:5 › a person's panel has one checkbox per grantable role and none for system (1.4s)
+  ✓  176 [chromium] › tests/42-the-grant-and-the-refusal.spec.ts:312:5 › a credential's panel offers no checkbox and says its roles follow its scopes (1.3s)
+  ✓  177 [chromium] › tests/43-the-person-and-the-door.spec.ts:118:5 › a person is created and invited from the screen, re-sent, deactivated and reactivated — the row agreeing at every step (12.6s)
+  ✓  178 [chromium] › tests/43-the-person-and-the-door.spec.ts:302:5 › Deactivate on one's own row reaches the server and is refused in its words; the account stays active (2.1s)
+  ✓  179 [chromium] › tests/43-the-person-and-the-door.spec.ts:336:5 › a credential's panel offers no lifecycle button and says its sign-in is managed with the credential (1.5s)
+  ✓  180 [chromium] › tests/45-the-first-five-minutes.spec.ts:128:7 › handoff 45 — the first five minutes › a system administrator still reaches the back office (5.4s)
+  ✓  181 [chromium] › tests/45-the-first-five-minutes.spec.ts:140:7 › handoff 45 — the first five minutes › the letter → our page → a password → signed in, and Odoo never appears (6.6s)
+  ✓  182 [chromium] › tests/45-the-first-five-minutes.spec.ts:178:7 › handoff 45 — the first five minutes › every dead link says why, and offers a way forward (6.6s)
+  ✓  183 [chromium] › tests/45-the-first-five-minutes.spec.ts:208:7 › handoff 45 — the first five minutes › Forgot password? → the reset letter → a new password → signed in (12.0s)
+  ✓  184 [chromium] › tests/45-the-first-five-minutes.spec.ts:236:7 › handoff 45 — the first five minutes › a non-administrator uses the app, prints a label, and cannot reach the back office (15.2s)
+  ✓  185 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:152:7 › 46 — everyone sees their own job › the personas file exists for this tenant (143ms)
+  ✓  186 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › administrator: lands, sees, and is refused what it does not see (14.7s)
+  ✓  187 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › asset_controller: lands, sees, and is refused what it does not see (33.0s)
+  ✓  188 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › asset_manager: lands, sees, and is refused what it does not see (18.6s)
+  ✓  189 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › auditor: lands, sees, and is refused what it does not see (33.0s)
+  ✓  190 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › iad_approver: lands, sees, and is refused what it does not see (31.2s)
+  ✓  191 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › iad_officer: lands, sees, and is refused what it does not see (31.8s)
+  ✓  192 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › register_checker: lands, sees, and is refused what it does not see (34.1s)
+  ✓  193 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › register_maker: lands, sees, and is refused what it does not see (31.6s)
+  ✓  194 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › storekeeper: lands, sees, and is refused what it does not see (39.8s)
+  ✓  195 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see (40.4s)
+  ✓  196 [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:158:9 › 46 — everyone sees their own job › tagger: lands, sees, and is refused what it does not see (34.1s)
+  ✓  197 [chromium] › tests/48-what-this-tenant-has.spec.ts:190:7 › 48 — what this tenant has › 0 · baseline: nothing hidden, and untouched means default on (1.8s)
+  ✓  198 [chromium] › tests/48-what-this-tenant-has.spec.ts:211:7 › 48 — what this tenant has › 1 · the administrator switches it, in one session (9.7s)
+  ✓  199 [chromium] › tests/48-what-this-tenant-has.spec.ts:306:7 › 48 — what this tenant has › 2 · the Store Officer: both axes, and the address still opens (7.7s)
+  ✓  200 [chromium] › tests/48-what-this-tenant-has.spec.ts:353:7 › 48 — what this tenant has › 3 · the Auditor reads who changed it (1.4s)
+  ✓  201 [chromium] › tests/51-the-queue-and-the-refusal.spec.ts:93:7 › 51 — the queue and the refusal (§1) › setup: the Tagging Officer asks, naming the Asset Manager (2.1s)
+  ✓  202 [chromium] › tests/51-the-queue-and-the-refusal.spec.ts:144:7 › 51 — the queue and the refusal (§1) › a: the requester sees their row, waiting, with no decide control (4.0s)
+  ✓  203 [chromium] › tests/51-the-queue-and-the-refusal.spec.ts:163:7 › 51 — the queue and the refusal (§1) › b: the named approver finds it waiting on them, and approves it (5.3s)
+  ✓  204 [chromium] › tests/51-the-queue-and-the-refusal.spec.ts:194:7 › 51 — the queue and the refusal (§1) › c: the auditor reads the queue and is offered no control at all (3.8s)
+  ✓  205 [chromium] › tests/51-the-queue-and-the-refusal.spec.ts:218:7 › 51 — the queue and the refusal (§1) › d: a tagging-only token is refused the route, and told which scope it lacks (1.4s)
+  ✓  206 [chromium] › tests/51-the-queue-and-the-refusal.spec.ts:241:7 › 51 — the queue and the refusal (§1) › e: the requester comes back and reads the outcome of their own request (3.9s)
+  ✓  207 [chromium] › tests/56-the-name-and-the-hat.spec.ts:57:7 › 56 — the name and the hat › the personas file exists for this tenant (123ms)
+  ✓  208 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › administrator: the top bar names the hat (4.4s)
+  ✓  209 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › asset_controller: the top bar names the hat (5.3s)
+  ✓  210 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › asset_manager: the top bar names the hat (4.5s)
+  ✓  211 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › auditor: the top bar names the hat (5.1s)
+  ✓  212 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › iad_approver: the top bar names the hat (5.0s)
+  ✓  213 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › iad_officer: the top bar names the hat (4.5s)
+  ✓  214 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › register_checker: the top bar names the hat (4.4s)
+  ✓  215 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › register_maker: the top bar names the hat (4.5s)
+  ✓  216 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › storekeeper: the top bar names the hat (4.4s)
+  ✓  217 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › tag_unit: the top bar names the hat (4.4s)
+  ✓  218 [chromium] › tests/56-the-name-and-the-hat.spec.ts:63:9 › 56 — the name and the hat › tagger: the top bar names the hat (4.5s)
+  -  219 [chromium] › tests/57-the-gates-tonight.spec.ts:213:7 › 57 — the gates, tonight › setup: a received unit arrives as a candidate, unlabelled and off the register
+  -  220 [chromium] › tests/57-the-gates-tonight.spec.ts:251:7 › 57 — the gates, tonight › store: submits the unit to IAD from the Candidates page
+  -  221 [chromium] › tests/57-the-gates-tonight.spec.ts:261:7 › 57 — the gates, tonight › IAD officer: verify is refused without the four checks and evidence, then verifies
+  -  222 [chromium] › tests/57-the-gates-tonight.spec.ts:281:7 › 57 — the gates, tonight › IAD approver: approves
+  -  223 [chromium] › tests/57-the-gates-tonight.spec.ts:291:7 › 57 — the gates, tonight › Asset Controller: requests tagging, and the label is minted then
+  -  224 [chromium] › tests/57-the-gates-tonight.spec.ts:303:7 › 57 — the gates, tonight › tagger: confirms the label affixed — the existing route moves the gate
+  -  225 [chromium] › tests/57-the-gates-tonight.spec.ts:317:7 › 57 — the gates, tonight › refusal: nobody approves a registration that was never submitted
+  -  226 [chromium] › tests/57-the-gates-tonight.spec.ts:330:7 › 57 — the gates, tonight › Register Maker: the SAP code is required, then submits with code and cost
+  -  227 [chromium] › tests/57-the-gates-tonight.spec.ts:363:7 › 57 — the gates, tonight › Register Checker: approves on the asset page, and the unit joins the register
+  -  228 [chromium] › tests/57-the-gates-tonight.spec.ts:380:7 › 57 — the gates, tonight › refusals: approve without verify, and the same person at two gates
+  -  229 [chromium] › tests/57-the-gates-tonight.spec.ts:470:7 › 58 — a tag_id unit, and the affix refusal's sentence › a tag_id unit: received with attributes and no serial, seven gates, the tagger affixes by label and tick
+  -  230 [chromium] › tests/57-the-gates-tonight.spec.ts:555:7 › 58 — a tag_id unit, and the affix refusal's sentence › D3: the person who fired another gate opens the affix dialog and is refused 409 in the server's own sentence
+  -  231 [chromium] › tests/57-the-gates-tonight.spec.ts:661:7 › 59 — a record_only unit: five gates, no label › setup: a Land class identified by its record; a receipt with a serial is refused, one with a reference is accepted
+  -  232 [chromium] › tests/57-the-gates-tonight.spec.ts:716:7 › 59 — a record_only unit: five gates, no label › store submits; the Candidates row says who it waits on
+  -  233 [chromium] › tests/57-the-gates-tonight.spec.ts:730:7 › 59 — a record_only unit: five gates, no label › IAD officer verifies
+  -  234 [chromium] › tests/57-the-gates-tonight.spec.ts:748:7 › 59 — a record_only unit: five gates, no label › IAD approver approves — and the server skips both tagging gates
+  -  235 [chromium] › tests/57-the-gates-tonight.spec.ts:768:7 › 59 — a record_only unit: five gates, no label › Register Maker submits — the dialog never says tagged, and shows the class's SAP code
+  -  236 [chromium] › tests/57-the-gates-tonight.spec.ts:796:7 › 59 — a record_only unit: five gates, no label › Register Checker approves; the register gains exactly this unit, with no label and the skip in its history
+  ✓  237 [chromium] › tests/58-the-gates-kept.spec.ts:75:7 › 58 — a forbidden pair, refused on the Users page › refused at preview naming both roles; switched off, granted, on the configuration record; switched on, a conflicting grant (9.6s)
+[spec 59] configuration record: cadra.class_sap_asset_class.27701 = 4723; class: e2e-59 SAP class on screen by Hauwa Dikko at 2026-10-12 19:13:33.120862
+  ✓  238 [chromium] › tests/59-what-sap-already-holds.spec.ts:121:7 › 59 — what SAP already holds › (i) the Asset Controller sets a SAP class on screen, it reads back, and the configuration record says so (15.4s)
+  ✓  239 [chromium] › tests/59-what-sap-already-holds.spec.ts:165:7 › 59 — what SAP already holds › (i) …and the Store Officer is offered no control for it, and is refused 403 round the screen (11.4s)
+  -  240 [chromium] › tests/59-what-sap-already-holds.spec.ts:192:7 › 59 — what SAP already holds › (ii) a unit whose class has no SAP class: the register dialog says so first, and the server's refusal is shown verbatim
+[spec 59] configuration record: cadra.serial_placeholders changed by Oluwaseun Ajayi at 2026-10-12 19:13:56.324830
+  ✓  241 [chromium] › tests/59-what-sap-already-holds.spec.ts:242:7 › 59 — what SAP already holds › (iii) the placeholder list, edited once on screen, on the configuration record — and put back (6.4s)
+  ✓  242 [chromium] › tests/40-the-camera-in-the-dialog.spec.ts:141:5 › a label read by the camera fills the field and is not submitted; the serial too; confirming then records the row (5.3s)
+  ✓  243 [chromium] › tests/40-the-camera-in-the-dialog.spec.ts:228:5 › the wrong label read by the camera is refused in the server's words, the inputs kept; the right one typed then submits on Enter (4.1s)
+  ✓  244 [chromium] › tests/40-the-camera-in-the-dialog.spec.ts:272:5 › camera off: auto-focus and Enter submits exactly as before; toggling the camera on and off returns focus (4.9s)
+  ✓  245 [chromium] › tests/40-the-camera-in-the-dialog.spec.ts:311:5 › closing the dialog with the camera running stops the camera (3.0s)
+[49] test19 departed-holders: No assets name a departed person as custodian — of 0 departed people on record.
+[49] test19 export: 16957 rows in 1182ms — "Saved nrs_assets.csv — 16,957 rows, 1.7 MB, in 1.1s."
+  ✓  246 [chromium] › tests/49-the-auditors-own-screens.spec.ts:107:7 › 49 — the auditor's own screens › Zainab reaches all four screens, and the export downloads (8.8s)
+  ✓  247 [chromium] › tests/49-the-auditors-own-screens.spec.ts:154:7 › 49 — the auditor's own screens › an empty report says so in words — nothing invented (5.8s)
+  ✓  248 [chromium] › tests/49-the-auditors-own-screens.spec.ts:188:7 › 49 — the auditor's own screens › a persona without the scope is refused on the typed URL and by the server (12.3s)
+  ✓  249 [chromium] › tests/49-the-auditors-own-screens.spec.ts:227:7 › 49 — the auditor's own screens › the tenant switch hides and restores the new items — presentation, not permission (7.1s)
+  ✓  250 [chromium] › tests/50-the-consequences.spec.ts:83:7 › 50 — the consequences › a page that throws renders a sentence, not a blank screen (5.0s)
+  ✓  251 [chromium] › tests/50-the-consequences.spec.ts:132:7 › 50 — the consequences › a store officer may not take a copy of the register (9.2s)
+  ✓  252 [chromium] › tests/50-the-consequences.spec.ts:166:7 › 50 — the consequences › the map no longer hands over the fleet (2.7s)
+  ✓  253 [chromium] › tests/54-every-time.spec.ts:129:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a 2D value is accepted on one decode; a 1D value is not (200ms)
+  ✓  254 [chromium] › tests/54-every-time.spec.ts:137:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a 1D value is accepted when two consecutive decodes agree — and only then (154ms)
+  ✓  255 [chromium] › tests/54-every-time.spec.ts:148:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › two frames disagreeing is refused and says Reading…, the newer read becoming the candidate (136ms)
+  ✓  256 [chromium] › tests/54-every-time.spec.ts:156:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a blank frame keeps the pending read; two different values become a choice, never a guess (147ms)
+  ✓  257 [chromium] › tests/54-every-time.spec.ts:167:5 › the wasm is not fetched on page load, is fetched when the camera starts, and the station then decodes with it (2.8s)
+  ✓  258 [chromium] › tests/54-every-time.spec.ts:192:5 › each Cadra label size decodes off its Code 128 side, at the template's own source resolution, and says so (2.9s)
+  ✓  259 [chromium] › tests/54-every-time.spec.ts:216:5 › each Cadra label size decodes off its QR side, at the template's own source resolution, and says so (2.5s)
+  ✓  260 [chromium] › tests/54-every-time.spec.ts:229:5 › one manufacturer-style label per family decodes to its value and its format (7.0s)
+  ✓  261 [chromium] › tests/54-every-time.spec.ts:259:5 › two different values in one frame become a choice; the tap fills the box; Neither keeps scanning (1.8s)
+  ✓  262 [chromium] › tests/54-every-time.spec.ts:286:5 › of two values, the one inside the reticle wins without asking (1.6s)
+  ✓  263 [chromium] › tests/54-every-time.spec.ts:304:5 › after 4 s with no decode a sentence arrives; after 10 s it offers typing, focuses the box and leaves the camera running (12.0s)
+  ✓  264 [chromium] › tests/54-every-time.spec.ts:349:5 › a camera-read wrong tag is refused and the refusal record names the symbology it was read from (4.9s)
+
+
+  1) [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls 
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for getByTestId('mode-computed')
+        - locator resolved to <button disabled data-testid="mode-computed" class="flex-1 text-left rounded-xl border px-4 py-3 transition-colors disabled:opacity-50 border-border hover:bg-accent">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+          - waiting 100ms
+        29 × waiting for element to be visible, enabled and stable
+           - element is not enabled
+         - retrying click action
+           - waiting 500ms
+
+
+      163 |       await expect(page.getByTestId("button-recompute")).toBeDisabled();
+      164 |     } finally {
+    > 165 |       await computed.click();
+          |                      ^
+      166 |       await expect(page.getByText(/This tenant is ERP-managed/i))
+      167 |         .toHaveCount(0, { timeout: 30_000 });
+      168 |     }
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/14-settings-depreciation.spec.ts:165:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Slow test file: [chromium] › tests/46-everyone-sees-their-own-job.spec.ts (5.7m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 flaky
+    [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls 
+  31 skipped
+  231 passed (20.5m)

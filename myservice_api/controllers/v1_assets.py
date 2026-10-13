@@ -771,7 +771,7 @@ def _serialize_gates(a):
 #: (`asset_gates._search`). `any`, or one state: needs `candidates:read`.
 REGISTER_STATES = ("captured", "vfm_pending", "vfm_verified", "vfm_approved",
                    "vfm_query", "vfm_rejected", "tag_requested", "tag_issued",
-                   "tagged", "reg_submitted", "registered")
+                   "tagged", "reg_ready", "reg_submitted", "registered")
 
 
 def _register_state_domain(qs):
@@ -837,6 +837,9 @@ def serialize_asset(a, *, include=()):
         "colour": a.colour or None,
         "material": a.material or None,
         "dimensions": a.dimensions or None,
+        # Handoff 59 §2: the title, plot number, licence key or contract that
+        # identifies a `record_only` unit.
+        "reference": a.reference or None,
         "identification_mode": a.identification_mode or None,
         "category": _ref(a.category_id),
         "subcategory": _ref(a.subcategory_id),
@@ -1171,6 +1174,9 @@ _WRITABLE_FIELDS = {
     "make", "model_name", "manufacturer",
     # Section 12 (handoff 58 §4): what a `tag_id` unit is identified by.
     "colour", "material", "dimensions",
+    # Handoff 59 §2: what a `record_only` unit is identified by — a title or
+    # plot number, a licence key, a contract.
+    "reference",
     "category_id", "subcategory_id", "asset_type_id", "asset_level", "domain",
     "parent_id",
     # `building_id`, `floor_id` and `room_id` were here until handoff 30 and
@@ -1616,6 +1622,16 @@ class CadraAssetsV1(http.Controller):
                                                    "so."},
                          "material": {"type": "string", "nullable": True},
                          "dimensions": {"type": "string", "nullable": True},
+                         "reference": {"type": "string", "nullable": True,
+                                       "description": "Handoff 59. Title or "
+                                                      "plot number, licence "
+                                                      "key or contract — "
+                                                      "what identifies a "
+                                                      "`record_only` unit. "
+                                                      "Mandatory at a gated "
+                                                      "receipt when the "
+                                                      "class's schema says "
+                                                      "so."},
                          "category_id": {"type": "integer", "nullable": True},
                          "subcategory_id": {"type": "integer", "nullable": True},
                          "asset_type_id": {"type": "integer", "nullable": True},

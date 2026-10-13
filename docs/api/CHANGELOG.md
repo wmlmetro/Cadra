@@ -33,6 +33,90 @@ live at was never the point.
 
 ---
 
+## 2026-10-12 — handoff 59: what SAP already holds · `myservice_api` 19.0.3.31.0, `myservice_asset_register` 19.0.1.28.0
+
+With the receipt switch off, a tenant sees the additive keys and enum values
+below and exactly two changes of behaviour, both listed at the end under
+**every tenant**: SAP asset numbers are unique once normalised, and a
+category's `sap_asset_class` must be four digits.
+
+- **Additive enum value: `identification_mode = record_only`** on `GET
+  /api/v1/asset-categories` (and accepted on `PATCH` / `POST`), labelled
+  *"Identified by its SAP record — no physical label (land, buildings,
+  software, works in progress)"*; default schema `{"mandatory": ["name",
+  "reference"]}`. **Clients that switch on this enum: Vendra** (its receipt
+  reads the mode to decide what a line must carry). Until Vendra's
+  follow-up lands it treats a mode it does not recognise as `serial` and
+  will demand a serial for such a line; Cadra refuses one regardless (below).
+- **Additive: `reference`** on `POST` / `PATCH /api/v1/assets` and on every
+  asset (null when unset) — the title or plot number, licence key or
+  contract that identifies a `record_only` unit; a capturable name in
+  `class_attributes_schema`.
+- **Additive enum value: `register_state = reg_ready`** (*Ready for
+  registration — no label*), with `gates.waiting_on = maker`. A
+  `record_only` unit goes `vfm_verified → vfm_approved → reg_ready` inside
+  IAD's `approve` (the two tagging gates are skipped; the history carries a
+  `gate_fired` row with `detail.action = "skip-tagging"`, `detail.gate =
+  null` and the reason *"no label: <class> is identified by its
+  record"*), then `register` → `reg_submitted` → `approve-registration`.
+  `return-registration` sends it back to `reg_ready`. `request-tagging` is
+  never offered for it (409 `invalid_state` if called). The `waiting_on`
+  set is unchanged.
+- **Additive: `sap_asset_class` on `GET /api/v1/asset-categories`** (SAP's
+  four-digit class, or null) and accepted on `PATCH` by `settings:write` or
+  `settings:classes`; anything but four digits is `400 invalid_request`
+  *"`sap_asset_class` must be SAP's four-digit asset class code, for example
+  3000."*; null or `""` clears it.
+- **New: `GET /api/v1/settings/serial-placeholders`** (`settings:read`) and
+  **`PUT`** (`settings:write`, both `exact` and `patterns` required) — the
+  tenant's placeholder-serial list, who changed it and when, and how many
+  assets on the tenant carry a placeholder now.
+- **BEHAVIOUR CHANGE, only on a tenant whose switch is on:**
+  - `POST /api/v1/assets` refuses `400 validation_failed`, nothing written:
+    a serial that is on the placeholder list (*"'XXXX' is a placeholder, not
+    a serial number. Capture the serial printed on the item."*,
+    `details.placeholder = true`) — before the uniqueness check, so a
+    placeholder is never refused as a duplicate. **This includes a `tag_id`
+    unit that carries a placeholder serial** (its sentence adds *"…or send
+    none — <class> is identified by its tag and attributes"*): a furniture
+    line typed `0` was accepted under handoff 58 and is refused now; send no
+    serial instead. And a `record_only` unit carrying any `serial_number`
+    (*"<class> is identified by its SAP record and carries no serial number;
+    …"*).
+  - `PATCH /api/v1/assets/<id>` on a unit still in the chain applies the
+    same identification rules as its receipt: no serial on a `record_only`
+    unit, no placeholder serial, and a class's mandatory attribute (its
+    `reference`, a `serial`-mode unit's serial) cannot be cleared — `400
+    validation_failed`, the same sentences.
+  - `POST …/gates/register` and `…/gates/approve-registration` refuse `400
+    validation_failed`, `details.field = sap_asset_class`, when the
+    (confirmed) class has no SAP asset class: *"<Category> has no SAP asset
+    class, so SAP would reject this asset. An Asset Controller sets it under
+    Settings → Asset Categories."*
+  - `register` stores `sap_asset_code` stripped and **upper-cased**, and its
+    duplicate check compares in that form (the refusal now names the asset
+    holding the code). Both of SAP's shapes are accepted — 11 digits, and
+    the legacy alphanumeric codes (which may contain `/`, `&`, `\`, spaces).
+    An 11-digit number whose first digit is not the class's answers 200 with
+    `data._warnings.sap_asset_number`, e.g. *"2xxxxxxxxxx looks like a class
+    2000 number; this category maps to 3000."* (class 3500's numbers start
+    `5`, as in SAP).
+- **Additive: `skipped[].reason = "record_only"`** on `POST
+  /api/v1/barcode/generate` — a unit identified by its SAP record is skipped,
+  not minted (and not refused, so the rest of the batch is), and it is no
+  longer listed by `GET /api/v1/barcode/untagged` or counted as untagged.
+- **BEHAVIOUR CHANGE, every tenant:** two assets whose SAP asset numbers
+  differ only in case or surrounding spaces (same company code and
+  sub-number) are now refused as one SAP asset by the model's uniqueness
+  rule, whoever writes them (INT-07, an import, a PATCH). 0 such pairs on any
+  local tenant before the change.
+- **BEHAVIOUR CHANGE, every tenant:** a category's `sap_asset_class` is
+  refused unless it is four digits (or empty), from every writer — the API,
+  the back-office form, a script. A value already stored in another shape is
+  kept and stays readable until somebody edits it. 0 categories on 10
+  tenants carry a value of another shape (`nrs19`'s one value, `3100`, is
+  four digits).
+
 ## 2026-10-12 — handoff 58: the gates, kept · `myservice_api` 19.0.3.30.0, `myservice_asset_register` 19.0.1.27.0
 
 **The receipt gates of 2026-10-07 are the product, not a stand-in** — the

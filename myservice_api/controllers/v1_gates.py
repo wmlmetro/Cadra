@@ -8,6 +8,9 @@ register filter is load-bearing.
 
 WHAT THIS PUBLISHES
 -------------------
+A unit of a `record_only` class (handoff 59 §2) never sees
+`request-tagging` or an affix: IAD's approval moves it to `reg_ready`.
+
 Ten actions, one POST each under `/api/v1/assets/<id>/gates/`, every one a
 thin call into `nrs.asset._fire_gate` — the ONE method that moves
 `register_state` — and one list, `GET /api/v1/candidates`. The table of
@@ -26,7 +29,9 @@ written:
 * **403 `forbidden`** — the caller lacks the gate's scope; the message names
   it.
 * **400 `validation_failed`** — a reason, a response, the four-item
-  checklist, an attachment, the SAP code, the cost… missing, in words.
+  checklist, an attachment, the SAP code, the cost… missing, in words; a
+  category with no SAP asset class at `register` and `approve-registration`
+  (handoff 59 §1).
 * **409 `conflict`, `details.reason = "segregation_of_duties"`** — the
   no-two-gates rule: *"You received this unit on 7 Oct; a different person
   must verify it."* `details.earlier` names the act, the gate, the date and
@@ -129,7 +134,16 @@ def _fire(asset_id, action, body, *, reason=None, payload=None):
     except (UserError, ValidationError) as e:
         return err(ERR_VALIDATION_FAILED, str(e.args[0]))
     asset.invalidate_recordset()
-    return serialize_asset(asset)
+    data = serialize_asset(asset)
+    if action in ("register", "approve-registration"):
+        # Handoff 59 §4: an 11-digit SAP number whose first digit is not the
+        # class's is said, not refused — the maker may be right and the
+        # mapping wrong. The maker reads it on submission, the checker on
+        # approval; it is on the `register` event's evidence too.
+        warning = asset._sap_number_warning()
+        if warning:
+            data["_warnings"] = {"sap_asset_number": warning}
+    return data
 
 
 class CadraGatesV1(http.Controller):
@@ -258,8 +272,18 @@ class CadraGatesV1(http.Controller):
                      "properties": {
                          "sap_asset_code": {
                              "type": "string",
-                             "description": "Typed by the maker tonight; "
-                                            "recorded as entered by hand."},
+                             "description": "Typed by the maker; recorded "
+                                            "as entered by hand. Both of "
+                                            "SAP's shapes — 11 digits, "
+                                            "the first the class's — or a "
+                                            "legacy code of letters and "
+                                            "digits (up to 12) — stored "
+                                            "stripped and upper-cased, and "
+                                            "unique in that form. An 11-digit "
+                                            "number whose first digit is not "
+                                            "the class's answers with "
+                                            "`data._warnings.sap_asset_number`"
+                                            " (handoff 59)."},
                          "cost": {"type": "number", "exclusiveMinimum": 0},
                          "cost_centre": {"type": "string"},
                          "capitalisation_date": {"type": "string",
@@ -268,16 +292,20 @@ class CadraGatesV1(http.Controller):
                              "type": "integer",
                              "description": "The asset category id — sending "
                                             "it is the confirmation; a "
-                                            "different id corrects it."},
+                                            "different id corrects it. "
+                                            "Refused when that category has "
+                                            "no `sap_asset_class` (handoff "
+                                            "59)."},
                          **_NOTES,
                      }},
-                 request_example={"sap_asset_code": "100004512",
+                 request_example={"sap_asset_code": "30000214587",
                                   "cost": 1850000, "cost_centre": "NRS-HQ-IT",
                                   "capitalisation_date": "2026-10-08",
                                   "asset_class": 7},
                  response_schema=_ASSET)
     def gate_register(self, id, **kwargs):
-        """`tagged` → `reg_submitted`."""
+        """`tagged` (or `reg_ready`, a unit with no label) →
+        `reg_submitted`."""
         body = get_params() or {}
         return _fire(id, "register", body, payload={
             "sap_asset_code": body.get("sap_asset_code"),
@@ -309,7 +337,8 @@ class CadraGatesV1(http.Controller):
                                  "properties": dict(_REASON)},
                  response_schema=_ASSET)
     def gate_return_registration(self, id, **kwargs):
-        """`reg_submitted` → `tagged`; the tag and the code are kept."""
+        """`reg_submitted` → `tagged` (`reg_ready` for a unit with no
+        label); the tag and the code are kept."""
         body = get_params() or {}
         return _fire(id, "return-registration", body,
                      reason=body.get("reason"))
@@ -331,8 +360,9 @@ class CadraGatesV1(http.Controller):
                                      "`iad_approver` (verified), "
                                      "`controller` (VfM approved), "
                                      "`tagging` (tag requested or issued), "
-                                     "`maker` (tagged), `checker` "
-                                     "(registration submitted)."},
+                                     "`maker` (tagged, or ready for "
+                                     "registration with no label), "
+                                     "`checker` (registration submitted)."},
                      {"name": "register_state",
                       "schema": {"type": "string",
                                  "enum": [s for s in REGISTER_STATES

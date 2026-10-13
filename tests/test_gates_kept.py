@@ -72,7 +72,10 @@ def test_every_class_publishes_its_identification(client):
     rows = _categories(client)
     assert rows
     for row in rows:
-        assert row["identification_mode"] in ("serial", "tag_id", "pool")
+        # `record_only` since handoff 59 (additive): a test category of it
+        # exists on any tenant the handoff-59 suite has run on.
+        assert row["identification_mode"] in ("serial", "tag_id", "pool",
+                                              "record_only")
         assert isinstance(row["class_attributes_schema"]["mandatory"], list)
 
 
@@ -350,7 +353,10 @@ def person(client, admin_scope):
     """One invented person for the run, deactivated at the end."""
     r = client.post("/api/v1/users", json={
         "name": _uniq("pytest-58-person"),
-        "email": f"{_uniq('p58')}@example.invalid", "roles": ["asset_user"]})
+        "email": f"{_uniq('p58')}@example.invalid", "roles": ["asset_user"],
+        # No letter: a tenant with no outgoing mail (CI) answers 500 to an
+        # invitation it cannot send, and this fixture is about roles.
+        "send_invitation": False})
     data = assert_envelope_ok(r, 201)["data"]
     try:
         yield data

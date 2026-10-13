@@ -14,6 +14,18 @@ which, and the unit remembers the mode it arrived under:
   its identity after.
 * `pool` — declared, and REFUSED at receipt: pool holdings are Addendum A
   Phase E and nothing here pretends to hold one.
+* `record_only` (handoff 59 §2) — a capitalised asset nothing can be fixed
+  to: land (SAP class 6000), buildings (8000), software (3500), works in
+  progress (9000, 9300). No serial — one sent is REFUSED, whoever sends it,
+  because a land title is not a manufacturer's serial and a value there
+  would be compared against every serial on the register — and no label,
+  ever: the two tagging gates are skipped, not fired (`asset_gates`). The
+  class's attributes (by default the description and a `reference` — title
+  or plot number, licence key or contract) and the asset code assigned at
+  creation are its identity.
+
+Placeholder serials (`0`, `XXXX`, `4A12345FD`…) are not serials (handoff
+59 §3, `serial_placeholders.py`): a gated receipt refuses one as what it is.
 
 Every rule here applies to a GATED receipt only (`register_state =
 'captured'` at creation): with a tenant's switch off, nothing a receipt
@@ -32,17 +44,24 @@ shows, with the person who made the change and when. Nothing reads that
 parameter back; the category's own fields are the truth.
 """
 import json
+import re
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
+from . import serial_placeholders
+
 MODE_SERIAL = 'serial'
 MODE_TAG_ID = 'tag_id'
 MODE_POOL = 'pool'
+MODE_RECORD_ONLY = 'record_only'
+RECORD_ONLY_LABEL = ('Identified by its SAP record — no physical label '
+                     '(land, buildings, software, works in progress)')
 IDENTIFICATION_MODES = [
     (MODE_SERIAL, 'Serial number'),
     (MODE_TAG_ID, 'Tag ID (attributes, no serial)'),
     (MODE_POOL, 'Pool (not built yet)'),
+    (MODE_RECORD_ONLY, RECORD_ONLY_LABEL),
 ]
 
 #: The fields a class may make mandatory at receipt — the `POST /assets`
@@ -55,6 +74,9 @@ CAPTURABLE_FIELDS = {
     'colour': 'colour',
     'material': 'material',
     'dimensions': 'dimensions',
+    # Handoff 59 §2: what identifies a `record_only` unit beside its
+    # description — a title or plot number, a licence key or a contract.
+    'reference': 'reference (title or plot number, licence key or contract)',
 }
 #: The schema each mode has until somebody sets one for the class.
 DEFAULT_MANDATORY = {
@@ -62,9 +84,19 @@ DEFAULT_MANDATORY = {
     MODE_TAG_ID: ('name', 'make', 'model_name', 'colour', 'material',
                   'dimensions'),
     MODE_POOL: (),
+    MODE_RECORD_ONLY: ('name', 'reference'),
 }
 
 CONFIG_KEY = 'cadra.class_identification.%d'
+#: The configuration record's row for a class's SAP asset class (handoff 59
+#: §1) — the same device as `CONFIG_KEY`, its own key so the report says
+#: which of the two settings changed.
+SAP_CLASS_CONFIG_KEY = 'cadra.class_sap_asset_class.%d'
+#: SAP's asset class code: four digits. All ten classes in NRS's October
+#: 2026 export are (`docs/reference/sap-asset-master-2026-10.md`).
+SAP_CLASS_RE = re.compile(r'^[0-9]{4}$')
+SAP_CLASS_SENTENCE = ("`sap_asset_class` must be SAP's four-digit asset "
+                      "class code, for example 3000.")
 
 
 def parse_schema(value):
@@ -136,25 +168,57 @@ class NRSAssetCategoryIdentification(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             self._normalise_schema(vals)
+            self._normalise_sap_class(vals)
         records = super().create(vals_list)
         for rec, vals in zip(records, vals_list):
             if {'identification_mode', 'class_attributes_schema'} & set(vals) \
                     and (rec.identification_mode != MODE_SERIAL
                          or rec.class_attributes_schema):
                 rec._record_identification()
+            if rec.sap_asset_class:
+                rec._record_sap_class()
         return records
 
     def write(self, vals):
         self._normalise_schema(vals)
+        self._normalise_sap_class(vals)
         watched = {'identification_mode', 'class_attributes_schema'} & set(vals)
         before = {r.id: (r.identification_mode, r._mandatory_attributes())
                   for r in self} if watched else {}
+        sap_before = {r.id: r.sap_asset_class or False for r in self} \
+            if 'sap_asset_class' in vals else {}
         result = super().write(vals)
         for rec in self:
             if watched and before[rec.id] != (rec.identification_mode,
                                               rec._mandatory_attributes()):
                 rec._record_identification()
+            if sap_before and sap_before[rec.id] != (rec.sap_asset_class
+                                                     or False):
+                rec._record_sap_class()
         return result
+
+    @api.model
+    def _normalise_sap_class(self, vals):
+        """Four digits, or empty (handoff 59 §1). Checked where it is
+        WRITTEN, not as a constraint over every row: a value already stored
+        by hand in another shape stays readable until somebody edits it."""
+        if 'sap_asset_class' not in vals:
+            return
+        value = vals['sap_asset_class']
+        value = value.strip() if isinstance(value, str) else value
+        if value in (None, False, ''):
+            vals['sap_asset_class'] = False
+            return
+        if not isinstance(value, str) or not SAP_CLASS_RE.match(value):
+            raise ValidationError(SAP_CLASS_SENTENCE)
+        vals['sap_asset_class'] = value
+
+    def _record_sap_class(self):
+        """The configuration record's row for this class's SAP class."""
+        self.ensure_one()
+        self.env['ir.config_parameter'].sudo().set_param(
+            SAP_CLASS_CONFIG_KEY % self.id, '%s; class: %s' % (
+                self.sap_asset_class or '(none)', self.name))
 
     @api.model
     def _normalise_schema(self, vals):
@@ -189,13 +253,78 @@ class NRSAssetIdentification(models.Model):
     colour = fields.Char('Colour')
     material = fields.Char('Material')
     dimensions = fields.Char('Dimensions')
+    # What identifies a `record_only` unit beside its description (handoff
+    # 59 §2): a title or plot number, a licence key, a contract. Not tracked,
+    # for the reason above.
+    reference = fields.Char(
+        'Record Reference',
+        help='Title or plot number for land, licence key or contract for '
+             'software — what identifies an asset that carries no label.')
     identification_mode = fields.Selection(
         [(MODE_SERIAL, 'Serial number'),
-         (MODE_TAG_ID, 'Tag ID (attributes, no serial)')],
+         (MODE_TAG_ID, 'Tag ID (attributes, no serial)'),
+         (MODE_RECORD_ONLY, RECORD_ONLY_LABEL)],
         string='Received As', readonly=True, copy=False,
         help='The identification mode of this unit\'s class when it was '
              'RECEIVED through the receipt gates. Fixed at receipt (AD-31). '
              'Empty for anything received with the gates off.')
+
+    def write(self, vals):
+        """A unit still in the chain keeps what identified it at receipt
+        (handoff 59, found by the verification pass): `create` checks a
+        gated receipt, and without this a `PATCH` on the candidate could
+        put a serial on a `record_only` unit, a placeholder on any, or clear
+        a mandatory attribute — the same rules, the same sentences. A
+        registered unit, and anything received with the gates off (no
+        stamped mode), is untouched."""
+        watched = {'serial_number'} | set(CAPTURABLE_FIELDS)
+        if watched & set(vals):
+            for rec in self:
+                if rec.identification_mode and rec.register_state \
+                        and rec.register_state != 'registered':
+                    rec._check_candidate_write(vals)
+        return super().write(vals)
+
+    def _check_candidate_write(self, vals):
+        from .asset_gates import GateRefused
+        self.ensure_one()
+        category = self.category_id
+        mode = self.identification_mode
+        if 'serial_number' in vals:
+            serial = (vals.get('serial_number') or '').strip()
+            if mode == MODE_RECORD_ONLY and serial:
+                raise GateRefused(
+                    _('%(cls)s is identified by its SAP record and carries no '
+                      'serial number; send the unit without one (its title, '
+                      'plot number, licence key or contract goes in '
+                      '`reference`).', cls=category.name),
+                    'validation_failed', {'field': 'serial_number',
+                                          'identification_mode': mode})
+            if serial and serial_placeholders.is_placeholder(self.env, serial):
+                raise GateRefused(
+                    _("'%(value)s' is a placeholder, not a serial number. "
+                      "Capture the serial printed on the item.", value=serial),
+                    'validation_failed', {'field': 'serial_number',
+                                          'placeholder': True,
+                                          'identification_mode': mode})
+            if mode == MODE_SERIAL and not serial:
+                raise GateRefused(
+                    _('%(cls)s: 0 of 1 serial numbers captured. Capture one '
+                      'serial number per accepted unit.', cls=category.name),
+                    'validation_failed', {'field': 'serial_number',
+                                          'identification_mode': mode})
+        cleared = [f for f in category._mandatory_attributes()
+                   if f in vals and not str(vals.get(f) or '').strip()]
+        if cleared:
+            raise GateRefused(
+                _('%(cls)s is identified by %(how)s, so a unit of it must keep '
+                  '%(what)s.', cls=category.name,
+                  how={MODE_SERIAL: _('serial number'),
+                       MODE_RECORD_ONLY: _('its SAP record')}.get(
+                           mode, _('tag and attributes')),
+                  what=_words(cleared)),
+                'validation_failed', {'missing_fields': cleared,
+                                      'identification_mode': mode})
 
     @api.model
     def _check_receipt_identity(self, vals):
@@ -215,6 +344,17 @@ class NRSAssetIdentification(models.Model):
                   'E).'), 'validation_failed',
                 {'identification_mode': mode, 'category_id': category.id})
         serial = (vals.get('serial_number') or '').strip()
+        if mode == MODE_RECORD_ONLY and serial:
+            # Whoever sends it — Vendra, until its follow-up lands, treats a
+            # mode it does not know as `serial` and will demand one (handoff
+            # 59 §2). Cadra does not depend on that: the unit has no serial.
+            raise GateRefused(
+                _('%(cls)s is identified by its SAP record and carries no '
+                  'serial number; send the unit without one (its title, plot '
+                  'number, licence key or contract goes in `reference`).',
+                  cls=category.name), 'validation_failed',
+                {'field': 'serial_number', 'identification_mode': mode,
+                 'category_id': category.id})
         if mode == MODE_SERIAL and not serial:
             # Vendra's own sentence for the same refusal, for one unit.
             raise GateRefused(
@@ -223,14 +363,34 @@ class NRSAssetIdentification(models.Model):
                 'validation_failed',
                 {'field': 'serial_number', 'identification_mode': mode,
                  'category_id': category.id})
+        if serial and serial_placeholders.is_placeholder(self.env, serial):
+            # Handoff 59 §3. Before the attributes and the uniqueness check:
+            # a placeholder is refused as a placeholder, never as a
+            # "duplicate" of the legacy assets that already carry it. A
+            # `tag_id` unit needs no serial, so the sentence says it may
+            # come without one rather than asking for one it may not have.
+            sentence = _("'%(value)s' is a placeholder, not a serial number. "
+                         "Capture the serial printed on the item.",
+                         value=serial)
+            if mode == MODE_TAG_ID:
+                sentence = _("'%(value)s' is a placeholder, not a serial "
+                             "number. Capture the serial printed on the "
+                             "item, or send none — %(cls)s is identified by "
+                             "its tag and attributes.", value=serial,
+                             cls=category.name)
+            raise GateRefused(sentence, 'validation_failed', {
+                'field': 'serial_number', 'placeholder': True,
+                'identification_mode': mode, 'category_id': category.id})
         missing = [f for f in category._mandatory_attributes()
                    if not str(vals.get(f) or '').strip()]
         if missing:
             raise GateRefused(
                 _('%(cls)s is identified by %(how)s, so a unit of it must '
                   'arrive with %(what)s.', cls=category.name,
-                  how=_('serial number') if mode == MODE_SERIAL
-                  else _('tag and attributes'), what=_words(missing)),
+                  how={MODE_SERIAL: _('serial number'),
+                       MODE_RECORD_ONLY: _('its SAP record')}.get(
+                           mode, _('tag and attributes')),
+                  what=_words(missing)),
                 'validation_failed',
                 {'missing_fields': missing, 'identification_mode': mode,
                  'category_id': category.id})
@@ -243,13 +403,28 @@ class NRSAssetIdentification(models.Model):
             # case-insensitively, the scan box's rule (handoff 38). Not a
             # constraint: `nrs19` holds 1,291 serials on more than one
             # asset, and a constraint would refuse the register it describes.
+            #
+            # An existing PLACEHOLDER is never the clash (handoff 59 §3).
+            # This line is only reached by a serial that is not one, and two
+            # values equal stripped and case-insensitively are the same
+            # placeholder-or-not — so a placeholder cannot match today. The
+            # filter says so anyway, so that changing how serials compare
+            # (collapsing spaces, say) cannot quietly bring it back.
+            self.flush_model(['serial_number'])
             self.env.cr.execute(
-                "SELECT asset_code FROM nrs_asset "
+                "SELECT asset_code, serial_number FROM nrs_asset "
                 "WHERE serial_number IS NOT NULL "
                 "AND btrim(serial_number) <> '' "
                 "AND lower(btrim(serial_number)) = lower(%s) "
-                "ORDER BY id LIMIT 1", (serial,))
-            clash = self.env.cr.fetchone()
+                "ORDER BY id", (serial,))
+            # Fetched BEFORE the list is loaded: `load` reads its row on the
+            # same cursor, and fetching after it read an empty result — the
+            # first draft accepted every duplicate that way (caught by
+            # `test_a_real_serial_is_accepted_where_a_placeholder_sits_…`).
+            rows = self.env.cr.fetchall()
+            is_ph = serial_placeholders.matcher(
+                serial_placeholders.load(self.env))
+            clash = next((row for row in rows if not is_ph(row[1])), None)
             if clash:
                 raise GateRefused(
                     _('Serial number %(serial)s is already registered as an '

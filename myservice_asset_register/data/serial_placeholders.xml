@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The tenant's placeholder-serial list (handoff 59 §3) — see
+     models/serial_placeholders.py. noupdate: seeded once, then the tenant's
+     own; every change is a row on the configuration record. -->
+<odoo noupdate="1">
+    <record id="param_serial_placeholders" model="ir.config_parameter">
+        <field name="key">cadra.serial_placeholders</field>
+        <field name="value">{"exact": ["123456", "12345AB", "12345ABC", "12345HFD", "4A12345FD", "5D12345M", "N/A", "NA", "NIL", "NO SERIAL", "NONE"], "patterns": ["^X+$", "^0+$"]}</field>
+    </record>
+</odoo>

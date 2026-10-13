@@ -101,8 +101,9 @@ export const SCOPE = {
   settingsRead: "settings:read",
   /** How a class is identified — `identification_mode` and
    *  `class_attributes_schema` on a category, and NOTHING else on it
-   *  (handoff 58 §4). The Asset Controller's. `settings:write` covers the
-   *  same two keys; this lets the controller change them without the rest. */
+   *  (handoff 58 §4) — and, since handoff 59 §1, its `sap_asset_class`.
+   *  The Asset Controller's. `settings:write` covers the same keys; this
+   *  lets the controller change them without the rest. */
   settingsClasses: "settings:classes",
   /** Taking a copy of the register — both export routes (handoff 50 ruling
    *  1). The Auditor's alone (plus the `admin` wildcard): reading the

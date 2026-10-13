@@ -1,0 +1,62 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 22 tests using 1 worker
+
+[1/22] [chromium] › tests/57-the-gates-tonight.spec.ts:213:7 › 57 — the gates, tonight › setup: a received unit arrives as a candidate, unlabelled and off the register
+[2/22] [chromium] › tests/57-the-gates-tonight.spec.ts:251:7 › 57 — the gates, tonight › store: submits the unit to IAD from the Candidates page
+[3/22] [chromium] › tests/57-the-gates-tonight.spec.ts:261:7 › 57 — the gates, tonight › IAD officer: verify is refused without the four checks and evidence, then verifies
+[4/22] [chromium] › tests/57-the-gates-tonight.spec.ts:281:7 › 57 — the gates, tonight › IAD approver: approves
+[5/22] [chromium] › tests/57-the-gates-tonight.spec.ts:291:7 › 57 — the gates, tonight › Asset Controller: requests tagging, and the label is minted then
+[6/22] [chromium] › tests/57-the-gates-tonight.spec.ts:303:7 › 57 — the gates, tonight › tagger: confirms the label affixed — the existing route moves the gate
+[7/22] [chromium] › tests/57-the-gates-tonight.spec.ts:317:7 › 57 — the gates, tonight › refusal: nobody approves a registration that was never submitted
+[8/22] [chromium] › tests/57-the-gates-tonight.spec.ts:330:7 › 57 — the gates, tonight › Register Maker: the SAP code is required, then submits with code and cost
+[9/22] [chromium] › tests/57-the-gates-tonight.spec.ts:363:7 › 57 — the gates, tonight › Register Checker: approves on the asset page, and the unit joins the register
+[10/22] [chromium] › tests/57-the-gates-tonight.spec.ts:380:7 › 57 — the gates, tonight › refusals: approve without verify, and the same person at two gates
+[11/22] [chromium] › tests/57-the-gates-tonight.spec.ts:470:7 › 58 — a tag_id unit, and the affix refusal's sentence › a tag_id unit: received with attributes and no serial, seven gates, the tagger affixes by label and tick
+[12/22] [chromium] › tests/57-the-gates-tonight.spec.ts:555:7 › 58 — a tag_id unit, and the affix refusal's sentence › D3: the person who fired another gate opens the affix dialog and is refused 409 in the server's own sentence
+[13/22] [chromium] › tests/57-the-gates-tonight.spec.ts:661:7 › 59 — a record_only unit: five gates, no label › setup: a Land class identified by its record; a receipt with a serial is refused, one with a reference is accepted
+[chromium] › tests/57-the-gates-tonight.spec.ts:661:7 › 59 — a record_only unit: five gates, no label › setup: a Land class identified by its record; a receipt with a serial is refused, one with a reference is accepted
+[spec 59 record_only] received: register_state=captured waiting_on=store
+
+[14/22] [chromium] › tests/57-the-gates-tonight.spec.ts:716:7 › 59 — a record_only unit: five gates, no label › store submits; the Candidates row says who it waits on
+[chromium] › tests/57-the-gates-tonight.spec.ts:716:7 › 59 — a record_only unit: five gates, no label › store submits; the Candidates row says who it waits on
+[spec 59 record_only] submitted: register_state=vfm_pending waiting_on=iad
+
+[15/22] [chromium] › tests/57-the-gates-tonight.spec.ts:730:7 › 59 — a record_only unit: five gates, no label › IAD officer verifies
+[chromium] › tests/57-the-gates-tonight.spec.ts:730:7 › 59 — a record_only unit: five gates, no label › IAD officer verifies
+[spec 59 record_only] verified: register_state=vfm_verified waiting_on=iad_approver
+
+[16/22] [chromium] › tests/57-the-gates-tonight.spec.ts:748:7 › 59 — a record_only unit: five gates, no label › IAD approver approves — and the server skips both tagging gates
+[chromium] › tests/57-the-gates-tonight.spec.ts:748:7 › 59 — a record_only unit: five gates, no label › IAD approver approves — and the server skips both tagging gates
+[spec 59 record_only] approved: register_state=reg_ready waiting_on=maker
+
+[17/22] [chromium] › tests/57-the-gates-tonight.spec.ts:768:7 › 59 — a record_only unit: five gates, no label › Register Maker submits — the dialog never says tagged, and shows the class's SAP code
+[chromium] › tests/57-the-gates-tonight.spec.ts:768:7 › 59 — a record_only unit: five gates, no label › Register Maker submits — the dialog never says tagged, and shows the class's SAP code
+[spec 59 record_only] submitted to the register: register_state=reg_submitted waiting_on=checker
+
+[18/22] [chromium] › tests/57-the-gates-tonight.spec.ts:796:7 › 59 — a record_only unit: five gates, no label › Register Checker approves; the register gains exactly this unit, with no label and the skip in its history
+[chromium] › tests/57-the-gates-tonight.spec.ts:796:7 › 59 — a record_only unit: five gates, no label › Register Checker approves; the register gains exactly this unit, with no label and the skip in its history
+[spec 59 record_only] registered: register_state=registered waiting_on=null
+
+[spec 59 record_only] waiting_on, step by step:
+  received: register_state=captured waiting_on=store
+  submitted: register_state=vfm_pending waiting_on=iad
+  verified: register_state=vfm_verified waiting_on=iad_approver
+  approved: register_state=reg_ready waiting_on=maker
+  submitted to the register: register_state=reg_submitted waiting_on=checker
+  registered: register_state=registered waiting_on=null
+
+[19/22] [chromium] › tests/59-what-sap-already-holds.spec.ts:121:7 › 59 — what SAP already holds › (i) the Asset Controller sets a SAP class on screen, it reads back, and the configuration record says so
+[chromium] › tests/59-what-sap-already-holds.spec.ts:121:7 › 59 — what SAP already holds › (i) the Asset Controller sets a SAP class on screen, it reads back, and the configuration record says so
+[spec 59] configuration record: cadra.class_sap_asset_class.27701 = 4867; class: e2e-59 SAP class on screen by Hauwa Dikko at 2026-10-12 17:37:31.378606
+
+[20/22] [chromium] › tests/59-what-sap-already-holds.spec.ts:165:7 › 59 — what SAP already holds › (i) …and the Store Officer is offered no control for it, and is refused 403 round the screen
+[21/22] [chromium] › tests/59-what-sap-already-holds.spec.ts:192:7 › 59 — what SAP already holds › (ii) a unit whose class has no SAP class: the register dialog says so first, and the server's refusal is shown verbatim
+[22/22] [chromium] › tests/59-what-sap-already-holds.spec.ts:242:7 › 59 — what SAP already holds › (iii) the placeholder list, edited once on screen, on the configuration record — and put back
+[chromium] › tests/59-what-sap-already-holds.spec.ts:242:7 › 59 — what SAP already holds › (iii) the placeholder list, edited once on screen, on the configuration record — and put back
+[spec 59] configuration record: cadra.serial_placeholders changed by Oluwaseun Ajayi at 2026-10-12 17:38:16.562884
+
+  22 passed (3.1m)

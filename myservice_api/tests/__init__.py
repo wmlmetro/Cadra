@@ -24,3 +24,6 @@ from . import test_words_classes
 from . import test_receipt_gates
 # Handoff 58: P4, P5, Section 12 and the role-exclusion table.
 from . import test_gates_kept
+# Handoff 59: record_only, the SAP class at registration, placeholders,
+# SAP asset numbers in both shapes.
+from . import test_what_sap_already_holds

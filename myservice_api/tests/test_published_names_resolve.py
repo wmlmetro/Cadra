@@ -259,6 +259,11 @@ _BODY_ROUTES = {
         (None, None,
          "writes the `cadra.receipt.gated` `ir.config_parameter` row, not "
          "a field of a record"),
+    # Handoff 59. The whole list writes one `ir.config_parameter` row.
+    ("PUT", "/api/v1/settings/serial-placeholders"):
+        (None, None,
+         "writes the `cadra.serial_placeholders` `ir.config_parameter` row "
+         "(`exact`, `patterns`), not a field of a record"),
     ("POST", "/api/v1/auth/token"):
         (None, None, "credentials"),
     ("POST", "/api/v1/auth/login"):
