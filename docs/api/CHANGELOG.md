@@ -37,7 +37,9 @@ live at was never the point.
 
 **Additive.** Nothing a consumer already receives changed: `asset.tag.affixed`
 is the same body, headers and endpoint, byte for byte, and every `/api/v1`
-route answers as before. With the gates off nothing new is ever sent.
+route answers as before. With the gates off no unit is a candidate, so
+nothing new is sent (a candidate still in flight when a tenant switches the
+gates off still moves, and its moves are sent).
 
 - **New outbound event: `asset.register_state.changed`** (INT-05b, contract
   `docs/integrations/INT-05b-register-state.md`). Cadra POSTs it to Vendra

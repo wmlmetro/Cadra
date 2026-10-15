@@ -47,7 +47,12 @@ def test_a_host_off_this_machine_is_refused(origin):
 
 def test_the_bench_is_accepted():
     assert walk_units.refusal("test19", "http://test19.localhost:8069") is None
-    assert walk_units.refusal("test19", "http://localhost:8069") is None
+
+
+def test_a_bare_localhost_is_refused():
+    """It names no tenant (verification pass, 62)."""
+    said = walk_units.refusal("test19", "http://localhost:8069")
+    assert said and "names no tenant" in said, said
 
 
 def test_a_refusal_touches_nothing():

@@ -2473,9 +2473,11 @@ whether a day's outage should need a person.
 
 1. `upgrade-19` with `myservice_workflow` on every cluster tenant (one new
    column, `workflow_config.rest_endpoint_register_state`; nothing is sent).
-2. Vendra handoff 57's receiver deployed.
+2. Vendra handoff 57's receiver deployed, **with its path in Vendra's
+   `auth_hooks`** — Frappe answers 401 before routing for any path no hook
+   authenticates.
 3. Then, on each tenant whose Vendra has the receiver, set *Register-State
    Endpoint* on the *Vendra (INT-05 asset events)* target — proposed
    `/api/method/vendra_network.api.cadra.register_state_event`. Setting it
    before step 2 dead-letters every move on its first attempt (Vendra
-   answers `401` for a method it does not have).
+   answers `401` for a path its auth hook does not cover).

@@ -42,8 +42,10 @@ that state is never sent. A labelled unit therefore raises **seven** events
 on its way to the register, and a `record_only` unit **five**.
 
 **A batch is N events.** `POST /api/v1/candidates/gates/<action>` is N single
-fires, so a batch verify of 20 units raises 20 events. A unit the batch
-refuses raises none.
+fires, each in its own savepoint, so a batch verify of 20 units raises 20
+events, a unit the batch refuses raises none, and a `dry_run` (rolled back
+whole) raises none — by construction; measured on `test19` for a batch of
+5 with one refused unit (report 62 §4.3), not for `dry_run`.
 
 ### When it is NOT raised
 
@@ -52,8 +54,8 @@ refuses raises none.
   INT-03 writes. Anything else (a unit registered in Cadra's own screens, a
   Vendra unit with no receipt reference) raises nothing, because Vendra has
   nothing to match it to.
-- **With the gates off.** A unit is born `registered` and never moves, so
-  nothing is ever raised. (A tenant that switches the gates off while
+- **With the gates off.** A unit received then is born `registered` and
+  never moves, so nothing is raised for it. (A tenant that switches the gates off while
   candidates are in flight still moves those candidates. Each such move is a
   real change and is sent.)
 - **The unit's birth.** INT-03 creates the unit at `captured` and Vendra
@@ -62,10 +64,11 @@ refuses raises none.
 - **A move that rolled back.** The event is written to the outbox in the
   same database transaction as the move, so a refused unit in a batch, a
   `dry_run`, or any failure after the move takes its event with it.
-- **A target with no Register-State Endpoint** (below). Nothing is queued,
+- **A REST target with no Register-State Endpoint** (below). Nothing is queued,
   and the log says so (`target … has no register-state endpoint; … not
-  queued`). This is the state of every Cadra tenant until its Vendra has the
-  receiver.
+  queued`). This is the state of every Cadra tenant but `test19` until its Vendra
+  has the receiver. (A *stub* target, used by tests, needs no endpoint: it queues
+  and "delivers" to nobody.)
 
 ---
 
@@ -185,7 +188,7 @@ for every outbound event:
 
 | You answer | Cadra records | Retries? |
 |---|---|---|
-| 2xx with an identity in the body (`name`, `event_id`, `reference`, `ref`, `id`, also inside Frappe's `message`) | `acknowledged`, with your identity | no |
+| 2xx with an identity in the body (`sap_asset_number`, `event_id`, `name`, `reference`, `ref`, `id` — at the top level or inside Frappe's `message` or Cadra's `data`) | `acknowledged`, with your identity | no |
 | 2xx without one | `sent` ("received", not acknowledged) | no |
 | **409** | `acknowledged`: you already hold this `event_id`, so the event landed | no |
 | 408, 425, 429, any 5xx, a timeout, a refused connection, a DNS failure | `error` | **yes**, on the ladder below |
@@ -194,11 +197,14 @@ for every outbound event:
 **A 4xx other than 408/425/429 is final.** Use it for "this can never be
 taken" (malformed, or a `grn_reference` you do not hold, as INT-05's
 `TagUnmatchedError` does), never for "not ready yet". **Until Vendra's
-receiver exists, Vendra answers `401 AuthenticationError`** (Frappe's
-`validate_auth` refusing the bearer token for a method it does not know;
-measured, report 62 §4.2), and every event is dead-lettered on its first
-attempt. That is why the endpoint is set only once the receiver is deployed
-(see *Deploying* below).
+receiver exists, Vendra answers `401 AuthenticationError`** — and it
+will go on answering 401 even once the method exists, **unless Vendra's auth
+hook covers the new path.** Frappe refuses any `Authorization` header that nothing authenticated, with a 401, BEFORE routing (`frappe/auth.py:627-628`); `tag_event` gets through only because Vendra's path-scoped auth hook (`vendra_network.auth.authenticate_cadra_callback`, `hooks.py` `auth_hooks`) covers its exact path. So Vendra's receiver is reachable
+only when that hook (or a second one like it) also authenticates
+`/api/method/vendra_network.api.cadra.register_state_event`. Measured on the
+bench, report 62 §4.2: every event dead-lettered on its first attempt with
+the traceback ending at `auth.py, line 628`. That is why the endpoint is set
+only once the receiver AND its hook are deployed (see *Deploying* below).
 
 ### The retry ladder and the dead letter
 
@@ -242,7 +248,9 @@ refresh-on-open asks Cadra for a receipt's units whenever someone opens it.
 
 1. Upgrade `myservice_workflow` on every tenant (the Register-State Endpoint
    column; the cluster's `upgrade-19`). Nothing is sent yet.
-2. Deploy Vendra's receiver (Vendra handoff 57).
+2. Deploy Vendra's receiver (Vendra handoff 57), **with its path in
+   Vendra's `auth_hooks`** (above) — without that, the receiver exists and
+   every event still answers 401.
 3. Then set **Register-State Endpoint** on the tenant's *Vendra (INT-05 asset
    events)* target. Events are queued from the next move. Moves made before
    this are not sent: 55's refresh-on-open covers them.

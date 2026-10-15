@@ -279,9 +279,13 @@ def walk_to(client, asset, state, on_step=None):
               f"{', '.join(RESTING)} (or use query / reject).")
     here = asset.get("register_state") or "registered"
     record_only = asset.get("identification_mode") == "record_only"
-    if record_only and state in ("tag_issued", "tagged"):
+    if record_only and state in ("vfm_approved", "tag_issued", "tagged"):
+        # `vfm_approved` too: IAD's approval of a record_only unit goes
+        # straight on to `reg_ready` (handoff 59 §2), so a walk to it would
+        # run on past and register the unit (verification pass, 62).
         _fail(f"asset {asset['id']} is record_only: it has no label, and "
-              f"its chain skips {state!r}.")
+              f"its chain never rests at {state!r} (IAD's approval takes "
+              "it straight to reg_ready).")
     if not record_only and state == "reg_ready":
         _fail(f"asset {asset['id']} carries a label: `reg_ready` is a "
               "record_only unit's state; walk it to `tagged`.")
@@ -292,7 +296,11 @@ def walk_to(client, asset, state, on_step=None):
     if order.index(here) > order.index(state):
         _fail(f"asset {asset['id']} is already at {here!r}, past "
               f"{state!r}; a walk only goes forward.")
-    return _walk(client, asset, state, on_step=on_step)
+    walked = _walk(client, asset, state, on_step=on_step)
+    if walked.get("register_state") != state:
+        _fail(f"asset {asset['id']} stopped at "
+              f"{walked.get('register_state')!r}, not {state!r}.")
+    return walked
 
 
 def _iad_act(client, asset, action, key, words, on_step):

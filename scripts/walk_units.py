@@ -24,7 +24,10 @@ What it refuses, before it reads a file or opens a connection:
 
 - a tenant not on the allow-list of the bench's test tenants — `staging`,
   every cluster tenant and every client's register by name;
-- a host that is not `localhost` or `<tenant>.localhost`.
+- a host that is not `<tenant>.localhost`;
+- a server whose database (read from `GET /api/v1/meta/readiness`, no
+  token) is not the tenant named — checked before the personas file is
+  read (verification pass, 62: a name is not the database it reaches).
 
 It never touches the cluster. Passwords come from the owner's local personas
 file (`docs/api/.personas.<tenant>`, seeded by `scripts/demo_personas.sh`)
@@ -69,13 +72,34 @@ def refusal(tenant, origin):
     host = (parts.hostname or "").lower()
     if parts.scheme not in ("http", "https") or not host:
         return f"Refused: {origin!r} is not an http(s) origin."
-    if host not in ("localhost", f"{tenant}.localhost"):
+    if host != f"{tenant}.localhost":
         if host.endswith(".localhost"):
             return (f"Refused: {origin!r} is another tenant's host; "
                     f"--tenant {tenant} is served at {tenant}.localhost.")
+        if host == "localhost":
+            return (f"Refused: {origin!r} names no tenant; the bench serves "
+                    f"one database per host — use {tenant}.localhost.")
         return (f"Refused: {origin!r} is not this machine. This script "
-                "walks units only on the local bench (localhost or "
-                "<tenant>.localhost) and never touches the cluster.")
+                "walks units only on the local bench (<tenant>.localhost) "
+                "and never touches the cluster.")
+    return None
+
+
+def served_database_refusal(tenant, origin):
+    """The sentence refusing a server that does not serve `tenant`, or
+    None. One unauthenticated read — the database the host actually
+    routes to — before any password is read."""
+    import requests
+    try:
+        r = requests.get(f"{origin}/api/v1/meta/readiness", timeout=20)
+        body = r.json()
+    except (requests.RequestException, ValueError) as e:
+        return f"Refused: {origin} did not say which database it serves ({e})."
+    served = (body.get("data") or {}).get("database") or (
+        (body.get("error") or {}).get("details") or {}).get("database")
+    if served != tenant:
+        return (f"Refused: {origin} serves the database {served!r}, not "
+                f"{tenant!r}.")
     return None
 
 
@@ -134,6 +158,11 @@ def main(argv=None):
             print(f"Refused: {flag} needs the words — say why.",
                   file=sys.stderr)
             return 2
+
+    refused = served_database_refusal(args.tenant, origin)
+    if refused:
+        print(refused, file=sys.stderr)
+        return 2
 
     sys.path.insert(0, str(REPO_ROOT / "tests"))
     import gates  # noqa: E402 — the suites' walker, after the refusals

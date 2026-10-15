@@ -132,9 +132,10 @@ class WorkflowConfig(models.Model):
     # ── Retry policy (INT-05) ─────────────────────────────────────────
     #
     # Per tenant, because "how long do we keep trying" is a question about
-    # the OTHER end's operational habits, not about Cadra. The defaults give
-    # 1m, 2m, 4m, 8m, 16m, 32m, 60m, 60m — a little over three hours of
-    # trying, which covers a redeploy or a certificate swap without a human
+    # the OTHER end's operational habits, not about Cadra. The defaults wait
+    # 1m, 2m, 4m, 8m, 16m, 32m, 60m between eight attempts — 2 h 3 min of
+    # trying (measured in handoff 62, which first corrected "a little over
+    # three hours" here), which covers a redeploy or a certificate swap without a human
     # touching anything, and dead-letters before the queue becomes a place
     # events go to be forgotten.
     retry_max_attempts = fields.Integer(
@@ -156,7 +157,7 @@ class WorkflowConfig(models.Model):
         """Reject an unusable asset-event config at save time.
 
         An event target that is missing its URL does not fail quietly — it
-        fails once per affix, three hours later, in a dead-letter queue. The
+        fails once per affix, two hours later, in a dead-letter queue. The
         cheapest place to catch that is the form someone is already looking
         at.
         """

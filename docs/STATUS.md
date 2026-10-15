@@ -1685,7 +1685,7 @@ Evidence: `docs/handoffs/62-REPORT.md` and `docs/handoffs/62-evidence/`.
   person; INT-05's outbox, ladder and dead letter; its own endpoint on the
   INT-05 target (blank: nothing queued). Driven on `test19`: 24 events of
   exactly the expected 24 across 12 units; Vendra answers `401` until its
-  receiver exists.
+  receiver exists and its auth hook covers the path.
 - **`state_since` strictly increases per unit** (without it an
   in-registry walk lands all seven moves in one second).
 - **A day without Vendra, measured**: the ladder gives up 2 h 3 min after an

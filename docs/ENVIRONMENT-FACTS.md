@@ -485,13 +485,17 @@ issued under its prefix past 999 — one `COUNT` each, ~11 s per asset on
 suite is suddenly slow, sample `pg_stat_activity` before blaming the load:
 `docker exec myservicenrs-db-1 psql -U odoo -d postgres -Atc "select left(query,200) from pg_stat_activity where state='active'"`.
 
-### Vendra answers `401` for a method it does not have, not `404` (handoff 62)
+### Vendra answers `401` for any path its auth hook does not cover (handoff 62)
 
-Cadra's INT-05 target sends `Authorization: Bearer …`. Frappe lets a request
-with that header through to a whitelisted *guest* method (that is how
-`vendra_network.api.cadra.tag_event` checks the token itself), but for a
-method that does not exist `validate_auth` tries the header as an OAuth
-token first and answers `401 frappe.exceptions.AuthenticationError`. Cadra
-classifies a 401 as final, so an event pointed at a Vendra endpoint that is
-not deployed yet is dead-lettered on its first attempt, and the error reads
-like a bad credential. Check that the method exists before rotating keys.
+Cadra's INT-05 target sends `Authorization: Bearer …`. Frappe's
+`validate_auth` (`frappe/auth.py:613-628`) answers ANY two-part
+`Authorization` header that nothing authenticated with `401
+frappe.exceptions.AuthenticationError`, before routing — whether or not the
+method exists. `vendra_network.api.cadra.tag_event` works only because
+Vendra's `auth_hooks` (`vendra_network/hooks.py`) include
+`authenticate_cadra_callback`, which authenticates that ONE path. Cadra
+classifies a 401 as final, so an event sent to a Vendra path the hook does
+not cover is dead-lettered on its first attempt, and it reads like a bad
+credential. Before rotating keys, check that Vendra's auth hook covers the
+path. (Handoff 62 first wrote "a method it does not know"; the verification
+pass corrected it from Vendra's own `hooks.py`.)
