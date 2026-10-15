@@ -37,7 +37,7 @@ class TestWhatSapAlreadyHolds(GateCrew, CadraTransactionCase):
 
     def _plot(self, **vals):
         base = {'name': 'Plot probe', 'category_id': self.land.id,
-                'reference': 'PLOT-%s' % uuid.uuid4().hex[:8],
+                'record_reference': 'PLOT-%s' % uuid.uuid4().hex[:8],
                 'register_state': 'captured'}
         base.update(vals)
         return self.env['nrs.asset'].sudo().create(base)
@@ -120,9 +120,9 @@ class TestWhatSapAlreadyHolds(GateCrew, CadraTransactionCase):
             self._plot(serial_number='SN-123')
         self.assertEqual(cm.exception.details['field'], 'serial_number')
         with self.assertRaises(GateRefused) as cm:
-            self._plot(reference=False)
+            self._plot(record_reference=False)
         self.assertEqual(cm.exception.details['missing_fields'],
-                         ['reference'])
+                         ['record_reference'])
 
     # ── §1 · the SAP class at both registration gates ────────────────
 

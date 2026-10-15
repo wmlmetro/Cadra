@@ -170,6 +170,10 @@ def _first_party_controller_modules():
 _GATE_BODY = ("a receipt gate's evidence (`v1_gates._BODY_KEYS`), mapped onto "
               "the record by `nrs.asset._fire_gate`, never by field name")
 
+_GATE_BATCH_BODY = ("N receipt-gate fires (`v1_gates._BATCH_KEYS`, "
+                    "`_LINE_KEYS`), each mapped onto its unit by "
+                    "`nrs.asset._fire_gate`, never by field name")
+
 _BODY_ROUTES = {
     # ── resource routes: the body is a dict of the model's fields ──
     ("POST", "/api/v1/assets"):
@@ -244,6 +248,18 @@ _BODY_ROUTES = {
         (None, None, _GATE_BODY),
     ("POST", "/api/v1/assets/<int:id>/gates/return-registration"):
         (None, None, _GATE_BODY),
+    # Handoff 60 §2: the batches. N single fires through `_fire_gate`; the
+    # body is the ids (or the maker's pasted lines) and the evidence every
+    # unit's fire shares, refused outside `v1_gates._BATCH_KEYS` /
+    # `_LINE_KEYS`.
+    ("POST", "/api/v1/candidates/gates/verify"):
+        (None, None, _GATE_BATCH_BODY),
+    ("POST", "/api/v1/candidates/gates/approve"):
+        (None, None, _GATE_BATCH_BODY),
+    ("POST", "/api/v1/candidates/gates/register"):
+        (None, None, _GATE_BATCH_BODY),
+    ("POST", "/api/v1/candidates/gates/approve-registration"):
+        (None, None, _GATE_BATCH_BODY),
     # Handoff 58 §5. `role_a` / `role_b` are ROLE KEYS (as on `/roles`),
     # resolved to `group_a` / `group_b` by the route through the role
     # vocabulary; `reason` and `active` are the row's own. Refused outside
@@ -686,7 +702,7 @@ _GUARDED_READS = {
     ("v1_meta.py", "meta_database", "request", "jwt_claims"): None,
     # Handoff 57: the gates judge the caller by the token's scopes.
     ("v1_assets.py", "_caller_scopes", "request", "jwt_claims"): None,
-    ("v1_gates.py", "_fire", "request", "jwt_claims"): None,
+    ("v1_gates.py", "_token_scopes", "request", "jwt_claims"): None,
     # Handoff 57: the settings block guards the field because the route was
     # written before the field landed; it is always there since
     # `myservice_asset_register` 19.0.1.26.0.

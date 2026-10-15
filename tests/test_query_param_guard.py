@@ -202,6 +202,9 @@ INVENTORY = {
     ("v1_gates", "register_state"): ("inline", "refused inline by list_candidates against the model's states minus `registered`, which a candidate never is"),
     ("v1_gates", "waiting_on"): ("inline", "refused inline by list_candidates against asset_gates.WAITING_ON_VALUES, a derived set the model owns"),
     ("v1_gates", "q"): ("text", "free-text across name, code, tag, serial, GRN and PO — `_list_domain`'s own"),
+    # ── handoff 60 — seventy a day ──────────────────────────────────
+    ("v1_gates", "waiting_on_me"): ("bool", ""),
+    ("v1_gates", "sort"): ("enum", ""),
 
     # ── v1_fleet.py ───────────────────────────────────────────────────
     ("v1_fleet", "q"): ("text", "free-text across plate, VIN, name, driver, model, brand, home location"),
