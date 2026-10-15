@@ -484,3 +484,14 @@ issued under its prefix past 999 — one `COUNT` each, ~11 s per asset on
 (17 % in an hour, against 37 minutes for the whole run in handoff 45). If the
 suite is suddenly slow, sample `pg_stat_activity` before blaming the load:
 `docker exec myservicenrs-db-1 psql -U odoo -d postgres -Atc "select left(query,200) from pg_stat_activity where state='active'"`.
+
+### Vendra answers `401` for a method it does not have, not `404` (handoff 62)
+
+Cadra's INT-05 target sends `Authorization: Bearer …`. Frappe lets a request
+with that header through to a whitelisted *guest* method (that is how
+`vendra_network.api.cadra.tag_event` checks the token itself), but for a
+method that does not exist `validate_auth` tries the header as an OAuth
+token first and answers `401 frappe.exceptions.AuthenticationError`. Cadra
+classifies a 401 as final, so an event pointed at a Vendra endpoint that is
+not deployed yet is dead-lettered on its first attempt, and the error reads
+like a bad credential. Check that the method exists before rotating keys.

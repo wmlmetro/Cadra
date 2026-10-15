@@ -1674,3 +1674,24 @@ Evidence: `docs/handoffs/61-REPORT.md` and `docs/handoffs/61-evidence/`.
   states; modules 505 / 482 / 96 / 20, 0 failed, both states; browser 275
   specs (report 61 §Verification for the per-state numbers and reruns).
 - **Not yet**: deployed — owner, after merge.
+
+## Handoff 62 — the state, told
+
+Evidence: `docs/handoffs/62-REPORT.md` and `docs/handoffs/62-evidence/`.
+
+- **`asset.register_state.changed`** (INT-05b) to Vendra for every move of a
+  unit Vendra sent: one event per act — 7 for a labelled unit, 5 for a
+  `record_only` one, N for a batch of N — Vendra report 56 §4's table, no
+  person; INT-05's outbox, ladder and dead letter; its own endpoint on the
+  INT-05 target (blank: nothing queued). Driven on `test19`: 24 events of
+  exactly the expected 24 across 12 units; Vendra answers `401` until its
+  receiver exists.
+- **`state_since` strictly increases per unit** (without it an
+  in-registry walk lands all seven moves in one second).
+- **A day without Vendra, measured**: the ladder gives up 2 h 3 min after an
+  event; a working day's 490 events in a 24-hour outage are all dead.
+  Dead letters are now retried by the selection.
+- **`scripts/walk_units.py`** — walks a unit as the personas on `test19`
+  only, through the suites' own walker.
+- **Not yet**: deployed; the Register-State Endpoint set on any tenant but
+  `test19` — owner, after Vendra 57.
