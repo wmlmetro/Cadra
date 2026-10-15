@@ -116,6 +116,10 @@ no vector store is needed at that scale.
 
 ## 4 · What gets built, in order
 
+*Renumbered by handoff 62 (2026-10-15): Cadra 62 is the register-state
+event to Vendra, which closes the gated receipt loop go-live needs. The SAP
+mirror is now 63 and the audit-capture path 64.*
+
 1. **Cadra 61: the safe pieces and the fixes.**
    - The fixes: R3, R9, R10, and the R2a decision record.
    - The pieces any ruling allows: photos on an asset, the `updated_since`
@@ -123,14 +127,14 @@ no vector store is needed at that scale.
    - The corrected endpoint map for the mobile team.
    - Nothing that issues a code, creates an asset from a capture, or
      touches the SAP mirror.
-2. **Cadra 62: the SAP mirror and the matcher.** The owner-run import from
+2. **Cadra 63: the SAP mirror and the matcher.** The owner-run import from
    the export, the matching route, and the *in SAP, not found* report per
    office.
-3. **Cadra 63: devices, code blocks and the audit-capture path.** Device
+3. **Cadra 64: devices, code blocks and the audit-capture path.** Device
    registration bound to a person, blocks issued by the Asset Controller,
    the ledger (R2, R2a), capture sync, review, and the two exception
    lists.
-4. **The mobile app** is the mobile team's, built against 61–63's
+4. **The mobile app** is the mobile team's, built against 61, 63 and 64's
    published contracts. The model, its manifest and download are theirs
    (findings §4, "mostly outside Cadra").
 
@@ -139,7 +143,7 @@ no vector store is needed at that scale.
 - **R7:** tell NRS in writing that photos and data are on the current
   servers, outside Nigeria, and get their acceptance before production
   photos.
-- **The SAP mirror (62)** needs the export file on hand when it runs. The
+- **The SAP mirror (63)** needs the export file on hand when it runs. The
   October file serves for now; ask SAP's team for a refresh cadence.
 - **NRS's open questions in the addendum** still stand: threshold, pilot
   sites, devices, condition → disposal, lost-tag approver, photo
