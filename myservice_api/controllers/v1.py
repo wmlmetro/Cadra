@@ -2719,9 +2719,14 @@ class MyserviceApiV1(http.Controller):
                     media["example"] = entry["request_example"]
                 else:
                     media["example"] = {}
+                # Handoff 61: a route whose body is not JSON (the first is
+                # the multipart photo upload) says which media type it
+                # takes, and is published under that one.
+                content_type = schema.get("x-cadra-content-type") \
+                    if isinstance(schema, dict) else None
                 op["requestBody"] = {
                     "required": True,
-                    "content": {"application/json": media},
+                    "content": {content_type or "application/json": media},
                 }
 
             spec["paths"].setdefault(spec_path, {})[method_lc] = op
@@ -2921,11 +2926,13 @@ class MyserviceApiV1(http.Controller):
 
     @cadra_route("/api/v1/barcode/lookup", method="GET",
                  summary="Look up an asset by tag number, asset code or "
-                         "serial number",
+                         "serial number — or a room by its room code",
                  scopes=[SCOPE_ASSETS_READ],
                  query_params=[
                      {"name": "query", "schema": {"type": "string"},
-                      "description": "Tag, asset code, or serial number to look up"},
+                      "description": ("Tag, asset code, or serial number to "
+                                      "look up; a room code (`LOC-…`) is "
+                                      "tried last")},
                  ],
                  response_schema={
                      "type": "object",
@@ -2938,7 +2945,16 @@ class MyserviceApiV1(http.Controller):
                          "query is stripped, so a scanner's trailing space "
                          "still finds it. A serial on MORE THAN ONE asset is "
                          "a 404 that says so (`details.ambiguous`, "
-                         "`details.matches`), never a silent first pick."),
+                         "`details.matches`), never a silent first pick. "
+                         "LAST, since handoff 61 (ruling R8): a ROOM CODE "
+                         "(`generic.location.location_code`, archived "
+                         "locations included) answers `matched_by: "
+                         "\"location\"` with `matched_location` and NO "
+                         "asset key at all — `found`, `matched_by` and "
+                         "`matched_location` are the whole payload. Branch "
+                         "on `matched_by` before reading an asset field. "
+                         "Nothing that resolved before resolves differently, "
+                         "and a miss is the same 404 as before."),
                      "properties": {
                          "found": {"type": "boolean",
                                    "description": "Always `true` on a 200; "
@@ -2946,10 +2962,40 @@ class MyserviceApiV1(http.Controller):
                          "matched_by": {
                              "type": "string",
                              "enum": ["tag_number", "asset_code",
-                                      "serial_number"],
+                                      "serial_number", "location"],
                              "description": "Which field the query matched. "
                                             "A screen says *found by serial "
-                                            "number* from this."},
+                                            "number* from this. `location` "
+                                            "(handoff 61, ADDITIVE): the "
+                                            "query is a room code, the "
+                                            "answer is `matched_location` "
+                                            "and there is no asset."},
+                         "matched_location": {
+                             "type": "object",
+                             "description": (
+                                 "Only when `matched_by` is `location`. The "
+                                 "room the code names: `id`, `name`, "
+                                 "`location_code`, `path` (root-first names "
+                                 "joined by ` / `), `location_type` (the "
+                                 "model's key or null), `type` ({id, name} "
+                                 "or null), `parent_id`, `active` (false for "
+                                 "an archived location — its label still "
+                                 "resolves) and `asset_count` (registered "
+                                 "assets whose location IS this one, not "
+                                 "its sub-locations, over the register)."),
+                             "properties": {
+                                 "id": {"type": "integer"},
+                                 "name": {"type": "string"},
+                                 "location_code": {"type": "string"},
+                                 "path": {"type": "string"},
+                                 "location_type": {"type": "string",
+                                                   "nullable": True},
+                                 "type": {"type": "object", "nullable": True},
+                                 "parent_id": {"type": "integer",
+                                               "nullable": True},
+                                 "active": {"type": "boolean"},
+                                 "asset_count": {"type": "integer"},
+                             }},
                          "tagged": {
                              "type": "boolean",
                              "description": "Whether the asset has an ACTIVE "
@@ -3014,11 +3060,17 @@ class MyserviceApiV1(http.Controller):
         `details.matches` is how many and `details.matched_by` is
         `serial_number` — so a screen can say *scan the tag instead* rather
         than *not found*.
+
+        Since handoff 61 a ROOM CODE is tried last and answers
+        `matched_by: "location"` with `matched_location` — a room, never an
+        asset, and never "not found". `/tags/lookup` does not gain it: that
+        route is the public portal's shape (no ids, `asset_name` always
+        present), and a scan there is of an asset label.
         """
         from odoo.addons.myservice_barcode_station.controllers.main import BarcodeStationController
         _delegate_reads_as_superuser()
         query = kwargs.get("query", "")
-        result = BarcodeStationController().lookup_tag(query=query)
+        result = BarcodeStationController().lookup_tag(query=query, rooms=True)
         details = {"query": query}
         if isinstance(result, dict):
             # An ambiguous serial is a different kind of miss from an
@@ -3875,6 +3927,9 @@ _ERROR_STATUS_DESCRIPTIONS = {
     403: "Forbidden",
     404: "Not Found",
     409: "Conflict",
+    # Handoff 61: the photo upload's size and type refusals.
+    413: "Payload Too Large",
+    415: "Unsupported Media Type",
     422: "Unprocessable Entity",
     429: "Too Many Requests",
     500: "Server Error",

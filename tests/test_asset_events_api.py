@@ -66,9 +66,11 @@ _EVENT_RECORD = "nrs.asset.event"
 # register REFUSED, written beside the check on its own cursor so the 400's
 # rollback cannot unwind it.
 # `gate_fired` is handoff 57's — a receipt gate (kept by 58).
+# `photo_superseded` and `photo_added` since handoff 61 (additive): a photo
+# is its own append-only row, and superseding one is an event.
 _RECORDED_TYPES = ["verified", "verification_date_set", "status_changed",
                    "provenance_changed", "warranty_changed", "affix_refused",
-                   "gate_fired"]
+                   "gate_fired", "photo_superseded", "photo_added"]
 
 _HIERARCHY_FIELDS = ("building_id", "floor_id", "room_id")
 
@@ -1484,9 +1486,14 @@ def test_an_assets_opening_values_are_not_events(client, test_location):
     recording it would pin every asset ever created (`ondelete='restrict'`)
     for a row that says only that it was created.
     """
+    opening = {"grn_reference": "GRN-AT-BIRTH"}
+    if not gates.receipt_gated(client):
+        # With the gates on a receipt arrives with no status of its own and
+        # no verification (handoff 61, R10): both are refused at the door,
+        # so the opening values this asserts are the ones a receipt may carry.
+        opening.update(state="in_repair", last_verified_date="2026-01-15")
     asset = _new_asset(client, test_location, "pytest-events-opening",
-                       registered=False, state="in_repair", grn_reference="GRN-AT-BIRTH",
-                       last_verified_date="2026-01-15")
+                       registered=False, **opening)
     assert _recorded(_history(client, asset["id"])) == []
 
 
@@ -1525,6 +1532,16 @@ def test_an_event_this_suite_wrote_says_so(client, test_location,
         f"/api/v1/assets/{asset['id']}/tag-affixed",
         json={"tag_number": "PYTEST-NOT-THE-TAG"}),
         400, "validation_failed")
+    # Handoff 61: a photo, and superseding it — the `photo_added` row and
+    # the `photo_superseded` event carry the same label.
+    from .test_asset_photos import png
+    photo = assert_envelope_ok(client.post(
+        f"/api/v1/assets/{asset['id']}/photos",
+        files={"file": ("label.png", png(), "image/png")},
+        data={"source": "web"}), 201)["data"]
+    assert_envelope_ok(client.post(
+        f"/api/v1/assets/{asset['id']}/photos/{photo['id']}/supersede",
+        json={"reason": "label test"}))
     assert_envelope_ok(_mark_missing(client, asset["id"], "label test"))
     assert_envelope_ok(_condemn(client, asset["id"], "label test"))
 
@@ -1534,8 +1551,14 @@ def test_an_event_this_suite_wrote_says_so(client, test_location,
     # With it on, this asset was walked onto the register through the gates
     # (`tests/gates.py`), so `gate_fired` is written too — and carries the
     # same label, which is the point of this test.
-    expected = (_RECORDED_TYPES if gates.receipt_gated(client)
-                else [t for t in _RECORDED_TYPES if t != "gate_fired"])
+    # `photo_added` rests on the photo's own append-only row, not on an
+    # event, so it is asserted beside them below.
+    expected = [t for t in _RECORDED_TYPES if t != "photo_added"]
+    if not gates.receipt_gated(client):
+        expected = [t for t in expected if t != "gate_fired"]
+    added = [e for e in _history(client, asset["id"])["events"]
+             if e["type"] == "photo_added"]
+    assert [e["source"] for e in added] == ["test"], added
     assert sorted({e["type"] for e in recorded}) == sorted(expected), (
         "this test is meant to write one event of every kind")
     sources = {e["source"] for e in recorded}

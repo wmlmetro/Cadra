@@ -26,3 +26,9 @@ from . import asset_identification
 # The receipt gates on `nrs.asset` (handoff 57, kept by 58). Last, because it
 # overrides `asset_tag`'s `_generate_tag` and the label's `_mark_affixed`.
 from . import asset_gates
+# Handoff 61 §7 — `generic.location.location_code`, the room code a label
+# carries.
+from . import location_code
+# Handoff 61 §5 — photos on an asset, append-only. After the mixin and the
+# event record, both of which it uses.
+from . import asset_photo

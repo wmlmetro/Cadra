@@ -330,3 +330,15 @@ Decisions for NRS
 | D10    | What value threshold separates Tag-ID from Pool?               | None set; mode chosen per class                                                  | Threshold per class, or class mapping only |
 | D11    | Which classes default to which mode?                           | Electronics and vehicles = Serial; furniture = Tag-ID; no class defaults to Pool | Class-to-mode table                        |
 | D12    | Are pooled items capitalised or kept on a memorandum register? | Capitalised as a pool                                                            | Flag per class                             |
+
+---
+
+*Note appended by Cadra, 15 October 2026 (the rest of this document is NRS's
+and is unchanged).* **D1, as now ruled (ruling R2a, `docs/AI-CAPTURE-EVALUATION.md`):**
+the asset code is *assigned at capture or creation, printed at tagging, active
+at registration, never reused*. In Cadra as built, a received unit is given its
+code when it is created and the code is hidden while the unit is a candidate;
+that built behaviour is the ruling, in place of "reserved at tagging request"
+in the D1 row above. The code ledger that comes with device code blocks will
+record receipt codes as well as device codes, so there is one answer to which
+codes exist. Recorded in `docs/DECISIONS.md` (2026-10-15, handoff 61).

@@ -281,6 +281,17 @@ SCOPE_REGISTER_CHECK     = "register:check"
 # Carved out so the Controller can set a class's mode without being handed
 # the depreciation policy, the branding and the sidebar.
 SCOPE_SETTINGS_CLASSES   = "settings:classes"
+# Handoff 61, ruling 1 on report 60: Internal Audit's working papers — the
+# delivery notes, invoices and photographs IAD attaches when it verifies a
+# receipt for value for money. Read by IAD (officer and approver), by the
+# Register Maker and Checker (who register cost against them) and by the
+# Auditor; NOT by every Asset User and NOT by Vendra's credential, both of
+# which hold `candidates:read` — which is what guarded the evidence until
+# this scope existed. Ends `:read` so the Auditor-is-read-only pin holds.
+# One guard, `evidence_readable()` below, in front of every place evidence
+# is served; a caller without it is told how many items there are and
+# nothing else.
+SCOPE_EVIDENCE_READ      = "evidence:read"
 
 ALL_SCOPES = frozenset({
     SCOPE_ASSETS_READ, SCOPE_ASSETS_WRITE,
@@ -301,6 +312,7 @@ ALL_SCOPES = frozenset({
     SCOPE_CANDIDATES_READ, SCOPE_VFM_VERIFY, SCOPE_VFM_APPROVE,
     SCOPE_TAGGING_REQUEST, SCOPE_REGISTER_MAKE, SCOPE_REGISTER_CHECK,
     SCOPE_SETTINGS_CLASSES,
+    SCOPE_EVIDENCE_READ,
     SCOPE_ADMIN,
 })
 
@@ -393,17 +405,19 @@ GROUP_SCOPES = (
     # implies Asset User, so `candidates:read` arrives that way too and is
     # repeated here only so the row says what the role is FOR.
     ("myservice_asset_register.group_iad_vfm_officer", (
-        SCOPE_CANDIDATES_READ, SCOPE_VFM_VERIFY)),
+        SCOPE_CANDIDATES_READ, SCOPE_VFM_VERIFY, SCOPE_EVIDENCE_READ)),
     ("myservice_asset_register.group_iad_vfm_approver", (
-        SCOPE_CANDIDATES_READ, SCOPE_VFM_APPROVE)),
+        SCOPE_CANDIDATES_READ, SCOPE_VFM_APPROVE, SCOPE_EVIDENCE_READ)),
     ("myservice_asset_register.group_asset_controller", (
         SCOPE_CANDIDATES_READ, SCOPE_TAGGING_REQUEST,
         # Handoff 58 §4: the Controller decides how a class is identified.
         SCOPE_SETTINGS_CLASSES)),
+    # Handoff 61: the maker and the checker register cost against IAD's
+    # evidence, so they read it (ruling 1 on report 60).
     ("myservice_asset_register.group_register_maker", (
-        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_MAKE)),
+        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_MAKE, SCOPE_EVIDENCE_READ)),
     ("myservice_asset_register.group_register_checker", (
-        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_CHECK)),
+        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_CHECK, SCOPE_EVIDENCE_READ)),
 
     # The Auditor (specification §3's `audit_viewer`, INT-10 §4.3). READ
     # scopes only, and every one of them already exists — the five §13.4
@@ -438,6 +452,8 @@ GROUP_SCOPES = (
         # Handoff 57: the auditor sees every record at any state
         # (Addendum A §4, "Auditor (read-only)").
         SCOPE_CANDIDATES_READ,
+        # Handoff 61: IAD's evidence (ruling 1 on report 60).
+        SCOPE_EVIDENCE_READ,
     )),
 
     # The employee roster and the SAP/spreadsheet imports that feed it.
@@ -546,6 +562,11 @@ SCOPE_GROUPS = {
     SCOPE_REGISTER_MAKE:      ("myservice_asset_register.group_register_maker",),
     SCOPE_REGISTER_CHECK:     ("myservice_asset_register.group_register_checker",),
     SCOPE_SETTINGS_CLASSES:   ("myservice_asset_register.group_asset_controller",),
+    # Handoff 61. The Auditor, the one read-only group among its five
+    # holders: a credential granted the papers is put with the role whose
+    # whole job is reading them, never with a gate role (which would carry
+    # that role's exclusions and its gate).
+    SCOPE_EVIDENCE_READ:      ("myservice_api.group_auditor",),
     SCOPE_INTEGRATIONS_WRITE: ("myservice_identity.group_identity_manager",),
     SCOPE_TAGGING_WRITE:      ("myservice_asset_register.group_tag_issuing_unit",),
     # SCOPE_WEBHOOKS_ADMIN and SCOPE_ADMIN map to nothing on purpose — see the
@@ -906,6 +927,27 @@ def caller_holds(scope):
     """
     claims = getattr(request, "jwt_claims", None) or {}
     return not _missing_scopes(claims, [scope])[1]
+
+
+def evidence_readable():
+    """Whether the caller may read IAD's evidence (handoff 61, ruling 1 on
+    report 60) — THE guard, in front of every place evidence is served:
+    `GET /assets/<id>/evidence`, its file route, and the evidence items on
+    `GET /assets/<id>/photos`. A caller for whom this is False is told how
+    many items there are and nothing else (`evidence_count_only`)."""
+    return caller_holds(SCOPE_EVIDENCE_READ)
+
+
+def evidence_count_only(count):
+    """What a caller without `evidence:read` is told about IAD's evidence:
+    the count, in words, and nothing that opens it."""
+    return {
+        "readable": False,
+        "count": count,
+        "summary": "IAD evidence: %d item%s" % (count,
+                                                "" if count == 1 else "s"),
+        "requires_scope": SCOPE_EVIDENCE_READ,
+    }
 
 
 def require_jwt(scopes=()):
@@ -1561,6 +1603,159 @@ def get_params():
                 # tells them so.
                 body = None
     return body if isinstance(body, dict) else {}
+
+
+# ─── multipart bodies ────────────────────────────────────────────────
+#
+# Handoff 61 §5: the first route INSIDE the envelope whose body is a form
+# with a file in it (`POST /assets/<id>/photos`). The only multipart route
+# before it, the employee xlsx import, is a raw `@http.route` outside
+# `cadra_route` and reads `request.httprequest.files` by hand — so every rule
+# the envelope gives a JSON body (one refusal shape for a key the route does
+# not read, nothing written on a refusal) had no multipart equivalent. This
+# is that equivalent, written once, for every upload that comes after.
+#
+# What it does NOT need to do, because `cadra_endpoint` already has:
+# authentication and scopes (before the route runs), the envelope, the
+# rollback on an exception, and IDEMPOTENCY — `X-Idempotency-Key` is keyed
+# on (key, path) and replayed by the decorator before the route is called,
+# so a retried upload under the same key answers the stored 201 and stores
+# nothing twice, exactly as a JSON create does. (As on every route, the key
+# is not compared with the body: the same key with a different picture is
+# the first picture's answer.)
+#
+# Odoo parses the form BEFORE any route runs (`HttpDispatcher.dispatch`
+# builds `request.params` from it), so a body over Odoo's own ceiling
+# (`DEFAULT_MAX_CONTENT_LENGTH`, 128 MiB) is refused by Odoo with its own
+# page before this code is reached. A route's own cap (300 KB for a photo)
+# is the route's to state, in words, from `Upload.size`.
+
+MULTIPART_FORM_DATA = "multipart/form-data"
+
+
+class Upload:
+    """One file part of a multipart body, as `get_multipart` hands it over.
+
+    `filename` and `declared_type` are what the CLIENT said — informational
+    only, and never a basis for deciding what the bytes are; a route that
+    cares sniffs the bytes. `size` is measured from the part itself, so a
+    route can refuse an oversized file in words without reading it.
+    """
+
+    __slots__ = ("field", "filename", "declared_type", "size", "_storage",
+                 "_data")
+
+    def __init__(self, field, storage):
+        self.field = field
+        self.filename = storage.filename or ""
+        self.declared_type = storage.mimetype or None
+        self._storage = storage
+        self._data = None
+        stream = storage.stream
+        try:
+            here = stream.tell()
+            stream.seek(0, 2)
+            self.size = stream.tell()
+            stream.seek(here)
+        except (AttributeError, OSError, ValueError):
+            # A stream that cannot seek is read once, here, and kept.
+            self._data = storage.read()
+            self.size = len(self._data)
+
+    def read(self, limit=None):
+        """The bytes — at most `limit` of them when one is given."""
+        if self._data is not None:
+            return self._data if limit is None else self._data[:limit]
+        stream = self._storage.stream
+        stream.seek(0)
+        return stream.read() if limit is None else stream.read(limit)
+
+
+def get_multipart(*, file_fields=(), text_fields=(), required=()):
+    """Read a `multipart/form-data` body for a `cadra_route`, once.
+
+    Returns `(values, uploads, None)` — `values` the text fields as stripped
+    strings, `uploads` an `Upload` per file field — or `(None, None,
+    envelope)`, which the route returns as it stands. Every refusal is made
+    BEFORE the route has written anything, and says what it refused:
+
+    * **not a form** — `400 invalid_request`, naming the content type that
+      arrived (a JSON body sent to an upload route is told so);
+    * **a part this route does not read** — `refuse_unwritable`'s `400
+      invalid_request` with `rejected_fields` and `writable`, the refusal a
+      JSON body gets for an unknown key (rule 3): an integration must never
+      guess which parts were used;
+    * **a part in the wrong shape** — a file field sent as text, or a text
+      field sent as a file — `400 invalid_request`;
+    * **a part sent twice** — `400 invalid_request`, naming the count:
+      which of two pictures was meant is a guess;
+    * **a required part missing** (a file part with no name and no bytes,
+      which a browser sends for an empty file input, is missing) — `400
+      validation_failed`, naming it.
+
+    Query-string arguments are not read, exactly as `get_params` ignores
+    them on a POST.
+    """
+    http_request = request.httprequest
+    received = http_request.mimetype or None
+    if received != MULTIPART_FORM_DATA:
+        return None, None, err(
+            ERR_INVALID_REQUEST,
+            "This route takes a multipart/form-data body (a file and its "
+            "fields), not %s. Nothing was written."
+            % (received or "a body with no content type"),
+            details={"expected_content_type": MULTIPART_FORM_DATA,
+                     "received_content_type": received})
+    form, files = http_request.form, http_request.files
+    declared = set(file_fields) | set(text_fields)
+    sent = list(dict.fromkeys(list(form.keys()) + list(files.keys())))
+    rejected = [name for name in sent if name not in declared]
+    if rejected:
+        return None, None, refuse_unwritable(
+            rejected, declared,
+            hint="These are the names of the parts of the multipart body "
+                 "this route reads.")
+    for name in sent:
+        is_file = name in file_fields
+        if is_file and name in form:
+            return None, None, err(
+                ERR_INVALID_REQUEST,
+                "`%s` must be sent as a file part (with a filename), not as "
+                "text. Nothing was written." % name,
+                details={"field": name, "expected": "file"})
+        if not is_file and name in files:
+            return None, None, err(
+                ERR_INVALID_REQUEST,
+                "`%s` is a text field, not a file. Nothing was written."
+                % name,
+                details={"field": name, "expected": "text"})
+        count = len(files.getlist(name) if is_file else form.getlist(name))
+        if count > 1:
+            return None, None, err(
+                ERR_INVALID_REQUEST,
+                "Send one `%s` per request; this body carried %d. Nothing "
+                "was written." % (name, count),
+                details={"field": name, "count": count})
+    uploads = {}
+    for name in file_fields:
+        storage = files.get(name)
+        if storage is None:
+            continue
+        upload = Upload(name, storage)
+        if not upload.filename and not upload.size:
+            continue  # an empty file input: nothing was chosen
+        uploads[name] = upload
+    values = {name: (form.get(name) or "").strip() for name in text_fields
+              if name in form}
+    missing = [name for name in required
+               if name not in uploads and not values.get(name)]
+    if missing:
+        return None, None, err(
+            ERR_VALIDATION_FAILED,
+            "Required: %s. Nothing was written."
+            % ", ".join("`%s`" % name for name in missing),
+            details={"missing": missing})
+    return values, uploads, None
 
 
 # ─── HTTP response helper ────────────────────────────────────────────

@@ -45,16 +45,20 @@ import { AlertCircle, CheckCircle2, Loader2, XCircle } from "lucide-react";
 // ─── Words ───────────────────────────────────────────────────────────────────
 
 const DONE_WORDS: Record<GateBatchAction, string> = {
+  "submit":               "submitted to Internal Audit",
   "verify":               "verified",
   "approve":              "approved",
+  "request-tagging":      "given a label to print",
   "approve-registration": "put on the register",
   "register":             "submitted to the register",
 };
 
 const TITLE_WORDS: Record<GateBatchAction, string> = {
+  "submit":               "Submit selected units",
   "verify":               "Verify selected units",
   "approve":              "Approve selected units",
   "approve-registration": "Approve selected registrations",
+  "request-tagging":      "Request tagging for selected units",
   "register":             "Paste SAP codes",
 };
 
@@ -216,8 +220,33 @@ export function BatchVerifyDialog({ rows, onClose, onDone }: {
 
 // ─── Approve (IAD approver) / approve registration (Register Checker) ───────
 
+/** The ids-only batches: IAD's approval, the checker's, and since handoff 61
+ *  (ruling 5 on report 60) Store's *Submit selected* and the Asset
+ *  Controller's *Request tagging for selected*. Each is N single fires on
+ *  the server; a selection may span receipts for the last two. */
+export type IdsBatchAction = "submit" | "approve" | "request-tagging" | "approve-registration";
+
+const IDS_BATCH_WORDS: Record<IdsBatchAction, (n: number) => string> = {
+  "submit": n => `Sends these ${n} received units to Internal Audit, each on its own record. A unit not yet
+    captured, or one the rules bar you from, is refused with the reason; the rest go ahead.`,
+  "approve": n => `Approves the verification of these ${n} units, each on its own record. A unit you
+    verified or received yourself is refused, with the reason; the rest go ahead.`,
+  "request-tagging": n => `Asks for a label for each of these ${n} approved units — each label is issued
+    under the unit's own asset code, on its own record. A unit you received, verified or approved yourself
+    is refused, with the reason; the rest go ahead. Nothing requests a label automatically: this is your act.`,
+  "approve-registration": n => `Puts these ${n} units on the register and sends each one's asset master to
+    SAP. A submission you made yourself is refused, with the reason; the rest go ahead.`,
+};
+
+const IDS_BATCH_VERB: Record<IdsBatchAction, string> = {
+  "submit": "Submit",
+  "approve": "Approve",
+  "request-tagging": "Request tagging for",
+  "approve-registration": "Approve",
+};
+
 export function BatchApproveDialog({ action, rows, onClose, onDone }: {
-  action: "approve" | "approve-registration";
+  action: IdsBatchAction;
   rows: CandidateRow[]; onClose: () => void; onDone: (a: GateBatchAnswer) => void;
 }) {
   const [notes, setNotes] = useState("");
@@ -234,13 +263,7 @@ export function BatchApproveDialog({ action, rows, onClose, onDone }: {
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto" data-testid="batch-dialog" data-action={action}>
         <DialogHeader>
           <DialogTitle>{TITLE_WORDS[action]}</DialogTitle>
-          <DialogDescription>
-            {isCheck
-              ? <>Puts these {rows.length} units on the register and sends each one's asset master to SAP. A
-                  submission you made yourself is refused, with the reason; the rest go ahead.</>
-              : <>Approves the verification of these {rows.length} units, each on its own record. A unit you
-                  verified or received yourself is refused, with the reason; the rest go ahead.</>}
-          </DialogDescription>
+          <DialogDescription>{IDS_BATCH_WORDS[action](rows.length)}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -296,7 +319,7 @@ export function BatchApproveDialog({ action, rows, onClose, onDone }: {
             Cancel
           </button>
           <SubmitButton ready={!tooMany} pending={mutation.isPending} onClick={() => mutation.mutate()}>
-            Approve {rows.length} {rows.length === 1 ? "unit" : "units"}
+            {IDS_BATCH_VERB[action]} {rows.length} {rows.length === 1 ? "unit" : "units"}
           </SubmitButton>
         </DialogFooter>
       </DialogContent>

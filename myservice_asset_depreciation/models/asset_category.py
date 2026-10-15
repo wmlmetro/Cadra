@@ -38,13 +38,20 @@ class NRSAssetCategory(models.Model):
 
     @api.depends('depreciation_method')
     def _compute_asset_depreciating_count(self):
-        Asset = self.env['nrs.asset']
+        # One grouped count for the whole recordset, not one per category
+        # (handoff 61, ruling 6 on report 60 — `GET /asset-categories`
+        # computes it for every row). Same domain, same `_search`.
+        counts = {}
+        if self.ids:
+            counts = {
+                category.id: n for category, n in
+                self.env['nrs.asset']._read_group(
+                    [('category_id', 'in', self.ids),
+                     ('depreciation_method', 'in',
+                      [METHOD_STRAIGHT_LINE, METHOD_DECLINING_BALANCE])],
+                    ['category_id'], ['__count'])}
         for r in self:
-            r.asset_depreciating_count = Asset.search_count([
-                ('category_id', '=', r.id),
-                ('depreciation_method', 'in',
-                 [METHOD_STRAIGHT_LINE, METHOD_DECLINING_BALANCE]),
-            ]) if r.id else 0
+            r.asset_depreciating_count = counts.get(r.id, 0)
 
     @api.constrains('useful_life_months', 'declining_rate', 'salvage_rate',
                     'depreciation_method')

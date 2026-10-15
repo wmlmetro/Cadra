@@ -181,6 +181,11 @@ Movement = (env['nrs.asset.movement'].sudo()         # noqa: F821
 # looking like data.
 Event = (env['nrs.asset.event'].sudo()               # noqa: F821
          if 'nrs.asset.event' in env else None)      # noqa: F821
+# The fifth (handoff 61 §5): a photo of the asset. Append-only, `asset_id`
+# `ondelete='restrict'`, never deleted — superseded instead.
+# `remove_test_residue.py` refuses on it by name, so it is counted here.
+Photo = (env['nrs.asset.photo'].sudo()               # noqa: F821
+         if 'nrs.asset.photo' in env else None)      # noqa: F821
 Location = env['generic.location'].sudo()            # noqa: F821
 Request = env['request.request'].sudo()              # noqa: F821
 
@@ -300,11 +305,14 @@ held_by_movement = fixture_assets.filtered(
 held_by_event = fixture_assets.filtered(
     lambda a: Event is not None
     and Event.search_count([('asset_id', '=', a.id)]))
+held_by_photo = fixture_assets.filtered(
+    lambda a: Photo is not None
+    and Photo.search_count([('asset_id', '=', a.id)]))
 held_by_request = fixture_assets.filtered(
     lambda a: Request.search_count([('nrs_asset_id', '=', a.id)]))
 held_by_disposal = fixture_assets.filtered(lambda a: a.disposal_approved_by)
 unremovable_assets = (held_by_custody | held_by_movement | held_by_event
-                      | held_by_request | held_by_disposal)
+                      | held_by_photo | held_by_request | held_by_disposal)
 
 # A fixture LOCATION stays for a different reason than report 25 recorded.
 #
@@ -375,9 +383,12 @@ print("    of which: %d hold a custody row, %s, %s,"
          ("%d hold an event record" % len(held_by_event)
           if Event is not None
           else "event n/a (`nrs.asset.event` not installed)")))
-print("              %d are pointed at by a request, %d carry an approved "
-      "disposal (the five overlap)"
-      % (len(held_by_request), len(held_by_disposal)))
+print("              %s, %d are pointed at by a request, %d carry an "
+      "approved disposal (the six overlap)"
+      % (("%d hold a photo" % len(held_by_photo)
+          if Photo is not None
+          else "photo n/a (`nrs.asset.photo` not installed)"),
+         len(held_by_request), len(held_by_disposal)))
 _mark_names(locs_holding_a_survivor, "locations holding an asset that stays")
 _mark_names(locs_held_by_request, "locations a service request points at")
 print()

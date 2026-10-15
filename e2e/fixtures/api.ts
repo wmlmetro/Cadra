@@ -147,6 +147,13 @@ export class ApiClient {
     return { status: res.status(), ok: res.ok(), body };
   }
 
+  /** A GET whose answer is a file, not the envelope: status, content type
+   *  and the bytes (handoff 61 — the room label PDF). */
+  async bytes(path: string, params?: Record<string, string | number>) {
+    const res = await this.ctx.get(path, { headers: this.headers(), params: params as any });
+    return { status: res.status(), contentType: res.headers()["content-type"] ?? "", body: await res.body() };
+  }
+
   /** Raw write returning {status, body} without throwing — for a call whose
    *  REFUSAL is a legitimate outcome the spec branches on (handoff 45: a
    *  tenant that cannot send the letter answers 500 and the spec skips). */

@@ -13,6 +13,7 @@
                             type="object"/>
                 </header>
                 <field name="name"/>
+                <field name="reprint_count" string="Print"/>
                 <field name="asset_id"/>
                 <field name="source"/>
                 <field name="tag_date"/>
@@ -64,11 +65,14 @@
                             <field name="asset_id"/>
                             <field name="source"/>
                             <field name="tag_date"/>
+                            <field name="reprint_count" readonly="1"/>
                             <field name="scrapped_date" readonly="1"/>
                         </group>
                         <group string="Replacement">
                             <field name="replacement_reason"/>
                             <field name="replacement_notes"/>
+                            <field name="voided_date" readonly="1"/>
+                            <field name="void_reason" readonly="1"/>
                             <field name="replaces_id" readonly="1"/>
                             <field name="replaced_by_id" readonly="1"/>
                         </group>

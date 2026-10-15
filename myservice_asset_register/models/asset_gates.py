@@ -444,6 +444,27 @@ class NRSAssetGates(models.Model):
                         'not_on_the_register',
                         {'register_state': 'captured',
                          'waiting_on': WAITING_ON['captured']})
+                if vals.get('state') not in (None, False, 'active'):
+                    # Handoff 61 (R10), at the door as well as on `write`
+                    # (verification pass): a receipt that arrived `missing`
+                    # or `in_repair` could never be marked found or repaired
+                    # while a candidate, since no status moves until it is
+                    # registered.
+                    raise GateRefused(
+                        self._not_on_the_register_message(
+                            'captured', 'missing'
+                            if vals['state'] == 'missing' else 'status'),
+                        'not_on_the_register',
+                        {'register_state': 'captured',
+                         'waiting_on': WAITING_ON['captured']})
+                if vals.get('last_verified_date'):
+                    # Nor verified at birth, for the same reason.
+                    raise GateRefused(
+                        self._not_on_the_register_message(
+                            'captured', 'verification'),
+                        'not_on_the_register',
+                        {'register_state': 'captured',
+                         'waiting_on': WAITING_ON['captured']})
                 if vals.get('custodian_id'):
                     raise GateRefused(
                         self._not_on_the_register_message(
@@ -479,6 +500,14 @@ class NRSAssetGates(models.Model):
             'move': _('it can be moved once it is registered.'),
             'transfer': _('it can be transferred once it is registered.'),
             'disposal': _('it can be disposed of once it is registered.'),
+            # Handoff 61 (ruling R10): a unit not on the register cannot be
+            # missing from it, found on it, or verified as present in it.
+            'verification': _('it can be verified once it is registered.'),
+            'missing': _('it cannot be missing from a register it is not '
+                         'on yet.'),
+            'found': _('it cannot be found on a register it is not on '
+                       'yet.'),
+            'status': _('its status can change once it is registered.'),
         }
         who = WAITING_ON.get(state)
         if who:
@@ -502,7 +531,8 @@ class NRSAssetGates(models.Model):
     def _assert_on_the_register(self, vals):
         """Called from `nrs.asset._write_recorded`, beside the disposal and
         approval guards — under every ORM writer, with no exemption: a
-        custodian, a move and a disposal are things only a register asset
+        custodian, a move, a disposal — and since handoff 61 (R10) a change
+        of status and a verification — are things only a register asset
         can have happen to it. A write that NAMES a field without changing
         it passes (the edit form re-sends everything), and so does CLEARING
         a custodian or a location — that takes nothing onto a candidate."""
@@ -517,6 +547,17 @@ class NRSAssetGates(models.Model):
                 rec._refuse_off_the_register('move')
             if vals.get('state') == 'disposed' and rec.state != 'disposed':
                 rec._refuse_off_the_register('disposal')
+            # Handoff 61 (ruling R10), under every writer like the three
+            # above: a candidate's status does not move (missing, found,
+            # under repair) and it is not verified — the routes say which
+            # act first, this is what holds for the form, a script, PATCH.
+            if 'state' in vals and vals['state'] != rec.state:
+                rec._refuse_off_the_register(
+                    'missing' if vals['state'] == 'missing' else 'status')
+            if vals.get('last_verified_date') \
+                    and fields.Date.to_date(vals['last_verified_date']) \
+                    != rec.last_verified_date:
+                rec._refuse_off_the_register('verification')
 
     def write(self, vals):
         if 'register_state' in vals \
@@ -921,7 +962,11 @@ class NRSAssetGates(models.Model):
         """Store verification evidence once, on the first unit of `self`.
         A batch's units each link these from their own event; one unit's
         verify stores its own."""
-        Attachment = self.env['ir.attachment'].sudo()
+        # `image_no_postprocess` (handoff 61): without it `ir.attachment`
+        # resizes and re-encodes any image above 1920 px, and IAD's evidence
+        # would not be the file IAD attached.
+        Attachment = self.env['ir.attachment'].sudo().with_context(
+            image_no_postprocess=True)
         stored = Attachment.browse()
         first = self[:1]
         for name, mimetype, data in files:
@@ -1040,10 +1085,10 @@ class NRSAssetTagGates(models.Model):
 
     def _generate_tag(self, source='auto'):
         # Only BEFORE the tag is issued. From `tag_issued` on, a candidate
-        # has a label, and a replacement of a faded one must mint its
-        # successor exactly as for a registered asset — the first draft
-        # refused every candidate and an approved replacement scrapped the
-        # label with nothing after it (found by the verification pass).
+        # has a label. Since handoff 61 a replacement never comes through
+        # here — it reprints under the same number in
+        # `action_approve_replacement` — which is what closed findings §5.6
+        # (a gated unit's replacement minted under a location prefix).
         if self.register_state in _BEFORE_THE_TAG:
             return self.env['nrs.asset.tag.label']
         # Never for a unit received as `record_only` (handoff 59 §2): it

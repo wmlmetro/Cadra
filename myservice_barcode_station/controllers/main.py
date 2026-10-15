@@ -41,7 +41,7 @@ def _escape_like(value):
                  .replace('_', '\\_'))
 
 
-def _resolve_lookup(env, query, sudo=False):
+def _resolve_lookup(env, query, sudo=False, rooms=False):
     """What a scanned string names. ONE resolution for both lookup routes.
 
     Precedence is TAG NUMBER, then ASSET CODE, then SERIAL NUMBER, each an
@@ -73,6 +73,18 @@ def _resolve_lookup(env, query, sudo=False):
     it has none — its `physical_tag_id` (a tag whose replacement is pending,
     still stuck to the asset), so the station can show *replacement pending*
     rather than *untagged* for a label that is physically there.
+
+    ROOMS, LAST (handoff 61 §7, ruling R8). With `rooms=True` — the
+    `/api/v1/barcode/lookup` station only — a string that matched no tag,
+    asset code or serial is tried as a ROOM CODE (`generic.location.
+    location_code`, archived locations included, compared upper-cased after
+    the strip) and answers `matched_by: 'location'` with the location and NO
+    asset. Last, so nothing that resolved before resolves differently: a tag
+    still beats everything, and an ambiguous serial is still the miss that
+    says how many. Measured before it was added (eight local tenants,
+    2026-10-15): 0 tag numbers, 0 asset codes and 0 serials begin `LOC-`,
+    which every room code does. The public portal (`/tags/lookup`) does not
+    pass it and is unchanged.
     """
     q = (query or '').strip()
     Tag = env['nrs.asset.tag.label']
@@ -109,6 +121,13 @@ def _resolve_lookup(env, query, sudo=False):
             }
         asset = matches
         matched_by = 'serial_number'
+    if not asset and rooms:
+        location = env['generic.location'].sudo().with_context(
+            active_test=False).search(
+                [('location_code', '=', q.upper())], limit=1)
+        if location:
+            return {'found': True, 'matched_by': 'location',
+                    'location': location}
     if not asset:
         return {'found': False,
                 'error': 'No active tag, asset code or serial number '
@@ -118,23 +137,55 @@ def _resolve_lookup(env, query, sudo=False):
             'tag': active or asset.physical_tag_id, 'tagged': bool(active)}
 
 
+def _room_payload(location):
+    """What a scanned ROOM code answers with: the location, never an asset.
+
+    `asset_count` is the registered assets whose location IS this one — not
+    its sub-locations, and not receipt candidates (the register's own
+    default filter) — counted over the register, not a page.
+    """
+    location = location.sudo()
+    Asset = location.env['nrs.asset'].sudo()
+    return {
+        'id': location.id,
+        'name': location.name or '',
+        'location_code': location.location_code or '',
+        'path': location.get_location_path(),
+        'location_type': location.location_type or None,
+        'type': ({'id': location.type_id.id, 'name': location.type_id.name}
+                 if location.type_id else None),
+        'parent_id': location.parent_id.id if location.parent_id else None,
+        'active': bool(location.active),
+        'asset_count': Asset.search_count([('location_id', '=', location.id)]),
+    }
+
+
 class BarcodeStationController(http.Controller):
 
     # ── Backend JSON API ─────────────────────────────────────
 
     @http.route('/barcode/lookup', type='json', auth='user')
-    def lookup_tag(self, query=''):
-        """Look up an asset by tag number, asset code or serial number.
+    def lookup_tag(self, query='', rooms=False):
+        """Look up an asset by tag number, asset code or serial number — and,
+        with `rooms` (handoff 61 §7), a room by its room code, last.
 
         Precedence and matching rules are `_resolve_lookup`'s; this method is
         the authenticated station's shape of its answer and
-        `/api/v1/barcode/lookup` publishes it unchanged.
+        `/api/v1/barcode/lookup` publishes it unchanged, passing `rooms`.
+        The back-office station's own JSON call does not pass it, so its
+        answer is exactly as before.
         """
         if not query:
             return {'found': False, 'error': 'No query provided'}
-        hit = _resolve_lookup(request.env, query)
+        hit = _resolve_lookup(request.env, query, rooms=bool(rooms))
         if not hit['found']:
             return hit
+        if hit['matched_by'] == 'location':
+            return {
+                'found': True,
+                'matched_by': 'location',
+                'matched_location': _room_payload(hit['location']),
+            }
         asset, tag = hit['asset'], hit['tag']
         return {
             'found': True,
@@ -176,8 +227,11 @@ class BarcodeStationController(http.Controller):
             # carries more than one active tag.
             # Not a unit identified by its SAP record (handoff 59): it can
             # never carry a label, so it is never "waiting for one".
+            # `physical_tag_id`, not `active_tag_id` (handoff 61): a label
+            # pending replacement is still on the asset and its replacement
+            # reprints under the same number, so the asset is not untagged.
             'untagged': Asset.search_count([
-                ('active_tag_id', '=', False),
+                ('physical_tag_id', '=', False),
                 ('identification_mode', '!=', 'record_only')]),
         }
 
@@ -218,7 +272,10 @@ class BarcodeStationController(http.Controller):
         except (TypeError, ValueError):
             limit = 100
         # Never a `record_only` unit (handoff 59): it carries no label.
-        domain = [('active_tag_id', '=', False),
+        # `physical_tag_id` (handoff 61): an asset whose label is pending
+        # replacement is not waiting for a label — Generate on it minted a
+        # second, location-prefix label, the findings' §5.6 by another door.
+        domain = [('physical_tag_id', '=', False),
                   ('identification_mode', '!=', 'record_only')]
         if q:
             q = q.strip()
@@ -272,6 +329,16 @@ class BarcodeStationController(http.Controller):
                     'asset_id': asset_id,
                     'reason': 'already_tagged',
                     'tag_number': asset.active_tag_id.name,
+                })
+                continue
+            if asset.physical_tag_id:
+                # Its label is pending replacement (handoff 61): the
+                # replacement reprints under the same number when approved;
+                # minting another number now would put two labels on it.
+                skipped.append({
+                    'asset_id': asset_id,
+                    'reason': 'replacement_pending',
+                    'tag_number': asset.physical_tag_id.name,
                 })
                 continue
             if asset.identification_mode == 'record_only':

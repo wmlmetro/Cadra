@@ -6,9 +6,22 @@ import base64
 import logging
 import re
 
+import pytz
+
 from .asset_event import EVENT_AFFIX_REFUSED
 
 _logger = logging.getLogger(__name__)
+
+#: The register's day is a Lagos day (handoff 37) — the container's clock is
+#: UTC, so a void at 23:30 UTC belongs to the next day in Lagos.
+_LAGOS = pytz.timezone('Africa/Lagos')
+
+
+def _lagos_date(dt):
+    """`YYYY-MM-DD` of a UTC datetime, on the Lagos calendar."""
+    if not dt:
+        return ''
+    return pytz.utc.localize(dt).astimezone(_LAGOS).strftime('%Y-%m-%d')
 
 
 class NRSAssetTag(models.Model):
@@ -37,6 +50,9 @@ class NRSAssetTag(models.Model):
     ], default='auto', string='Source')
 
     # ── Replacement ───────────────────────────────────────────
+    # A LITERAL list, on purpose: `tests/test_frontend_enums.py` reads it out
+    # of this source to hold the app's seed to it. `void_reason` below reads
+    # its values from here, so the two cannot drift apart.
     replacement_reason = fields.Selection([
         ('damaged',  'Damaged / Unreadable'),
         ('lost',     'Lost / Missing'),
@@ -47,6 +63,46 @@ class NRSAssetTag(models.Model):
     replacement_notes = fields.Text('Replacement Notes')
     replaced_by_id = fields.Many2one('nrs.asset.tag.label', string='Replaced By')
     replaces_id = fields.Many2one('nrs.asset.tag.label', string='Replaces Tag')
+
+    # ── Prints of one number (handoff 61, ruling R3) ──────────────
+    #
+    # ONE ROW IS ONE PHYSICAL PRINT. Since handoff 61 an approved replacement
+    # reprints the label under the SAME number — "the number on the asset
+    # doesn't change because a sticker faded" — so a number can have several
+    # rows: every print that was ever issued for it, at most one of them
+    # `active` (`_check_unique_active`). What tells them apart is recorded
+    # here, on the rows, by the approval and by nothing else
+    # (`_REPLACEMENT_STAMPS`):
+    #
+    # * `reprint_count` on EVERY print — 0 for the first print of a number,
+    #   the voided print's count + 1 for its reprint. Which print is current
+    #   is the `active` row; which one it is, is its count.
+    # * `voided_date` and `void_reason` on the print that was VOIDED — when
+    #   it stopped being valid and why. On the voided row rather than on its
+    #   successor because the void is a fact about THAT print: it is what an
+    #   affix refusal of that print names, and a print can be voided with no
+    #   successor ever having been made of it (none today, but the record
+    #   should not need one to say why a print is dead). The successor reads
+    #   it through `replaces_id`.
+    #
+    # `void_reason` is a stamp, not the editable `replacement_reason` it is
+    # copied from: `replacement_reason` is typed on the Odoo form before
+    # *Request Replacement* and is writable afterwards by anybody who can
+    # write the model, so a voided print's "why" read from it could be
+    # rewritten after the fact. The stamp cannot.
+    reprint_count = fields.Integer(
+        'Print Number', default=0, readonly=True, copy=False,
+        help='0 for the first print of this number; each approved '
+             'replacement reprints the label under the same number and '
+             'counts one more.')
+    voided_date = fields.Datetime(
+        'Print Voided On', readonly=True, copy=False,
+        help='When this print was voided by an approved replacement.')
+    void_reason = fields.Selection(
+        selection='_void_reason_selection', string='Print Voided Because',
+        readonly=True, copy=False,
+        help='Why this print was voided: the replacement reason, recorded '
+             'at the approval and not editable afterwards.')
 
     # ── Approval ──────────────────────────────────────────────
     requested_by = fields.Many2one('res.users', string='Requested By')
@@ -112,6 +168,11 @@ class NRSAssetTag(models.Model):
         help='Name of the Tag-Issuing Unit operative who physically affixed '
              'the label. Free text: they are not Cadra users.')
 
+    def _void_reason_selection(self):
+        """`replacement_reason`'s values: a print is voided for the reason
+        its replacement was asked for."""
+        return self._fields['replacement_reason'].selection
+
     @api.constrains('name')
     def _check_unique_active(self):
         for r in self:
@@ -128,8 +189,9 @@ class NRSAssetTag(models.Model):
 
     # ── Replacement: a request, then a SECOND person decides ──────────
     #
-    # Handoff 38. The three steps (active → pending → scrapped-and-reissued)
-    # and the requester/approver columns were already here; what the model
+    # Handoff 38. The three steps (active → pending → scrapped, and since
+    # handoff 61 the scrapped print REPRINTED under the same number) and the
+    # requester/approver columns were already here; what the model
     # lacked was everything handoff 35 settled for a move — who is ASKED,
     # self-approval refused in the model, a reason that is actually
     # recorded, a rejection that says why, and stamps nobody can edit
@@ -152,7 +214,35 @@ class NRSAssetTag(models.Model):
         'approved_by', 'approved_date',
         'rejected_by', 'rejected_date', 'decision_reason',
         'replaces_id', 'replaced_by_id',
+        # Handoff 61: which print this is, and when and why a print was
+        # voided. A count somebody can type would make "reprint 3" evidence
+        # of nothing.
+        'reprint_count', 'voided_date', 'void_reason',
     })
+
+    #: What a CREATE may not carry without the approval's context. The
+    #: write guard above never saw `create`, which is how the chain used to
+    #: be set (by a write after the mint); since handoff 61 the reprint is
+    #: CREATED with its count and its link, so the same refusal is needed at
+    #: the other door. The decision stamps are not here — no create path has
+    #: ever sent them and the write guard covers every later change.
+    _CREATE_STAMPS = frozenset({
+        'replaces_id', 'replaced_by_id',
+        'reprint_count', 'voided_date', 'void_reason',
+    })
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if not self.env.context.get(self.REPLACEMENT_KEY):
+            for vals in vals_list:
+                claimed = self._CREATE_STAMPS & {
+                    k for k, v in vals.items() if v}
+                if claimed:
+                    raise ValidationError(_(
+                        'Print fields (%s) are stamped when a replacement is '
+                        'approved and cannot be set on a new label.'
+                    ) % ', '.join(sorted(claimed)))
+        return super().create(vals_list)
 
     @api.model
     def _approver_group(self):
@@ -192,8 +282,8 @@ class NRSAssetTag(models.Model):
 
     def action_request_replacement(self, reason=None, notes=None,
                                    approver=None):
-        """Ask a second person to agree that this tag be scrapped and
-        reissued.
+        """Ask a second person to agree that this print be voided and the
+        label reprinted under the same number.
 
         Callable with no arguments from the Odoo form, where
         `replacement_reason` and `approver_id` are typed onto the record
@@ -221,7 +311,7 @@ class NRSAssetTag(models.Model):
             if not who:
                 raise UserError(_(
                     'Name who you are asking to approve the replacement of '
-                    'tag %s. A tag is reissued only when a second person '
+                    'tag %s. A label is reprinted only when a second person '
                     'agrees.') % r.name)
             if who.id == self.env.uid:
                 raise UserError(_(
@@ -257,11 +347,40 @@ class NRSAssetTag(models.Model):
         return True
 
     def action_approve_replacement(self, decision_reason=None):
-        """Scrap this tag and mint its successor. Returns the NEW tags.
+        """Void this print and reprint the label under the SAME number.
+        Returns the reprints.
 
-        The old number is never reissued: `_generate_tag` checks every tag
-        on the asset's prefix, scrapped ones included, before it picks a
-        sequence number.
+        Handoff 61, ruling R3: *the number on the asset doesn't change
+        because a sticker faded.* Until 61 this scrapped the label and
+        called `nrs.asset._generate_tag`, which minted a new number — and on
+        a unit that came through the receipt gates, whose label carries the
+        ASSET CODE (ruling 4.3), the gated `_generate_tag` handed it to the
+        location-prefix generator, so the replacement of a gated unit's
+        label was no longer its code (findings §5.6; on `test19` 24 of the
+        172 replacements made before 61 did exactly that). The approval no
+        longer mints anything, so there is nothing for either generator to
+        get wrong: whatever the number was — an asset code, a location
+        prefix, an imported or SAP number — the reprint carries it.
+
+        One row is one print, so the voided print keeps its row (`scrapped`
+        on both lifecycles, its void stamped) and the reprint is a NEW row
+        under the same `name`, `reprint_count` one higher, `replaces_id`
+        naming the print it replaces. `source` is the number's provenance and
+        is copied: a reprint of an auto-generated, imported or SAP number is
+        still that number. `asset_tag` is not written — it already is this
+        number.
+
+        `_check_unique_active` still holds one active label per number: the
+        voided print is written `scrapped` BEFORE the reprint is created, so
+        when the constraint runs on the new row the only other row with its
+        number is no longer active. A number ALREADY active on another asset
+        — which the Python constraint did not prevent: 84 numbers on three
+        local tenants on 2026-10-15 (68 on `test19`, 15 on `jaizbankplc`, 1 on
+        `nrs19`), each on two assets, written by paths that went round it
+        (the seed scripts' SQL re-brand of tag prefixes is one candidate,
+        concurrent mints another; not established) — is refused before
+        anything is written, because reprinting it would print a second
+        asset's label.
         """
         new_tags = self.browse()
         for r in self:
@@ -272,25 +391,71 @@ class NRSAssetTag(models.Model):
                 ) % {'tag': r.name,
                      'state': dict(r._fields['state'].selection)[r.state]})
             r._assert_may_decide(self.env.user)
+            clash = self.sudo().search([
+                ('name', '=', r.name), ('state', '=', 'active'),
+                ('id', '!=', r.id)], limit=1)
+            if clash:
+                raise UserError(_(
+                    'Tag %(tag)s cannot be reprinted: the same number is also '
+                    'active on %(other)s. A number issued to two assets has '
+                    'to be resolved before either label is reprinted, or the '
+                    'reprint would be the other asset\'s label too.'
+                ) % {'tag': r.name, 'other': clash.asset_id.display_name})
+            now = fields.Datetime.now()
             r._replacement_ctx().with_context(cadra_tag_capture=True).write({
                 'state': 'scrapped',
                 'label_state': 'scrapped',
-                'scrapped_date': fields.Date.today(),
+                # The Lagos day of the void, so the date on the row and the
+                # date the affix refusal names are the same day.
+                'scrapped_date': _lagos_date(now),
                 'approved_by': self.env.uid,
-                'approved_date': fields.Datetime.now(),
+                'approved_date': now,
                 'decision_reason': (decision_reason or '').strip() or False,
+                'voided_date': now,
+                'void_reason': r.replacement_reason or False,
             })
-            new_tag = r.asset_id._generate_tag(source='manual')
-            new_tag._replacement_ctx().write({'replaces_id': r.id})
+            new_tag = self._replacement_ctx().create({
+                'name': r.name,
+                'asset_id': r.asset_id.id,
+                'source': r.source or 'auto',
+                'state': 'active',
+                'reprint_count': r.reprint_count + 1,
+                'replaces_id': r.id,
+            })
             r._replacement_ctx().write({'replaced_by_id': new_tag.id})
             r.message_post(
-                body=_('Replacement approved by %(who)s. Tag %(old)s '
-                       'scrapped; new tag %(new)s generated.') % {
+                body=_('Replacement approved by %(who)s. %(old)s of tag '
+                       '%(tag)s voided (%(why)s); %(new)s issued under the '
+                       'same number.') % {
                     'who': self.env.user.display_name,
-                    'old': r.name, 'new': new_tag.name},
+                    'old': r._print_name().capitalize(),
+                    'tag': r.name,
+                    'why': r._reason_label(r.void_reason) or _('no reason'),
+                    'new': new_tag._print_name()},
                 partner_ids=r.requested_by.partner_id.ids)
             new_tags |= new_tag
         return new_tags
+
+    # ── Words for one print, for the refusals and the chatter ─────────
+
+    def _print_name(self, count=None):
+        """'the original print' or 'reprint N' — `reprint_count` in words."""
+        n = self.reprint_count if count is None else count
+        return _('the original print') if not n else _('reprint %d') % n
+
+    def _void_words(self):
+        """'voided on 2026-10-15 (Damaged / Unreadable)' for this print.
+
+        A row scrapped before handoff 61 has no void stamp; its scrap date
+        and its (editable) replacement reason are the best record there is,
+        and the sentence uses them rather than inventing a void."""
+        self.ensure_one()
+        when = (_lagos_date(self.voided_date) if self.voided_date
+                else fields.Date.to_string(self.scrapped_date)
+                if self.scrapped_date else _('an unrecorded date'))
+        why = self._reason_label(self.void_reason or self.replacement_reason)
+        return _('voided on %(when)s (%(why)s)') % {
+            'when': when, 'why': why or _('no reason recorded')}
 
     def action_reject_replacement(self, decision_reason=None):
         """Back to `active`, with who said no and why."""
@@ -346,8 +511,9 @@ class NRSAssetTag(models.Model):
         if vals.get('state', 'scrapped') != 'scrapped' \
                 and any(r.state == 'scrapped' for r in self):
             raise ValidationError(_(
-                'A scrapped tag stays scrapped: %s. Its number is never '
-                'reissued; approving a replacement mints a new one.'
+                'A scrapped tag stays scrapped: %s. A voided print never '
+                'comes back into service; approving a replacement reprints '
+                'the label under the same number, as a new print.'
             ) % ', '.join(r.name for r in self if r.state == 'scrapped'))
         return super().write(vals)
 
@@ -356,9 +522,12 @@ class NRSAssetTag(models.Model):
 
         `printed` means Cadra emitted the instruction — Integration Flow step
         3.3 — not that paper physically emerged from a printer, which Cadra
-        cannot observe. A label already `affixed` is not walked backwards: a
-        reprint of a label someone has already stuck on an asset does not make
-        the asset less tagged.
+        cannot observe. A label already `affixed` is not walked backwards:
+        printing again a label someone has already stuck on an asset does not
+        make the asset less tagged. (Printing the same ROW again is not a
+        *reprint* in handoff 61's sense — that is a new row, made by an
+        approved replacement, with its own `reprint_count`; printing it is
+        what lets its affix through.)
         """
         to_mark = self.filtered(lambda t: t.label_state in ('issued', 'printed'))
         if to_mark:
@@ -375,7 +544,10 @@ class NRSAssetTag(models.Model):
 
         `reason` is WHICH refusal — `number_mismatch` (handoff 51, and what
         a NULL on a pre-52 row means), `scrapped` or `serial_mismatch`
-        (handoff 52 §4). It is the recorder's own key, never caller text.
+        (handoff 52 §4), or `voided_print` (handoff 61: the reprint of a
+        number confirmed before anybody printed it, so the label in hand can
+        only be the print it voided). It is the recorder's own key, never
+        caller text.
         `scanned_value` is what the operative entered: a tag number for the
         first two, the scanned serial for the third. `scanned_format` is
         how THAT value was read, when the caller knew (handoff 54 §7 — the
@@ -450,10 +622,27 @@ class NRSAssetTag(models.Model):
         for it, rather than an assertion that someone tagged something.
 
         `scanned_format` is how the number was read, when the caller knew,
-        and it reaches ONLY the two refusal records below — a successful
-        affix stores nothing new, by ruling (handoff 54 §7): the format
-        earns its column where it tells an auditor whether a refused number
-        came off Cadra's label or a manufacturer's, and nowhere else.
+        and it reaches ONLY the refusal records below — a successful affix
+        stores nothing new, by ruling (handoff 54 §7): the format earns its
+        column where it tells an auditor whether a refused number came off
+        Cadra's label or a manufacturer's, and nowhere else.
+
+        ── A reprint, and the print it voided (handoff 61) ─────────────────
+
+        A reprint carries the SAME number as the print it replaces, so the
+        voided label and the reprint encode the same value and no scanner
+        can tell them apart — the number is the whole of what a label says.
+        What the server CAN reason about is time: while the reprint has not
+        been printed (`label_state` still `issued`), the only label carrying
+        this number that can physically exist is the voided one, so a scan
+        that matches is refused as `voided_print` and the sentence names the
+        void, its date and its reason. Once the reprint is printed — the PDF
+        funnel (`_render_qweb_pdf`) or the app's station
+        (`POST /api/v1/tags/printed`) records it — a matching scan is
+        accepted: it is then either the reprint or a voided print the tagger
+        has not peeled off, and nothing on the paper says which. The first
+        print of a number (`reprint_count` 0) is not held to this, exactly as
+        before 61: there is no earlier print it could be confused with.
         """
         self.ensure_one()
         if self.state == 'scrapped' or self.label_state == 'scrapped':
@@ -463,11 +652,23 @@ class NRSAssetTag(models.Model):
             # 39), but every caller of the CHECK passes here: the Odoo form,
             # a script, a shell. A dead label presented for confirmation is
             # exactly the kind of act an auditor asks about afterwards.
+            # Since handoff 61 the sentence names WHICH print is dead, when
+            # and why, and what is in service in its place.
             self._record_affix_refusal(scanned_tag_number, reason='scrapped',
                                        scanned_format=scanned_format)
+            successor = self.replaced_by_id
+            if successor and successor.name == self.name:
+                instead = _(' The label in service is %s, under the same '
+                            'number.') % successor._print_name()
+            elif successor:
+                instead = _(' It was replaced by tag %s.') % successor.name
+            else:
+                instead = ''
             raise ValidationError(_(
-                'Tag %s has been scrapped and cannot be confirmed as affixed.'
-            ) % self.name)
+                'Tag %(tag)s has been scrapped: %(print)s was %(void)s and '
+                'cannot be confirmed as affixed.%(instead)s'
+            ) % {'tag': self.name, 'print': self._print_name(),
+                 'void': self._void_words(), 'instead': instead})
         if (scanned_tag_number or '').strip() != self.name:
             # The refusal leaves a record BEFORE it is raised — handoff 51.
             # The refusal text below names the expected number (ruled in
@@ -485,6 +686,24 @@ class NRSAssetTag(models.Model):
                 'this asset (%(expected)s). The label on the asset is not the '
                 'one Cadra issued for it.'
             ) % {'scanned': scanned_tag_number or '(none)', 'expected': self.name})
+
+        if self.reprint_count and self.label_state == 'issued':
+            # Handoff 61 — see the docstring. Recorded before it is raised,
+            # like every affix refusal, so the scan is in the history even
+            # though the number matched.
+            self._record_affix_refusal(scanned_tag_number,
+                                       reason='voided_print',
+                                       scanned_format=scanned_format)
+            voided = self.replaces_id
+            raise ValidationError(_(
+                'Tag %(tag)s is %(print)s and has not been printed yet, so '
+                'the label being scanned can only be %(old)s, %(void)s. '
+                'Print %(print)s, then confirm it.'
+            ) % {'tag': self.name, 'print': self._print_name(),
+                 'old': voided._print_name() if voided
+                 else self._print_name(self.reprint_count - 1),
+                 'void': voided._void_words() if voided
+                 else _('voided by its replacement')})
 
         if self.label_state == 'affixed':
             # A second confirmation must not rewrite the first. The original
@@ -707,9 +926,15 @@ class NRSAsset(models.Model):
         highest = self.env.cr.fetchone()[0]
         seq = (highest or 0) + 1
         tag_number = '%s%03d' % (prefix, seq)
-        # Check every tag, not just the active ones. Reissuing a scrapped
-        # tag's number would make the replacement history ambiguous — two
-        # different physical labels sharing one code.
+        # Check every tag, not just the active ones: a MINT is a new number,
+        # and a number that has ever been printed belongs to the asset it
+        # was printed for. (Until handoff 61 this also said that reissuing a
+        # scrapped number would make the replacement history ambiguous — two
+        # physical labels sharing one code. Ruling R3 answered that: a
+        # replacement now REPRINTS under the same number on purpose, and the
+        # history stays unambiguous because every print is its own row with
+        # its `reprint_count`, and the print it replaced carries its void —
+        # when, why, approved by whom. The reprint never comes through here.)
         while Tag.search_count([('name', '=', tag_number)]):
             # capped-count-ok: a sequence number, not a count of
             # anything. `existing` is a limit=1 lookup of the highest

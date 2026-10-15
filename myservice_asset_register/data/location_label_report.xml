@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ═══════════════════════════════════════════════════════════
+         ROOM LABELS — handoff 61 §7 (ruling R8)
+
+         The label a room carries, so an operator scans the room before
+         anything in it. One artwork at two sizes:
+
+           ┌─────────────────────────────────────────┐
+           │ Open Office North                       │
+           │ ▓▓▓▓▓  LOC-HQ-F10-OFCN                  │
+           │ ▓▓▓▓▓  NRS Headquarters / 10th Floor /  │
+           │ ▓▓▓▓▓  Open Office North                │
+           │ ‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖ │
+           │             LOC-HQ-F10-OFCN             │
+           └─────────────────────────────────────────┘
+
+         The QR and the Code 128 carry `location_code` VERBATIM — no URL, no
+         prefix, nothing but the code (handoff 55 §3) — so any scanner that
+         reads it hands the scan box exactly the string the register holds.
+
+         MEDIUM (50 x 30 mm) AND LARGE (100 x 60 mm) ONLY. There is no small
+         room label: handoff 54 measured the small label's Code 128 at
+         ≈ 5 mil per module, 0 of 24 camera reads. The Code 128 here runs the
+         FULL width of the label rather than the asset label's 28.6 mm
+         column, because the codes are short (LOC-1133 is 8 characters, the
+         longest measured 15) and a room label has no asset name competing
+         for the space.
+
+         The paper formats are the asset labels' own
+         (`data/asset_tag_report.xml`), reused by xml id so a room label
+         prints on the same stock in the same printer: medium is 46 x 28 mm
+         usable, large 92 x 54 mm. Table layout, because wkhtmltopdf's Qt
+         WebKit has no flexbox (see `views/asset_tag_report.xml`).
+
+         Not a tag print: the print funnel (`ir.actions.report.
+         _render_qweb_pdf` in `models/asset_tag.py`) stamps only the four
+         ASSET tag reports, by report name, so a room label records nothing
+         — a room has no issued → printed → affixed lifecycle, and printing
+         one again changes nothing about the room.
+         ═══════════════════════════════════════════════════════════ -->
+
+    <template id="location_label_body">
+        <t t-set="cfg" t-value="{
+            'medium': {'h': '28mm', 'namefs': '6pt', 'nameh': '3.4mm',
+                       'qr': '13mm', 'qrpx': 260, 'codept': 8.5, 'codemax': 17,
+                       'pathfs': '4.5pt', 'pathh': '7.2mm', 'pad': '1.2mm',
+                       'bc': '7mm', 'bcw': 1000, 'bch': 120,
+                       'bctextpt': 5.5, 'brandfs': '4.5pt'},
+            'large':  {'h': '54mm', 'namefs': '12pt', 'nameh': '6mm',
+                       'qr': '25mm', 'qrpx': 400, 'codept': 17.0, 'codemax': 17,
+                       'pathfs': '8.5pt', 'pathh': '13mm', 'pad': '2.5mm',
+                       'bc': '14mm', 'bcw': 1400, 'bch': 160,
+                       'bctextpt': 10.0, 'brandfs': '8pt'},
+            }[size]"/>
+        <t t-set="code" t-value="o.location_code or ''"/>
+        <!-- A code longer than the column holds is scaled down, never
+             clipped: the printed text must agree with the bars under it. -->
+        <t t-set="codelen" t-value="len(code) or 1"/>
+        <t t-set="codescale" t-value="1.0 if codelen &lt;= cfg['codemax'] else (cfg['codemax'] * 1.0 / codelen)"/>
+        <t t-set="code_pt" t-value="round(cfg['codept'] * codescale, 2)"/>
+        <t t-set="icp" t-value="env['ir.config_parameter'].sudo()"/>
+        <t t-set="brand_short" t-value="icp.get_param('cadra.brand_short_name') or env.company.name or 'Cadra'"/>
+
+        <table t-attf-style="width: 100%; height: {{ cfg['h'] }}; border-collapse: collapse;
+                             font-family: Arial, Helvetica, sans-serif; color: #000;">
+            <tr>
+                <td colspan="2" t-attf-style="height: {{ cfg['nameh'] }}; padding: 0;
+                                              white-space: nowrap; overflow: hidden;">
+                    <span t-attf-style="font-weight: 700; font-size: {{ cfg['namefs'] }};"
+                          t-out="(o.name or '')[:48]"/>
+                </td>
+            </tr>
+            <tr>
+                <td t-attf-style="width: {{ cfg['qr'] }}; padding: 0; vertical-align: top;">
+                    <img t-if="code"
+                         t-att-src="'data:image/png;base64,' + o.get_room_label_barcode('QR', code, width=cfg['qrpx'], height=cfg['qrpx'])"
+                         t-attf-style="display: block; width: {{ cfg['qr'] }}; height: {{ cfg['qr'] }};"
+                         alt="QR"/>
+                </td>
+                <td t-attf-style="padding: 0 0 0 {{ cfg['pad'] }}; vertical-align: top;">
+                    <div t-attf-style="font-family: 'Courier New', monospace; font-weight: 700;
+                                       font-size: {{ code_pt }}pt; white-space: nowrap; letter-spacing: .3px;"
+                         t-out="code"/>
+                    <div t-attf-style="font-size: {{ cfg['pathfs'] }}; color: #555; line-height: 1.2;
+                                       height: {{ cfg['pathh'] }}; overflow: hidden;"
+                         t-out="o.get_location_path()"/>
+                    <div t-attf-style="font-size: {{ cfg['brandfs'] }}; color: #888; letter-spacing: .4px;">
+                        <span t-out="brand_short"/> · ROOM
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" t-attf-style="padding: {{ cfg['pad'] }} 0 0 0; vertical-align: bottom;">
+                    <img t-if="code"
+                         t-att-src="'data:image/png;base64,' + o.get_room_label_barcode('Code128', code, width=cfg['bcw'], height=cfg['bch'], humanreadable=0)"
+                         t-attf-style="display: block; width: 100%; height: {{ cfg['bc'] }};"
+                         alt="Code128"/>
+                    <div t-attf-style="font-family: 'Courier New', monospace; font-weight: 700;
+                                       font-size: {{ cfg['bctextpt'] }}pt; letter-spacing: 1.5px;
+                                       text-align: center;"
+                         t-out="code"/>
+                </td>
+            </tr>
+        </table>
+    </template>
+
+    <!-- ═══ MEDIUM — 50 x 30 mm stock, 46 x 28 mm usable ═══ -->
+    <template id="report_location_label_medium">
+        <t t-call="web.html_container">
+            <style>
+                body.container { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+                #wrapwrap, #wrapwrap > main { padding: 0; margin: 0; }
+            </style>
+            <t t-foreach="docs" t-as="o">
+                <div t-attf-style="width: 100%; height: 28mm; overflow: hidden;
+                                   {{ 'page-break-after: always;' if not o_last else '' }}">
+                    <t t-call="myservice_asset_register.location_label_body">
+                        <t t-set="size" t-value="'medium'"/>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- ═══ LARGE — 100 x 60 mm stock, 92 x 54 mm usable ═══ -->
+    <template id="report_location_label_large">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <div t-attf-style="width: 100%; height: 54mm; overflow: hidden;
+                                   {{ 'page-break-after: always;' if not o_last else '' }}">
+                    <t t-call="myservice_asset_register.location_label_body">
+                        <t t-set="size" t-value="'large'"/>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Unbound on purpose: the app's route
+         (`GET /api/v1/locations/<id>/label`) is the way a room label is
+         printed, and the back office is an administrator's tool. -->
+    <record id="action_report_location_label_medium" model="ir.actions.report">
+        <field name="name">Room Label — Medium (50x30mm)</field>
+        <field name="model">generic.location</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">myservice_asset_register.report_location_label_medium</field>
+        <field name="report_file">myservice_asset_register.report_location_label_medium</field>
+        <field name="paperformat_id" ref="myservice_asset_register.paperformat_asset_tag_medium"/>
+    </record>
+
+    <record id="action_report_location_label_large" model="ir.actions.report">
+        <field name="name">Room Label — Large (100x60mm)</field>
+        <field name="model">generic.location</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">myservice_asset_register.report_location_label_large</field>
+        <field name="report_file">myservice_asset_register.report_location_label_large</field>
+        <field name="paperformat_id" ref="myservice_asset_register.paperformat_asset_tag_large"/>
+    </record>
+</odoo>

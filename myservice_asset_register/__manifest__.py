@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Register & PM Schedules',
-    'version': '19.0.1.29.0',
+    'version': '19.0.1.30.0',
     'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
@@ -17,6 +17,9 @@
         'data/asset_sequences.xml',
         'data/asset_categories.xml',
         'data/asset_tag_report.xml',
+        # Room labels (handoff 61 §7). After asset_tag_report.xml, whose
+        # medium and large paper formats it reuses by xml id.
+        'data/location_label_report.xml',
         'wizard/asset_label_wizard_view.xml',
         'views/asset_views.xml',
         'views/asset_transfer_views.xml',

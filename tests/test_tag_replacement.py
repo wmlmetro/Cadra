@@ -5,14 +5,14 @@ WHAT THIS FILE IS FOR
 NRS described the case on 30 September: *an auditor walking around notices
 an air conditioner's tag is no longer very clear, and can reprint a tag for
 that asset.* The model had done this for as long as the barcode station has
-existed — `active → pending → scrapped`, a new number minted, the two
+existed — `active → pending → scrapped`, a successor label, the two
 records naming each other — and nothing a person at a scanner could reach
 drove it. These are the five routes that now do, and the properties that
 stop the control being theatre:
 
 * **A request writes nothing but the request.** The label goes to `pending`;
-  no number is minted, the old label stays on the asset, and the asset's own
-  record is unchanged. Every raising test reads the label back.
+  nothing is voided or reprinted, the label stays on the asset, and the
+  asset's own record is unchanged. Every raising test reads the label back.
 * **Two people.** `approver` is WHO IS BEING ASKED and comes from the
   requester's body; `approved_by` / `rejected_by` is WHO CLICKED and comes
   from the bearer token. A body naming either is REFUSED 400 rather than
@@ -22,10 +22,14 @@ stop the control being theatre:
 * **The reason is recorded.** `action_request_replacement` used to write
   state and requester only; *"why was this tag replaced"* had to be typed on
   the Odoo form. The route takes it and the record carries it.
-* **The old number never comes back.** `_generate_tag` checks every label on
-  the tenant, scrapped ones included. Proved by doing a replacement and
-  reading the new number, and by the old number no longer resolving on the
-  lookup routes.
+* **The number stays (handoff 61, ruling R3 — a BEHAVIOUR CHANGE).** Until
+  61 an approval minted a new number and this file proved the old one never
+  came back; since 61 the approval voids the PRINT and reprints the label
+  under the SAME number, one record per print, told apart by
+  `reprint_count`. Proved by doing a replacement and reading the reprint,
+  and by the number resolving to the reprint on the lookup routes. The
+  gates-on and gates-off cases, the void and the affix of a voided print
+  are in `tests/test_reprint_same_code.py`.
 * **A decision is taken once.** A second approve is a 409 naming who decided.
 
 WHO IS WHO IN THIS FILE
@@ -33,9 +37,9 @@ WHO IS WHO IN THIS FILE
 **The second person RAISES; the suite's credential APPROVES** — the same way
 round as `tests/conftest.py::second_person`, and for a related reason. A tag
 replacement writes no append-only row (the concern that fixture's docstring
-is about does not apply here), but an approval MINTS A TAG — a new
-`nrs.asset.tag.label`, which carries `is_test_fixture` — and that row is
-created under the APPROVER's credential. The suite's credential is flagged
+is about does not apply here), but an approval CREATES A LABEL RECORD — the
+reprint, a new `nrs.asset.tag.label`, which carries `is_test_fixture` — and
+that row is created under the APPROVER's credential. The suite's credential is flagged
 `is_test_credential`, so with the suite approving, the only new row this
 file creates says on its face that a test made it. The other way round
 would leave real-looking labels on the tenant with nobody's name on them.
@@ -163,7 +167,7 @@ def test_requesting_marks_the_label_pending_and_mints_nothing(
     tag = data["tag"]
     assert tag["id"] == tag_id
     assert tag["state"] == "pending"
-    assert tag["tag_number"] == old_number, "no new number on a request"
+    assert tag["tag_number"] == old_number, "the number is unchanged on a request"
     assert tag["replacement_reason"] == "damaged"
     assert tag["replacement_notes"] == \
         "label on the AC unit has faded past reading"
@@ -171,7 +175,7 @@ def test_requesting_marks_the_label_pending_and_mints_nothing(
     assert tag["requested_at"]
     assert tag["approver"]["id"] == approver_id
     assert tag["approved_by"] is None and tag["rejected_by"] is None
-    assert tag["replaced_by"] is None, "nothing minted on a request"
+    assert tag["replaced_by"] is None, "nothing reprinted on a request"
     assert tag["asset"]["id"] == asset["id"]
     assert tag["serial_number"] == asset["serial_number"]
     assert tag["can_decide"] is False, (
@@ -283,7 +287,9 @@ def test_what_happened_to_mine_is_answerable_after_the_decision(
     assert row["state"] == "scrapped", "approved means replaced"
     assert row["requested_by"]["id"] == requester_id
     assert row["approved_by"]["id"] == approver_id
-    assert row["replaced_by"]["id"], "the successor label is on the row"
+    assert row["replaced_by"]["id"], "the reprint is on the row"
+    assert row["replaced_by"]["tag_number"] == row["tag_number"], (
+        "handoff 61: a replacement keeps its number")
     assert row["can_decide"] is False, "nothing left to decide"
     # And every row on the requester's list is genuinely theirs.
     assert all(x["requested_by"]["id"] == requester_id for x in rows)
@@ -517,14 +523,18 @@ def test_self_approval_is_refused_with_the_reason_named(
     assert tag["replaced_by"] is None
 
 
-def test_approving_scraps_the_label_mints_the_next_and_keeps_the_chain(
+def test_approving_voids_the_print_and_reprints_under_the_same_number(
         client, requester, requester_id, approver_id, capture):
-    """The whole of §B, read off the records.
+    """The whole of §B, read off the records — as handoff 61 changed it.
 
-    Old label scrapped, new number minted, `replaces` / `replaced_by`
-    naming each other, the reason recorded, who asked and who agreed two
-    different people — and the old number not reissued, which is proved
-    here by comparison and below by the lookup routes.
+    The voided print scrapped, a REPRINT under the same number, `replaces` /
+    `replaced_by` naming each other with the print count, the reason
+    recorded, who asked and who agreed two different people. Until handoff
+    61 this test was `test_approving_scraps_the_label_mints_the_next_and_
+    keeps_the_chain` and asserted the new number DIFFERED; ruling R3 (*the
+    number on the asset doesn't change because a sticker faded*) reverses
+    that on purpose — a BEHAVIOUR CHANGE, announced in the CHANGELOG, not a
+    regression.
     """
     asset = _tagged_asset(client, "approve")
     tag_id, old_number = asset["tagging"]["label_id"], asset["tag"]
@@ -538,7 +548,7 @@ def test_approving_scraps_the_label_mints_the_next_and_keeps_the_chain(
     data = assert_envelope_ok(r)["data"]
     old, new = data["tag"], data["new_tag"]
 
-    # The old label.
+    # The voided print.
     assert old["id"] == tag_id
     assert old["state"] == "scrapped"
     assert old["label_state"] == "scrapped"
@@ -553,36 +563,36 @@ def test_approving_scraps_the_label_mints_the_next_and_keeps_the_chain(
     assert old["approved_by"]["id"] != old["requested_by"]["id"], (
         "the same user is recorded as having asked and as having agreed")
     assert old["can_decide"] is False
+    assert old["reprint_count"] == 0
+    assert old["voided_at"], "the void is stamped on the print it voids"
+    assert old["void_reason"] == "damaged"
 
-    # The new label, and the chain.
-    assert new["id"] != old["id"]
+    # The reprint, and the chain.
+    assert new["id"] != old["id"], "one record per physical print"
     assert new["state"] == "active"
+    assert new["label_state"] == "issued", "a reprint is not printed yet"
     assert new["asset"]["id"] == asset["id"]
-    assert new["tag_number"] != old_number, (
-        "the old number was reissued — the replacement history is now "
-        "ambiguous between two physical labels")
-    assert old["replaced_by"] == {"id": new["id"],
-                                  "tag_number": new["tag_number"]}
-    assert new["replaces"] == {"id": old["id"], "tag_number": old_number}
+    assert new["tag_number"] == old_number, (
+        "the number changed on a replacement — handoff 61 keeps it")
+    assert new["reprint_count"] == 1
+    assert new["voided_at"] is None and new["void_reason"] is None
+    assert old["replaced_by"] == {"id": new["id"], "tag_number": old_number,
+                                  "reprint_count": 1}
+    assert new["replaces"] == {"id": old["id"], "tag_number": old_number,
+                               "reprint_count": 0}
     assert new["replaced_by"] is None
 
-    # The asset now displays the new number, in the response and on a read.
-    assert data["asset"]["tag"] == new["tag_number"]
+    # The asset still displays the same number, and its label is the reprint.
+    assert data["asset"]["tag"] == old_number
     after = _asset(client, asset["id"])
-    assert after["tag"] == new["tag_number"]
+    assert after["tag"] == old_number
     assert after["tagging"]["label_id"] == new["id"]
+    assert after["tagging"]["tag_number"] == old_number
 
-    # The lookup routes: the old number is gone, the new one resolves.
-    if old_number == asset["asset_code"]:
-        # Handoff 58: a gated label's number IS the asset code, which
-        # stays the asset's — so it still finds the asset, by its code and
-        # carrying the NEW label, never the scrapped one.
-        by_code = assert_envelope_ok(_lookup(client, old_number))["data"]
-        assert by_code["matched_by"] == "asset_code"
-        assert by_code["tag_id"] == new["id"]
-    else:
-        assert_envelope_err(_lookup(client, old_number), 404, "not_found")
-    hit = assert_envelope_ok(_lookup(client, new["tag_number"]))["data"]
+    # The lookup routes: the number resolves BY TAG, to the reprint — never
+    # to the voided print — whether it is a location-prefix number or (gates
+    # on) the asset code, because the tag branch matches active prints only.
+    hit = assert_envelope_ok(_lookup(client, old_number))["data"]
     assert hit["asset_id"] == asset["id"]
     assert hit["matched_by"] == "tag_number"
     assert hit["tag_id"] == new["id"]
@@ -591,7 +601,6 @@ def test_approving_scraps_the_label_mints_the_next_and_keeps_the_chain(
     # Read back from the records, not trusted from the response.
     assert _tag(client, tag_id)["state"] == "scrapped"
     assert _tag(client, new["id"])["replaces"]["id"] == tag_id
-
 
 def test_a_decision_is_taken_once(client, requester, approver_id, capture):
     asset = _tagged_asset(client, "decide-once")
@@ -675,8 +684,8 @@ def test_the_decision_body_may_only_carry_a_reason(client, requester,
 
 def test_replaying_an_approval_under_the_same_key_mints_once(
         client, requester, approver_id):
-    """Idempotency is load-bearing: a retry after a timeout must not scrap
-    a second label or mint a second number."""
+    """Idempotency is load-bearing: a retry after a timeout must not void
+    a second print or issue a second reprint."""
     asset = _tagged_asset(client, "idempotent")
     tag_id = asset["tagging"]["label_id"]
     assert_envelope_ok(_request(requester, tag_id, approver_id))

@@ -41,14 +41,34 @@ TWO FIELDS THAT ARE NEVER THE SAME FIELD
   `state`, is REFUSED 400 rather than ignored — the contract every write
   route in this API has published since handoff 31.
 
-WHY THE OLD NUMBER NEVER COMES BACK
------------------------------------
-`nrs.asset._generate_tag` checks EVERY tag on the tenant for the candidate
-number, scrapped ones included, before it mints — so the number a scrapped
-label carried is never issued again. `tests/test_tag_replacement.py` proves
-it by doing one: the new label's number is not the old one, and the old one
-no longer resolves on either lookup route. The chain is `replaces` /
-`replaced_by` on the two records, published here.
+WHY THE NUMBER STAYS (handoff 61, ruling R3)
+--------------------------------------------
+Until handoff 61 an approval scrapped the label and minted a NEW number
+through `nrs.asset._generate_tag` — and on a unit that came through the
+receipt gates, whose label is its asset code, the gated generator minted a
+location-prefix number instead, so the replacement broke ruling 4.3 (findings
+§5.6). Since 61 *the number on the asset doesn't change because a sticker
+faded*: the approval VOIDS the print and REPRINTS the label under the same
+number. One record is one physical print, so the voided print keeps its
+record (`scrapped`, with `voided_at` and `void_reason`) and the reprint is a
+new record with the same `tag_number`, `reprint_count` one higher and
+`replaces` naming the print it replaces. A number resolves on the lookup
+routes to its ACTIVE print only, so after an approval the number finds the
+reprint. `tests/test_reprint_same_code.py` proves it gates off and gates on.
+This is a BEHAVIOUR CHANGE, announced in the CHANGELOG: a consumer that
+expected `new_tag.tag_number` to differ from the old one reads the same
+number and a `reprint_count`.
+
+WHAT A SCANNER CANNOT TELL
+--------------------------
+The voided print and its reprint encode the same value; nothing on the paper
+says which is which. `POST /assets/<id>/tag-affixed` therefore refuses a
+reprint only while it has not been printed (`label_state` `issued`) — the one
+window in which the label in hand can only be the voided one — naming the
+void, its date and its reason. `POST /api/v1/tags/printed` is how the app's
+station records that it printed a label, because the app renders labels in
+the browser and never reaches the PDF funnel that records Odoo's own prints
+(handoff 10): without it no reprint printed from the app could be confirmed.
 """
 from odoo import http
 from odoo.exceptions import UserError
@@ -104,6 +124,9 @@ _CLAIM_FIELDS = frozenset({
     "decided_by", "decided_by_id", "decided_at", "decision_reason",
     "state", "label_state", "scrapped_date",
     "replaces_id", "replaced_by_id",
+    # Handoff 61: which print this is and when and why a print was voided
+    # are stamped by the approval.
+    "reprint_count", "voided_at", "voided_date", "void_reason",
 })
 
 #: What each route accepts. A key outside the list is a 400 carrying
@@ -119,7 +142,14 @@ _PERSON = {"type": "object", "nullable": True,
                           "name": {"type": "string"}}}
 _TAG_LINK = {"type": "object", "nullable": True,
              "properties": {"id": {"type": "integer"},
-                            "tag_number": {"type": "string"}}}
+                            "tag_number": {"type": "string"},
+                            "reprint_count": {
+                                "type": "integer",
+                                "description": "Which print of its number "
+                                               "the linked record is — the "
+                                               "only thing telling two "
+                                               "prints of one number apart "
+                                               "(handoff 61)."}}}
 _TAG_SCHEMA = {
     "type": "object",
     "properties": {
@@ -137,7 +167,29 @@ _TAG_SCHEMA = {
                                        "by printing and by a confirmed "
                                        "affix."},
         "source": {"type": "string",
-                   "enum": ["auto", "manual", "sap", "other"]},
+                   "enum": ["auto", "manual", "sap", "other"],
+                   "description": "Where the NUMBER came from. A reprint "
+                                  "keeps its number's source."},
+        "reprint_count": {"type": "integer",
+                          "description": "Which print of this number this "
+                                         "record is: 0 for the first print, "
+                                         "one more for each approved "
+                                         "replacement, which reprints the "
+                                         "label under the SAME number "
+                                         "(handoff 61)."},
+        "voided_at": {"type": "string", "format": "date-time",
+                      "nullable": True,
+                      "description": "When this print was voided by an "
+                                     "approved replacement. Null for a print "
+                                     "in service, and for a print scrapped "
+                                     "before handoff 61 (read "
+                                     "`scrapped_date` there)."},
+        "void_reason": {"type": "string", "nullable": True,
+                        "enum": list(REPLACEMENT_REASONS),
+                        "description": "Why this print was voided — the "
+                                       "replacement reason, stamped at the "
+                                       "approval and not editable after "
+                                       "it."},
         "tag_date": {"type": "string", "format": "date", "nullable": True},
         "scrapped_date": {"type": "string", "format": "date",
                           "nullable": True},
@@ -162,10 +214,16 @@ _TAG_SCHEMA = {
         "rejected_at": {"type": "string", "format": "date-time",
                         "nullable": True},
         "decision_reason": {"type": "string", "nullable": True},
-        "replaces": dict(_TAG_LINK, description="The label this one was "
-                                                "minted to replace."),
-        "replaced_by": dict(_TAG_LINK, description="The label minted when "
-                                                   "this one was scrapped."),
+        "replaces": dict(_TAG_LINK, description="The print this one "
+                                                "replaces — since handoff "
+                                                "61 the same number, one "
+                                                "`reprint_count` lower; a "
+                                                "replacement made before 61 "
+                                                "names a different "
+                                                "number."),
+        "replaced_by": dict(_TAG_LINK, description="The reprint issued "
+                                                   "when this print was "
+                                                   "voided."),
         "can_decide": {"type": "boolean",
                        "description": "Whether the CALLER may approve or "
                                       "reject this one: pending, not their "
@@ -177,10 +235,13 @@ _TAG_SCHEMA = {
 
 
 def _tag_link(tag):
-    """`{id, tag_number}` or None — the chain between two labels."""
+    """`{id, tag_number, reprint_count}` or None — the chain between two
+    prints. `reprint_count` since handoff 61, because two prints of one
+    number have the same `tag_number` and differ only in it."""
     if not tag:
         return None
-    return {"id": tag.id, "tag_number": tag.name}
+    return {"id": tag.id, "tag_number": tag.name,
+            "reprint_count": tag.reprint_count}
 
 
 def serialize_tag(t):
@@ -220,6 +281,11 @@ def serialize_tag(t):
         "rejected_by": _ref(t.rejected_by),
         "rejected_at": _dt(t.rejected_date),
         "decision_reason": t.decision_reason or None,
+        # Handoff 61: which print of the number this is, and — on a voided
+        # print — when and why it was voided.
+        "reprint_count": t.reprint_count,
+        "voided_at": _dt(t.voided_date),
+        "void_reason": t.void_reason or None,
         # The chain. A replacement is two records that name each other.
         "replaces": _tag_link(t.replaces_id),
         "replaced_by": _tag_link(t.replaced_by_id),
@@ -449,6 +515,132 @@ class CadraTagsAPI(http.Controller):
             return error
         return serialize_tag(rec)
 
+    # ── Printed: POST /api/v1/tags/printed ───────────────────────────
+
+    @cadra_route("/api/v1/tags/printed", method="POST",
+                 summary="Record that the app printed these labels",
+                 # Records an act on existing labels; creates nothing.
+                 success_status=200,
+                 # `tagging:write`, not `assets:read`: this WRITES the print
+                 # stamp, and the Auditor — who holds `assets:read` — writes
+                 # nothing (`test_auditor_access.py`). Producing the label
+                 # that goes onto an asset is the Tag-Issuing Unit's job, as
+                 # minting and replacing one are (handoff 47). A person
+                 # without the scope may still print from the station; the
+                 # print is simply not recorded, which is what happened to
+                 # every app print before this route.
+                 scopes=[SCOPE_TAGGING_WRITE],
+                 idempotent=True,
+                 error_statuses=(404,),
+                 response_schema={
+                     "type": "object",
+                     "properties": {
+                         "recorded": {"type": "array", "items": _TAG_SCHEMA,
+                                      "description": "Labels now `printed`, "
+                                                     "with who and when."},
+                         "not_recorded": {
+                             "type": "array",
+                             "items": {
+                                 "type": "object",
+                                 "properties": {
+                                     "id": {"type": "integer"},
+                                     "tag_number": {"type": "string"},
+                                     "reason": {"type": "string"}}},
+                             "description": "Labels named and left as they "
+                                            "were, each with the sentence "
+                                            "saying why: not the label in "
+                                            "service, or already confirmed "
+                                            "on the asset."},
+                     },
+                 },
+                 request_schema={
+                     "type": "object",
+                     "required": ["tag_ids"],
+                     "description": (
+                         "The app renders labels in the browser and so never "
+                         "reaches the PDF funnel that records a print made "
+                         "from Odoo (handoff 10). The station calls this "
+                         "after it opens the print dialog — the same moment "
+                         "the funnel records, when the print instruction "
+                         "exists; whether paper came out is not something "
+                         "Cadra can see. It is what lets a REPRINT be "
+                         "confirmed on the asset (handoff 61)."),
+                     "properties": {
+                         "tag_ids": {
+                             "type": "array", "minItems": 1, "maxItems": 500,
+                             "items": {"type": "integer"},
+                             "description": "`nrs.asset.tag.label` ids — "
+                                            "NOT asset ids."},
+                     },
+                 },
+                 request_example={"tag_ids": [4211, 4212]})
+    def record_printed(self, **kwargs):
+        """Stamp the labels the station just printed, as the funnel would.
+
+        Every refusal happens before anything is written: a key the route
+        does not take, a `tag_ids` that is not a non-empty list of integers
+        (at most 500), or an id that names no label (404, all of them
+        named) — and then nothing is stamped, the valid ids included.
+
+        The stamp is `nrs.asset.tag.label._mark_printed`, the same method
+        the PDF funnel calls, so the rules are the funnel's: only the label
+        in SERVICE is recorded (the funnel stamps `active_tag_id`; a label
+        awaiting replacement or a voided print is not the one coming off the
+        printer), and a label already affixed is not walked back.
+        """
+        body = get_params()
+        rejected = sorted(k for k in (body or {}) if k != "tag_ids")
+        if rejected:
+            return refuse_unwritable(rejected, ("tag_ids",))
+        ids = (body or {}).get("tag_ids")
+        if (not isinstance(ids, list) or not ids
+                or any(isinstance(i, bool) or not isinstance(i, int)
+                       for i in ids)):
+            return err(ERR_INVALID_REQUEST,
+                       "`tag_ids` must be a non-empty list of label ids",
+                       details={"field": "tag_ids"})
+        ids = list(dict.fromkeys(ids))
+        if len(ids) > 500:
+            return err(ERR_INVALID_REQUEST,
+                       "`tag_ids` names %d labels; at most 500 in one call"
+                       % len(ids),
+                       details={"field": "tag_ids", "count": len(ids),
+                                "maximum": 500})
+        labels = request.env[MODEL].sudo().browse(ids).exists()
+        missing = sorted(set(ids) - set(labels.ids))
+        if missing:
+            return err(ERR_NOT_FOUND,
+                       "No label with id %s — nothing was recorded"
+                       % ", ".join(str(i) for i in missing),
+                       status=404, details={"missing": missing})
+
+        by_id = {t.id: t for t in labels}
+        recorded = request.env[MODEL].sudo()
+        not_recorded = []
+        for tag_id in ids:
+            t = by_id[tag_id]
+            if t.state != "active":
+                not_recorded.append({
+                    "id": t.id, "tag_number": t.name,
+                    "reason": "%s is %s, not the label in service, so its "
+                              "print is not recorded" % (
+                                  t._print_name().capitalize(), t.state)})
+            elif t.label_state == "affixed":
+                not_recorded.append({
+                    "id": t.id, "tag_number": t.name,
+                    "reason": "Already confirmed on the asset; printing it "
+                              "again does not make the asset less tagged"})
+            else:
+                recorded |= t
+        # `_mark_printed` stamps `printed_by` from the environment's uid,
+        # which under `sudo()` is still the caller's.
+        recorded._mark_printed()
+        recorded.invalidate_recordset()
+        return {
+            "recorded": [serialize_tag(t) for t in recorded],
+            "not_recorded": not_recorded,
+        }
+
     # ── Ask: POST /api/v1/tags/<id>/request-replacement ──────────────
 
     @cadra_route("/api/v1/tags/<int:id>/request-replacement", method="POST",
@@ -479,10 +671,12 @@ class CadraTagsAPI(http.Controller):
                      "required": ["reason", "approver_id"],
                      "description": (
                          "The label moves to `pending` and NOTHING else "
-                         "changes: no new number is minted, the old label "
+                         "changes: nothing is voided or reprinted, the label "
                          "stays on the asset, and — by design — its number "
                          "stops resolving on the lookup routes until the "
-                         "decision. Look the asset up by its code meanwhile."),
+                         "decision. Look the asset up by its code meanwhile. "
+                         "On approval the label is reprinted under the SAME "
+                         "number (handoff 61)."),
                      "properties": {
                          "reason": {
                              "type": "string",
@@ -577,8 +771,12 @@ class CadraTagsAPI(http.Controller):
                     tag.approver_id.display_name or "an approver",
                     tag.requested_date and tag.requested_date.date() or "?"))
                 if tag.state == "pending" else
-                ("%s is %s and cannot be replaced again%s."
-                 % (tag.name, tag.state,
+                ("%s (%s) is %s and cannot be replaced again%s."
+                 % (tag.name, tag._print_name(), tag.state,
+                    (" — the label in service is %s under the same number; "
+                     "ask about that one" % tag.replaced_by_id._print_name())
+                    if tag.replaced_by_id
+                    and tag.replaced_by_id.name == tag.name else
                     " — it was replaced by %s" % tag.replaced_by_id.name
                     if tag.replaced_by_id else "")),
                 status=409,
@@ -615,8 +813,9 @@ class CadraTagsAPI(http.Controller):
     # ── Agree: POST /api/v1/tags/<id>/approve-replacement ────────────
 
     @cadra_route("/api/v1/tags/<int:id>/approve-replacement", method="POST",
-                 summary="Agree to the replacement: scrap this label and "
-                         "mint the next, as whoever holds the credential",
+                 summary="Agree to the replacement: void this print and "
+                         "reprint the label under the same number, as "
+                         "whoever holds the credential",
                  scopes=[SCOPE_APPROVALS_WRITE],
                  idempotent=True,
                  error_statuses=(403, 404, 409),
@@ -624,13 +823,23 @@ class CadraTagsAPI(http.Controller):
                      "type": "object",
                      "properties": {
                          "tag": dict(_TAG_SCHEMA,
-                                     description="The label that was asked "
-                                                 "about, now `scrapped`."),
+                                     description="The print that was asked "
+                                                 "about, now `scrapped`, "
+                                                 "with `voided_at` and "
+                                                 "`void_reason`."),
                          "new_tag": dict(_TAG_SCHEMA,
-                                         description="The label minted in "
-                                                     "its place, `active`, "
-                                                     "with a number never "
-                                                     "issued before."),
+                                         description="The REPRINT: a new "
+                                                     "record under the SAME "
+                                                     "`tag_number`, "
+                                                     "`active`, "
+                                                     "`reprint_count` one "
+                                                     "higher, `replaces` "
+                                                     "naming the voided "
+                                                     "print. Not printed "
+                                                     "yet: it cannot be "
+                                                     "confirmed on the asset "
+                                                     "until it is (handoff "
+                                                     "61)."),
                          "asset": {"$ref": "#/components/schemas/Asset"},
                      },
                  },
@@ -651,17 +860,20 @@ class CadraTagsAPI(http.Controller):
     def approve_replacement(self, id, **kwargs):
         """Approve, and make the replacement happen.
 
-        `action_approve_replacement` scraps the old label, mints the new
-        number through `nrs.asset._generate_tag` — which checks every tag
-        on the tenant, scrapped ones included, so the old number is never
-        reissued — and links the two. The self-approval refusal and the
-        eligibility check are on the model; what is here is the HTTP shape:
+        `action_approve_replacement` voids this print and reprints the label
+        under the SAME number (handoff 61, ruling R3) — whatever the number
+        is: an asset code on a gated unit, a location prefix, an import —
+        and links the two prints. The self-approval refusal and the
+        eligibility check are on the model, unchanged since handoff 38; what
+        is here is the HTTP shape:
 
         * **403** — the caller may not decide this one, either because they
           asked for it (`details.is_own_request`) or because they could not
           have made the change themselves.
         * **409** — not pending: already decided, and the details say by
-          whom and when.
+          whom and when. Also the model's refusal of a number that is
+          ALREADY active on a second asset (a pre-61 duplicate): reprinting
+          it would print the other asset's label.
         * **400** — the body tries to say who decided.
         """
         tag, error = _browse_or_404(id)
@@ -687,10 +899,11 @@ class CadraTagsAPI(http.Controller):
         if not tag._may_decide(request.env.user):
             return _may_not_decide(tag, verb="approve")
 
-        # Savepointed: the approval stamps the old label BEFORE it mints the
-        # new one, and a `UserError` out of `_generate_tag` or the chain
-        # write would otherwise leave a scrapped label with no replacement
-        # behind a 409 — `err()` does not roll back.
+        # Savepointed: the approval voids the old print BEFORE it creates
+        # the reprint, and a `UserError` out of the reprint's create (the
+        # one-active-per-number constraint) or the chain write would
+        # otherwise leave a voided print with no reprint behind a 409 —
+        # `err()` does not roll back.
         try:
             with request.env.cr.savepoint():
                 new_tag = tag.action_approve_replacement(
@@ -699,7 +912,7 @@ class CadraTagsAPI(http.Controller):
             tag.invalidate_recordset()
             return err(ERR_CONFLICT, str(e), status=409,
                        details={"tag_id": tag.id})
-        # One label approved, one label minted. A model answering otherwise
+        # One print voided, one reprint issued. A model answering otherwise
         # is a model fault and surfaces as one rather than as a shaped 200.
         new_tag.ensure_one()
         tag.invalidate_recordset()

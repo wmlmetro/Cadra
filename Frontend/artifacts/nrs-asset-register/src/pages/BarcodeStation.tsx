@@ -7,7 +7,7 @@ import { SCAN_FORMAT_LABELS, type ScanFormat } from "@/lib/scanFormats";
 import {
   fetchBarcodeKpis, fetchBarcodeRecentTags, lookupBarcode,
   fetchUntaggedAssets, generateBarcodes, fetchTag, fetchPendingTagReplacements, fetchAssetTagging,
-  fetchAssetIdentification, fetchReceiptGated,
+  fetchAssetIdentification, fetchReceiptGated, recordTagsPrinted, printName,
   type BarcodeTag, type BarcodeLookupHit, type BarcodeMatchedBy, type UntaggedAsset, type TagLabel,
   type TagReplacementRaised, type TagReplacementApproved, type AssetTagging, type ConfirmAffixedResult,
 } from "@/lib/dataProvider";
@@ -21,6 +21,9 @@ import {
   RequestTagReplacementDialog, ApproveTagReplacementDialog, RejectTagReplacementDialog,
 } from "@/components/TagReplacementDialogs";
 import { ConfirmAffixedDialog } from "@/components/ConfirmAffixedDialog";
+import RoomScanResult from "@/components/station/RoomScanResult";
+import RoomLabelPrint from "@/components/station/RoomLabelPrint";
+import { roomOf } from "@/lib/locationLabels";
 import {
   fetchLabelsToFix, labelNumberOf, ageOf, type LabelToFixRow,
 } from "@/lib/labelsToFix";
@@ -131,7 +134,9 @@ export default function BarcodeStation() {
   // never in `lookup.data`. An ambiguous serial (one serial on several
   // assets) is the same 404 with `details.ambiguous` and `details.matches`.
   const result = lookup.data;
-  const hit: BarcodeLookupHit | null = result && result.found ? result : null;
+  // Handoff 61 §7: a room code answers `matched_by: "location"` and NO asset.
+  const room = roomOf(result);
+  const hit: BarcodeLookupHit | null = result && result.found && !room ? result : null;
   const lookupErr = lookup.error as CadraApiError | null;
   const missed = lookupErr?.code === "not_found";
   const missDetails = (missed ? lookupErr?.details : null) as
@@ -234,11 +239,23 @@ export default function BarcodeStation() {
   }
 
   /** `keepNotice` leaves an existing message in place — used when printing
-   *  follows generation, so "Generated 12 barcodes" survives a clean print. */
+   *  follows generation, so "Generated 12 barcodes" survives a clean print.
+   *
+   *  Handoff 61: once the print dialog has opened, the print is RECORDED
+   *  (`POST /api/v1/tags/printed`) for whoever holds `tagging:write` — the
+   *  same moment Odoo's PDF funnel records a print, when the instruction
+   *  exists. Labels are rendered here in the browser, so until 61 no print
+   *  made from the app was ever recorded (test19: 0 of 2,421 affixed labels
+   *  had a print on record), and a REPRINT cannot be confirmed on the asset
+   *  until its print is: before it, the only label carrying its number is
+   *  the voided one. A failure to record does not undo the print; it is
+   *  said, because it is what the next Confirm affixed will run into. */
   async function print(labels: LabelData[], keepNotice = false) {
     if (!keepNotice) setNotice(null);
+    let printed = false;
     try {
       const res = await printLabels(labels, size);
+      printed = true;
       if (res.qrUnavailable) {
         setNotice({
           kind: "warn",
@@ -248,10 +265,26 @@ export default function BarcodeStation() {
     } catch (e) {
       setNotice({ kind: "error", text: e instanceof Error ? e.message : "Could not open the print view." });
     }
+    const ids = [...new Set(labels.map((l) => l.tag_id).filter((id): id is number => typeof id === "number"))];
+    if (!printed || !canTag || !ids.length) return;
+    try {
+      await recordTagsPrinted(ids);
+      // The label's `issued → printed` shows on the card and the panels.
+      qc.invalidateQueries({ queryKey: ["asset-tagging"] });
+      qc.invalidateQueries({ queryKey: ["tag"] });
+      qc.invalidateQueries({ queryKey: ["candidates"] });
+      qc.invalidateQueries({ queryKey: ["asset-history"] });
+    } catch (e) {
+      setNotice({
+        kind: "warn",
+        text: `The labels printed, but the print was not recorded (${e instanceof Error ? e.message : "unknown error"}). A reprint cannot be confirmed on the asset until its print is recorded — print it again from here.`,
+      });
+    }
   }
 
   const printHit = () =>
     hit && print([{
+      tag_id: hit.tag_id,
       tag_number: hit.tag_number,
       asset_name: hit.asset_name,
       asset_code: hit.asset_code,
@@ -263,6 +296,7 @@ export default function BarcodeStation() {
 
   const printSelected = () =>
     print(selectedVisible.map((t) => ({
+      tag_id: t.tag_id,
       tag_number: t.tag_number,
       asset_name: t.asset_name,
       location: t.location,
@@ -347,6 +381,7 @@ export default function BarcodeStation() {
     }
     if (!res.generated.length) return;
     await print(res.generated.map((g) => ({
+      tag_id: g.tag_id,
       tag_number: g.tag_number,
       asset_name: g.asset_name,
       asset_code: g.asset_code,
@@ -361,8 +396,9 @@ export default function BarcodeStation() {
   // the card is the server's answer to a scan, and after any of these the
   // answer has changed. A pending tag's NUMBER stops resolving (only active
   // tags match by number — unchanged, on purpose), so the re-run goes by
-  // asset code; after an approval it goes by the NEW number, which proves
-  // the new label resolves before anybody prints it.
+  // asset code; after an approval it goes by the number again — the SAME
+  // number since handoff 61 — which proves the reprint is what it now
+  // resolves to before anybody prints it.
 
   /** Mint a barcode for the asset on the card, then look it up again so the
    *  card shows the number it just got. */
@@ -380,7 +416,7 @@ export default function BarcodeStation() {
   function onReplacementRaised(res: TagReplacementRaised) {
     setNotice({
       kind: "ok",
-      text: `Replacement of ${res.tag.tag_number} requested — waiting on ${res.tag.approver?.name ?? "the approver"}. Nothing is scrapped or minted until they decide; look the asset up by its code meanwhile.`,
+      text: `Replacement of ${res.tag.tag_number} requested — waiting on ${res.tag.approver?.name ?? "the approver"}. Nothing is voided or reprinted until they decide; look the asset up by its code meanwhile.`,
     });
     if (hit?.asset_code) relookup(hit.asset_code);
   }
@@ -389,7 +425,9 @@ export default function BarcodeStation() {
     setPrintableNewTag(res.new_tag);
     setNotice({
       kind: "ok",
-      text: `${res.tag.tag_number} scrapped; new tag ${res.new_tag.tag_number} minted for ${res.new_tag.asset.name}. Print it.`,
+      // Handoff 61: the same number, a new print. Said with the count,
+      // because two prints of one number differ in nothing else.
+      text: `${res.tag.tag_number}: ${printName(res.tag.reprint_count)} voided; ${printName(res.new_tag.reprint_count)} issued under the same number for ${res.new_tag.asset.name}. Print it, then confirm it on the asset — until it is printed, the label on the asset can only be the voided one.`,
     });
     relookup(res.new_tag.tag_number);
   }
@@ -505,6 +543,7 @@ export default function BarcodeStation() {
   }
   const printLabelsToFix = () =>
     print(fixSelectedRows.map((r) => ({
+      tag_id: r.tagging?.label_id ?? null,
       tag_number: labelNumberOf(r)!,
       asset_name: r.name,
       location: r.current_location?.name,
@@ -520,6 +559,7 @@ export default function BarcodeStation() {
 
   const printNewTag = () =>
     printableNewTag && print([{
+      tag_id: printableNewTag.id,
       tag_number: printableNewTag.tag_number,
       asset_name: printableNewTag.asset.name,
       asset_code: printableNewTag.asset_code,
@@ -569,7 +609,7 @@ export default function BarcodeStation() {
             data-testid="button-print-new-tag"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-white text-[11px] font-semibold hover:opacity-90"
           >
-            <Printer size={12} /> Print new label {printableNewTag.tag_number}
+            <Printer size={12} /> Print {printName(printableNewTag.reprint_count)} of {printableNewTag.tag_number}
           </button>
           <SizePicker value={size} onChange={setSize} />
         </div>
@@ -580,7 +620,7 @@ export default function BarcodeStation() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <ScanBarcode size={14} className="text-primary" />
-            <h2 className="text-[13px] font-bold">Scan or type a tag, asset code or serial number</h2>
+            <h2 className="text-[13px] font-bold">Scan or type a tag, asset code, serial number or room code</h2>
           </div>
           <div className="flex items-center gap-1 rounded-xl border border-border p-0.5">
             <ModeButton active={mode === "type"}   onClick={() => setMode("type")}   icon={Keyboard} label="Type" />
@@ -664,6 +704,8 @@ export default function BarcodeStation() {
             </p>
           </div>
         )}
+
+        {room && <RoomScanResult room={room} />}
 
         {hit && (
           <div className="bg-background border border-primary/30 rounded-xl p-4 space-y-3" data-testid="lookup-result">
@@ -829,6 +871,9 @@ export default function BarcodeStation() {
         />
       )}
 
+      {/* Room labels (handoff 61 §7) */}
+      <RoomLabelPrint />
+
       {/* Tag replacements waiting on a decision */}
       <div className="bg-card border border-border rounded-2xl p-5" data-testid="pending-replacements">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
@@ -837,7 +882,7 @@ export default function BarcodeStation() {
               <Hourglass size={13} className="text-amber-600 dark:text-amber-400" /> Pending replacements
             </h2>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Labels somebody has asked to replace. The old number is scrapped and a new one minted only on approval.
+              Labels somebody has asked to replace. On approval the print is voided and the label reprinted under the same number.
             </p>
           </div>
         </div>

@@ -23,3 +23,19 @@ def stamp_tracking_began(env):
         Param.set_param(
             TRACKING_BEGAN_PARAM,
             fields.Datetime.to_string(fields.Datetime.now()))
+    fill_location_codes(env)
+
+
+def fill_location_codes(env):
+    """Handoff 61 §7: every location has a room code from the start.
+
+    The fresh-install twin of `migrations/19.0.1.30.0/post-migrate.py`, for
+    the reason the docstring above gives — a migration never runs on a
+    fresh install. Locations created after the module is installed get
+    their code in `generic.location.create`; this covers the ones that
+    existed before it (a database built from `generic_location` first, or
+    loaded by ETL). Idempotent. Called from `stamp_tracking_began`, which
+    is the manifest's one `post_init_hook` and keeps its name so the
+    manifest does not change.
+    """
+    env['generic.location']._fill_location_codes()

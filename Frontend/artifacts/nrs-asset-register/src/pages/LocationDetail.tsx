@@ -11,8 +11,10 @@ import {
 import { CadraApiError } from "@/lib/api";
 import type { Location } from "@/types";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
+import { fetchLocationCode } from "@/lib/locationLabels";
+import { RoomLabelPrintControl } from "@/components/station/RoomLabelPrint";
 import {
-  ArrowLeft, MapPin, Edit3, AlertCircle, Clock, ChevronRight, Globe,
+  ArrowLeft, MapPin, Edit3, AlertCircle, Clock, ChevronRight, Globe, ScanBarcode,
 } from "lucide-react";
 
 export default function LocationDetail() {
@@ -26,6 +28,15 @@ export default function LocationDetail() {
   const { data: loc, isLoading, error } = useQuery<Location | null, CadraApiError>({
     queryKey: ["location", id],
     queryFn: () => fetchLocation(id ?? ""),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+
+  // The room code (handoff 61, R8). Read off the same route as the page,
+  // because the shared location adapter does not carry it.
+  const roomCode = useQuery<string | null>({
+    queryKey: ["location-code", id],
+    queryFn: () => fetchLocationCode(id ?? ""),
     enabled: !!id,
     staleTime: 60_000,
   });
@@ -147,6 +158,31 @@ export default function LocationDetail() {
             </p>
           )}
         </div>
+      </div>
+
+      {/* Room code and its label (handoff 61, R8). The code is what a room
+          label's QR and barcode carry, verbatim; scanned at the station it
+          answers "This is a room". */}
+      <div className="bg-card border border-border rounded-2xl p-5 space-y-3" data-testid="location-room-code">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-[13px] font-bold flex items-center gap-1.5">
+              <ScanBarcode size={13} className="text-primary" /> Room code
+            </h2>
+            <p className="text-[11px] text-muted-foreground">
+              Printed on the room label as a QR and a barcode. It stays the same when the location moves, so a printed label keeps scanning.
+            </p>
+          </div>
+          <p className="font-mono text-[15px] font-bold text-foreground" data-testid="location-room-code-value">
+            {roomCode.isLoading ? "…" : (roomCode.data ?? "No room code yet")}
+          </p>
+        </div>
+        {roomCode.error && (
+          <p className="text-[11px] text-red-700 dark:text-red-400">{(roomCode.error as CadraApiError).message}</p>
+        )}
+        {!roomCode.isLoading && (
+          <RoomLabelPrintControl locationId={loc.id} code={roomCode.data ?? null} />
+        )}
       </div>
 
       {/* Map */}

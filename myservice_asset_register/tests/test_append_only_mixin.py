@@ -245,6 +245,10 @@ class TestTheGuardIsWrittenOnce(AppendOnlyCase):
 #: resolves to the mixin rather than to a copy.
 _NOT_ASSET_KEYED = {
     "nrs.asset.change.request.renomination": "test_renomination.py",
+    # Handoff 61 §5: keyed on an asset, but a row is written only by
+    # `_upload` with real image bytes, which the asset-shaped loops here
+    # cannot supply; held to the same properties in its own file.
+    "nrs.asset.photo": "myservice_api/tests/test_asset_photos.py",
 }
 
 

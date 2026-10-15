@@ -27,4 +27,7 @@ from . import v1_sidebar
 from . import v1_gates
 # Handoff 58 — the role combinations nobody may be granted (rule 2).
 from . import v1_role_exclusions
+# Handoff 61 §5 — photos on an asset: the first multipart route inside the
+# envelope.
+from . import v1_photos
 from . import backoffice

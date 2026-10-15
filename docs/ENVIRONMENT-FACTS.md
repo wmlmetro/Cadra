@@ -293,6 +293,24 @@ The earlier measurement, kept because it is the one that shows the total is a te
 
 `pytest -rs` prints the reasons. A skip whose reason is not in that table is the thing to look at.
 
+### `test19` sends INT-05 to the local Vendra bench, with `nrs19`'s bearer key — on local test tenants only
+
+Since handoff 60 `test19` has an asset-event target (`workflow.config`,
+purpose `asset_events`) pointing at the local Vendra bench
+(`http://vendra.network:8080`), carrying the SAME bearer key as `nrs19`'s
+target, copied from it. Ruled acceptable by the Architect (handoff 61,
+ruling 7 on report 60) **on local test tenants only**: the bench is this
+machine's, the key opens nothing but that bench, and `test19` is a test
+database. Every affix the suites make on `test19` is therefore queued to the
+bench and recorded there as an unmatched delivery — noise in Vendra's
+message log, harmless.
+
+**Do not copy this pattern to a cluster tenant.** A cluster tenant's
+INT-05 target and its key are that tenant's own, provisioned for the
+Vendra it actually pairs with; a key copied from another tenant makes two
+Cadras indistinguishable to the receiver and sends one tenant's events
+under another's name.
+
 ---
 
 ## The cluster

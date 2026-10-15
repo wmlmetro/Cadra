@@ -70,6 +70,11 @@ its fixtures (`tests/test_asset_history.py`) and does correct a
 `grn_reference` by PATCH (`tests/test_assets.py`). A fixture CREATED already
 `disposed` is not pinned by this: that is an opening value, not a change.
 
+**A photo pins its asset too** (`nrs.asset.photo`, handoff 61 §5):
+`ondelete='restrict'`, `unlink()` refused unconditionally, and a photo that
+no longer stands is superseded — an event — rather than deleted. A fixture
+the suite uploaded a picture to is permanent, and is refused here by name.
+
 **An asset with an approved disposal is never removed**, even when its name
 says `pytest-`. Disposal approval is not reversible by any action in this
 system, and deleting the record is not a reversal — it is the same
@@ -235,6 +240,15 @@ Event = (env["nrs.asset.event"].sudo()               # noqa: F821
 # query dies on a missing table.
 ChangeRequest = (env["nrs.asset.change.request"].sudo()        # noqa: F821
                  if "nrs.asset.change.request" in env else None)  # noqa: F821
+# `nrs.asset.photo` (handoff 61 §5) is the FIFTH pin: a photo of the asset,
+# append-only like custody, movement and the event record — `asset_id` is
+# `ondelete='restrict'` and the model refuses `unlink()` unconditionally, and
+# a photo is never deleted, only superseded. So a fixture asset the suite
+# uploaded a picture to is permanent. Same guard and same limit as the four
+# above: it covers a deployment without the model, NOT a database that has
+# the code and has not been upgraded.
+Photo = (env["nrs.asset.photo"].sudo()               # noqa: F821
+         if "nrs.asset.photo" in env else None)      # noqa: F821
 Location = env["generic.location"].sudo()            # noqa: F821
 Request = env["request.request"].sudo()              # noqa: F821
 
@@ -253,6 +267,8 @@ for asset in fixtures:
               if Event is not None else 0)
     approvals = (ChangeRequest.search_count([("asset_id", "=", asset.id)])
                  if ChangeRequest is not None else 0)
+    photos = (Photo.search_count([("asset_id", "=", asset.id)])
+              if Photo is not None else 0)
     requests = Request.search_count([("nrs_asset_id", "=", asset.id)])
     if asset.disposal_approved_by:
         refused.append((asset, "carries an APPROVED disposal — not reversible; "
@@ -279,6 +295,11 @@ for asset in fixtures:
                                "for a change and who decided it cannot be "
                                "deleted, in any state — a withdrawn request "
                                "is still a record" % approvals))
+    elif photos:
+        refused.append((asset, "carries %d photo(s); `asset_id` is "
+                               "ondelete=restrict and a photo of an asset is "
+                               "append-only — superseded, never deleted — so "
+                               "the asset cannot be released" % photos))
     elif requests:
         refused.append((asset, "%d service request(s) point at it; the field "
                                "is `set null`, so removing it would silently "
@@ -362,6 +383,11 @@ test_moves = (Movement.search_count([("source", "=", "test")])
               if Movement is not None else None)
 test_events = (Event.search_count([("source", "=", "test")])
                if Event is not None else None)
+# A photo's label is `is_test_fixture`, derived from the acting credential —
+# its `source` says which app it came through (`web` / `mobile`), not
+# whether a test sent it.
+test_photos = (Photo.search_count([("is_test_fixture", "=", True)])
+               if Photo is not None else None)
 all_requests = Request.search_count([])
 print("LEFT IN PLACE, and this script will never remove them:")
 print("  chain-of-custody rows `source: test` : %d  (append-only; the model "
@@ -372,6 +398,9 @@ print("  movement records `source: test`      : %s  (append-only, likewise)"
 print("  event records `source: test`         : %s  (append-only, likewise)"
       % ("%d" % test_events if test_events is not None
          else "n/a — `nrs.asset.event` is not installed here"))
+print("  photos `is_test_fixture`             : %s  (append-only, likewise)"
+      % ("%d" % test_photos if test_photos is not None
+         else "n/a — `nrs.asset.photo` is not installed here"))
 print("  service requests                     : %d in total, of which the "
       "fixtures CANNOT BE IDENTIFIED" % all_requests)
 print("      `request.request.name` is a sequence (`REQ-000692`), not a name "

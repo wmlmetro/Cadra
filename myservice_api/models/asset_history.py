@@ -156,6 +156,30 @@ def _json_or_none(raw):
         return raw
 
 
+def _gate_evidence_for_caller(raw):
+    """A gate event's evidence as THIS caller may read it (handoff 61,
+    ruling 1 on report 60). A verification's attachments, checklist and
+    notes are IAD's working papers; a caller without `evidence:read` is
+    told how many files there were, in the guard's own words
+    (`utils.evidence_count_only`), and nothing more — the event itself (who
+    verified, when, the state it moved) stays on the history. Read through the API's one guard; outside
+    a request (a shell, a test calling the model) nothing is withheld."""
+    data = _json_or_none(raw)
+    if not isinstance(data, dict) or "attachment_ids" not in data:
+        return data
+    from odoo.http import request
+    if not request or not getattr(request, "jwt_claims", None):
+        return data
+    from ..controllers.utils import evidence_count_only, evidence_readable
+    if evidence_readable():
+        return data
+    # The same answer `GET /assets/<id>/evidence` gives (verification
+    # pass): the count, and nothing more — the checklist and IAD's notes
+    # are its working papers too.
+    return {"attachments": evidence_count_only(
+        len(data.get("attachment_ids") or []))}
+
+
 _EVENT_TITLES = {
     "registered": "Registered",
     "tag_issued": "Tag issued",
@@ -182,6 +206,10 @@ _EVENT_TITLES = {
     # Handoff 34. Recorded append-only from the day the fields existed, so
     # there is no earlier message-log stretch to fall back on.
     "warranty_changed": "Warranty changed",
+    # Handoff 61 §5. A photo is an append-only row of its own; a superseded
+    # one is an event, never an edit.
+    "photo_added": "Photo added",
+    "photo_superseded": "Photo superseded",
     "details_changed": "Details changed",
     "integration_event": "Event for an external system",
     "maintenance_request": "Maintenance request raised",
@@ -330,6 +358,7 @@ class NRSAssetHistory(models.Model):
         events += self._history_custody()
         recorded, covered = self._history_recorded_events()
         events += recorded
+        events += self._history_photos()
         location_rows, other_chatter = self._history_chatter(covered)
         events += self._history_locations(location_rows)
         events += other_chatter
@@ -452,10 +481,16 @@ class NRSAssetHistory(models.Model):
         events = []
         for tag in self.tag_ids:
             rec = ("nrs.asset.tag.label", tag.id)
-            base = {"tag_number": tag.name}
+            # Handoff 61 (R3): one row is one PRINT, and a replacement
+            # reprints under the same number — so each row says which print
+            # it is, and a voided one says when and why.
+            base = {"tag_number": tag.name,
+                    "reprint_count": tag.reprint_count}
+            which = (" (reprint %d)" % tag.reprint_count
+                     if tag.reprint_count else "")
             events.append(self._history_event(
                 "tag_issued", tag.create_date, rec, "system_stamp",
-                summary="Tag %s issued" % tag.name,
+                summary="Tag %s issued%s" % (tag.name, which),
                 actor=_user_ref(tag.create_uid), detail=base,
                 initial=tag.create_date == self.create_date))
             if tag.printed_date:
@@ -463,7 +498,7 @@ class NRSAssetHistory(models.Model):
                 # earlier one is not recoverable from this row.
                 events.append(self._history_event(
                     "tag_printed", tag.printed_date, rec, "guarded_record",
-                    summary="Tag %s printed" % tag.name,
+                    summary="Tag %s printed%s" % (tag.name, which),
                     actor=_user_ref(tag.printed_by),
                     detail=dict(base, only_latest_print_is_kept=True)))
             if tag.affixed_date:
@@ -473,7 +508,7 @@ class NRSAssetHistory(models.Model):
                 # `actor`.
                 events.append(self._history_event(
                     "tag_affixed", tag.affixed_date, rec, "guarded_record",
-                    summary="Tag %s affixed" % tag.name,
+                    summary="Tag %s affixed%s" % (tag.name, which),
                     actor=_user_ref(tag.affixed_by),
                     detail=dict(base,
                                 fitted_by_name=tag.affixed_by_name or None)))
@@ -489,9 +524,16 @@ class NRSAssetHistory(models.Model):
                     tag.approved_date if timed else tag.scrapped_date, rec,
                     "editable_record",
                     precision="second" if timed else "day",
-                    summary="Tag %s scrapped" % tag.name,
+                    summary=("Tag %s scrapped — %s voided (%s)" % (
+                        tag.name, tag._print_name(),
+                        tag._reason_label(tag.void_reason)
+                        if tag.void_reason else "no reason recorded")
+                        if tag.voided_date else "Tag %s scrapped" % tag.name),
                     actor=_user_ref(tag.approved_by) if timed else None,
-                    detail=base))
+                    detail=dict(base,
+                                voided_at=tag.voided_date.isoformat()
+                                if tag.voided_date else None,
+                                void_reason=tag.void_reason or None)))
         return events
 
     def _history_custody(self):
@@ -603,6 +645,15 @@ class NRSAssetHistory(models.Model):
                                "presented (%s) has been scrapped and is no "
                                "longer valid for any asset"
                                % (ev.to_value or "—"))
+                elif reason == "voided_print":
+                    # Handoff 61 (R3): the number is right, but its reprint
+                    # had never been printed, so the label in hand could
+                    # only be the print the replacement voided.
+                    summary = ("Affix confirmation refused — the number "
+                               "read off the asset (%s) is this label's, but "
+                               "its reprint had not been printed, so the "
+                               "label scanned could only be the voided print"
+                               % (ev.to_value or "—"))
                 elif reason == "serial_mismatch":
                     summary = ("Affix confirmation refused — the serial "
                                "read off the asset (%s) is not the serial "
@@ -635,7 +686,23 @@ class NRSAssetHistory(models.Model):
                                "gate": ev.gate or None,
                                "action": ev.gate_action or None,
                                "reason": ev.reason or None,
-                               "evidence": _json_or_none(ev.notes)})
+                               "evidence": _gate_evidence_for_caller(
+                                   ev.notes)})
+            elif etype == "photo_superseded":
+                # Handoff 61 §5. The photo itself is never touched; this row
+                # is what says it no longer stands, who said so and why.
+                published = "photo_superseded"
+                photo = ev.photo_id
+                if photo and photo.caption:
+                    summary = "Photo \u201c%s\u201d superseded: %s" % (
+                        photo.caption, ev.reason or "—")
+                else:
+                    summary = "Photo superseded: %s" % (
+                        ev.reason or "no reason recorded")
+                detail.update(
+                    photo_id=photo.id or None, reason=ev.reason or None,
+                    url=("/api/v1/assets/%d/photos/%d" % (self.id, photo.id))
+                    if photo else None)
             else:
                 # A reference or a warranty field: the same shape, a field
                 # with a before and an after. The warranty fields carry no
@@ -659,6 +726,37 @@ class NRSAssetHistory(models.Model):
                 actor_name=ev.actor_name or None,
                 source=ev.source, detail=detail))
         return events, covered
+
+    def _history_photos(self):
+        """Each photo of the asset (handoff 61 §5), from its own append-only
+        row — who added it, when, from which app, and what it is. Read with
+        sudo, like every source here; a superseded one stays, and its own
+        event says it was superseded."""
+        events = []
+        photos = self.env["nrs.asset.photo"].sudo().search(
+            [("asset_id", "=", self.id)], order="uploaded_at, id")
+        for p in photos:
+            channel = {"web": "the web app", "mobile": "the mobile app"}.get(
+                p.source, p.source or "an unknown app")
+            summary = "Photo added from %s (%s %d × %d)" % (
+                channel, (p.mimetype or "").split("/")[-1].upper() or "image",
+                p.width or 0, p.height or 0)
+            if p.caption:
+                summary += " — %s" % p.caption
+            events.append(self._history_event(
+                "photo_added", p.uploaded_at, ("nrs.asset.photo", p.id),
+                "append_only", summary=summary,
+                actor=_user_ref(p.uploaded_by_id),
+                actor_name=p.uploaded_by_name or None,
+                source="test" if p.is_test_fixture else p.source,
+                detail={"records": ["nrs.asset.photo"], "photo_id": p.id,
+                        "caption": p.caption or None,
+                        "mimetype": p.mimetype or None, "size": p.size,
+                        "width": p.width, "height": p.height,
+                        "sha256": p.sha256,
+                        "url": "/api/v1/assets/%d/photos/%d" % (self.id,
+                                                                 p.id)}))
+        return events
 
     def _history_event_fidelity(self):
         """From when each kind of event has a record nobody can alter.
@@ -684,6 +782,8 @@ class NRSAssetHistory(models.Model):
             ("gate_fired", "gate_fired",
              "a receipt gate fired (submit, verify, approve, tagging, "
              "registration)"),
+            ("photo_superseded", "photo_superseded",
+             "a photo superseded"),
         )
         out = []
         for stored, published, what in kinds:
@@ -733,6 +833,18 @@ class NRSAssetHistory(models.Model):
                     "gate a unit passes is recorded so that nobody can edit "
                     "or delete it. There is no earlier record to look for: "
                     "the gates did not exist before then." % _when(began))
+            elif stored == "photo_superseded":
+                # Photos arrived with their record (handoff 61); there was
+                # never another way to supersede one.
+                statement = (
+                    "No photo has been superseded on this system yet, for "
+                    "any asset. A superseded photo is kept, and the event "
+                    "saying who superseded it and why cannot be edited or "
+                    "deleted." if not began else
+                    "From %s, when the first one was superseded here, every "
+                    "superseded photo is recorded so that nobody can edit or "
+                    "delete it. There is no earlier record to look for: "
+                    "photos did not exist before then." % _when(began))
             elif not began:
                 statement = (
                     "No record of this kind has been written on this system "
@@ -749,6 +861,21 @@ class NRSAssetHistory(models.Model):
                 "recording_began_at": _iso(began),
                 "statement": statement,
             })
+        # Photos (handoff 61 §5) are their own append-only table, not an
+        # event type, so their beginning is read from it.
+        self.env.cr.execute("SELECT min(create_date) FROM nrs_asset_photo")
+        began = self.env.cr.fetchone()[0]
+        out.append({
+            "event": "photo_added",
+            "recording_began_at": _iso(began),
+            "statement": (
+                "No photo has been added on this system yet, for any asset. "
+                "Every photo is kept so that nobody can edit, replace or "
+                "delete it." if not began else
+                "From %s, every photo of an asset is kept so that nobody can "
+                "edit, replace or delete it; photos did not exist before "
+                "then." % _when(began)),
+        })
         return out
 
     def _history_chatter(self, covered=frozenset()):

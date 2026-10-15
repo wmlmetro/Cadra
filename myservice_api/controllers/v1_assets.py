@@ -428,6 +428,10 @@ def _serialize_tagging(a):
         "label_id": label.id if label else None,
         "tag_number": label.name if label else None,
         "label_state": label.label_state if label else None,
+        # Handoff 61 (R3): which print of this number is on the asset — 0
+        # for the first, one more for each approved replacement, which
+        # reprints under the same number.
+        "reprint_count": label.reprint_count if label else None,
         # The single boolean an integration should branch on.
         "is_tagged": bool(label) and label.label_state == "affixed",
         "printed_at": _date(label.printed_date) if label else None,
@@ -995,8 +999,55 @@ def serialize_asset(a, *, include=()):
 
 # ─── domain builder ──────────────────────────────────────────────────
 
+def _parse_updated_since(raw):
+    """`?updated_since=` (handoff 61 §6) → a naive UTC datetime, or None
+    when absent. ISO-8601: a date (`2026-10-15`, midnight UTC), or a date
+    and time with an optional fraction and an optional zone (`Z`, `+01:00`)
+    — `T` or a space between them, so an `updated_at` this API published
+    is accepted back verbatim. A time with no zone is UTC, as every
+    datetime this API publishes is. Anything else is a `BadFilter` → 400;
+    never "no filter", which would hand a sync the whole register and call
+    it a change set (handoff 21).
+
+    Parsed here rather than in `query_params.py`, whose purity rule forbids
+    any import (`tests/test_query_param_guard.py`) and a date cannot be read
+    without one; waived there by name, like `_parse_report_date`."""
+    if raw is None:
+        return None
+    text = raw.strip() if isinstance(raw, str) else raw
+    if text in ("", None):
+        return None
+    if not isinstance(text, str):
+        raise BadFilter("`updated_since` must be an ISO-8601 date or "
+                        "date-time", details={"updated_since": raw})
+    candidate = text[:-1] + "+00:00" if text.endswith(("Z", "z")) else text
+    try:
+        if len(candidate) == 10:
+            value = datetime.datetime.combine(
+                datetime.date.fromisoformat(candidate), datetime.time.min)
+        else:
+            value = datetime.datetime.fromisoformat(candidate)
+    except ValueError:
+        raise BadFilter(
+            "`updated_since` must be an ISO-8601 date or date-time, for "
+            "example 2026-10-15 or 2026-10-15T09:30:00Z; %r is neither"
+            % text, details={"updated_since": raw,
+                             "example": "2026-10-15T09:30:00Z"})
+    if value.tzinfo is not None:
+        value = value.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+    return value
+
+
 def _list_domain(qs):
     domain = []
+    # Handoff 61 §6, the sync filter: every asset whose own record changed
+    # at or after the instant (`updated_at`, which is `write_date`). `>=`
+    # rather than `>`, so a client that sends back the last `updated_at` it
+    # saw re-reads that row rather than missing a second row written in the
+    # same second; a sync upserts by id, so a row read twice is harmless.
+    updated_since = _parse_updated_since(qs.get("updated_since"))
+    if updated_since is not None:
+        domain.append(("write_date", ">=", updated_since))
     q = (qs.get("q") or "").strip()
     if q:
         # Match the asset's own identity fields plus the human-meaningful
@@ -1349,6 +1400,18 @@ def _browse_or_404(asset_id):
     return rec, None
 
 
+def _on_the_register_or_409(rec, act):
+    """A received unit not yet on the register cannot be verified, marked
+    missing, marked found or condemned (handoff 61, ruling R10; disposal
+    since 58). Asked FIRST, before the route's own state checks, so a
+    candidate is told what it is rather than "not missing". The model says
+    the same under every writer (`_assert_on_the_register`); this is the
+    route saying it before anything else is read. Raises `GateRefused`,
+    which the envelope makes `409 conflict`, `details.reason =
+    "not_on_the_register"`."""
+    rec._refuse_off_the_register(act)
+
+
 # ─── controller ──────────────────────────────────────────────────────
 
 class CadraAssetsV1(http.Controller):
@@ -1370,6 +1433,20 @@ class CadraAssetsV1(http.Controller):
                       "description": _ID_FILTER_400},
                      {"name": "location_id", "schema": {"type": "integer"},
                       "description": _ID_FILTER_400},
+                     {"name": "updated_since",
+                      "schema": {"type": "string", "format": "date-time"},
+                      "description": (
+                          "Handoff 61 — the sync filter. Assets whose own "
+                          "record changed at or after this instant "
+                          "(`updated_at`). ISO-8601 date or date-time; no "
+                          "zone means UTC. Composes with every other filter, "
+                          "`location_id` and `register_state=any` included; "
+                          "order and paging unchanged (by id). Unparseable "
+                          "is a 400, never the whole register. A change to a "
+                          "related record (a photo, a custody row) does not "
+                          "move `updated_at`. To page a sync without missing "
+                          "a row changed mid-sync, see "
+                          "docs/integrations/mobile-ai-capture-endpoints.md.")},
                      {"name": "building_id", "schema": {"type": "integer"},
                       "description": _ID_FILTER_400},
                      {"name": "floor_id", "schema": {"type": "integer"},
@@ -2131,6 +2208,7 @@ class CadraAssetsV1(http.Controller):
         rec, error = _browse_or_404(id)
         if error:
             return error
+        _on_the_register_or_409(rec, "verification")
         body = get_params()
         notes = body.get("notes") or ""
         if notes and not isinstance(notes, str):
@@ -2192,6 +2270,7 @@ class CadraAssetsV1(http.Controller):
         rec, error = _browse_or_404(id)
         if error:
             return error
+        _on_the_register_or_409(rec, "missing")
         reason, error = _required_reason(get_params())
         if error:
             return error
@@ -2251,6 +2330,7 @@ class CadraAssetsV1(http.Controller):
         rec, error = _browse_or_404(id)
         if error:
             return error
+        _on_the_register_or_409(rec, "found")
         reason, error = _required_reason(get_params())
         if error:
             return error
@@ -2315,6 +2395,7 @@ class CadraAssetsV1(http.Controller):
         rec, error = _browse_or_404(id)
         if error:
             return error
+        _on_the_register_or_409(rec, "disposal")
         reason, error = _required_reason(get_params())
         if error:
             return error
@@ -3230,6 +3311,15 @@ class CadraAssetsV1(http.Controller):
                        details={"as_of": qs.get("as_of"),
                                 "today": snapshot_today().isoformat()})
 
+        if qs.get("updated_since") not in (None, ""):
+            # The sync filter (handoff 61) reads TODAY's `write_date`, which
+            # says nothing about the register as it stood on `as_of`; a
+            # snapshot narrowed by it would be a different question answered
+            # under the snapshot's name. Refused, never ignored.
+            return err(ERR_INVALID_REQUEST,
+                       "`updated_since` is a sync filter on the live register "
+                       "and does not apply to a snapshot as of a date.",
+                       details={"updated_since": qs.get("updated_since")})
         try:
             filter_domain = _list_domain(qs)
         except BadFilter as e:

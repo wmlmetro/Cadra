@@ -1,11 +1,16 @@
-"""A faded tag is replaced by two people, and the old number never returns.
+"""A faded tag is replaced by two people, and reprinted under its own number.
 
 Handoff 38. NRS, 30 September: *"you notice an air conditioner tag is weak
 … you can reprint a tag for that particular asset."* The model already
-scrapped the old label, minted a new number and kept the chain; what it
+scrapped the old label, made its successor and kept the chain; what it
 did not do was record WHY, name who was asked, refuse the requester
 deciding their own request, or stop anybody editing the stamps afterwards.
 Each test below is one of those sentences, and each is proved on the row.
+
+Handoff 61 (ruling R3): the successor is a REPRINT under the SAME number —
+until then it was a new number, and this file proved the old one never
+came back. That is reversed on purpose and announced as a BEHAVIOUR CHANGE;
+the reprint's own tests are in `myservice_api/tests/test_reprint_same_code.py`.
 
 The requester and the approver are two users of this register, because the
 model refuses one person being both halves — under `sudo()` as well, which
@@ -143,27 +148,34 @@ class TestTagReplacement(CadraTransactionCase):
         self.assertEqual(new.asset_id, asset)
         self.assertEqual(asset.active_tag_id, new)
         self.assertEqual(asset.asset_tag, new.name)
-        self.assertNotEqual(new.name, old_number)
+        # Handoff 61: the same number, one print more.
+        self.assertEqual(new.name, old_number)
+        self.assertEqual(new.reprint_count, 1)
+        self.assertEqual(old.void_reason, 'damaged')
+        self.assertTrue(old.voided_date)
 
-    def test_the_old_number_is_never_reissued(self):
-        """Two replacements in a row on one asset: three numbers, all
-        different, and the scrapped ones never come back. `_generate_tag`
-        searches every tag on the prefix, scrapped included."""
+    def test_each_replacement_reprints_the_same_number_once_more(self):
+        """Two replacements in a row on one asset: three prints of ONE
+        number, one row each, one of them in service — and a fresh MINT
+        still never reuses a number that has been printed (`_generate_tag`
+        searches every tag on the prefix, scrapped included)."""
         asset = self._asset()
         first = asset.active_tag_id
         self._request(first)
         second = self._as(self.approver, first).action_approve_replacement()
         self._request(second)
         third = self._as(self.approver, second).action_approve_replacement()
-        numbers = [first.name, second.name, third.name]
-        self.assertEqual(len(set(numbers)), 3, numbers)
+        self.assertEqual({first.name, second.name, third.name}, {first.name})
         self.assertEqual(
-            self.env['nrs.asset.tag.label'].search_count(
-                [('name', '=', first.name)]), 1,
-            'the scrapped number exists exactly once, on the scrapped row')
-        # And a fresh mint on this asset still avoids both scrapped numbers.
+            [first.reprint_count, second.reprint_count, third.reprint_count],
+            [0, 1, 2])
+        Tag = self.env['nrs.asset.tag.label']
+        self.assertEqual(Tag.search_count([('name', '=', first.name)]), 3,
+                         'three prints of one number, one row each')
+        self.assertEqual(Tag.search_count([('name', '=', first.name),
+                                           ('state', '=', 'active')]), 1)
         minted = asset._generate_tag(source='manual')
-        self.assertNotIn(minted.name, numbers[:2])
+        self.assertNotEqual(minted.name, first.name)
 
     def test_a_decision_needs_a_pending_request(self):
         tag = self._asset().active_tag_id

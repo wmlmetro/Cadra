@@ -44,6 +44,9 @@ type FormShape = {
   building_id: number | null;
   latitude: string;
   longitude: string;
+  /** The room code (handoff 61, R8). Sent only when it changed — see
+   *  `codeChange` — so a save that does not touch it cannot regenerate it. */
+  location_code: string;
 };
 
 const blank: FormShape = {
@@ -53,7 +56,19 @@ const blank: FormShape = {
   state_id: null, country_id: null,
   zone_code: "", floor_number: "", building_id: null,
   latitude: "", longitude: "",
+  location_code: "",
 };
+
+/** What the save sends for the room code, or `undefined` to send nothing.
+ *  On create, only a typed code (absent means the server generates one). On
+ *  edit, only a CHANGE — and an emptied field is sent as `""`, which the
+ *  server answers by generating the code again from the hierarchy. */
+function codeChange(mode: "create" | "edit", typed: string, stored: string | null): string | undefined {
+  const t = typed.trim();
+  if (mode === "create") return t ? t : undefined;
+  if (t.toUpperCase() === (stored ?? "")) return undefined;
+  return t;
+}
 
 function toBody(f: FormShape): LocationWriteBody {
   const out: LocationWriteBody = { active: f.active };
@@ -131,7 +146,7 @@ export default function LocationForm({ mode }: Props) {
   const existing = useQuery({
     queryKey: ["location-raw", id],
     queryFn: async () => {
-      const res = await apiGet<ApiLocation>(`/api/v1/locations/${id}`);
+      const res = await apiGet<ApiLocation & { location_code?: string | null }>(`/api/v1/locations/${id}`);
       return res.data;
     },
     enabled: mode === "edit" && !!id,
@@ -164,6 +179,7 @@ export default function LocationForm({ mode }: Props) {
         building_id: l.extras?.building_id ?? null,
         latitude: "",
         longitude: "",
+        location_code: l.location_code ?? "",
       });
       const coords = (l as ApiLocation & { coordinates?: { latitude: number | null; longitude: number | null } | null }).coordinates;
       if (coords) {
@@ -180,14 +196,19 @@ export default function LocationForm({ mode }: Props) {
 
   useEffect(() => { set("parent_id", parentPick?.id ?? null); }, [parentPick]);
 
+  const storedCode = existing.data?.location_code ?? null;
   const mutation = useMutation({
-    mutationFn: () => mode === "edit"
-      ? updateLocation(id!, toBody(form))
-      : createLocation(toBody(form)),
+    mutationFn: () => {
+      const body: LocationWriteBody & { location_code?: string } = toBody(form);
+      const code = codeChange(mode, form.location_code, storedCode);
+      if (code !== undefined) body.location_code = code;
+      return mode === "edit" ? updateLocation(id!, body) : createLocation(body);
+    },
     onSuccess: (loc) => {
       qc.invalidateQueries({ queryKey: ["locations"] });
       qc.invalidateQueries({ queryKey: ["location", loc.id] });
       qc.invalidateQueries({ queryKey: ["location-raw", loc.id] });
+      qc.invalidateQueries({ queryKey: ["location-code", loc.id] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       nav(`/locations/${loc.id}`);
     },
@@ -267,6 +288,24 @@ export default function LocationForm({ mode }: Props) {
         </Field>
         <Field label="Zone code">
           <input className={inputCls} value={form.zone_code} onChange={e => set("zone_code", e.target.value)} placeholder="e.g. NW-01" />
+        </Field>
+        <Field label="Room code" span={2}>
+          {/* Handoff 61 (R8). What the room label carries. The server
+              refuses a code another location holds, in words; the panel
+              above prints its sentence. */}
+          <input
+            className={cn(inputCls, "font-mono")}
+            value={form.location_code}
+            onChange={e => set("location_code", e.target.value)}
+            placeholder={mode === "create" ? "Leave empty to generate it — e.g. LOC-HQ-F10-MTG1" : "Leave empty to generate it again"}
+            data-testid="location-code-input"
+            maxLength={24}
+          />
+          <span className="text-[11px] text-muted-foreground">
+            Begins LOC-; letters, digits and hyphens. {mode === "create"
+              ? "Left empty, it is generated from the zone codes of this location and the ones above it."
+              : "Changing it means any label already printed for this room stops scanning. Empty it to generate it again from the zone codes."}
+          </span>
         </Field>
         <Field label="Active" span={2}>
           <label className="inline-flex items-center gap-2 text-xs">

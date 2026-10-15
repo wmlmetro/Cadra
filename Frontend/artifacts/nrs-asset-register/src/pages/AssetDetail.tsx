@@ -22,6 +22,7 @@ import AssetHistoryTimeline from "@/components/AssetHistoryTimeline";
 import WarrantyCard from "@/components/WarrantyCard";
 import { CandidateBanner, GateActions } from "@/components/GateActions";
 import { GateEvidence } from "@/components/GateEvidence";
+import { AssetPhotos } from "@/components/AssetPhotos";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2, SearchCheck,
@@ -793,6 +794,14 @@ export default function AssetDetail() {
               )}
             </div>
           ),
+        },
+        {
+          // Handoff 61 §5: the pictures of the asset — photos, and IAD's
+          // verification evidence under the evidence guard — in one list.
+          // Its own tab, so the thumbnails are fetched only when somebody
+          // opens it.
+          label: "Photos",
+          content: <AssetPhotos assetId={asset.id} />,
         },
         {
           label: "Audit & Review",

@@ -53,7 +53,8 @@
  * the obvious way to break the single-`state` structure above by accident.
  *
  * The decided picker's outcomes map onto the label's own lifecycle —
- * approved → `scrapped` (the number is dead, a successor was minted),
+ * approved → `scrapped` (the print is voided and, since handoff 61, the
+ * label reprinted under the SAME number — before 61 a new number was minted),
  * rejected → `active` (back in service). "Withdrawn" has no tag meaning: a
  * tag replacement cannot be withdrawn, and the section says that in a
  * sentence rather than presenting an empty table as a fact about the world.
@@ -80,7 +81,7 @@ import {
 import { CadraApiError, apiConfigured } from "@/lib/api";
 import {
   approveChangeRequest, fetchApprovalsPage, fetchApprovers, fetchTagReplacementsPage,
-  fetchWhoAmI, rejectChangeRequest, renominateChangeRequest, withdrawChangeRequest,
+  fetchWhoAmI, printName, rejectChangeRequest, renominateChangeRequest, withdrawChangeRequest,
   type ApprovalFilters, type ApprovalRef, type ApprovalRequest, type ApprovalState,
   type ApprovalsPage, type TagLabel, type TagReplacementFilters, type TagReplacementsPage,
 } from "@/lib/dataProvider";
@@ -747,8 +748,9 @@ function ApprovalRow({ r }: { r: ApprovalRequest }) {
 
 /**
  * The label's lifecycle in words a person reads without the state machine in
- * hand. `scrapped` IS the approval — the old number is dead and a successor
- * was minted — and `active` after a request is usually a rejection, but the
+ * hand. `scrapped` IS the approval — the print is voided and the label
+ * reprinted (under the same number since handoff 61) — and `active` after a
+ * request is usually a rejection, but the
  * record is the authority: a row with no `rejected_by` is only "active
  * again", because claiming "rejected" over a field that does not say so is
  * the quiet untruth this screen exists to stop.
@@ -807,6 +809,14 @@ function ReplacementRow({ t, meId }: { t: TagLabel; meId: number | null | undefi
               </RecordLink>
             )}
             {t.asset_code && <span className="text-[11px] font-mono text-muted-foreground">{t.asset_code}</span>}
+            {/* Which print of the number this row is (handoff 61): two
+                prints of one number carry the same tag number and differ
+                only in this. Shown for a reprint; the original says nothing. */}
+            {t.reprint_count > 0 && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground border border-border" data-testid="replacement-print">
+                {printName(t.reprint_count)}
+              </span>
+            )}
           </div>
 
           {/* WHO ASKED and WHO WAS ASKED, never folded together — the same
@@ -829,17 +839,25 @@ function ReplacementRow({ t, meId }: { t: TagLabel; meId: number | null | undefi
           {/* The decision, once there is one. `approved_by` / `rejected_by`
               is WHO CLICKED, a different field from `approver` on purpose —
               anyone eligible may decide any pending replacement. A scrapped
-              row also names its successor, because the whole point of the
-              chain is that the old number leads to the new. */}
+              row also names its successor: since handoff 61 the reprint
+              under the SAME number, said with its count, because the number
+              alone would not tell the two prints apart; a replacement made
+              before 61 names the different number it was given. */}
           {t.state === "scrapped" && (
             <p className="text-[11px] text-muted-foreground" data-testid="replacement-decision">
               Approved by <span className="font-semibold text-foreground">{t.approved_by?.name ?? "—"}</span>
               {" "}on {stamp(t.approved_at)}
               {t.decision_reason && <> — “{t.decision_reason}”</>}
-              {t.replaced_by && <>
+              {t.replaced_by && (t.replaced_by.tag_number === t.tag_number ? <>
+                {" · "}{printName(t.reprint_count)} voided{t.voided_at && <> on {stamp(t.voided_at)}</>};
+                {" "}replaced by{" "}
+                <span className="font-semibold text-foreground" data-testid="replacement-reprint">
+                  {printName(t.replaced_by.reprint_count)} under the same number
+                </span>
+              </> : <>
                 {" · "}replaced by{" "}
                 <span className="font-mono font-semibold text-foreground">{t.replaced_by.tag_number}</span>
-              </>}
+              </>)}
             </p>
           )}
           {t.state === "active" && t.rejected_by && (

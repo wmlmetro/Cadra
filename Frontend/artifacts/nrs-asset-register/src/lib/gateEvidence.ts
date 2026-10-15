@@ -68,16 +68,28 @@ export interface GateVerification {
 
 export interface GateEvidenceAnswer {
   asset_id: number;
-  /** Newest first. */
+  /** Whether the caller holds `evidence:read` (handoff 61, ruling 1 on
+   *  report 60). False: `verifications` is empty and `count` is all the
+   *  caller is told. */
+  readable: boolean;
+  /** Evidence files across every verification — given to readers and
+   *  non-readers alike. */
+  count: number;
+  /** Newest first. Empty for a non-reader. */
   verifications: GateVerification[];
 }
 
-/** `GET /api/v1/assets/<id>/evidence` (`candidates:read`). */
+/** `GET /api/v1/assets/<id>/evidence` (`candidates:read`; the files
+ *  themselves to `evidence:read` only, since handoff 61). */
 export async function fetchGateEvidence(assetId: string | number): Promise<GateEvidenceAnswer> {
   const res = await apiGet<GateEvidenceAnswer>(
     `/api/v1/assets/${encodeURIComponent(String(assetId))}/evidence`);
   return {
     asset_id: res.data?.asset_id ?? Number(assetId),
+    // Absent on a server from before handoff 61, which served the files to
+    // every `candidates:read` holder: readable, as it then was.
+    readable: res.data?.readable !== false,
+    count: typeof res.data?.count === "number" ? res.data.count : 0,
     verifications: Array.isArray(res.data?.verifications) ? res.data.verifications : [],
   };
 }

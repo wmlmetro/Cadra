@@ -33,6 +33,111 @@ live at was never the point.
 
 ---
 
+## 2026-10-15 — handoff 61: the same code, and the photo · `myservice_api` 19.0.3.33.0, `myservice_asset_register` 19.0.1.30.0
+
+With the receipt switch off, a tenant sees the additive routes and keys
+below and three changes of behaviour: a tag replacement keeps its number,
+the default `tag_id` schema, and IAD's evidence behind its own scope. A
+room-code string at the scan box now answers instead of 404.
+
+- **BEHAVIOUR CHANGE — a replacement keeps its number.**
+  `POST /api/v1/tags/<id>/approve-replacement` voids the print and reprints
+  the label under the SAME number: `new_tag.tag_number` equals
+  `tag.tag_number`, with `reprint_count` one higher and a new `id`. Until
+  61 it minted a new number — and on a gated unit a location-prefix one
+  instead of the asset code (the defect ruling 4.3 forbids). A consumer
+  keyed on the tag number sees the same number on a new label id. One row
+  is still one physical print; the voided one is `state: scrapped`.
+- **BEHAVIOUR CHANGE — `POST /api/v1/assets/<id>/tag-affixed` on a reprint
+  that has not been printed** is refused `400 validation_failed`: *"Tag X is
+  reprint 1 and has not been printed yet, so the label being scanned can
+  only be the original print, voided on <date> (<reason>). Print reprint 1,
+  then confirm it."* — and recorded as `affix_refused`, reason
+  `voided_print`. The two prints encode the same value, so time is the only
+  thing the server can tell them apart by.
+- **New: `POST /api/v1/tags/printed`** (`tagging:write`), `{"tag_ids":
+  [...]}` (≤ 500): records that the app printed these labels, through the
+  print funnel's own rule (only the label in service; an affixed label is
+  not walked back). The app draws labels in the browser and had never
+  recorded a print (1 of 3,069 affixed labels had one). A label printed at
+  the station now reads `label_state: printed` before it is affixed.
+- **BEHAVIOUR CHANGE — `GET /api/v1/barcode/kpis` `untagged` and
+  `GET /barcode/untagged`** no longer count or list an asset whose label is
+  pending replacement (it still carries its label, and its replacement
+  reprints under the same number); `POST /barcode/generate` skips one with
+  `reason: replacement_pending` instead of minting it a second label.
+- **INT-05 (to Vendra):** a reprint's affix sends `asset.tag.affixed` with
+  the SAME `tag.number` and a new `label_id`; before 61 a replacement's
+  affix carried a different number. **Vendra:** key a label on `label_id`,
+  not on the number.
+- **Added on every tag payload:** `reprint_count`, `voided_at`,
+  `void_reason`; `reprint_count` on `replaces`/`replaced_by`, and on the
+  asset's `tagging` block.
+- **BEHAVIOUR CHANGE — IAD's evidence needs `evidence:read`** (new scope:
+  IAD officer and approver, Register Maker and Checker, Auditor). `GET
+  /api/v1/assets/<id>/evidence` answers a caller without it with `readable:
+  false`, `count`, `summary` (*"IAD evidence: N items"*) and no
+  verifications; with it, `readable: true` and `count` beside the list
+  (additive). The file route `GET /assets/<id>/evidence/<attachment_id>` is
+  `403` without it. **Vendra's credential does not hold it** and is told the
+  count. The asset history's `gate_fired` verify event carries
+  `evidence.attachments` (the count) in place of `attachment_ids` for such
+  a caller.
+- **New: `POST /api/v1/candidates/gates/submit`** (`assets:write`) and
+  **`/request-tagging`** (`tagging:request`) — the same N-single-fires
+  batches as handoff 60's, `dry_run` included; a selection may mix
+  receipts.
+- **BEHAVIOUR CHANGE — a candidate is refused** `POST /assets/<id>/verify`,
+  `/mark-missing`, `/mark-found` and `/condemn` with `409 conflict`,
+  `details.reason = "not_on_the_register"`, asked before the route's own
+  state checks; and `PATCH` cannot change a candidate's `state` or
+  `last_verified_date` (same 409), nor can a gated receipt (`POST /assets`,
+  INT-03 included) arrive with a `state` other than `active` or with a
+  `last_verified_date`. Nothing is written.
+- **BEHAVIOUR CHANGE — the default `tag_id` schema** is now `{"mandatory":
+  ["name", "colour", "material", "dimensions"]}`: make and model are no
+  longer mandatory by default (published on `GET /asset-categories`).
+  Classes whose schema was set keep it — 0 of 13 `tag_id` classes on the 8
+  local tenants had one. **Vendra:** your own receipt still asks make and
+  model on its own account; that is Vendra's rule and is unaffected.
+- **New: photos.** `POST /api/v1/assets/<id>/photos` (`assets:write`) — the
+  first `multipart/form-data` route inside the envelope: parts `file`
+  (required), `source` (required, `web` | `mobile`), `caption`; JPEG or PNG
+  judged by the bytes (`415` otherwise, whatever the name), at most 300 KB
+  (AI-NFR-07; `413`), at most 12 standing photos per asset (`409`); a
+  candidate may get one. `GET /api/v1/assets/<id>/photos` (`assets:read`) —
+  photos and IAD's evidence in one list, each item `kind: photo |
+  iad_evidence`, evidence items only with `evidence:read` (otherwise
+  `iad_evidence` is the count). `GET /api/v1/assets/<id>/photos/<photo_id>`
+  — the bytes. `POST /api/v1/assets/<id>/photos/<photo_id>/supersede`
+  (`assets:write`, `reason` required) — a photo is never deleted or
+  replaced; a second supersede is `409`. New history kinds `photo_added`
+  and `photo_superseded`.
+- **`GET /api/v1/reports/register-snapshot`** refuses `updated_since`
+  (400): it is a filter on the live register, not on a snapshot.
+- **New: `?updated_since=<ISO-8601>` on `GET /api/v1/assets`** — assets
+  whose own record changed at or after the instant (`updated_at`), no zone
+  meaning UTC; composes with every filter, `location_id` and
+  `register_state=any` included; order and paging unchanged; unparseable
+  is a 400. How to page a sync without missing a row:
+  `docs/integrations/mobile-ai-capture-endpoints.md`.
+- **New: `location_code` on every location** (`GET /locations` and every
+  location answer; writable on `POST`/`PATCH /locations` with
+  `locations:write` — `409` when taken or when it reads as a tag number or
+  asset code, `400` on the wrong shape; empty means generate). Format
+  `LOC-` + the hierarchy's zone codes, or the id. `?q=` searches it.
+  Filled on every location on every tenant by the 19.0.1.30.0 migration.
+- **New: `GET /api/v1/locations/<id>/label?size=medium|large`**
+  (`locations:read`) — the room label PDF, QR and Code 128 carrying the
+  code verbatim; `small` is refused (the small Code 128 does not read).
+- **BEHAVIOUR CHANGE — `GET /api/v1/barcode/lookup`** resolves a room code
+  as its last step: `matched_by: "location"`, `matched_location`, and no
+  asset keys. A string that used to 404 now answers 200 when it is a room
+  code; tag → asset code → serial resolve exactly as before.
+  `/tags/lookup` is unchanged.
+- **OpenAPI:** a request body that is not JSON is published under its own
+  media type; `413` and `415` are described.
+
 ## 2026-10-15 — handoff 60: seventy a day · `myservice_api` 19.0.3.32.0, `myservice_asset_register` 19.0.1.29.0
 
 With the receipt switch off, a tenant sees the additive routes and keys

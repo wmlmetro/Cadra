@@ -219,7 +219,7 @@ test("confirming the same label twice says already confirmed, and the original r
 
 // ── A label that is no longer the one issued ────────────────────────────────
 
-test("a label replaced since the card was loaded is refused: while pending there is no active tag, and once scrapped the number in hand is not the tag now issued", async ({ page, api }) => {
+test("a label replaced since the card was loaded is refused: while pending there is no active tag, and once reprinted the label in hand can only be the voided print until the reprint is printed", async ({ page, api }) => {
   const second = await ApiClient.forServiceCredential();
   test.skip(!second, "set E2E_CLIENT_ID / E2E_CLIENT_SECRET — the model refuses "
                    + "self-approval, so one identity cannot replace a label");
@@ -248,26 +248,46 @@ test("a label replaced since the card was loaded is refused: while pending there
   await expect(refusal).toBeVisible({ timeout: 20_000 });
   await expect(refusal).toContainText("This asset has no active tag to confirm");
 
-  // 2 · Then the replacement is approved: the old label is SCRAPPED and a
-  //     new number issued. The label in the tagger's hand is the old one.
+  // 2 · Then the replacement is approved: the print is VOIDED and the label
+  //     reprinted under the SAME number (handoff 61). The label in the
+  //     tagger's hand is the voided print, and it encodes exactly what the
+  //     reprint will — so the server refuses it on the one thing it can
+  //     know: the reprint has not been printed yet.
   const approved = await api.post<any>(`/api/v1/tags/${oldTagId}/approve-replacement`, {});
-  const newNumber = approved.new_tag.tag_number as string;
-  expect(newNumber).not.toBe(a.tag);
+  const reprint = approved.new_tag;
+  expect(reprint.tag_number, "a replacement keeps its number").toBe(a.tag);
+  expect(reprint.reprint_count).toBe(1);
+  const voided = await api.get<any>(`/api/v1/tags/${oldTagId}`);
+  expect(voided.voided_at).toBeTruthy();
   await expect(dialog.getByTestId("input-affix-tag-number")).toHaveValue(a.tag!);
   await dialog.getByTestId("button-submit-affixed").click();
   await expect(refusal).toContainText(
-    `Scanned tag ${a.tag} does not match the tag issued for this asset (${newNumber}). `
-    + `The label on the asset is not the one Cadra issued for it.`,
+    `Tag ${a.tag} is reprint 1 and has not been printed yet, so the label being scanned can only be the original print, voided on `,
     { timeout: 20_000 },
   );
-  await shot(page, "06-scrapped-label-refused");
+  await expect(refusal).toContainText("(Damaged / Unreadable). Print reprint 1, then confirm it.");
+  await shot(page, "06-voided-print-refused");
 
-  // THE ROWS: the scrapped label stays scrapped, the new one is not affixed.
+  // THE ROWS: the voided print stays scrapped, the reprint is not affixed.
   const old = await api.get<any>(`/api/v1/tags/${oldTagId}`);
   expect(old.state).toBe("scrapped");
   expect(old.label_state).toBe("scrapped");
-  const read = await api.get<any>(`/api/v1/assets/${a.id}`);
-  expect(read.tagging.tag_number).toBe(newNumber);
+  expect(old.void_reason).toBe("damaged");
+  let read = await api.get<any>(`/api/v1/assets/${a.id}`);
+  expect(read.tagging.tag_number).toBe(a.tag);
+  expect(read.tagging.label_id).toBe(reprint.id);
   expect(read.tagging.label_state).not.toBe("affixed");
   expect(read.tagging.is_tagged).toBe(false);
+
+  // 3 · The reprint is printed — recorded the way the station records it —
+  //     and the same number now confirms: it is the reprint, or a voided
+  //     print nobody peeled off, and nothing on the paper says which.
+  const printedRes = await api.post<any>("/api/v1/tags/printed", { tag_ids: [reprint.id] });
+  expect(printedRes.recorded.map((t: any) => t.id)).toEqual([reprint.id]);
+  expect(printedRes.recorded[0].label_state).toBe("printed");
+  await dialog.getByTestId("button-submit-affixed").click();
+  await expect(dialog).toBeHidden({ timeout: 20_000 });
+  read = await api.get<any>(`/api/v1/assets/${a.id}`);
+  expect(read.tagging.label_id).toBe(reprint.id);
+  expect(read.tagging.label_state).toBe("affixed");
 });
