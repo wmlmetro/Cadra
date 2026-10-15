@@ -63,6 +63,13 @@ class TestOutboundTagEvents(CadraTransactionCase):
         self.category = self.env['nrs.asset.category'].create({
             'name': 'INT-05 Test Category',
         })
+        # The tenant's OWN event target, if it has one, is switched off for
+        # the test (rolled back with it), as the gate tests do: the queue
+        # takes the first active target, so a real one — `nrs19`'s, and
+        # `test19`'s since handoff 60 — answered instead of the stub below
+        # and seven tests here failed on a tenant that is merely configured.
+        self.env['workflow.config'].search(
+            [('purpose', '=', 'asset_events')]).write({'active': False})
         self.config = self.env['workflow.config'].create({
             'name': 'Vendra (test)',
             'purpose': 'asset_events',
