@@ -123,10 +123,21 @@ async function signIn(page: Page, p: Persona) {
 }
 
 /** Open the Candidates page as the signed-in person and assert it opened on
- *  THEIR gate, then act on the unit's row. */
-async function onCandidatesRow(page: Page, assetId: number, ownFilter: string) {
+ *  THEIR work, then find the unit's row and act on it.
+ *
+ *  Since handoff 60 the page opens on *Waiting on me* (only the units this
+ *  person may act on) rather than on their gate's tab, and that gate's tab
+ *  is still marked theirs; and the list is OLDEST first, so a unit created
+ *  by this run is at the end of a busy tenant's list, not on the first page.
+ *  So the unit is found the way a person would find it: its asset code
+ *  typed into the search box at the top, which searches this list on the
+ *  server. */
+async function onCandidatesRow(page: Page, assetId: number, ownFilter: string, code: string) {
   await page.goto(appPath("/candidates"));
-  await expect(page.getByTestId(`filter-waiting-${ownFilter}`)).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("filter-waiting-mine")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId(`filter-waiting-${ownFilter}`)).toContainText("(you)");
+  expect(code, `no asset code for unit ${assetId}`).toBeTruthy();
+  await page.getByTestId("input-global-search").fill(code);
   const row = page.getByTestId(`candidate-row-${assetId}`);
   await expect(row, `unit ${assetId} is not on ${ownFilter}'s Candidates page`).toBeVisible({ timeout: 20_000 });
   return row;
@@ -251,7 +262,7 @@ test.describe("57 — the gates, tonight", () => {
   test("store: submits the unit to IAD from the Candidates page", async ({ page }) => {
     test.skip(!unitId, "setup did not create a candidate");
     await signIn(page, P[WHO.store]);
-    const row = await onCandidatesRow(page, unitId, "store");
+    const row = await onCandidatesRow(page, unitId, "store", unitCode);
     await row.getByTestId("gate-submit").click();
     await confirmGate(page, "submit");
     expect(await stateOf(unitId)).toBe("vfm_pending");
@@ -261,7 +272,7 @@ test.describe("57 — the gates, tonight", () => {
   test("IAD officer: verify is refused without the four checks and evidence, then verifies", async ({ page }) => {
     test.skip(!unitId, "setup did not create a candidate");
     await signIn(page, P[WHO.iadOfficer]);
-    const row = await onCandidatesRow(page, unitId, "iad");
+    const row = await onCandidatesRow(page, unitId, "iad", unitCode);
     await row.getByTestId("gate-verify").click();
     const dialog = page.getByTestId("dialog-gate-verify");
     await expect(dialog.getByTestId("button-confirm-gate")).toBeDisabled();
@@ -281,7 +292,7 @@ test.describe("57 — the gates, tonight", () => {
   test("IAD approver: approves", async ({ page }) => {
     test.skip(!unitId, "setup did not create a candidate");
     await signIn(page, P[WHO.iadApprover]);
-    const row = await onCandidatesRow(page, unitId, "iad_approver");
+    const row = await onCandidatesRow(page, unitId, "iad_approver", unitCode);
     await row.getByTestId("gate-approve").click();
     await confirmGate(page, "approve");
     expect(await stateOf(unitId)).toBe("vfm_approved");
@@ -291,7 +302,7 @@ test.describe("57 — the gates, tonight", () => {
   test("Asset Controller: requests tagging, and the label is minted then", async ({ page }) => {
     test.skip(!unitId, "setup did not create a candidate");
     await signIn(page, P[WHO.controller]);
-    const row = await onCandidatesRow(page, unitId, "controller");
+    const row = await onCandidatesRow(page, unitId, "controller", unitCode);
     await row.getByTestId("gate-request-tagging").click();
     await confirmGate(page, "request-tagging");
     const after = (await call(admin!, "GET", `/assets/${unitId}`)).body?.data;
@@ -345,7 +356,7 @@ test.describe("57 — the gates, tonight", () => {
     expect(await stateOf(unitId)).toBe("tagged");
 
     await signIn(page, P[WHO.maker]);
-    const row = await onCandidatesRow(page, unitId, "maker");
+    const row = await onCandidatesRow(page, unitId, "maker", unitCode);
     await row.getByTestId("gate-register").click();
     const dialog = page.getByTestId("dialog-gate-register");
     await dialog.getByTestId("input-cost").fill("125000");
@@ -364,7 +375,10 @@ test.describe("57 — the gates, tonight", () => {
     test.skip(!unitId, "setup did not create a candidate");
     await signIn(page, P[WHO.checker]);
     await page.goto(appPath(`/candidates`));
-    await expect(page.getByTestId("filter-waiting-checker")).toHaveAttribute("aria-selected", "true");
+    // Handoff 60: the page opens on *Waiting on me*; the checker's own tab is
+    // still marked theirs.
+    await expect(page.getByTestId("filter-waiting-mine")).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("filter-waiting-checker")).toContainText("(you)");
     await page.goto(appPath(`/assets/${unitId}`));
     await expect(page.getByTestId("candidate-banner")).toBeVisible();
     await expect(page.getByTestId("candidate-banner-waiting")).toHaveText("Register Checker");
@@ -668,7 +682,7 @@ test.describe("59 — a record_only unit: five gates, no label", () => {
     const land = await fixedCategory(LAND_CATEGORY, {
       identification_mode: "record_only",
       sap_asset_class: LAND_SAP_CLASS,
-      class_attributes_schema: { mandatory: ["name", "reference"] },
+      class_attributes_schema: { mandatory: ["name", "record_reference"] },
     });
     landId = land.id;
     landName = land.name;
@@ -682,7 +696,7 @@ test.describe("59 — a record_only unit: five gates, no label", () => {
       // nothing is written.
       const refusedName = markedName("spec59-land-with-serial");
       const refused = await call(store, "POST", "/assets", {
-        name: refusedName, category_id: landId, reference: `PLOT-E2E-${Date.now()}`,
+        name: refusedName, category_id: landId, record_reference: `PLOT-E2E-${Date.now()}`,
         serial_number: `S59-${Date.now()}`,
       });
       expect(refused.status, JSON.stringify(refused.body).slice(0, 400)).toBe(400);
@@ -694,7 +708,7 @@ test.describe("59 — a record_only unit: five gates, no label", () => {
       // Name + reference, no serial: accepted as a candidate.
       const name = markedName("spec59-land plot");
       const created = await call(store, "POST", "/assets", {
-        name, category_id: landId, reference: `PLOT-E2E-${Date.now()}`,
+        name, category_id: landId, record_reference: `PLOT-E2E-${Date.now()}`,
         purchase_order_reference: "PO-59-DEMO", grn_reference: `GRN-59-${Date.now()}`,
       });
       expect(created.status, JSON.stringify(created.body).slice(0, 400)).toBe(201);
@@ -704,7 +718,7 @@ test.describe("59 — a record_only unit: five gates, no label", () => {
       expect(created.body.data.register_state).toBe("captured");
       expect(created.body.data.identification_mode).toBe("record_only");
       expect(created.body.data.serial_number || null).toBeNull();
-      expect(created.body.data.reference).toMatch(/^PLOT-E2E-/);
+      expect(created.body.data.record_reference).toMatch(/^PLOT-E2E-/);
     } finally {
       await store.ctx.dispose();
     }
@@ -716,7 +730,7 @@ test.describe("59 — a record_only unit: five gates, no label", () => {
   test("store submits; the Candidates row says who it waits on", async ({ page }) => {
     test.skip(!unitId, "setup did not create a record_only candidate");
     await signIn(page, P[WHO.store]);
-    const row = await onCandidatesRow(page, unitId, "store");
+    const row = await onCandidatesRow(page, unitId, "store", unitCode);
     await expect(row.getByTestId("candidate-mode")).toHaveText("SAP record");
     await expect(row.getByTestId("candidate-waiting")).toHaveText("Store");
     await row.getByTestId("gate-submit").click();
@@ -730,7 +744,7 @@ test.describe("59 — a record_only unit: five gates, no label", () => {
   test("IAD officer verifies", async ({ page }) => {
     test.skip(!unitId, "setup did not create a record_only candidate");
     await signIn(page, P[WHO.iadOfficer]);
-    const row = await onCandidatesRow(page, unitId, "iad");
+    const row = await onCandidatesRow(page, unitId, "iad", unitCode);
     await expect(row.getByTestId("candidate-waiting")).toHaveText("IAD officer");
     await row.getByTestId("gate-verify").click();
     const dialog = page.getByTestId("dialog-gate-verify");
@@ -748,7 +762,7 @@ test.describe("59 — a record_only unit: five gates, no label", () => {
   test("IAD approver approves — and the server skips both tagging gates", async ({ page }) => {
     test.skip(!unitId, "setup did not create a record_only candidate");
     await signIn(page, P[WHO.iadApprover]);
-    const row = await onCandidatesRow(page, unitId, "iad_approver");
+    const row = await onCandidatesRow(page, unitId, "iad_approver", unitCode);
     await row.getByTestId("gate-approve").click();
     await confirmGate(page, "approve");
     const a = await readUnit("approved");
@@ -768,7 +782,7 @@ test.describe("59 — a record_only unit: five gates, no label", () => {
   test("Register Maker submits — the dialog never says tagged, and shows the class's SAP code", async ({ page }) => {
     test.skip(!unitId, "setup did not create a record_only candidate");
     await signIn(page, P[WHO.maker]);
-    const row = await onCandidatesRow(page, unitId, "maker");
+    const row = await onCandidatesRow(page, unitId, "maker", unitCode);
     await expect(row.getByTestId("candidate-waiting")).toHaveText("Register Maker");
     await row.getByTestId("gate-register").click();
     const dialog = page.getByTestId("dialog-gate-register");

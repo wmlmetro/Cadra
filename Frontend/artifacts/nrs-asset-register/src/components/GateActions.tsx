@@ -33,6 +33,7 @@ import {
 import { CadraApiError, type WithWarnings } from "@/lib/api";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { invalidateAssetQueries } from "@/components/AssetActionDialogs";
+import { CANDIDATES_BADGE_KEY } from "@/lib/gateEvidence";
 import { cn, formatIsoDateTime, lagosToday } from "@/lib/utils";
 import { AlertCircle, Inbox, Loader2, Paperclip, ScanBarcode, X } from "lucide-react";
 
@@ -188,7 +189,51 @@ export function CandidateBanner({ row }: { row: Pick<CandidateRow, "register_sta
 export function invalidateGateQueries(qc: ReturnType<typeof useQueryClient>, assetId: number | string) {
   qc.invalidateQueries({ queryKey: ["asset-gates", String(assetId)] });
   qc.invalidateQueries({ queryKey: ["candidates"] });
+  // The person's sidebar badge (handoff 60): the count moves with the work.
+  qc.invalidateQueries({ queryKey: CANDIDATES_BADGE_KEY });
+  // What IAD saw (handoff 60 §2b): a verify adds to it, and the approver
+  // reads it next.
+  qc.invalidateQueries({ queryKey: ["gate-evidence", String(assetId)] });
   invalidateAssetQueries(qc, String(assetId));
+}
+
+// ─── The maker's carry (handoff 60 §2d) ──────────────────────────────────────
+//
+// A Register Maker submits a delivery's units one after another with the
+// same cost centre and capitalisation date. The previous submission's two
+// values are carried in THIS browser tab's session (sessionStorage: it ends
+// with the tab; signing out in the same tab does NOT clear it) — and only as
+// a starting value, drawn in the input where the person sees and can change
+// it. Neither is a secret.
+// Storage can be absent or refuse (private window, blocked site data): every
+// read and write is wrapped, and the dialog then starts as it always did.
+
+const MAKER_CARRY_KEY = "cadra.maker.last";
+
+export interface MakerCarry { cost_centre: string; capitalisation_date: string }
+
+export function readMakerCarry(): MakerCarry {
+  const blank = { cost_centre: "", capitalisation_date: lagosToday() };
+  try {
+    const raw = window.sessionStorage.getItem(MAKER_CARRY_KEY);
+    if (!raw) return blank;
+    const v = JSON.parse(raw) as Partial<MakerCarry>;
+    return {
+      cost_centre: typeof v.cost_centre === "string" ? v.cost_centre : "",
+      capitalisation_date: typeof v.capitalisation_date === "string"
+        && /^\d{4}-\d{2}-\d{2}$/.test(v.capitalisation_date) ? v.capitalisation_date : blank.capitalisation_date,
+    };
+  } catch {
+    return blank;
+  }
+}
+
+export function saveMakerCarry(v: MakerCarry): void {
+  try {
+    window.sessionStorage.setItem(MAKER_CARRY_KEY, JSON.stringify({
+      cost_centre: v.cost_centre.trim(), capitalisation_date: v.capitalisation_date,
+    }));
+  } catch { /* storage refused: the next dialog starts blank, as before */ }
 }
 
 interface GateActionsProps {
@@ -259,17 +304,103 @@ export function GateActions({ row, compact }: GateActionsProps) {
 
 // ─── Dialog ──────────────────────────────────────────────────────────────────
 
-const CHECKLIST = [
+export const CHECKLIST = [
   ["quantity", "Quantity matches the order"],
   ["specification", "Specification matches the order"],
   ["condition", "Condition is acceptable"],
   ["price", "Price matches the order"],
 ] as const;
 
-type ChecklistKey = typeof CHECKLIST[number][0];
+export type ChecklistKey = typeof CHECKLIST[number][0];
+export type Checklist = Record<ChecklistKey, boolean>;
+export const NO_CHECKS: Checklist = { quantity: false, specification: false, condition: false, price: false };
+export const allFour = (c: Checklist) => CHECKLIST.every(([k]) => c[k]);
 
-const INPUT = "mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20";
-const LABEL = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wide";
+export const INPUT = "mt-1.5 w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20";
+export const LABEL = "text-[11px] font-semibold text-muted-foreground uppercase tracking-wide";
+
+/** The four checks, with an *All four* toggle above them (handoff 60 §2b):
+ *  one click when the officer has sighted everything, and each check still
+ *  its own box to untick. The toggle reads ticked only when all four are. */
+export function VerifyChecklist({ checks, onChange }: {
+  checks: Checklist; onChange: (next: Checklist) => void;
+}) {
+  const every = allFour(checks);
+  return (
+    <fieldset className="space-y-2" data-testid="verify-checklist">
+      <legend className={LABEL}>Checks</legend>
+      <label className="flex items-center gap-2 text-xs font-semibold text-foreground pb-1 border-b border-border">
+        <input
+          type="checkbox"
+          className="accent-primary"
+          checked={every}
+          onChange={e => onChange({
+            quantity: e.target.checked, specification: e.target.checked,
+            condition: e.target.checked, price: e.target.checked,
+          })}
+          data-testid="check-all-four"
+        />
+        All four
+      </label>
+      {CHECKLIST.map(([k, words]) => (
+        <label key={k} className="flex items-center gap-2 text-xs text-foreground">
+          <input
+            type="checkbox"
+            className="accent-primary"
+            checked={checks[k]}
+            onChange={e => onChange({ ...checks, [k]: e.target.checked })}
+            data-testid={`check-${k}`}
+          />
+          {words}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+/** Evidence files. Each pick APPENDS — a second photo does not replace the
+ *  first — and each file can be removed. The list lives in the dialog's
+ *  state, so it survives a refused submit for as long as the dialog is open. */
+export function EvidencePicker({ files, onChange }: {
+  files: File[]; onChange: (next: File[]) => void;
+}) {
+  return (
+    <div>
+      <span className={LABEL}>Evidence</span>
+      <label className="mt-1.5 flex items-center gap-2 text-xs text-primary font-semibold cursor-pointer">
+        <Paperclip size={13} /> {files.length ? "Attach another photo or document" : "Attach a photo or document"}
+        <input
+          type="file"
+          multiple
+          className="sr-only"
+          onChange={e => {
+            const picked = Array.from(e.target.files ?? []);
+            onChange([...files, ...picked]);
+            e.target.value = "";
+          }}
+          data-testid="input-evidence"
+        />
+      </label>
+      {files.length > 0 && (
+        <ul className="mt-1.5 space-y-1" data-testid="evidence-files">
+          {files.map((f, i) => (
+            <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Paperclip size={11} /> {f.name}
+              <button
+                type="button"
+                onClick={() => onChange(files.filter((_, j) => j !== i))}
+                className="hover:text-foreground"
+                aria-label={`Remove ${f.name}`}
+              >
+                <X size={11} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function GateDialog({ row, action, spec, onClose }: {
   row: CandidateRow; action: GateAction; spec: GateAvailability; onClose: () => void;
@@ -277,13 +408,19 @@ function GateDialog({ row, action, spec, onClose }: {
   const qc = useQueryClient();
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
-  const [checks, setChecks] = useState<Record<ChecklistKey, boolean>>(
-    { quantity: false, specification: false, condition: false, price: false });
+  const [checks, setChecks] = useState<Checklist>(NO_CHECKS);
   const [files, setFiles] = useState<File[]>([]);
   const [sapCode, setSapCode] = useState("");
-  const [cost, setCost] = useState("");
-  const [costCentre, setCostCentre] = useState("");
-  const [capDate, setCapDate] = useState(lagosToday());
+  // Handoff 60 §2d: the cost starts at the unit's own acquisition cost, and
+  // the cost centre and capitalisation date at what this maker submitted
+  // last in this session. Starting values only; each is still an input.
+  const [cost, setCost] = useState(() => {
+    const c = row.financial?.acquisition_cost;
+    return typeof c === "number" && c > 0 ? String(c) : "";
+  });
+  const [carry] = useState(readMakerCarry);
+  const [costCentre, setCostCentre] = useState(carry.cost_centre);
+  const [capDate, setCapDate] = useState(carry.capitalisation_date);
   const [assetClass, setAssetClass] = useState<number | null>(row.category?.id ?? null);
   // The server's `_warnings.sap_asset_number` on a register that SUCCEEDED
   // (handoff 59 §4): the number's first digit disagrees with the class. Not a
@@ -309,7 +446,7 @@ function GateDialog({ row, action, spec, onClose }: {
   const missing: string[] = [];
   if (needsText && !reason.trim()) missing.push(isResponse ? "your answer to the query" : "a reason");
   if (isVerify) {
-    if (!CHECKLIST.every(([k]) => checks[k])) missing.push("all four checks");
+    if (!allFour(checks)) missing.push("all four checks");
     if (files.length === 0) missing.push("at least one piece of evidence");
   }
   if (isRegister) {
@@ -354,6 +491,7 @@ function GateDialog({ row, action, spec, onClose }: {
     },
     onSuccess: (data) => {
       invalidateGateQueries(qc, row.id);
+      if (isRegister) saveMakerCarry({ cost_centre: costCentre, capitalisation_date: capDate });
       const w = (data as WithWarnings<CandidateRow>)._warnings?.sap_asset_number;
       if (typeof w === "string" && w) { setSapWarning(w); return; }
       close(true);
@@ -390,54 +528,8 @@ function GateDialog({ row, action, spec, onClose }: {
         <div className="space-y-3">
           {isVerify && (
             <>
-              <fieldset className="space-y-2" data-testid="verify-checklist">
-                <legend className={LABEL}>Checks</legend>
-                {CHECKLIST.map(([k, words]) => (
-                  <label key={k} className="flex items-center gap-2 text-xs text-foreground">
-                    <input
-                      type="checkbox"
-                      checked={checks[k]}
-                      onChange={e => setChecks(c => ({ ...c, [k]: e.target.checked }))}
-                      data-testid={`check-${k}`}
-                    />
-                    {words}
-                  </label>
-                ))}
-              </fieldset>
-              <div>
-                <span className={LABEL}>Evidence</span>
-                <label className="mt-1.5 flex items-center gap-2 text-xs text-primary font-semibold cursor-pointer">
-                  <Paperclip size={13} /> Attach a photo or document
-                  <input
-                    type="file"
-                    multiple
-                    className="sr-only"
-                    onChange={e => {
-                      const picked = Array.from(e.target.files ?? []);
-                      setFiles(f => [...f, ...picked]);
-                      e.target.value = "";
-                    }}
-                    data-testid="input-evidence"
-                  />
-                </label>
-                {files.length > 0 && (
-                  <ul className="mt-1.5 space-y-1">
-                    {files.map((f, i) => (
-                      <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <Paperclip size={11} /> {f.name}
-                        <button
-                          type="button"
-                          onClick={() => setFiles(fs => fs.filter((_, j) => j !== i))}
-                          className="hover:text-foreground"
-                          aria-label={`Remove ${f.name}`}
-                        >
-                          <X size={11} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <VerifyChecklist checks={checks} onChange={setChecks} />
+              <EvidencePicker files={files} onChange={setFiles} />
             </>
           )}
 

@@ -7,6 +7,7 @@ import { logout, getScope, getExpiry } from "@/lib/auth";
 import { useScopes } from "@/hooks/use-scopes";
 import { brandLogoSrc, getBrand } from "@/lib/brand";
 import { fetchApprovalsWaitingCount, fetchWhoAmI } from "@/lib/dataProvider";
+import { CANDIDATES_BADGE_KEY, fetchCandidatesWaitingCount } from "@/lib/gateEvidence";
 // The table moved to lib/navigation.ts in handoff 46, so the landing rule
 // reads the same scopes the sidebar filters by.
 import { drawnGroups } from "@/lib/navigation";
@@ -72,10 +73,54 @@ function useApprovalsWaiting(enabled: boolean): number | null {
   return enabled && typeof data === "number" ? data : null;
 }
 
+/**
+ * How many received units are waiting on an act the signed-in person may do
+ * (handoff 60 §2a) — the number beside *Candidates*.
+ *
+ * The same shape as `useApprovalsWaiting` above, for the same reasons: a
+ * minute of `staleTime` and no retry because this is chrome on every screen;
+ * null and nothing drawn when it cannot be counted; not asked at all without
+ * `candidates:read`, the scope the list is served under. The count is the
+ * server's (`waiting_on_me=true`): it leaves out a unit the no-two-gates rule
+ * bars this person from, so the badge never counts work they cannot do.
+ * Every gate fire invalidates `["candidates-badge"]`, so it moves when the
+ * work does; it is also kept out of the persisted cache (`App.tsx`).
+ */
+function useCandidatesWaiting(enabled: boolean): number | null {
+  const { data } = useQuery<number | null>({
+    queryKey: [...CANDIDATES_BADGE_KEY],
+    queryFn: fetchCandidatesWaitingCount,
+    staleTime: 60_000,
+    retry: false,
+    enabled,
+  });
+  return enabled && typeof data === "number" ? data : null;
+}
+
+/** The pill itself, shared by both badges: hidden at 0 and when unknown. */
+function NavBadge({ count, active, testId }: { count: number | null; active: boolean; testId: string }) {
+  if (count === null || count <= 0) return null;
+  return (
+    <span
+      data-testid={testId}
+      aria-label={`${count} waiting on you`}
+      className="ml-auto shrink-0 min-w-[18px] px-1.5 py-px rounded-full text-[10px] font-bold text-center"
+      style={
+        active
+          ? { background: "#FFFFFF", color: getBrand().primary }
+          : { background: getBrand().primary, color: "#FFFFFF" }
+      }
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export default function Sidebar() {
   const [location, navigate] = useLocation();
   const scopes = useScopes();
   const waiting = useApprovalsWaiting(scopes.has("assets:read"));
+  const candidatesWaiting = useCandidatesWaiting(scopes.has("candidates:read"));
   const tenantHidden = useTenantHidden();
 
   // Two axes, both required (handoff 48): the person's role opens the item
@@ -200,19 +245,11 @@ export default function Sidebar() {
                         {/* Only when there is something to say. A badge
                             reading "0" is an empty queue shouting, and this
                             sits in the chrome of every screen. */}
-                        {item.badge === "approvals" && waiting !== null && waiting > 0 && (
-                          <span
-                            data-testid="nav-approvals-badge"
-                            aria-label={`${waiting} waiting on you`}
-                            className="ml-auto shrink-0 min-w-[18px] px-1.5 py-px rounded-full text-[10px] font-bold text-center"
-                            style={
-                              active
-                                ? { background: "#FFFFFF", color: getBrand().primary }
-                                : { background: getBrand().primary, color: "#FFFFFF" }
-                            }
-                          >
-                            {waiting > 99 ? "99+" : waiting}
-                          </span>
+                        {item.badge === "approvals" && (
+                          <NavBadge count={waiting} active={active} testId="nav-approvals-badge" />
+                        )}
+                        {item.badge === "candidates" && (
+                          <NavBadge count={candidatesWaiting} active={active} testId="nav-candidates-badge" />
                         )}
                       </button>
                     );

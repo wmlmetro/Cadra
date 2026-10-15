@@ -39,7 +39,7 @@ const MODE_DEFAULT_ATTRIBUTES: Record<IdentificationMode, CapturableAttribute[]>
   serial: ["make", "model_name"],
   tag_id: ["name", "make", "model_name", "colour", "material", "dimensions"],
   // Handoff 59 §2: description, plus what the record is known by.
-  record_only: ["name", "reference"],
+  record_only: ["name", "record_reference"],
   pool: [],
 };
 

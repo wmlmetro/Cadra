@@ -332,6 +332,12 @@ function App() {
               && q.queryKey[0] !== "asset-approvals"
               && q.queryKey[0] !== "approvals"
               && q.queryKey[0] !== "approval-count"
+              // The per-person Candidates badge and the IAD evidence
+              // (handoff 60): a count restored from localStorage is a
+              // confident wrong number, and the approver must read what IAD
+              // attached NOW, not a list from before the last verification.
+              && q.queryKey[0] !== "candidates-badge"
+              && q.queryKey[0] !== "gate-evidence"
               && q.queryKey[0] !== "users"
               && q.queryKey[0] !== "user"
               && q.queryKey[0] !== "roles"
