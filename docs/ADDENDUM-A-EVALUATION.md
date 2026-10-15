@@ -162,7 +162,7 @@ switches). Nothing in Phase A changes what a client tenant sees.
 |---|---|---|---|
 | **A · Spine** | `nrs.asset.candidate` + state machine + audit events; roles and exclusion table; per-record gate conflict; work-queue route per role | DeliverySchedule from INT-01 (AD-01/02); receipt → capture → submit; **A2** push on submit; retire INT-03 asset creation behind the tenant flag | §4.1 (serial gate), §4.6 ruled here |
 | **B · IAD** | VfM review screen, checklist, evidence, query/reject, bulk per GRN line; **A3** reversal request | Receive the reversal request; GRN reversal with reason | D6 (which classes go through VfM) |
-| **C · Tagging** | Tag request by Asset Controller; **reserved** code; tag job; affix rewired to candidates; reprint-under-same-code; Tag-ID and Pool modes (AD-31–37) | — | §4.3 (what the label carries), D10–D12 |
+| **C · Tagging** | Tag request by Asset Controller; **reserved** code; tag job; affix rewired to candidates; reprint-under-same-code; Tag-ID mode (AD-31–34). *Pool (AD-35–37) moved to Phase E: see `AI-CAPTURE-EVALUATION.md` R6.* | — | §4.3 (what the label carries), D10–D12 |
 | **D · Register** | Maker-checker registration; MaterialClassMap + **A4** sync; **A5** SAP asset code (mode D2); **A6** at approval; `nrs.asset` created here | — | D2, D5, §4.2 |
 | **E · Issue and visibility** | Issue with acknowledgment; dashboards by state/age/gate; SLA clocks + escalation + digest; evidence pack | Notifications in Vendra for Store | D9 (SLA durations), WhatsApp decision |
 | **F · Vendor** | — | Delivery notice portal/link; receive only against a notice; unscheduled-arrival log | Vendor identities; WhatsApp decision |
