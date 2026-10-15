@@ -8,9 +8,12 @@ import { useLocation, useSearch } from "wouter";
 interface TopbarProps {
   title: string;
   onSearch?: (q: string) => void;
+  /** Set when a list page registers its search: the box shows what the page
+   *  is searching for, and nothing else (see AppLayout). */
+  seed?: { text: string } | null;
 }
 
-export default function Topbar({ title, onSearch }: TopbarProps) {
+export default function Topbar({ title, onSearch, seed }: TopbarProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   // Long-lived on purpose: who is signed in does not change under a session.
@@ -31,6 +34,13 @@ export default function Topbar({ title, onSearch }: TopbarProps) {
   // next-themes hydrates `resolvedTheme` after mount; guard the toggle render
   // so the icon doesn't flash the wrong state on first paint.
   useEffect(() => setMounted(true), []);
+
+  // A list page just took the box: show ITS search (often none), not the
+  // text left from the page before. Declared before the /search effect so a
+  // results page's own query still wins.
+  useEffect(() => {
+    if (seed) setQuery(seed.text);
+  }, [seed]);
 
   // Reflect the URL query in the box when it changes from OUTSIDE typing
   // (landing on /search via a link, back/forward). Skipped while the user is

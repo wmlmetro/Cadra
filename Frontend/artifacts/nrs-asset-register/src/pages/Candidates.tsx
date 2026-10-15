@@ -124,8 +124,14 @@ export default function Candidates() {
 
   // The top bar's search box, on this list (handoff 60 §2a). Debounced a
   // little: every keystroke is a server search.
-  const [typed, setTyped] = useState("");
-  const [search, setSearch] = useState("");
+  // Starts from `?q=`, so Back from an asset opened here returns to the
+  // same search — in the list AND in the box (the box is seeded with it).
+  const [initialQ] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("q") ?? ""; }
+    catch { return ""; }
+  });
+  const [typed, setTyped] = useState(initialQ);
+  const [search, setSearch] = useState(initialQ.trim());
   useEffect(() => {
     const t = window.setTimeout(() => setSearch(typed.trim()), 250);
     return () => window.clearTimeout(t);
@@ -133,9 +139,9 @@ export default function Candidates() {
 
   useEffect(() => {
     setTitle("Candidates");
-    setSearchHandler((q) => setTyped(q));
+    setSearchHandler((q) => setTyped(q), initialQ);
     return () => setSearchHandler(undefined);
-  }, [setTitle, setSearchHandler]);
+  }, [setTitle, setSearchHandler, initialQ]);
 
   const {
     data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage,
@@ -412,7 +418,8 @@ export default function Candidates() {
                 const grn = r.provenance?.grn_reference;
                 // Back from the asset returns to this tab (the asset page
                 // reads `from` and `tab`).
-                const href = `/assets/${r.id}?from=candidates&tab=${encodeURIComponent(tabValue)}`;
+                const href = `/assets/${r.id}?from=candidates&tab=${encodeURIComponent(tabValue)}`
+                  + (search ? `&q=${encodeURIComponent(search)}` : "");
                 return (
                 <tr key={r.id} className={cn("border-b border-border align-top", selected.has(r.id) && canSelect && "bg-primary/5")}
                     data-testid={`candidate-row-${r.id}`}

@@ -469,12 +469,19 @@ export default function BarcodeStation() {
     enabled: canReadCandidates,
   });
   const showLabelsToFix = canReadCandidates && gated.data === true;
+  // The panel's own filter: one delivery's labels, by GRN or name.
+  const [fixFilterTyped, setFixFilterTyped] = useState("");
+  const [fixFilter, setFixFilter] = useState("");
+  useEffect(() => {
+    const t = window.setTimeout(() => setFixFilter(fixFilterTyped.trim()), 250);
+    return () => window.clearTimeout(t);
+  }, [fixFilterTyped]);
   const labelsToFix = useQuery({
     // Under "candidates" so a gate fired anywhere refreshes it; the second
     // element is not a gate name, so it never meets the Candidates page's
     // own infinite query of a different shape.
-    queryKey: ["candidates", "labels-to-fix"],
-    queryFn: fetchLabelsToFix,
+    queryKey: ["candidates", "labels-to-fix", fixFilter],
+    queryFn: () => fetchLabelsToFix(fixFilter),
     staleTime: 15_000,
     enabled: showLabelsToFix,
   });
@@ -816,6 +823,9 @@ export default function BarcodeStation() {
           onOpen={(id) => nav(`/assets/${id}`)}
           size={size}
           onSize={setSize}
+          filter={fixFilterTyped}
+          onFilter={setFixFilterTyped}
+          filtering={fixFilter}
         />
       )}
 
@@ -1144,7 +1154,12 @@ export default function BarcodeStation() {
 function LabelsToFixPanel({
   rows, loading, error, totalEstimate, more, now, selected, selectedCount, allSelected,
   printableCount, onToggle, onToggleAll, onPrint, onOpen, size, onSize,
+  filter, onFilter, filtering,
 }: {
+  filter: string;
+  onFilter: (v: string) => void;
+  /** The filter the rows were fetched with (debounced). */
+  filtering: string;
   rows: LabelToFixRow[];
   loading: boolean;
   error: CadraApiError | null;
@@ -1179,6 +1194,7 @@ function LabelsToFixPanel({
               : truncated
               ? `${total.toLocaleString()} waiting — showing the ${rows.length} oldest of ${total.toLocaleString()}. The rest are on Candidates.`
               : `${total.toLocaleString()} waiting`}
+            {filtering && <> matching “{filtering}”</>}
             {selectedCount > 0 && ` · ${selectedCount} selected`}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -1187,6 +1203,14 @@ function LabelsToFixPanel({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={filter}
+            onChange={(e) => onFilter(e.target.value)}
+            placeholder="GRN, PO or name"
+            aria-label="Filter the labels to fix by GRN, PO or name"
+            data-testid="labels-to-fix-filter"
+            className="px-2.5 py-1.5 rounded-xl border border-border bg-background text-[11px] w-40"
+          />
           <SizePicker value={size} onChange={onSize} />
           <button
             type="button"

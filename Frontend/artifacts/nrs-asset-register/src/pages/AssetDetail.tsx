@@ -108,8 +108,14 @@ function backTarget(search: string): { path: string; label: string } {
   const q = new URLSearchParams(search);
   if (q.get("from") === "candidates") {
     const tab = q.get("tab");
+    // The list's search comes back too (handoff 60): an approver who
+    // searched one receipt returns to that receipt, box and list agreeing.
+    const back = new URLSearchParams();
+    if (tab) back.set("waiting_on", tab);
+    if (q.get("q")) back.set("q", q.get("q")!);
+    const rest = back.toString();
     return {
-      path: tab ? `/candidates?waiting_on=${encodeURIComponent(tab)}` : "/candidates",
+      path: rest ? `/candidates?${rest}` : "/candidates",
       label: "Back to Candidates",
     };
   }

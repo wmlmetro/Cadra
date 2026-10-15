@@ -44,11 +44,15 @@ export interface LabelsToFixPage {
 /** The panel shows one page, the oldest; the rest is on Candidates. */
 export const LABELS_TO_FIX_LIMIT = 100;
 
-export async function fetchLabelsToFix(): Promise<LabelsToFixPage> {
+/** `q` narrows the queue on the server — a GRN, a PO, a name (the
+ *  Candidates search). Without it a fresh delivery sits behind any backlog
+ *  older than it (found by spec 60: 6 of a new GRN's 20 on screen). */
+export async function fetchLabelsToFix(q?: string): Promise<LabelsToFixPage> {
   const res = await apiGet<LabelToFixRow[]>("/api/v1/candidates", {
     waiting_on: "tagging",
     sort: "oldest",
     limit: LABELS_TO_FIX_LIMIT,
+    q: q?.trim() || undefined,
   });
   return {
     rows: res.data ?? [],
