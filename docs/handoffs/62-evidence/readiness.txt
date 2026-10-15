@@ -1,0 +1,8 @@
+test19 {"data": {"ready": true, "database": "test19"}}
+cadra19 {"data": {"ready": true, "database": "cadra19"}}
+nrs19 {"data": {"ready": true, "database": "nrs19"}}
+gtb19 {"data": {"ready": true, "database": "gtb19"}}
+nrs {"data": {"ready": true, "database": "nrs"}}
+lasg {"data": {"ready": true, "database": "lasg"}}
+gtb {"data": {"ready": true, "database": "gtb"}}
+jaizbankplc {"data": {"ready": true, "database": "jaizbankplc"}}

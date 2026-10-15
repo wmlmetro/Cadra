@@ -1,0 +1,16 @@
+{
+ "seven_gates": 100041,
+ "batch": [
+  100042,
+  100043,
+  100044,
+  100045,
+  100046
+ ],
+ "batch_refused": 100047,
+ "query": 100048,
+ "reject": 100049,
+ "record_only": 100050,
+ "not_vendra": 100051,
+ "gates_off": 100052
+}

@@ -1,0 +1,90 @@
+
+## A. one unit through all seven gates, with the script
+  created asset 100041 NRS-AST-063929 source=vendra grn=GRN-H62-203142 state=captured
+$ scripts/walk_units.py test19 --asset 100041 --to registered
+test19 asset 100041 NRS-AST-063929 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+  vfm_pending -> vfm_verified   [verify, as iad_officer]
+  vfm_verified -> vfm_approved   [approve, as iad_approver]
+  vfm_approved -> tag_issued   [request-tagging, as asset_controller]
+  tag_issued -> tagged   [affix, as tagger]
+  tagged -> reg_submitted   [register, as register_maker]
+  reg_submitted -> registered   [approve-registration, as register_checker]
+now: registered
+
+## B. a batch verify of 5 units (+1 unit the batch refuses)
+  created asset 100042 NRS-AST-063930 source=vendra grn=GRN-H62-203142 state=captured
+  created asset 100043 NRS-AST-063931 source=vendra grn=GRN-H62-203142 state=captured
+  created asset 100044 NRS-AST-063932 source=vendra grn=GRN-H62-203142 state=captured
+  created asset 100045 NRS-AST-063933 source=vendra grn=GRN-H62-203142 state=captured
+  created asset 100046 NRS-AST-063934 source=vendra grn=GRN-H62-203142 state=captured
+$ scripts/walk_units.py test19 --asset 100042 --to vfm_pending
+test19 asset 100042 NRS-AST-063930 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+now: vfm_pending, waiting on iad
+$ scripts/walk_units.py test19 --asset 100043 --to vfm_pending
+test19 asset 100043 NRS-AST-063931 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+now: vfm_pending, waiting on iad
+$ scripts/walk_units.py test19 --asset 100044 --to vfm_pending
+test19 asset 100044 NRS-AST-063932 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+now: vfm_pending, waiting on iad
+$ scripts/walk_units.py test19 --asset 100045 --to vfm_pending
+test19 asset 100045 NRS-AST-063933 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+now: vfm_pending, waiting on iad
+$ scripts/walk_units.py test19 --asset 100046 --to vfm_pending
+test19 asset 100046 NRS-AST-063934 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+now: vfm_pending, waiting on iad
+  created asset 100047 NRS-AST-063935 source=vendra grn=GRN-H62-203142 state=captured
+  POST /candidates/gates/verify (6 ids) -> HTTP 200: fired=5 refused=1
+    100042: fired
+    100043: fired
+    100044: fired
+    100045: fired
+    100046: fired
+    100047: refused — This unit is "Captured"; "verify" cannot be done from there.
+
+## C. a query, a reject, and a record_only unit's reg_ready
+  created asset 100048 NRS-AST-063936 source=vendra grn=GRN-H62-203142 state=captured
+$ scripts/walk_units.py test19 --asset 100048 --query Which invoice covers this unit?
+test19 asset 100048 NRS-AST-063936 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+  vfm_pending -> vfm_query   [query, as iad_officer]
+now: vfm_query, waiting on store
+  created asset 100049 NRS-AST-063937 source=vendra grn=GRN-H62-203142 state=captured
+$ scripts/walk_units.py test19 --asset 100049 --reject Not the model on the purchase order.
+test19 asset 100049 NRS-AST-063937 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+  vfm_pending -> vfm_rejected   [reject, as iad_approver]
+now: vfm_rejected
+  created asset 100050 NRS-AST-063938 source=vendra grn=GRN-H62-203142 state=captured
+$ scripts/walk_units.py test19 --asset 100050 --to reg_ready
+test19 asset 100050 NRS-AST-063938 (record_only): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+  vfm_pending -> vfm_verified   [verify, as iad_officer]
+  vfm_verified -> reg_ready   [approve, as iad_approver]
+now: reg_ready, waiting on maker
+
+## D. a unit NOT from Vendra, walked to the register
+  created asset 100051 NRS-AST-063939 source=myservice grn=GRN-H62-203142 state=captured
+$ scripts/walk_units.py test19 --asset 100051 --to registered
+test19 asset 100051 NRS-AST-063939 (serial): captured
+  captured -> vfm_pending   [submit, as storekeeper]
+  vfm_pending -> vfm_verified   [verify, as iad_officer]
+  vfm_verified -> vfm_approved   [approve, as iad_approver]
+  vfm_approved -> tag_issued   [request-tagging, as asset_controller]
+  tag_issued -> tagged   [affix, as tagger]
+  tagged -> reg_submitted   [register, as register_maker]
+  reg_submitted -> registered   [approve-registration, as register_checker]
+now: registered
+
+## E. gates OFF: a Vendra unit received and affixed
+  PATCH /settings/receipt-gate enabled=false -> 200
+  created asset 100052 NRS-AST-063940 source=vendra grn=GRN-H62-203142 state=registered
+  POST /assets/100052/tag-affixed (as tagger) -> 200; is_tagged=None
+  PATCH /settings/receipt-gate enabled=true -> 200
+
+units: {"seven_gates": 100041, "batch": [100042, 100043, 100044, 100045, 100046], "batch_refused": 100047, "query": 100048, "reject": 100049, "record_only": 100050, "not_vendra": 100051, "gates_off": 100052}

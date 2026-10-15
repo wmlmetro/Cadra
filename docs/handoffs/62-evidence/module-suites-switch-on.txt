@@ -1,0 +1,29 @@
+myservice_api: 0 failed, 0 error(s) of 505 tests when loading database 'test19'  | CRITICAL 0 | 291 s
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute DELETE in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction
+myservice_asset_register: 0 failed, 0 error(s) of 482 tests when loading database 'test19'  | CRITICAL 0 | 215 s
+ERROR: update or delete on table "nrs_asset" violates foreign key constraint "nrs_asset_movement_asset_id_fkey" on table "nrs_asset_movement"
+ERROR: update or delete on table "generic_location" violates foreign key constraint "nrs_asset_transfer_from_location_id_fkey" on table "nrs_asset_transfer"
+ERROR: relation "a_table_that_does_not_exist" does not exist
+myservice_workflow: 0 failed, 0 error(s) of 116 tests when loading database 'test19'  | CRITICAL 0 | 79 s
+myservice_barcode_station: 0 failed, 0 error(s) of 20 tests when loading database 'test19'  | CRITICAL 0 | 18 s
+ERROR: cannot execute INSERT in a read-only transaction
+ERROR: cannot execute INSERT in a read-only transaction

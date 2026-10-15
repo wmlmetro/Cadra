@@ -1,0 +1,25 @@
+$ scripts/walk_units.py --tenant staging --asset 95682 --to registered
+Refused: 'staging' is not a local test tenant (the cluster's demonstration tenant). This script walks units only on test19 and never contacts the cluster.
+exit 2
+
+$ scripts/walk_units.py --tenant test19 --origin https://staging.cadra.ng --asset 95682 --to registered
+Refused: 'https://staging.cadra.ng' is not this machine. This script walks units only on the local bench (localhost or <tenant>.localhost) and never touches the cluster.
+exit 2
+
+$ scripts/walk_units.py --tenant test19 --origin http://10.0.0.5:8069 --asset 95682 --to registered
+Refused: 'http://10.0.0.5:8069' is not this machine. This script walks units only on the local bench (localhost or <tenant>.localhost) and never touches the cluster.
+exit 2
+
+$ scripts/walk_units.py --tenant test19 --origin http://nrs19.localhost:8069 --asset 95682 --to registered
+Refused: 'http://nrs19.localhost:8069' is another tenant's host; --tenant test19 is served at test19.localhost.
+exit 2
+
+$ scripts/walk_units.py --tenant nrs19 --asset 95682 --reject x
+Refused: 'nrs19' is not a local test tenant (a replica of NRS's real staff register). This script walks units only on test19 and never contacts the cluster.
+exit 2
+
+$ scripts/walk_units.py --tenant test19 --asset 95682 --reject    
+Refused: --reject needs the words — say why.
+exit 2
+
+Refused: 'http://localhost:8069' names no tenant; the bench serves one database per host — use test19.localhost.

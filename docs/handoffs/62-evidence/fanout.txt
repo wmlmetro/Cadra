@@ -1,0 +1,17 @@
+# Handoff 62 fan-out, 2026-10-15T19:28:53Z: -u myservice_workflow (19.0.3.3.0, the Register-State Endpoint column), one tenant at a time. test19 was upgraded first, by the test run.
+cadra19: exit 0 | 0 CRITICAL | 0 ERROR | version 19.0.3.3.0 | column 1
+nrs19: exit 0 | 0 CRITICAL | 0 ERROR | version 19.0.3.3.0 | column 1
+gtb19: exit 0 | 0 CRITICAL | 0 ERROR | version 19.0.3.3.0 | column 1
+nrs: exit 0 | 0 CRITICAL | 0 ERROR | version 19.0.3.3.0 | column 1
+lasg: exit 0 | 0 CRITICAL | 0 ERROR | version 19.0.3.3.0 | column 1
+gtb: exit 0 | 0 CRITICAL | 0 ERROR | version 19.0.3.3.0 | column 1
+jaizbankplc: exit 0 | 0 CRITICAL | 0 ERROR | version 19.0.3.3.0 | column 1
+
+# Second pass, 2026-10-15T19:37:11Z: -u myservice_workflow again for the dispatch log's list view (Retry Delivery on a selection, Register-State Events filter). test19 upgraded by the test run.
+cadra19: exit 0 | 0 CRITICAL | 0 ERROR | list view has the button: 1
+nrs19: exit 0 | 0 CRITICAL | 0 ERROR | list view has the button: 1
+gtb19: exit 0 | 0 CRITICAL | 0 ERROR | list view has the button: 1
+nrs: exit 0 | 0 CRITICAL | 0 ERROR | list view has the button: 1
+lasg: exit 0 | 0 CRITICAL | 0 ERROR | list view has the button: 1
+gtb: exit 0 | 0 CRITICAL | 0 ERROR | list view has the button: 1
+jaizbankplc: exit 0 | 0 CRITICAL | 0 ERROR | list view has the button: 1

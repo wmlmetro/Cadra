@@ -1,0 +1,9 @@
+..                                                                       [100%]
+============================ cadra api test report =============================
+Report: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-report.md
+Captured responses: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-responses/
+============================= slowest 3 durations ==============================
+55.06s call     tests/test_depreciation_settings.py::test_patch_category_policy_propagates_to_its_assets
+2.24s setup    tests/test_custody.py::test_the_chain_pages_forwards
+2.14s call     tests/test_custody.py::test_the_chain_pages_forwards
+2 passed in 59.92s
