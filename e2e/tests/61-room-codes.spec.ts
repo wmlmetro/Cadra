@@ -50,8 +50,13 @@ test("the location page shows the room code and prints its label, then the stati
   expect(res.status()).toBe(200);
   expect(new URL(res.url()).searchParams.get("size")).toBe("large");
   expect(res.headers()["content-type"]).toContain("application/pdf");
-  const pdf = await res.body();
-  expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
+  // The click's own response body is not reliably readable once the app
+  // has turned it into a blob and opened it; the same request, made again
+  // with the token, is the bytes the click was served.
+  const pdf = await api.bytes(`/api/v1/locations/${room.id}/label`, { size: "large" });
+  expect(pdf.status).toBe(200);
+  expect(pdf.contentType).toContain("application/pdf");
+  expect(pdf.body.subarray(0, 4).toString()).toBe("%PDF");
   await expect(page.getByTestId("location-room-code").getByTestId("room-label-note"))
     .toContainText(room.location_code, { timeout: 15_000 });
   const tab = await popup;

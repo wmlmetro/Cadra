@@ -114,7 +114,7 @@ test.describe.serial("61 — photos on an asset", () => {
     const me = await asPersona("storekeeper", "GET", "/auth/whoami");
     expect(me.status).toBe(200);
     const storeName: string = me.body.data.name;
-    const asset = await receive(api, { name: markedName("Photo spec asset") });
+    const asset = await receive(api, { category_id: await api.firstCategoryId(), name: markedName("Photo spec asset") });
     recordCreated({ kind: "asset", id: asset.id, name: asset.name });
     await signIn(page, "storekeeper");
     await openPhotosTab(page, asset.id);
@@ -193,7 +193,7 @@ test.describe.serial("61 — photos on an asset", () => {
     }
     let unit: any;
     try {
-      unit = await receive(api, { name: markedName("Photo spec IAD unit") });
+      unit = await receive(api, { category_id: await api.firstCategoryId(), name: markedName("Photo spec IAD unit") });
       recordCreated({ kind: "asset", id: unit.id, name: unit.name });
       unit = await walkTo(api, unit, "vfm_verified");
       expect(unit.register_state).toBe("vfm_verified");
