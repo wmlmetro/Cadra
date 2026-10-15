@@ -1,0 +1,17 @@
+myservice_api | 0 failed, 0 error(s) of 431 tests when loading database 'test19'  | CRITICAL: 0
+myservice_asset_register | 0 failed, 0 error(s) of 482 tests when loading database 'test19'  | CRITICAL: 0
+myservice_workflow | 7 failed, 0 error(s) of 96 tests when loading database 'test19'  | CRITICAL: 0
+ERROR test19 odoo.addons.myservice_workflow.tests.test_outbound_events: FAIL: TestOutboundTagEvents.test_a_paused_target_queues_the_event_rather_than_discarding_it
+ERROR test19 odoo.addons.myservice_workflow.tests.test_outbound_events: FAIL: TestOutboundTagEvents.test_affix_queues_one_event_with_a_stable_id
+ERROR test19 odoo.addons.myservice_workflow.tests.test_outbound_events: FAIL: TestOutboundTagEvents.test_backoff_doubles_and_is_capped
+ERROR test19 odoo.addons.myservice_workflow.tests.test_outbound_events: FAIL: TestOutboundTagEvents.test_exhausting_the_budget_dead_letters_and_tells_a_human
+ERROR test19 odoo.addons.myservice_workflow.tests.test_outbound_events: FAIL: TestOutboundTagEvents.test_no_target_at_all_means_no_event_and_no_failure
+ERROR test19 odoo.addons.myservice_workflow.tests.test_outbound_events: FAIL: TestOutboundTagEvents.test_retry_extends_the_budget_without_erasing_the_attempt_count
+ERROR test19 odoo.addons.myservice_workflow.tests.test_outbound_events: FAIL: TestOutboundTagEvents.test_the_drain_skips_a_disabled_target_in_the_domain
+myservice_barcode_station | 0 failed, 0 error(s) of 20 tests when loading database 'test19'  | CRITICAL: 0
+
+== myservice_workflow, re-run after the fixture fix (the seven failures above: the tests' stub target lost to test19's own,
+   real INT-05 target created in §1.3 — get_event_config takes the first active one; the setUp now switches the tenant's off
+   inside the test transaction, as the gate tests' GateCrew already did)
+myservice_workflow | 0 failed, 0 error(s) of 96 tests when loading database 'test19'  | CRITICAL: 0
+DONE

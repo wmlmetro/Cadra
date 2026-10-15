@@ -1,0 +1,357 @@
+{
+  "tenant": "test19",
+  "grn": "GRN60-49812922",
+  "units": 20,
+  "ids": [
+    93780,
+    93781,
+    93782,
+    93783,
+    93784,
+    93785,
+    93786,
+    93787,
+    93788,
+    93789,
+    93790,
+    93791,
+    93792,
+    93793,
+    93794,
+    93795,
+    93796,
+    93797,
+    93798,
+    93799
+  ],
+  "codes": [
+    "NRS-AST-057699",
+    "NRS-AST-057700",
+    "NRS-AST-057701",
+    "NRS-AST-057702",
+    "NRS-AST-057703",
+    "NRS-AST-057704",
+    "NRS-AST-057705",
+    "NRS-AST-057706",
+    "NRS-AST-057707",
+    "NRS-AST-057708",
+    "NRS-AST-057709",
+    "NRS-AST-057710",
+    "NRS-AST-057711",
+    "NRS-AST-057712",
+    "NRS-AST-057713",
+    "NRS-AST-057714",
+    "NRS-AST-057715",
+    "NRS-AST-057716",
+    "NRS-AST-057717",
+    "NRS-AST-057718"
+  ],
+  "tally": [
+    {
+      "persona": "storekeeper",
+      "how": "API (no batch for this gate)"
+    },
+    {
+      "persona": "iad_officer",
+      "how": "browser",
+      "units_driven_in_browser": 20,
+      "clicks": 7,
+      "keystrokes": 14,
+      "pastes": 0,
+      "file_picks": 1,
+      "scans": 0,
+      "per_unit": {
+        "clicks": 0.35,
+        "keystrokes": 0.7,
+        "pastes": 0,
+        "file_picks": 0.05,
+        "scans": 0
+      }
+    },
+    {
+      "persona": "iad_approver",
+      "how": "browser",
+      "units_driven_in_browser": 20,
+      "clicks": 10,
+      "keystrokes": 14,
+      "pastes": 0,
+      "file_picks": 0,
+      "scans": 0,
+      "per_unit": {
+        "clicks": 0.5,
+        "keystrokes": 0.7,
+        "pastes": 0,
+        "file_picks": 0,
+        "scans": 0
+      }
+    },
+    {
+      "persona": "asset_controller",
+      "how": "API (no batch for this gate)"
+    },
+    {
+      "persona": "tagger",
+      "how": "browser: Labels to fix, find + select the 20",
+      "units_driven_in_browser": 20,
+      "clicks": 2,
+      "keystrokes": 14,
+      "pastes": 0,
+      "file_picks": 0,
+      "scans": 0,
+      "per_unit": {
+        "clicks": 0.1,
+        "keystrokes": 0.7,
+        "pastes": 0,
+        "file_picks": 0,
+        "scans": 0
+      }
+    },
+    {
+      "persona": "tagger:affix",
+      "how": "browser: station, 1 unit confirmed (19 over the API)",
+      "units_driven_in_browser": 1,
+      "clicks": 1,
+      "keystrokes": 0,
+      "pastes": 0,
+      "file_picks": 0,
+      "scans": 2,
+      "per_unit": {
+        "clicks": 1,
+        "keystrokes": 0,
+        "pastes": 0,
+        "file_picks": 0,
+        "scans": 2
+      }
+    },
+    {
+      "persona": "register_maker",
+      "how": "browser",
+      "units_driven_in_browser": 20,
+      "clicks": 7,
+      "keystrokes": 5,
+      "pastes": 1,
+      "file_picks": 0,
+      "scans": 0,
+      "per_unit": {
+        "clicks": 0.35,
+        "keystrokes": 0.25,
+        "pastes": 0.05,
+        "file_picks": 0,
+        "scans": 0
+      }
+    },
+    {
+      "persona": "register_checker",
+      "how": "browser",
+      "units_driven_in_browser": 20,
+      "clicks": 6,
+      "keystrokes": 14,
+      "pastes": 0,
+      "file_picks": 0,
+      "scans": 0,
+      "per_unit": {
+        "clicks": 0.3,
+        "keystrokes": 0.7,
+        "pastes": 0,
+        "file_picks": 0,
+        "scans": 0
+      }
+    }
+  ],
+  "snapshots": [
+    {
+      "step": "before",
+      "counts": {
+        "storekeeper": 724,
+        "iad_officer": 52,
+        "iad_approver": 50,
+        "asset_controller": 51,
+        "tagger": 94,
+        "register_maker": 89,
+        "register_checker": 3
+      }
+    },
+    {
+      "step": "received (20 captured)",
+      "counts": {
+        "storekeeper": 744,
+        "iad_officer": 52,
+        "iad_approver": 50,
+        "asset_controller": 51,
+        "tagger": 94,
+        "register_maker": 89,
+        "register_checker": 3
+      }
+    },
+    {
+      "step": "store submitted 20",
+      "counts": {
+        "storekeeper": 724,
+        "iad_officer": 72,
+        "iad_approver": 50,
+        "asset_controller": 51,
+        "tagger": 94,
+        "register_maker": 89,
+        "register_checker": 3
+      }
+    },
+    {
+      "step": "IAD verified 20",
+      "counts": {
+        "storekeeper": 724,
+        "iad_officer": 52,
+        "iad_approver": 70,
+        "asset_controller": 51,
+        "tagger": 94,
+        "register_maker": 89,
+        "register_checker": 3
+      }
+    },
+    {
+      "step": "IAD approved 20",
+      "counts": {
+        "storekeeper": 724,
+        "iad_officer": 52,
+        "iad_approver": 50,
+        "asset_controller": 71,
+        "tagger": 94,
+        "register_maker": 89,
+        "register_checker": 3
+      }
+    },
+    {
+      "step": "controller requested tagging for 20",
+      "counts": {
+        "storekeeper": 724,
+        "iad_officer": 52,
+        "iad_approver": 50,
+        "asset_controller": 51,
+        "tagger": 114,
+        "register_maker": 89,
+        "register_checker": 3
+      }
+    },
+    {
+      "step": "tagger affixed 20",
+      "counts": {
+        "storekeeper": 724,
+        "iad_officer": 52,
+        "iad_approver": 50,
+        "asset_controller": 51,
+        "tagger": 94,
+        "register_maker": 109,
+        "register_checker": 3
+      }
+    },
+    {
+      "step": "maker submitted 19 (line 20 refused)",
+      "counts": {
+        "storekeeper": 724,
+        "iad_officer": 52,
+        "iad_approver": 50,
+        "asset_controller": 51,
+        "tagger": 94,
+        "register_maker": 90,
+        "register_checker": 22
+      }
+    },
+    {
+      "step": "checker approved 19",
+      "counts": {
+        "storekeeper": 724,
+        "iad_officer": 52,
+        "iad_approver": 50,
+        "asset_controller": 51,
+        "tagger": 94,
+        "register_maker": 90,
+        "register_checker": 3
+      }
+    }
+  ],
+  "badges": [
+    {
+      "who": "storekeeper",
+      "when": "before submitting",
+      "badge": 744,
+      "server": 744
+    },
+    {
+      "who": "storekeeper",
+      "when": "after submitting",
+      "badge": 724,
+      "server": 724
+    },
+    {
+      "who": "iad_officer",
+      "when": "before verifying",
+      "badge": 72,
+      "server": 72
+    },
+    {
+      "who": "iad_officer",
+      "when": "after verifying",
+      "badge": 52,
+      "server": 52
+    },
+    {
+      "who": "iad_approver",
+      "when": "before approving",
+      "badge": 70,
+      "server": 70
+    },
+    {
+      "who": "iad_approver",
+      "when": "after approving",
+      "badge": 50,
+      "server": 50
+    },
+    {
+      "who": "asset_controller",
+      "when": "before requesting tagging",
+      "badge": 71,
+      "server": 71
+    },
+    {
+      "who": "asset_controller",
+      "when": "after requesting tagging",
+      "badge": 51,
+      "server": 51
+    },
+    {
+      "who": "tagger",
+      "when": "before affixing",
+      "badge": 114,
+      "server": 114
+    },
+    {
+      "who": "tagger",
+      "when": "after affixing",
+      "badge": 94,
+      "server": 94
+    },
+    {
+      "who": "register_maker",
+      "when": "before registering",
+      "badge": 109,
+      "server": 109
+    },
+    {
+      "who": "register_maker",
+      "when": "after registering",
+      "badge": 90,
+      "server": 90
+    },
+    {
+      "who": "register_checker",
+      "when": "before approving registrations",
+      "badge": 22,
+      "server": 22
+    },
+    {
+      "who": "register_checker",
+      "when": "after approving registrations",
+      "badge": 3,
+      "server": 3
+    }
+  ]
+}

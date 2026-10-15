@@ -1,0 +1,82 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 26 tests using 1 worker
+
+  ✓   1 [chromium] › tests/06-asset-actions.spec.ts:54:5 › detail tabs switch (22.7s)
+  ✓   2 [chromium] › tests/06-asset-actions.spec.ts:79:5 › audit & review says in words when there is no history (5.2s)
+  ✓   3 [chromium] › tests/06-asset-actions.spec.ts:103:5 › audit & review shows a verification, newest first, with what its record is worth (11.0s)
+  ✓   4 [chromium] › tests/06-asset-actions.spec.ts:129:5 › audit & review carries a reconstruction and a blank actor all the way to the screen (13.4s)
+  ✓   5 [chromium] › tests/06-asset-actions.spec.ts:185:5 › audit & review says where the location record begins, and a tapped label explains itself (11.2s)
+  ✓   6 [chromium] › tests/06-asset-actions.spec.ts:254:5 › mark verified (UI) (11.3s)
+  ✓   7 [chromium] › tests/06-asset-actions.spec.ts:270:5 › mark missing via the app dialog, and the page stops saying Cleared (UI) (11.0s)
+  ✓   8 [chromium] › tests/06-asset-actions.spec.ts:324:5 › mark missing fires no native browser dialog (11.9s)
+  ✓   9 [chromium] › tests/06-asset-actions.spec.ts:355:5 › condemn sets state and condition, and the page stops saying Cleared (UI) (10.9s)
+  ✓  10 [chromium] › tests/06-asset-actions.spec.ts:404:5 › a cancelled condemn does not reopen pre-filled (10.6s)
+  ✓  11 [chromium] › tests/06-asset-actions.spec.ts:417:5 › back goes to the register list, not the KPI dashboard (9.7s)
+  ✓  12 [chromium] › tests/06-asset-actions.spec.ts:437:5 › after marking an asset missing, the dashboard count and the edit form both know (15.8s)
+  ✓  13 [chromium] › tests/06-asset-actions.spec.ts:483:5 › mark found is offered on a missing asset and on no other (20.2s)
+  ✘  14 [chromium] › tests/06-asset-actions.spec.ts:510:5 › mark found via the app dialog: list → asset → act → back (UI, one session) (23.2s)
+  ✓  15 [chromium] › tests/06-asset-actions.spec.ts:580:5 › a stale Mark found gets the server's 409 in the dialog, and the page catches up (19.9s)
+  -  16 [chromium] › tests/06-asset-actions.spec.ts:613:5 › an asset with no location can be placed, and the dialog promises no transfer (UI)
+  -  17 [chromium] › tests/06-asset-actions.spec.ts:700:5 › move persists server-side (API)
+  -  18 [chromium] › tests/06-asset-actions.spec.ts:738:5 › move via UI closes the dialog and persists
+  -  19 [chromium] › tests/06-asset-actions.spec.ts:780:5 › transfer custody persists server-side (API)
+  ✓  20 [chromium] › tests/06-asset-actions.spec.ts:807:5 › transfer custody via UI closes the dialog and persists (13.1s)
+  -  21 [chromium] › tests/06-asset-actions.spec.ts:841:5 › move to the same location is rejected
+  ✓  22 [chromium] › tests/17-disposed-is-terminal.spec.ts:38:5 › a disposed asset offers no change of status, place or custodian — and says why (UI, one session) (14.6s)
+  ✓  23 [chromium] › tests/17-disposed-is-terminal.spec.ts:123:5 › a disposed asset can still be verified, and stays disposed (UI) (12.2s)
+  ✓  24 [chromium] › tests/17-disposed-is-terminal.spec.ts:156:5 › a stale page still gets the server's refusal, in the server's words (11.9s)
+  ✓  25 [chromium] › tests/17-disposed-is-terminal.spec.ts:184:5 › the server refuses every route out of disposed (API) (9.7s)
+  ✓  26 [chromium] › tests/17-disposed-is-terminal.spec.ts:216:5 › mark missing without a reason is refused by the server too (API) (8.7s)
+
+
+  1) [chromium] › tests/06-asset-actions.spec.ts:510:5 › mark found via the app dialog: list → asset → act → back (UI, one session) 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByTestId('asset-history-event').nth(1)
+    Expected substring: "E2E — not found at its desk during the count"
+    Received string:    "Provenance changedCannot be alteredTest dataSAP Asset Number: — → SAP58E-1792059606117-BC649E6A2026-10-15 10:20·Temitope Oyelaran"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 10000ms
+      - waiting for getByTestId('asset-history-event').nth(1)
+        24 × locator resolved to <li data-testid="asset-history-event" class="border-l-2 border-border pl-3 py-1">…</li>
+           - unexpected value "Provenance changedCannot be alteredTest dataSAP Asset Number: — → SAP58E-1792059606117-BC649E6A2026-10-15 10:20·Temitope Oyelaran"
+
+
+      562 |   await expect(rows.nth(0)).toContainText("Cannot be altered");
+      563 |   await expect(rows.nth(0)).not.toContainText("No person recorded");
+    > 564 |   await expect(rows.nth(1)).toContainText(MISSING_REASON);
+          |                             ^
+      565 |
+      566 |   // 5. BACK TO THE LIST, without a reload: the row it started from is Active again.
+      567 |   await page.getByTestId("button-back").click();
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/06-asset-actions.spec.ts:564:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/06-asset-actions-mark-foun-c8d8b--act-→-back-UI-one-session--chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/06-asset-actions-mark-foun-c8d8b--act-→-back-UI-one-session--chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/06-asset-actions-mark-foun-c8d8b--act-→-back-UI-one-session--chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/06-asset-actions-mark-foun-c8d8b--act-→-back-UI-one-session--chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/06-asset-actions-mark-foun-c8d8b--act-→-back-UI-one-session--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/06-asset-actions.spec.ts:510:5 › mark found via the app dialog: list → asset → act → back (UI, one session) 
+  5 skipped
+  20 passed (5.2m)

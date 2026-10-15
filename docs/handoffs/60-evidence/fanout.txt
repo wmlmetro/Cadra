@@ -1,0 +1,46 @@
+== test19 — upgraded first (06:48, the new column and the scope), before the rename was added to the same version, so its pre-migration never ran there (report 60, "the rename")
+WARNING test19 odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: test19 — register_state_since filled on 906 of 906 candidates; 16474 of 17903 assets carry no identification_mode (created with the gates off before handoff 60; left as they are)
+WARNING test19 odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on test19 — 1 of 1 given candidates:read (1 of 3 API clients are Vendra's)
+== cadra19 (exit 0)
+WARNING cadra19 odoo.upgrade.myservice_asset_register.19.0.1.29.0.pre-migrate: handoff 60: cadra19 — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten 
+WARNING cadra19 odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: cadra19 — register_state_since filled on 0 of 0 candidates; 1335 of 1335 assets carry no identification_mode (created with the gates off before handoff 60; left as they are) 
+WARNING cadra19 odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on cadra19 — 0 of 0 given candidates:read (0 of 1 API clients are Vendra's) 
+== nrs19 (exit 0)
+WARNING nrs19 odoo.upgrade.myservice_asset_register.19.0.1.29.0.pre-migrate: handoff 60: nrs19 — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten 
+WARNING nrs19 odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: nrs19 — register_state_since filled on 0 of 0 candidates; 11959 of 11959 assets carry no identification_mode (created with the gates off before handoff 60; left as they are) 
+WARNING nrs19 odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on nrs19 — 1 of 1 given candidates:read (1 of 4 API clients are Vendra's) 
+== gtb19 (exit 0)
+WARNING gtb19 odoo.upgrade.myservice_asset_register.19.0.1.29.0.pre-migrate: handoff 60: gtb19 — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten 
+WARNING gtb19 odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: gtb19 — register_state_since filled on 0 of 0 candidates; 156 of 156 assets carry no identification_mode (created with the gates off before handoff 60; left as they are) 
+WARNING gtb19 odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on gtb19 — 0 of 0 given candidates:read (0 of 1 API clients are Vendra's) 
+== nrs (exit 0)
+WARNING nrs odoo.upgrade.myservice_asset_register.19.0.1.29.0.pre-migrate: handoff 60: nrs — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten 
+WARNING nrs odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: nrs — register_state_since filled on 0 of 0 candidates; 1272 of 1272 assets carry no identification_mode (created with the gates off before handoff 60; left as they are) 
+WARNING nrs odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on nrs — 0 of 0 given candidates:read (0 of 2 API clients are Vendra's) 
+== lasg (exit 0)
+WARNING lasg odoo.upgrade.myservice_asset_register.19.0.1.29.0.pre-migrate: handoff 60: lasg — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten 
+WARNING lasg odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: lasg — register_state_since filled on 0 of 0 candidates; 150 of 150 assets carry no identification_mode (created with the gates off before handoff 60; left as they are) 
+WARNING lasg odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on lasg — 0 of 0 given candidates:read (0 of 2 API clients are Vendra's) 
+== gtb (exit 0)
+WARNING gtb odoo.upgrade.myservice_asset_register.19.0.1.29.0.pre-migrate: handoff 60: gtb — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten 
+WARNING gtb odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: gtb — register_state_since filled on 0 of 0 candidates; 150 of 150 assets carry no identification_mode (created with the gates off before handoff 60; left as they are) 
+WARNING gtb odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on gtb — 0 of 0 given candidates:read (0 of 2 API clients are Vendra's) 
+== jaizbankplc (exit 0)
+WARNING jaizbankplc odoo.upgrade.myservice_asset_register.19.0.1.29.0.pre-migrate: handoff 60: jaizbankplc — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten 
+WARNING jaizbankplc odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: jaizbankplc — register_state_since filled on 0 of 0 candidates; 4164 of 4164 assets carry no identification_mode (created with the gates off before handoff 60; left as they are) 
+WARNING jaizbankplc odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on jaizbankplc — 0 of 0 given candidates:read (0 of 3 API clients are Vendra's) 
+== boot44 (exit 0)
+WARNING boot44 odoo.upgrade.myservice_asset_register.19.0.1.29.0.pre-migrate: handoff 60: boot44 — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten 
+WARNING boot44 odoo.upgrade.myservice_asset_register.19.0.1.29.0.post-migrate: handoff 60: boot44 — register_state_since filled on 0 of 0 candidates; 231 of 231 assets carry no identification_mode (created with the gates off before handoff 60; left as they are) 
+WARNING boot44 odoo.upgrade.myservice_api.19.0.3.32.0.post-migrate: handoff 60: Vendra clients on boot44 — 1 of 1 given candidates:read (1 of 4 API clients are Vendra's) 
+== readiness after the restart
+cadra19 | {"data": {"ready": true, "database": "cadra19"}} 200
+nrs19 | {"data": {"ready": true, "database": "nrs19"}} 200
+gtb19 | {"data": {"ready": true, "database": "gtb19"}} 200
+test19 | {"data": {"ready": true, "database": "test19"}} 200
+nrs | {"data": {"ready": true, "database": "nrs"}} 200
+lasg | {"data": {"ready": true, "database": "lasg"}} 200
+gtb | {"data": {"ready": true, "database": "gtb"}} 200
+jaizbankplc | {"data": {"ready": true, "database": "jaizbankplc"}} 200
+boot44 | {"data": {"ready": true, "database": "boot44"}} 200
+DONE

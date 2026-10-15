@@ -1,0 +1,17 @@
+# Handoff 60 §4.2 — the three Vendra fixes, measured 2026-10-15
+
+## §1.1 Vendra's credential sees candidates (Vendra's OWN client, its OWN credential, in its bench console)
+Paired tenant nrs19 (site_config.json):  GET /assets?register_state=any&limit=1 -> 200, total_estimate = 11959 (nrs19 holds no candidates; report 55 recorded a 403 here)
+test19 (Vendra's saved site_config.json.test19-54, loaded IN MEMORY only, the bench's files untouched):
+  GET /assets?register_state=any&q=MAT-PRE-2026-00640&limit=100 -> 200, total_estimate = 2, states = ['captured']  (report 55: 403 required_scopes candidates:read)
+
+## §1.2 a gates-off tag_id asset
+tests/test_seventy_a_day.py::test_a_tag_id_asset_created_with_the_gates_off_reads_tag_id — passed (identification_mode 'tag_id'; a serial class 'serial')
+myservice_api TestSeventyADay.test_a_gates_off_asset_carries_its_class_mode — tag_id / serial / record_only (no label)
+
+## §1.3 INT-05 from test19 (Cadra's dispatch log, test19, since the target was created 06:5x UTC)
+asset.tag.affixed | acknowledged | 109 | 2026-10-15 06:53:57.990001 | 2026-10-15 07:39:05.226752
+Vendra's record (tabVendra Integration Message, Lagos time):
+interface_id	direction	status	count(*)	min(creation)	max(creation)
+INT-05	Inbound	Dead	109	2026-10-15 07:53:59.257891	2026-10-15 08:39:06.489151
+TagUnmatchedError: INT-05 callback names no unit this Vendra holds. The asset may belong to a receipt this environment never saw, or to one that has since been cancelled. The delivery was accepted and	109
