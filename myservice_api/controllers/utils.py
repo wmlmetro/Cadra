@@ -1342,7 +1342,14 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False,
 
     if "last_id" in cursor_data and keyset_field:
         after = cursor_data.get("after")
-        if not isinstance(after, str) or not after:
+        try:
+            # A cursor is unsigned: a tampered `after` is caller input and a
+            # 400, never a 500 from the ORM's datetime parse (handoff 22).
+            valid = isinstance(after, str) and bool(
+                fields.Datetime.to_datetime(after))
+        except (ValueError, TypeError):
+            valid = False
+        if not valid:
             raise BadFilter("`cursor` is not a cursor this API issued.",
                             details={"cursor": cursor})
         effective_domain += [

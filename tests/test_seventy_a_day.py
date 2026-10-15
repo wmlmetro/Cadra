@@ -16,6 +16,7 @@ then refuses it their verification.
 Every test that turns the receipt switch puts it back (`gated`).
 """
 import base64
+import json
 import time
 import uuid
 
@@ -416,3 +417,15 @@ def test_the_old_name_is_refused_and_the_new_one_is_published(client):
     assert refused["error"]["details"]["rejected_fields"] == ["reference"]
     a = assert_envelope_ok(client.get("/api/v1/assets?limit=1"))["data"][0]
     assert "record_reference" in a and "reference" not in a
+
+
+def test_a_tampered_oldest_first_cursor_is_a_400(client):
+    """Cursors are unsigned: an `after` that is not an instant is caller
+    input, refused 400 — not a 500 from the ORM's datetime parse
+    (verification pass)."""
+    raw = base64.urlsafe_b64encode(json.dumps(
+        {"last_id": 1, "by": "register_state_since", "after": "x"}).encode()
+    ).decode().rstrip("=")
+    assert_envelope_err(client.get(
+        f"/api/v1/candidates?sort=oldest&cursor={raw}"), 400,
+        "invalid_request")

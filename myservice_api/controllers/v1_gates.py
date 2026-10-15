@@ -539,12 +539,16 @@ def _fire_one(asset, action, payload, scopes, *, warn=False):
 
 
 def _missing_line(asset_id=None, asset_code=None):
-    what = ("asset code %s" % asset_code if asset_code
-            else "id %s" % asset_id)
+    if asset_code:
+        message = "There is no unit with asset code %s." % asset_code
+    elif asset_id is not None:
+        message = "There is no unit with id %s." % asset_id
+    else:
+        message = "This line names no asset code."
     return {"asset_id": asset_id, "asset_code": asset_code, "name": None,
             "grn_reference": None, "category": None, "cost": None,
             "outcome": "refused", "status": 404, "code": "not_found",
-            "message": "There is no unit with %s." % what,
+            "message": message,
             "details": {"asset_id": asset_id, "asset_code": asset_code},
             "register_state": None}
 
@@ -777,6 +781,12 @@ class CadraGateBatchesV1(http.Controller):
             # Nothing was verified, so nothing links the evidence.
             stored["files"].unlink()
             stored["files"] = Asset.env["ir.attachment"]
+        elif not dry_run and stored["files"] \
+                and stored["files"][:1].res_id != fired[0]["asset_id"]:
+            # Filed on a unit that was then refused: move it to the first
+            # unit verified, so the back office lists it on a unit it is
+            # evidence for (the routes read the events either way).
+            stored["files"].write({"res_id": fired[0]["asset_id"]})
         evidence = {"attachment_ids": [] if dry_run else stored["files"].ids,
                     "files": len(files)}
         return _batch_answer("verify", lines, dry_run, evidence=evidence)
@@ -890,8 +900,12 @@ class CadraGateBatchesV1(http.Controller):
             n, l = numbered
             code = l["asset_code"].strip()
             sap = l["sap_asset_code"]
-            found = Asset.search([("asset_code", "=ilike", code)], limit=2) \
-                if code else Asset
+            # `=ilike` reads `%` and `_` as wildcards: escaped, so a pasted
+            # code matches itself and nothing else, case aside.
+            literal = code.replace("\\", "\\\\").replace(
+                "%", "\\%").replace("_", "\\_")
+            found = Asset.search([("asset_code", "=ilike", literal)],
+                                 limit=2) if code else Asset
             # capped-count-ok: `limit=2` asks "one, or more than one?" of a
             # code that should name one unit; it counts nothing published.
             if len(found) != 1:
@@ -966,9 +980,12 @@ class CadraGateBatchesV1(http.Controller):
                 % (id, attachment_id), status=404,
                 details={"asset_id": id, "attachment_id": attachment_id}))
         data = base64.b64decode(f.datas or b"")
-        name = (f.name or "evidence").replace('"', "")
         return request.make_response(data, headers=[
             ("Content-Type", f.mimetype or "application/octet-stream"),
-            ("Content-Disposition", 'attachment; filename="%s"' % name),
+            # Odoo's own RFC 6266 builder: a name outside Latin-1 (a macOS
+            # screenshot carries U+202F) or with a newline would otherwise
+            # fail the header rather than download (verification pass).
+            ("Content-Disposition", http.content_disposition(
+                f.name or "evidence")),
             ("Content-Length", str(len(data))),
         ])

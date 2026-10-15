@@ -3,7 +3,11 @@
 `register_state_since` is new: the Candidates list is read oldest first by
 it. Filled here on every unit not yet on the register, from the same facts
 `gates.state_since` is published from — its last `gate_fired` event, else
-its creation. A registered asset is left empty: it is never sorted by it,
+its creation — to the whole second, as Odoo writes a Datetime, because the
+cursor that pages by it compares whole seconds (a microsecond left on a
+`create_date` would order two units inside one second differently from the
+cursor, and the page boundary would skip or repeat one — verification
+pass). A registered asset is left empty: it is never sorted by it,
 and inventing an instant for 16,000 records that never waited on anybody
 would be a claim the record cannot back. New records get it at creation.
 
@@ -19,10 +23,10 @@ _logger = logging.getLogger(__name__)
 def migrate(cr, version):
     cr.execute("""
         UPDATE nrs_asset a
-           SET register_state_since = COALESCE(
+           SET register_state_since = date_trunc('second', COALESCE(
                  (SELECT max(e.occurred_at) FROM nrs_asset_event e
                    WHERE e.asset_id = a.id AND e.event_type = 'gate_fired'),
-                 a.create_date)
+                 a.create_date))
          WHERE a.register_state <> 'registered'
            AND a.register_state_since IS NULL""")
     filled = cr.rowcount

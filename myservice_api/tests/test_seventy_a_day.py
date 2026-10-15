@@ -168,3 +168,7 @@ class TestSeventyADay(GateCrew, CadraTransactionCase):
         self.assertEqual(plot.identification_mode, 'record_only')
         self.assertFalse(plot.active_tag_id,
                          'no label for a unit identified by its record')
+        # ...so nothing is ever affixed, and its master goes out at creation
+        # instead (with the gates off it would otherwise go out on affix).
+        self.assertEqual(len(self._int06(plot)), 1)
+        self.assertFalse(self._int06(chair), 'a chair waits for its label')

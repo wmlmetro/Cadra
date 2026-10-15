@@ -27,11 +27,13 @@ import {
   type GateChecklist, type GateEvidenceAnswer, type GateEvidenceFile,
 } from "@/lib/gateEvidence";
 
+// The words IAD ticked in the verify dialog (GateActions `CHECKLIST`), so
+// the approver reads what was attested, not a paraphrase of it.
 const CHECKS: { key: keyof GateChecklist; words: string }[] = [
-  { key: "quantity", words: "Quantity matches the receipt" },
+  { key: "quantity", words: "Quantity matches the order" },
   { key: "specification", words: "Specification matches the order" },
   { key: "condition", words: "Condition is acceptable" },
-  { key: "price", words: "Price is value for money" },
+  { key: "price", words: "Price matches the order" },
 ];
 
 function sizeWords(bytes: number): string {

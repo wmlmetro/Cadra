@@ -363,8 +363,8 @@ class NRSAssetGates(models.Model):
     # When the unit entered its present register state (handoff 60 §2a): the
     # Candidates list is read OLDEST first by it, so the unit that has waited
     # longest is the one on screen. Stored and indexed because a sort and a
-    # keyset cursor need a column; `gates.state_since` (from the events) is
-    # what is published, and the two agree. Set at creation and by
+    # keyset cursor need a column; `gates.state_since` is published FROM it,
+    # so what is shown and the order agree. Set at creation and by
     # `_gate_move`, nowhere else; the 19.0.1.29.0 migration filled it on
     # every candidate from its last gate event.
     register_state_since = fields.Datetime(
@@ -423,7 +423,9 @@ class NRSAssetGates(models.Model):
     def create(self, vals_list):
         now = fields.Datetime.now()
         for vals in vals_list:
-            vals.setdefault('register_state_since', now)
+            if not vals.get('register_state_since'):
+                # Never empty on a candidate: the list pages by it.
+                vals['register_state_since'] = now
             state = vals.get('register_state')
             if state and state not in ('captured', REGISTERED) \
                     and not self.env.context.get(_GATE_WRITE_KEY):
@@ -647,7 +649,11 @@ class NRSAssetGates(models.Model):
                 'reason_required': row['action'] in REASON_REQUIRED,
             })
         events = self._gate_events()
-        since = events[-1:].occurred_at if events else self.create_date
+        # The stored instant the list is sorted by, so what is shown and the
+        # order agree (verification pass); the events for a record that
+        # predates the column.
+        since = self.register_state_since or (
+            events[-1:].occurred_at if events else self.create_date)
         return {
             'waiting_on': WAITING_ON.get(self.register_state),
             'state_since': fields.Datetime.to_string(since) if since else None,

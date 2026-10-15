@@ -4963,8 +4963,9 @@ digits: `400 invalid_request`; null or `""` clears it). With the switch on,
 
 **`record_only` — a class nothing can be fixed to** (land, buildings,
 software, works in progress). A fourth `identification_mode`, default schema
-`{"mandatory": ["name", "reference"]}` — `reference` is a new asset field
-(title or plot number, licence key or contract). A receipt carrying a
+`{"mandatory": ["name", "record_reference"]}` — `record_reference` is the
+asset field (title or plot number, licence key or contract), named
+`reference` from handoff 59 until handoff 60 renamed it (§14.12). A receipt carrying a
 `serial_number` is refused, whoever sends it. The chain is five gates:
 `submit` → `verify` → `approve`, which moves the unit `vfm_approved →
 reg_ready` at once (the tagging gates SKIPPED — a `gate_fired` history row
@@ -5081,6 +5082,13 @@ newest first. The file is `GET /api/v1/assets/<id>/evidence/<attachment_id>`
 `Content-Disposition: attachment`; an id that none of THIS unit's
 verifications names is a `404` envelope, so the route cannot be walked to
 read another attachment.
+
+**`reference` is `record_reference` (BREAKING, ruling 7).** The asset field
+handoff 59 published as a top-level `reference` — what identifies a
+`record_only` unit — is renamed on `POST`/`PATCH /assets`, on every asset and
+in `class_attributes_schema`, so that `reference` keeps one meaning per
+place it appears (a move's transfer, a disposal's). The old name is refused
+like any unknown key. No client read or sent it.
 
 **`identification_mode` on a new asset, gates on or off.** Until handoff 60
 only a gated receipt was stamped, so a gates-off asset published `null`.
