@@ -126,7 +126,7 @@ export function GateEvidence({ assetId, hideWhenEmpty = false }: {
               data-testid={`gate-evidence-verification-${v.event_id}`}
             >
               <p className="text-xs text-foreground">
-                Verified by <span className="font-semibold">{v.actor_name ?? "a person the record does not name"}</span>
+                Checked for Internal Audit by <span className="font-semibold">{v.actor_name ?? "a person the record does not name"}</span>
                 {v.occurred_at && <> on {formatIsoDateTime(v.occurred_at.replace(" ", "T"))}</>}
                 {i === 0 && verifications.length > 1 && (
                   <span className="text-muted-foreground"> — the latest of {verifications.length}</span>
