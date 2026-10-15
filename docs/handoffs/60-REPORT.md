@@ -789,3 +789,54 @@ shows every one verbatim (results dialogs, `batch-result-message`).
 | `f4ae1bb` | `myservice_workflow`'s INT-05 tests switch off the tenant's own target |
 | `45c48b3` | The evidence panel's wording (*Checked for Internal Audit by*) — found by spec 06 |
 | (this commit) | This report and its evidence |
+
+## Addendum, 2026-10-15 — deployed to the cluster
+
+After the owner merged PR #119, `deploy-dev` ran green on the merge
+(`a496193`, image `cadra-odoo-19:dev-a496193`). The merge's own `ci` run was
+**cancelled, not failed**: the docs-only commit on top of it (`6c3dd12`,
+handoff 61's instruction file and the Architect's evaluation documents)
+started a newer `ci` run, and the shared concurrency group cancels the
+older one. That newer run, on the same code, passed.
+
+Then, at the owner's word, **`upgrade-19`** ran (run 38731241874):
+- tenants `staging, gtb, jaizbankplc, lasg`;
+- modules `myservice_asset_register,myservice_api`;
+- `scale_down=true`;
+- the image pinned to the merge's build.
+
+Every tenant upgraded, and then the server rolled forward (*"every tenant
+upgraded — rolling forward to: … dev-a496193"*, *"deployment "odoo-19"
+successfully rolled out"*). Each tenant's own lines:
+
+```
+handoff 60: staging — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten
+handoff 60: staging — register_state_since filled on 9 of 9 candidates; 11935 of 11935 assets carry no identification_mode (created with the gates off before handoff 60; left as they are)
+handoff 60: Vendra clients on staging — 1 of 1 given candidates:read (1 of 4 API clients are Vendra's)
+handoff 60: gtb — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten
+handoff 60: gtb — register_state_since filled on 0 of 0 candidates; 150 of 150 assets carry no identification_mode (created with the gates off before handoff 60; left as they are)
+handoff 60: Vendra clients on gtb — 0 of 0 given candidates:read (0 of 2 API clients are Vendra's)
+handoff 60: jaizbankplc — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten
+handoff 60: jaizbankplc — register_state_since filled on 0 of 0 candidates; 150 of 150 assets carry no identification_mode (created with the gates off before handoff 60; left as they are)
+handoff 60: Vendra clients on jaizbankplc — 0 of 0 given candidates:read (0 of 2 API clients are Vendra's)
+handoff 60: lasg — `reference` renamed `record_reference`: 0 assets carry one; 0 class schemas rewritten
+handoff 60: lasg — register_state_since filled on 0 of 0 candidates; 150 of 150 assets carry no identification_mode (created with the gates off before handoff 60; left as they are)
+handoff 60: Vendra clients on lasg — 0 of 0 given candidates:read (0 of 2 API clients are Vendra's)
+```
+
+`staging`'s Vendra client now holds `candidates:read`. Vendra calls
+`/auth/token` again to have it in its token. `staging`'s 9 candidates have
+their timestamp. No tenant on the cluster carried a value under the old
+name.
+
+Readiness, no token, after the roll:
+
+```
+staging.app.cadra.ng | {"data": {"ready": true, "database": "staging"}} 200
+gtb.cadra.ng | {"data": {"ready": true, "database": "gtb"}} 200
+jaizbankplc.cadra.ng | {"data": {"ready": true, "database": "jaizbankplc"}} 200
+lasg.cadra.ng | {"data": {"ready": true, "database": "lasg"}} 200
+```
+
+**Still the owner's:** the browser check on `staging` under *Needs the
+owner* (Turnstile).
