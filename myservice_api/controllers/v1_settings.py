@@ -325,7 +325,7 @@ class CadraConfigV1(http.Controller):
                                             "must carry, from: name, make, "
                                             "model_name, manufacturer, "
                                             "colour, material, dimensions, "
-                                            "reference."},
+                                            "record_reference."},
                          "sap_asset_class": {
                              "type": "string", "nullable": True,
                              "pattern": "^[0-9]{4}$",

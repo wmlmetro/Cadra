@@ -624,8 +624,14 @@ class NRSAsset(models.Model):
     def create(self, vals_list):
         records = super().create(vals_list)
         for rec, vals in zip(records, vals_list):
-            # Auto-generate tag unless one is provided via import
-            if not vals.get('asset_tag') and vals.get('tag_source', 'auto') == 'auto':
+            # Auto-generate tag unless one is provided via import — and never
+            # for a unit identified by its SAP record, which carries no label
+            # (handoff 59 §2). Since handoff 60 such a unit is stamped
+            # `record_only` with the gates off too, and `_generate_tag`
+            # refuses it, so creation leaves it out rather than fail.
+            if not vals.get('asset_tag') \
+                    and vals.get('tag_source', 'auto') == 'auto' \
+                    and rec.identification_mode != 'record_only':
                 rec._generate_tag(source='auto')
             elif vals.get('asset_tag'):
                 # Preserve imported tag number

@@ -7,6 +7,7 @@ serialize via these helpers. Nothing here should reach into Odoo internals
 that aren't documented; the goal is portability to a non-Odoo runtime later.
 """
 import base64
+import datetime as _dt
 import functools
 import hashlib
 import hmac
@@ -553,9 +554,12 @@ SCOPE_GROUPS = {
 }
 
 
-def gate_refusal(e):
+def gate_refusal_parts(e):
     """A `GateRefused` (`myservice_asset_register/models/asset_gates.py`) as
-    the envelope — the one place its kinds become statuses.
+    `(status, code, message, details)` — the one place its kinds become
+    statuses, shared by the single-unit envelope below and by each unit's
+    line in a batch answer (handoff 60 §2), so a unit refused inside a batch
+    is refused with the same status, code and sentence as alone.
 
     * `invalid_state`, `segregation_of_duties`, `not_on_the_register` →
       409 `conflict`, the kind in `details.reason`;
@@ -566,10 +570,16 @@ def gate_refusal(e):
     if e.kind in ("invalid_state", "segregation_of_duties",
                   "not_on_the_register"):
         details["reason"] = e.kind
-        return err(ERR_CONFLICT, str(e.args[0]), status=409, details=details)
+        return 409, ERR_CONFLICT, str(e.args[0]), details
     if e.kind == "forbidden":
-        return err(ERR_FORBIDDEN, str(e.args[0]), status=403, details=details)
-    return err(ERR_VALIDATION_FAILED, str(e.args[0]), details=details)
+        return 403, ERR_FORBIDDEN, str(e.args[0]), details
+    return 400, ERR_VALIDATION_FAILED, str(e.args[0]), details
+
+
+def gate_refusal(e):
+    """A `GateRefused` as the envelope (`gate_refusal_parts`)."""
+    status, code, message, details = gate_refusal_parts(e)
+    return err(code, message, status=status, details=details)
 
 
 def schema_behind(e):
@@ -1211,7 +1221,7 @@ CAP_EXEMPT_REASON_CUSTODY = "a chain of custody is complete or it is evidence of
 
 
 def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False,
-             descending=False):
+             descending=False, keyset_field=None):
     """Cursor-paginate `model.search(domain)`.
 
     Returns (records, next_cursor_or_None, total_estimate).
@@ -1263,7 +1273,18 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False,
     a custom `order` raises, rather than silently ordering one way and
     paging the other — no caller does this today and the assertion is here
     so none starts by accident.
+
+    `keyset_field` (handoff 60 §2a) walks ascending by a stored, non-null
+    column first and `id` second — `GET /candidates?sort=oldest`, by
+    `register_state_since`, so the unit that has waited longest is on the
+    first page. The cursor carries the field's name and the last row's
+    value beside its id (`by`, `after`), and a cursor issued for another
+    walk is a `BadFilter`, for the reason above. Ascending only.
     """
+    if keyset_field and descending:
+        raise ValueError(
+            "paginate(keyset_field=...) walks ascending only; got "
+            "descending=True.")
     if descending and order != "id":
         raise ValueError(
             "paginate(descending=True) is defined for the default `id` "
@@ -1277,6 +1298,13 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False,
     # request asked for. Absent means ascending: that is what every cursor
     # issued before this parameter existed means, and it is why the
     # ascending payload stays unchanged.
+    if cursor and cursor_data.get("by") != keyset_field:
+        raise BadFilter(
+            "`cursor` was issued for a walk ordered by %s and this request "
+            "asks for one ordered by %s. Restart the walk without a cursor, "
+            "or keep `sort` the same for every page of it."
+            % (cursor_data.get("by") or "id", keyset_field or "id"),
+            details={"cursor": cursor})
     if cursor and bool(cursor_data.get("desc")) != bool(descending):
         raise BadFilter(
             "`cursor` was issued for a %s walk and this request asks for a "
@@ -1292,6 +1320,8 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False,
         )
 
     effective_order = "id desc" if descending else order
+    if keyset_field:
+        effective_order = "%s asc, id asc" % keyset_field
 
     total = model.search_count(domain)
 
@@ -1310,7 +1340,16 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False,
         effective_domain.append(("id", "in", allowed.ids))
         flag_truncation(cap, total)
 
-    if "last_id" in cursor_data:
+    if "last_id" in cursor_data and keyset_field:
+        after = cursor_data.get("after")
+        if not isinstance(after, str) or not after:
+            raise BadFilter("`cursor` is not a cursor this API issued.",
+                            details={"cursor": cursor})
+        effective_domain += [
+            "|", (keyset_field, ">", after),
+            "&", (keyset_field, "=", after),
+            ("id", ">", cursor_data["last_id"])]
+    elif "last_id" in cursor_data:
         # Already an int: `decode_cursor` coerced it or refused the request.
         # The comparator follows the direction — see the docstring.
         effective_domain.append(
@@ -1328,6 +1367,12 @@ def paginate(model, domain, *, limit, cursor=None, order="id", uncapped=False,
     next_cursor = None
     if has_more and page:
         payload = {"last_id": page[-1].id}
+        if keyset_field:
+            value = page[-1][keyset_field]
+            payload["by"] = keyset_field
+            payload["after"] = (fields.Datetime.to_string(value)
+                                if isinstance(value, _dt.datetime)
+                                else str(value))
         if descending:
             # Added ONLY here. An ascending token keeps the exact shape it
             # has always had, so nothing already holding one is affected.
