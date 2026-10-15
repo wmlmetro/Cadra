@@ -154,6 +154,7 @@ S_VFM_APPROVE = 'vfm:approve'
 S_TAGGING_REQUEST = 'tagging:request'
 S_REGISTER_MAKE = 'register:make'
 S_REGISTER_CHECK = 'register:check'
+S_TAGGING_WRITE = 'tagging:write'
 
 # The identification modes a row may be limited to (`asset_identification`
 # defines them; spelled here because it imports this module's GateRefused).
@@ -216,6 +217,31 @@ ACTIONS = tuple(dict.fromkeys(t['action'] for t in TRANSITIONS))
 REASON_REQUIRED = {t['action'] for t in TRANSITIONS if t.get('needs')}
 
 VERIFY_CHECKLIST = ('quantity', 'specification', 'condition', 'price')
+
+# ── What each waiting state waits FOR (handoff 60 §2a) ─────────────────
+# The forward act a unit in that state needs, the gate the no-two-gates rule
+# judges it as, and the scopes that may do it. `waiting on me` and the
+# sidebar badge read this: a unit counts for a person when they hold the
+# act's scope AND the no-two-gates rule does not bar them from it. A query,
+# a rejection or a return is not what a unit waits for, so it is not here.
+# `affix` is the station's act (`POST /assets/<id>/tag-affixed`, which
+# needs `tagging:write`), a system transition and not in TRANSITIONS.
+# `tag_requested` is not here: `request-tagging` issues the label in the
+# same act, so no unit waits there. Pinned against TRANSITIONS by
+# `test_waiting_act_matches_the_table`.
+WAITING_ACT = {
+    'captured': ('submit', GATE_RECEIPT, (S_ASSETS_WRITE,)),
+    'vfm_query': ('resubmit', GATE_RECEIPT, (S_ASSETS_WRITE,)),
+    'vfm_pending': ('verify', GATE_VERIFY, (S_VFM_VERIFY,)),
+    'vfm_verified': ('approve', GATE_APPROVE, (S_VFM_APPROVE,)),
+    'vfm_approved': ('request-tagging', GATE_TAG_REQUEST,
+                     (S_TAGGING_REQUEST,)),
+    'tag_issued': ('affix', GATE_TAGGING, (S_TAGGING_WRITE,)),
+    'tagged': ('register', GATE_MAKE, (S_REGISTER_MAKE,)),
+    'reg_ready': ('register', GATE_MAKE, (S_REGISTER_MAKE,)),
+    'reg_submitted': ('approve-registration', GATE_CHECK,
+                      (S_REGISTER_CHECK,)),
+}
 
 # The states in which a candidate has no label yet, and may not be given one
 # except by `request-tagging`.
@@ -334,6 +360,15 @@ class NRSAssetGates(models.Model):
     # ENTERED BY HAND — these two had nowhere to go.
     cost_centre = fields.Char('Cost Centre', copy=False)
     capitalisation_date = fields.Date('Capitalisation Date', copy=False)
+    # When the unit entered its present register state (handoff 60 §2a): the
+    # Candidates list is read OLDEST first by it, so the unit that has waited
+    # longest is the one on screen. Stored and indexed because a sort and a
+    # keyset cursor need a column; `gates.state_since` is published FROM it,
+    # so what is shown and the order agree. Set at creation and by
+    # `_gate_move`, nowhere else; the 19.0.1.29.0 migration filled it on
+    # every candidate from its last gate event.
+    register_state_since = fields.Datetime(
+        'In Register State Since', index=True, copy=False, readonly=True)
 
     # ── the register hides candidates — ONE place (handoff 57 §2d) ────
 
@@ -386,7 +421,11 @@ class NRSAssetGates(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        now = fields.Datetime.now()
         for vals in vals_list:
+            if not vals.get('register_state_since'):
+                # Never empty on a candidate: the list pages by it.
+                vals['register_state_since'] = now
             state = vals.get('register_state')
             if state and state not in ('captured', REGISTERED) \
                     and not self.env.context.get(_GATE_WRITE_KEY):
@@ -413,6 +452,20 @@ class NRSAssetGates(models.Model):
                         {'register_state': 'captured',
                          'waiting_on': WAITING_ON['captured']})
                 vals.update(self.browse()._check_receipt_identity(vals))
+            elif vals.get('category_id') and not vals.get(
+                    'identification_mode'):
+                # Handoff 60 §1.2: a new asset carries its class's mode
+                # whatever the switch says. Until 60 only a gated receipt was
+                # stamped, so a chair of a `tag_id` class created with the
+                # gates off published `identification_mode: null` (Vendra
+                # report 54 §5.3). STAMPED, not checked: nothing a gates-off
+                # receipt sends is refused that was not refused before.
+                # Records created before 60 keep what they have.
+                category = self.env['nrs.asset.category'].sudo().browse(
+                    _m2o(vals['category_id'])).exists()
+                if category:
+                    vals['identification_mode'] = (
+                        category.identification_mode or 'serial')
         return super().create(vals_list)
 
     # ── a candidate is not on the register (handoff 58, P5) ───────────
@@ -493,8 +546,45 @@ class NRSAssetGates(models.Model):
         held = set(scopes or ())
         if 'admin' in held or '*' in held:
             held |= {S_ASSETS_WRITE, S_VFM_VERIFY, S_VFM_APPROVE,
-                     S_TAGGING_REQUEST, S_REGISTER_MAKE, S_REGISTER_CHECK}
+                     S_TAGGING_REQUEST, S_REGISTER_MAKE, S_REGISTER_CHECK,
+                     S_TAGGING_WRITE}
         return held
+
+    @api.model
+    def _waiting_on_me_domain(self, scopes=None, user=None):
+        """The units waiting on an act this person may do (handoff 60 §2a).
+
+        For each state in `WAITING_ACT` whose act's scope the person holds:
+        the units in that state, LESS those the no-two-gates rule bars them
+        from — a unit on which they fired a different gate. That is the
+        same test `_two_gates_refusal` makes per unit, made here as one query
+        per state, so a badge never counts work its holder cannot do and
+        the barred units stay findable under the plain gate filter, where
+        their row says why. A person holding no gate scope gets a domain
+        that matches nothing.
+        """
+        held = self._gate_scopes(scopes)
+        user = user or self.env.user
+        Event = self.env['nrs.asset.event']
+        Event.flush_model(['asset_id', 'event_type', 'actor_id', 'gate'])
+        self.flush_model(['register_state'])
+        clauses = []
+        for state, (_act, gate, act_scopes) in WAITING_ACT.items():
+            if not set(act_scopes) & held:
+                continue
+            self.env.cr.execute(
+                "SELECT DISTINCT e.asset_id FROM nrs_asset_event e "
+                "JOIN nrs_asset a ON a.id = e.asset_id "
+                "WHERE e.event_type = %s AND e.actor_id = %s "
+                "AND e.gate IS NOT NULL AND e.gate <> %s "
+                "AND a.register_state = %s",
+                (EVENT_GATE_FIRED, user.id, gate, state))
+            barred = [r[0] for r in self.env.cr.fetchall()]
+            clause = Domain('register_state', '=', state)
+            if barred:
+                clause &= Domain('id', 'not in', barred)
+            clauses.append(clause)
+        return Domain.OR(clauses) if clauses else Domain.FALSE
 
     # ── the rule ──────────────────────────────────────────────────────
 
@@ -559,11 +649,39 @@ class NRSAssetGates(models.Model):
                 'reason_required': row['action'] in REASON_REQUIRED,
             })
         events = self._gate_events()
-        since = events[-1:].occurred_at if events else self.create_date
+        # The stored instant the list is sorted by, so what is shown and the
+        # order agree (verification pass); the events for a record that
+        # predates the column.
+        since = self.register_state_since or (
+            events[-1:].occurred_at if events else self.create_date)
         return {
             'waiting_on': WAITING_ON.get(self.register_state),
             'state_since': fields.Datetime.to_string(since) if since else None,
             'available': available,
+            'registration': self._registration_block(),
+        }
+
+    def _registration_block(self):
+        """What the Register Maker submitted, as entered (handoff 60 §2d):
+        the checker reads it on the Candidates row instead of opening each
+        asset. None until a submission — `cost_centre` is written by the
+        `register` gate and nothing else. Its own key: `sap` publishes
+        SAP's side (`sap.capitalisation_date` is SAP's date, another field),
+        and this is the maker's."""
+        self.ensure_one()
+        if not self.cost_centre:
+            return None
+        cat = self.category_id
+        return {
+            'sap_asset_code': self.sap_asset_number or None,
+            'cost': self.acquisition_cost or None,
+            'cost_centre': self.cost_centre,
+            'capitalisation_date': fields.Date.to_string(
+                self.capitalisation_date) if self.capitalisation_date
+            else None,
+            'asset_class': ({'id': cat.id, 'name': cat.name,
+                             'sap_asset_class': cat.sap_asset_class or None}
+                            if cat else None),
         }
 
     # ── THE method ────────────────────────────────────────────────────
@@ -621,7 +739,8 @@ class NRSAssetGates(models.Model):
             gate_action=action, reason=reason,
             notes=json.dumps(notes, sort_keys=True) if notes else None)
         self.with_context(**{_GATE_WRITE_KEY: True}).sudo().write(
-            {'register_state': to})
+            {'register_state': to,
+             'register_state_since': fields.Datetime.now()})
 
     def _in_api(self):
         from odoo.http import request
@@ -640,6 +759,15 @@ class NRSAssetGates(models.Model):
                     'quantity, specification, condition and price.'),
                     'validation_failed', {'field': 'checklist',
                                           'required': list(VERIFY_CHECKLIST)})
+            stored = payload.get('_stored_attachment_ids')
+            if stored:
+                # A batch (handoff 60 §2b): the evidence was checked and
+                # stored ONCE by `_store_gate_evidence`, and every unit's
+                # event links the same attachments. Internal: the HTTP
+                # routes build the payload from named keys, so a body
+                # cannot reach this.
+                return {'checklist': {k: True for k in VERIFY_CHECKLIST},
+                        'attachment_ids': list(stored)}
             files = payload.get('attachments')
             if not isinstance(files, list) or not files:
                 raise GateRefused(_(
@@ -757,14 +885,9 @@ class NRSAssetGates(models.Model):
         if payload.get('notes') and isinstance(payload['notes'], str):
             notes['notes'] = payload['notes'].strip()
         if action == 'verify':
-            Attachment = self.env['ir.attachment'].sudo()
-            ids = []
-            for name, mimetype, data in evidence['files']:
-                vals = {'name': name, 'datas': data,
-                        'res_model': 'nrs.asset', 'res_id': self.id}
-                if mimetype:
-                    vals['mimetype'] = mimetype
-                ids.append(Attachment.create(vals).id)
+            ids = evidence.get('attachment_ids')
+            if ids is None:
+                ids = self._store_gate_evidence(evidence['files']).ids
             notes.update(checklist=evidence['checklist'], attachment_ids=ids)
         elif action == 'register':
             vals = dict(evidence)
@@ -785,6 +908,56 @@ class NRSAssetGates(models.Model):
         elif action == 'resubmit':
             pass
         return notes or None
+
+    @api.model
+    def _validate_gate_evidence(self, checklist, files):
+        """The verify body's checks, for a batch that checks them ONCE
+        (handoff 60 §2b) — the same refusals, in the same words, as one
+        unit's verify. Returns the decoded files."""
+        return self.browse()._gate_validate(
+            'verify', {'checklist': checklist, 'attachments': files})['files']
+
+    def _store_gate_evidence(self, files):
+        """Store verification evidence once, on the first unit of `self`.
+        A batch's units each link these from their own event; one unit's
+        verify stores its own."""
+        Attachment = self.env['ir.attachment'].sudo()
+        stored = Attachment.browse()
+        first = self[:1]
+        for name, mimetype, data in files:
+            vals = {'name': name, 'datas': data, 'res_model': 'nrs.asset',
+                    'res_id': first.id}
+            if len(self) > 1:
+                vals['description'] = _(
+                    'Verification evidence for %d units of GRN %s, verified '
+                    'together') % (len(self), first.grn_reference or '-')
+            if mimetype:
+                vals['mimetype'] = mimetype
+            stored |= Attachment.create(vals)
+        return stored
+
+    def _gate_evidence(self):
+        """The verifications of this unit and their evidence — what the
+        IAD approver reads before approving (handoff 60 §2b). From the
+        `verify` gate events, newest first; an attachment is listed only if
+        one of THIS unit's events names it."""
+        self.ensure_one()
+        Event = self.env['nrs.asset.event'].sudo()
+        events = Event.search(
+            [('asset_id', '=', self.id), ('event_type', '=', EVENT_GATE_FIRED),
+             ('gate_action', '=', 'verify')], order='occurred_at desc, id desc')
+        out = []
+        for ev in events:
+            try:
+                notes = json.loads(ev.notes) if ev.notes else {}
+            except ValueError:
+                notes = {}
+            ids = [i for i in (notes.get('attachment_ids') or [])
+                   if isinstance(i, int)]
+            files = self.env['ir.attachment'].sudo().browse(ids).exists()
+            out.append({'event': ev, 'checklist': notes.get('checklist'),
+                        'notes': notes.get('notes'), 'files': files})
+        return out
 
     def _gate_issue_tag(self):
         """TAG_REQUESTED → TAG_ISSUED, inside request-tagging.

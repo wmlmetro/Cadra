@@ -458,6 +458,22 @@ class NRSAssetGatesSAP(models.Model):
             EVENT_ASSET_MASTER_CREATE)
         return result
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """A unit identified by its SAP record, created ON the register
+        (gates off), sends its master at creation (handoff 60, found by the
+        verification pass). With the gates off the master goes out when a
+        label is affixed (`NRSAssetTagLabelSAP` below) — and since handoff 60
+        such a unit is stamped `record_only` and minted no label, so it would
+        never have gone out at all. A gated one sends it at the checker's
+        approval (`_on_registered`), as every gated unit does."""
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.register_state == 'registered' \
+                    and rec.identification_mode == 'record_only':
+                rec._queue_sap_event(EVENT_ASSET_MASTER_CREATE)
+        return records
+
 
 class NRSAssetTagLabelSAP(models.Model):
     """INT-06 fires on the tag transition, alongside INT-05."""

@@ -7,7 +7,7 @@ import { SCAN_FORMAT_LABELS, type ScanFormat } from "@/lib/scanFormats";
 import {
   fetchBarcodeKpis, fetchBarcodeRecentTags, lookupBarcode,
   fetchUntaggedAssets, generateBarcodes, fetchTag, fetchPendingTagReplacements, fetchAssetTagging,
-  fetchAssetIdentification,
+  fetchAssetIdentification, fetchReceiptGated,
   type BarcodeTag, type BarcodeLookupHit, type BarcodeMatchedBy, type UntaggedAsset, type TagLabel,
   type TagReplacementRaised, type TagReplacementApproved, type AssetTagging, type ConfirmAffixedResult,
 } from "@/lib/dataProvider";
@@ -21,11 +21,14 @@ import {
   RequestTagReplacementDialog, ApproveTagReplacementDialog, RejectTagReplacementDialog,
 } from "@/components/TagReplacementDialogs";
 import { ConfirmAffixedDialog } from "@/components/ConfirmAffixedDialog";
+import {
+  fetchLabelsToFix, labelNumberOf, ageOf, type LabelToFixRow,
+} from "@/lib/labelsToFix";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import {
   ScanBarcode, AlertCircle, Tag, Package, AlertTriangle, XCircle,
   ArrowRight, Search, Printer, Keyboard, Camera, SearchX, Sparkles, Check,
-  RefreshCw, Hourglass,
+  RefreshCw, Hourglass, ListChecks,
 } from "lucide-react";
 import { cn, formatIsoDateTime } from "@/lib/utils";
 
@@ -56,6 +59,10 @@ export default function BarcodeStation() {
   const canRequestReplacement = scopes.has(SCOPE.taggingWrite);
   const canDecideReplacement = scopes.has(SCOPE.approvalsWrite);
   const canTag = scopes.has(SCOPE.taggingWrite);
+  // Handoff 60 §2c: the Labels-to-fix panel reads the Candidates queue, so
+  // it needs `candidates:read` — and it is drawn only on a tenant whose
+  // receipt gates are on, so with the gates off the station is unchanged.
+  const canReadCandidates = scopes.has(SCOPE.candidatesRead);
 
   useEffect(() => {
     setTitle("Barcode Station");
@@ -403,6 +410,7 @@ export default function BarcodeStation() {
       kind: "ok",
       text: `Label ${res.tagging.tag_number} confirmed on ${res.asset.name}${who ? `, fitted by ${who}` : ""}. The asset now reads as tagged.`,
     });
+    readyForNextScan();
   }
 
   function onAffixAlready(t: AssetTagging) {
@@ -410,7 +418,105 @@ export default function BarcodeStation() {
       kind: "warn",
       text: `This label was already confirmed on ${formatIsoDateTime(t.affixed_at)}; nothing was changed.`,
     });
+    readyForNextScan();
   }
+
+  // Handoff 60 §2c: after a confirmation the scan box is EMPTIED and gets
+  // the cursor, so the next trigger pull on a handheld scanner (which types
+  // into whatever has focus, then Enter) looks up the next unit instead of
+  // appending to the last number. Until 60 the box got its old query back
+  // on close and focus went nowhere, so every unit cost a click into the box
+  // and a select-and-delete. The card stays — it shows the record just made.
+  //
+  // The focus itself happens when the dialog has finished closing
+  // (`onCloseAutoFocus` below): Radix moves focus on close, after its exit
+  // animation, and would otherwise take it away again. In the "already"
+  // case the dialog stays open on its result until Close, and the same hook
+  // fires then.
+  const focusScanOnClose = useRef(false);
+  function readyForNextScan() {
+    setQuery("");
+    setScanFormat(null);
+    focusScanOnClose.current = true;
+    // A confirmed affix moves a gated unit from `tag_requested` to `tagged`:
+    // it leaves the Labels-to-fix panel and the Candidates queue, and the
+    // asset page's gate block and the sidebar badge change with it.
+    qc.invalidateQueries({ queryKey: ["candidates"] });
+    qc.invalidateQueries({ queryKey: ["asset-gates"] });
+    qc.invalidateQueries({ queryKey: ["candidates-badge"] });
+  }
+  function onAffixDialogCloseFocus(e: Event) {
+    if (!focusScanOnClose.current) return;
+    focusScanOnClose.current = false;
+    e.preventDefault();
+    scanBoxRef.current?.focus();
+  }
+
+  // ── Labels to fix (handoff 60 §2c) ────────────────────────────────────
+  //
+  // The gated units whose label is minted and not yet confirmed on the
+  // asset, oldest first, so a tagger prints a run of labels in one go
+  // instead of looking each unit up. Rows deliberately carry no tag number
+  // or asset code (the label number IS the asset code for a gated unit):
+  // the Architect's ruling hides it on the Candidates `tagging` tab so the
+  // number in the confirm dialog comes off the physical label, and this
+  // list must not hand over what that tab withholds. The number is on the
+  // printed label, which is the point of printing it.
+  const gated = useQuery({
+    queryKey: ["receipt-gated"],
+    queryFn: fetchReceiptGated,
+    staleTime: 5 * 60_000,
+    enabled: canReadCandidates,
+  });
+  const showLabelsToFix = canReadCandidates && gated.data === true;
+  // The panel's own filter: one delivery's labels, by GRN or name.
+  const [fixFilterTyped, setFixFilterTyped] = useState("");
+  const [fixFilter, setFixFilter] = useState("");
+  useEffect(() => {
+    const t = window.setTimeout(() => setFixFilter(fixFilterTyped.trim()), 250);
+    return () => window.clearTimeout(t);
+  }, [fixFilterTyped]);
+  const labelsToFix = useQuery({
+    // Under "candidates" so a gate fired anywhere refreshes it; the second
+    // element is not a gate name, so it never meets the Candidates page's
+    // own infinite query of a different shape.
+    queryKey: ["candidates", "labels-to-fix", fixFilter],
+    queryFn: () => fetchLabelsToFix(fixFilter),
+    staleTime: 15_000,
+    enabled: showLabelsToFix,
+  });
+  const fixRows = labelsToFix.data?.rows ?? [];
+  const fixPrintable = useMemo(() => fixRows.filter((r) => labelNumberOf(r)), [fixRows]);
+  const [fixSelected, setFixSelected] = useState<Set<number>>(new Set());
+  const fixSelectedRows = useMemo(
+    () => fixPrintable.filter((r) => fixSelected.has(r.id)),
+    [fixPrintable, fixSelected],
+  );
+  const allFixSelected = fixPrintable.length > 0 && fixSelectedRows.length === fixPrintable.length;
+  function toggleFix(id: number) {
+    setFixSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function toggleAllFix() {
+    setFixSelected(allFixSelected ? new Set() : new Set(fixPrintable.map((r) => r.id)));
+  }
+  const printLabelsToFix = () =>
+    print(fixSelectedRows.map((r) => ({
+      tag_number: labelNumberOf(r)!,
+      asset_name: r.name,
+      location: r.current_location?.name,
+      floor_room: r.floor_room || floorRoomFromTag(labelNumberOf(r)!),
+    })));
+  // Ages re-render once a minute; nothing is refetched by it.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!showLabelsToFix) return;
+    const t = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(t);
+  }, [showLabelsToFix]);
 
   const printNewTag = () =>
     printableNewTag && print([{
@@ -489,7 +595,8 @@ export default function BarcodeStation() {
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
             {/* Emptied while the confirm dialog is open: when the lookup was
                 by tag, this box IS the expected number. The query itself is
-                kept, so nothing is lost on close. */}
+                kept, so nothing is lost on a Cancel; after a confirmation it
+                is cleared and the box focused for the next unit (handoff 60). */}
             <input
               autoFocus
               ref={scanBoxRef}
@@ -593,7 +700,10 @@ export default function BarcodeStation() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-[11px]">
-              <Field label="Asset code" value={hit.asset_code} mono />
+              {/* Handoff 60 §2c: for a gated unit the label number IS the
+                  asset code, so while the confirm dialog is open this field
+                  is covered like the tag line above, not only blurred. */}
+              <Field label="Asset code" value={affixOpen ? "Hidden while you confirm" : hit.asset_code} mono={!affixOpen} />
               <Field label="Serial number" value={hit.serial_number} mono />
               <Field label="Category"   value={hit.category} />
               <Field label="Domain"     value={domainLabelOf(hit.domain)} />
@@ -694,6 +804,30 @@ export default function BarcodeStation() {
           </div>
         )}
       </div>
+
+      {showLabelsToFix && (
+        <LabelsToFixPanel
+          rows={fixRows}
+          loading={labelsToFix.isLoading}
+          error={labelsToFix.error as CadraApiError | null}
+          totalEstimate={labelsToFix.data?.totalEstimate ?? null}
+          more={labelsToFix.data?.more ?? false}
+          now={now}
+          selected={fixSelected}
+          selectedCount={fixSelectedRows.length}
+          allSelected={allFixSelected}
+          printableCount={fixPrintable.length}
+          onToggle={toggleFix}
+          onToggleAll={toggleAllFix}
+          onPrint={() => void printLabelsToFix()}
+          onOpen={(id) => nav(`/assets/${id}`)}
+          size={size}
+          onSize={setSize}
+          filter={fixFilterTyped}
+          onFilter={setFixFilterTyped}
+          filtering={fixFilter}
+        />
+      )}
 
       {/* Tag replacements waiting on a decision */}
       <div className="bg-card border border-border rounded-2xl p-5" data-testid="pending-replacements">
@@ -978,6 +1112,7 @@ export default function BarcodeStation() {
           onOpenChange={setAffixOpen}
           onConfirmed={onAffixConfirmed}
           onAlready={onAffixAlready}
+          onCloseAutoFocus={onAffixDialogCloseFocus}
         />
       )}
       {hit && hit.tag_id && (
@@ -1005,6 +1140,167 @@ export default function BarcodeStation() {
           onRejected={() => onReplacementRejected(deciding.tag)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * The Labels-to-fix panel (handoff 60 §2c). One page of the oldest units
+ * waiting on tagging, a checkbox each and a select-all, feeding the same
+ * batch print as Recent tags. The count is the server's `total_estimate`,
+ * and when the page is not all of it the panel says so rather than letting
+ * 100 rows read as everything.
+ */
+function LabelsToFixPanel({
+  rows, loading, error, totalEstimate, more, now, selected, selectedCount, allSelected,
+  printableCount, onToggle, onToggleAll, onPrint, onOpen, size, onSize,
+  filter, onFilter, filtering,
+}: {
+  filter: string;
+  onFilter: (v: string) => void;
+  /** The filter the rows were fetched with (debounced). */
+  filtering: string;
+  rows: LabelToFixRow[];
+  loading: boolean;
+  error: CadraApiError | null;
+  totalEstimate: number | null;
+  more: boolean;
+  now: number;
+  selected: Set<number>;
+  selectedCount: number;
+  allSelected: boolean;
+  printableCount: number;
+  onToggle: (id: number) => void;
+  onToggleAll: () => void;
+  onPrint: () => void;
+  onOpen: (id: number) => void;
+  size: LabelSize;
+  onSize: (v: LabelSize) => void;
+}) {
+  const total = totalEstimate ?? rows.length;
+  const truncated = more || (totalEstimate != null && totalEstimate > rows.length);
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5" data-testid="labels-to-fix">
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+        <div>
+          <h2 className="text-[13px] font-bold inline-flex items-center gap-1.5">
+            <ListChecks size={13} className="text-primary" /> Labels to fix
+          </h2>
+          <p className="text-[11px] text-muted-foreground mt-0.5" data-testid="labels-to-fix-count">
+            {loading
+              ? "Counting…"
+              : truncated && totalEstimate == null
+              ? `More than ${rows.length} waiting — showing the ${rows.length} oldest. The rest are on Candidates.`
+              : truncated
+              ? `${total.toLocaleString()} waiting — showing the ${rows.length} oldest of ${total.toLocaleString()}. The rest are on Candidates.`
+              : `${total.toLocaleString()} waiting`}
+            {filtering && <> matching “{filtering}”</>}
+            {selectedCount > 0 && ` · ${selectedCount} selected`}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Units whose label has been issued and not yet confirmed on the asset, longest waiting first.
+            Print them, fit them, then scan each one with <span className="font-semibold">Confirm affixed</span>.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={filter}
+            onChange={(e) => onFilter(e.target.value)}
+            placeholder="GRN, PO or name"
+            aria-label="Filter the labels to fix by GRN, PO or name"
+            data-testid="labels-to-fix-filter"
+            className="px-2.5 py-1.5 rounded-xl border border-border bg-background text-[11px] w-40"
+          />
+          <SizePicker value={size} onChange={onSize} />
+          <button
+            type="button"
+            onClick={onPrint}
+            disabled={selectedCount === 0}
+            data-testid="button-print-labels-to-fix"
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold",
+              selectedCount
+                ? "bg-primary text-white hover:opacity-90"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
+          >
+            <Printer size={12} />
+            {selectedCount ? `Print ${selectedCount} label${selectedCount > 1 ? "s" : ""}` : "Print labels"}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-[12px] text-red-700 dark:text-red-400 py-2">
+          <span className="font-semibold">{error.code}:</span> {error.message}
+        </p>
+      )}
+
+      {loading ? (
+        <p className="text-[12px] text-muted-foreground py-4 text-center">Loading…</p>
+      ) : rows.length === 0 && !error ? (
+        <p className="text-[12px] text-muted-foreground py-4 text-center inline-flex items-center gap-1.5 w-full justify-center" data-testid="labels-to-fix-empty">
+          <Check size={12} className="text-green-600 dark:text-green-400" /> No labels waiting to be fixed — nothing is waiting on tagging.
+        </p>
+      ) : rows.length > 0 ? (
+        <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
+          <table className="w-full min-w-[720px]">
+            <thead className="sticky top-0 bg-card">
+              <tr className="border-b border-border">
+                <th className="w-8 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    aria-label="Select every label shown"
+                    checked={allSelected}
+                    disabled={printableCount === 0}
+                    onChange={onToggleAll}
+                    data-testid="labels-to-fix-select-all"
+                    className="accent-primary cursor-pointer"
+                  />
+                </th>
+                {["Asset", "GRN", "Category", "Location", "Label", "Waiting"].map((h) => (
+                  <th key={h} className="text-left px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const printable = Boolean(labelNumberOf(r));
+                const checked = printable && selected.has(r.id);
+                return (
+                  <tr
+                    key={r.id}
+                    className={cn("border-b border-border/40 hover:bg-muted/20", checked && "bg-primary/5")}
+                    data-testid={`labels-to-fix-row-${r.id}`}
+                  >
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select the label for ${r.name}`}
+                        checked={checked}
+                        disabled={!printable}
+                        onChange={() => onToggle(r.id)}
+                        data-testid={`labels-to-fix-check-${r.id}`}
+                        className="accent-primary cursor-pointer"
+                      />
+                    </td>
+                    <td onClick={() => onOpen(r.id)} className="px-3 py-2 text-[12px] truncate max-w-[220px] cursor-pointer">{r.name}</td>
+                    <td onClick={() => onOpen(r.id)} className="px-3 py-2 text-[12px] font-mono text-muted-foreground cursor-pointer">{r.provenance?.grn_reference || "—"}</td>
+                    <td onClick={() => onOpen(r.id)} className="px-3 py-2 text-[12px] text-muted-foreground truncate max-w-[140px] cursor-pointer">{r.category?.name || "—"}</td>
+                    <td onClick={() => onOpen(r.id)} className="px-3 py-2 text-[12px] truncate max-w-[180px] cursor-pointer">{r.current_location?.name || "—"}</td>
+                    <td onClick={() => onOpen(r.id)} className="px-3 py-2 text-[11px] text-muted-foreground cursor-pointer">
+                      {printable
+                        ? (LABEL_STATE_WORDS[r.tagging?.label_state ?? ""] ?? (r.tagging?.label_state || "Label issued"))
+                        : "No label minted yet"}
+                    </td>
+                    <td onClick={() => onOpen(r.id)} className="px-3 py-2 text-[12px] text-muted-foreground whitespace-nowrap cursor-pointer">{ageOf(r.gates?.state_since, now)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -183,7 +183,12 @@ def test_with_the_switch_off_nothing_is_asked_of_a_receipt(client, admin_scope):
         a = assert_envelope_ok(client.post("/api/v1/assets", json={
             "name": _uniq("pytest-58-off"), "category_id": 1}), 201)["data"]
         assert a["register_state"] == "registered"
-        assert a["identification_mode"] is None
+        # Nothing is ASKED — but since handoff 60 (§1.2) the unit carries
+        # its class's mode, stamped, whatever the switch says.
+        assert a["identification_mode"] == (
+            next(c for c in assert_envelope_ok(client.get(
+                "/api/v1/asset-categories"))["data"] if c["id"] == 1)
+            ["identification_mode"])
     finally:
         assert_envelope_ok(client.patch(SETTINGS_GATE, json={"enabled": was}))
 

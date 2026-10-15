@@ -560,6 +560,10 @@ def ensure_test_client():
 
 TAGGING_CLIENT_ID_DEFAULT = "tag_issuing_unit"
 VENDRA_CLIENT_ID_DEFAULT = "vendra"
+#: What Vendra may do. `myservice_api`'s 19.0.3.32.0 migration adds
+#: `candidates:read` to every existing Vendra client, so an existing client
+#: and a new one hold the same scopes — keep the two in step.
+VENDRA_CLIENT_SCOPES = "assets:read assets:write candidates:read"
 
 
 def _ensure_scoped_client(*, name, default_client_id, scopes,
@@ -644,11 +648,19 @@ def ensure_vendra_client():
     Deliberately WITHOUT `tagging:write`: Vendra hands over a classified
     receipt, it does not put labels on things. If Vendra could confirm a tag
     affixed, the affix record would prove only that Vendra said so.
+
+    `candidates:read` since handoff 60 (§1.1): with the receipt gates on, a
+    receipt Vendra hands over is a CANDIDATE, and Vendra asks Cadra where
+    each of its units is (`GET /assets?register_state=any`). Without the
+    scope it saw a unit only once registered, and never a rejection (Vendra
+    report 55). Read only. Existing clients receive it from the
+    `myservice_api` 19.0.3.32.0 migration, so the two lists agree and a
+    later bootstrap does not narrow it away.
     """
     return _ensure_scoped_client(
         name="Vendra (INT-03)",
         default_client_id=VENDRA_CLIENT_ID_DEFAULT,
-        scopes="assets:read assets:write",
+        scopes=VENDRA_CLIENT_SCOPES,
         id_env="CADRA_VENDRA_CLIENT_ID",
         secret_env="CADRA_VENDRA_CLIENT_SECRET",
     )

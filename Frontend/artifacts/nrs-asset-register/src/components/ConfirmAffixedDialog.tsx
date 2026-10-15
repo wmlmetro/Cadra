@@ -149,11 +149,16 @@ interface Props {
   onConfirmed?: (res: ConfirmAffixedResult) => void;
   /** The label was already affixed; nothing was written. */
   onAlready?: (tagging: AssetTagging) => void;
+  /** Radix's close-focus hook, passed through (handoff 60 §2c): the station
+   *  calls `preventDefault()` and puts the cursor in its scan box after a
+   *  confirmation, so the next handheld scan lands there and not on the
+   *  button that opened the dialog. Unset, the dialog behaves as before. */
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 export function ConfirmAffixedDialog({
   assetId, assetName, hasSerialOnFile, identificationMode, attributes,
-  open, onOpenChange, onConfirmed, onAlready,
+  open, onOpenChange, onConfirmed, onAlready, onCloseAutoFocus,
 }: Props) {
   const qc = useQueryClient();
   const byTag = identificationMode === "tag_id";
@@ -278,7 +283,7 @@ export function ConfirmAffixedDialog({
           found Confirm scrolled out of sight below it. The header and the
           footer stay put; the fields and the preview scroll between them.
           (A sticky footer was tried first and floated over the form.) */}
-      <DialogContent className="sm:max-w-md max-h-[calc(100vh-2rem)] flex flex-col" data-testid="dialog-confirm-affixed">
+      <DialogContent className="sm:max-w-md max-h-[calc(100vh-2rem)] flex flex-col" data-testid="dialog-confirm-affixed" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Tag size={16} className="text-primary" /> Confirm the label is on the asset

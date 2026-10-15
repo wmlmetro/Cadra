@@ -20,7 +20,7 @@ which, and the unit remembers the mode it arrived under:
   because a land title is not a manufacturer's serial and a value there
   would be compared against every serial on the register — and no label,
   ever: the two tagging gates are skipped, not fired (`asset_gates`). The
-  class's attributes (by default the description and a `reference` — title
+  class's attributes (by default the description and a `record_reference` — title
   or plot number, licence key or contract) and the asset code assigned at
   creation are its identity.
 
@@ -34,6 +34,10 @@ sends is checked that was not checked before handoff 58 (§7).
 A change of a class's mode affects NEW receipts only (AD-31): the unit's
 `identification_mode` is stamped at receipt and never recomputed, so a
 candidate already in the chain keeps the check it arrived with.
+Since handoff 60 (§1.2) a unit created with the gates OFF is stamped too,
+from its class — stamped only, none of the rules above is applied to it — so
+a chair of a `tag_id` class publishes `tag_id` and is affixed on its label
+and the attributes tick. Records created before 60 keep what they have.
 
 A change of a class's mode or schema is a CONFIGURATION change, and the
 configuration record (`GET /reports/configuration-changes`) reads
@@ -76,7 +80,8 @@ CAPTURABLE_FIELDS = {
     'dimensions': 'dimensions',
     # Handoff 59 §2: what identifies a `record_only` unit beside its
     # description — a title or plot number, a licence key or a contract.
-    'reference': 'reference (title or plot number, licence key or contract)',
+    'record_reference': 'record reference (title or plot number, licence key '
+                        'or contract)',
 }
 #: The schema each mode has until somebody sets one for the class.
 DEFAULT_MANDATORY = {
@@ -84,7 +89,7 @@ DEFAULT_MANDATORY = {
     MODE_TAG_ID: ('name', 'make', 'model_name', 'colour', 'material',
                   'dimensions'),
     MODE_POOL: (),
-    MODE_RECORD_ONLY: ('name', 'reference'),
+    MODE_RECORD_ONLY: ('name', 'record_reference'),
 }
 
 CONFIG_KEY = 'cadra.class_identification.%d'
@@ -256,7 +261,12 @@ class NRSAssetIdentification(models.Model):
     # What identifies a `record_only` unit beside its description (handoff
     # 59 §2): a title or plot number, a licence key, a contract. Not tracked,
     # for the reason above.
-    reference = fields.Char(
+    # `record_reference` since handoff 60 (ruling 7): handoff 59 called it
+    # `reference`, beside two other published `reference` keys with other
+    # meanings (a move's transfer, a disposal's) — the defect handoff 37's
+    # one-name rule exists for. Renamed before anything outside Cadra read it;
+    # the 19.0.1.29.0 pre-migration renames the column.
+    record_reference = fields.Char(
         'Record Reference',
         help='Title or plot number for land, licence key or contract for '
              'software — what identifies an asset that carries no label.')
@@ -266,8 +276,9 @@ class NRSAssetIdentification(models.Model):
          (MODE_RECORD_ONLY, RECORD_ONLY_LABEL)],
         string='Received As', readonly=True, copy=False,
         help='The identification mode of this unit\'s class when it was '
-             'RECEIVED through the receipt gates. Fixed at receipt (AD-31). '
-             'Empty for anything received with the gates off.')
+             'created — through the receipt gates or, since handoff 60, '
+             'with them off. Fixed at creation (AD-31). Empty only on '
+             'records created with the gates off before handoff 60.')
 
     def write(self, vals):
         """A unit still in the chain keeps what identified it at receipt
@@ -297,7 +308,7 @@ class NRSAssetIdentification(models.Model):
                     _('%(cls)s is identified by its SAP record and carries no '
                       'serial number; send the unit without one (its title, '
                       'plot number, licence key or contract goes in '
-                      '`reference`).', cls=category.name),
+                      '`record_reference`).', cls=category.name),
                     'validation_failed', {'field': 'serial_number',
                                           'identification_mode': mode})
             if serial and serial_placeholders.is_placeholder(self.env, serial):
@@ -351,7 +362,7 @@ class NRSAssetIdentification(models.Model):
             raise GateRefused(
                 _('%(cls)s is identified by its SAP record and carries no '
                   'serial number; send the unit without one (its title, plot '
-                  'number, licence key or contract goes in `reference`).',
+                  'number, licence key or contract goes in `record_reference`).',
                   cls=category.name), 'validation_failed',
                 {'field': 'serial_number', 'identification_mode': mode,
                  'category_id': category.id})

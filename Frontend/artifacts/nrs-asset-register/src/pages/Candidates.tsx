@@ -10,14 +10,30 @@
  * tonight). The filter opens on the signed-in person's own gate, derived from
  * the scopes their roles give them, so an IAD approver opens on *waiting on
  * IAD approver* without choosing it.
+ *
+ * Handoff 60 §2 — seventy a day:
+ *   - *Waiting on me* is the first tab and the default for anybody holding a
+ *     gate: the server's `waiting_on_me`, which lists only units this person
+ *     MAY act on (the no-two-gates rule applied). The plain gate tabs still
+ *     list everything waiting at that gate, so a barred unit stays findable
+ *     there, with its sentence.
+ *   - Oldest first (`sort=oldest`, by the time the unit entered its present
+ *     state), with the age on every row.
+ *   - The search box at the top searches this list on the server (name,
+ *     asset code, tag, serial, GRN, PO).
+ *   - Checkboxes and a batch action on the IAD officer's, the IAD approver's
+ *     and the Register Checker's tabs (`CandidateBatch.tsx`); a paste box on
+ *     the Register Maker's; the approver opens what IAD saw from the row.
+ *   - On the Tagging tab the asset code is NOT shown: the label's number is
+ *     the asset code, and the tagger must read it off the label in hand.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
-  fetchCandidatesPage, fetchReceiptGated, IDENTIFICATION_MODE_SHORT,
-  type CandidatesPage, type GateWaitingOn,
+  fetchCandidatesPage, fetchReceiptGated, IDENTIFICATION_MODE_SHORT, GATE_BATCH_MAX,
+  type CandidateRow, type CandidatesPage, type GateAction, type GateBatchAnswer, type GateWaitingOn,
 } from "@/lib/dataProvider";
 import { CadraApiError } from "@/lib/api";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
@@ -27,7 +43,11 @@ import {
 } from "@/components/GateActions";
 import { useScopes, SCOPE, type Scopes } from "@/hooks/use-scopes";
 import { cn } from "@/lib/utils";
-import { AlertCircle, Clock, Inbox } from "lucide-react";
+import {
+  BatchApproveDialog, BatchResultsDialog, BatchVerifyDialog, PasteRegisterDialog, RowEvidenceDialog,
+  invalidateAfterBatch,
+} from "@/components/CandidateBatch";
+import { AlertCircle, ClipboardPaste, Clock, Inbox, Paperclip } from "lucide-react";
 
 const WAITING_ON_ORDER: GateWaitingOn[] = [
   "store", "iad", "iad_approver", "controller", "tagging", "maker", "checker",
@@ -51,6 +71,27 @@ export function ownGate(scopes: Scopes): GateWaitingOn | "" {
   return "";
 }
 
+/** A tab: a gate, `""` for everybody, or `"mine"` — waiting on an act this
+ *  person may do. */
+type Filter = GateWaitingOn | "" | "mine";
+
+/** Whether this person keeps any gate — then the page opens on *Waiting on
+ *  me*. The gate scopes, and nothing else; the wildcard holds them all. */
+function holdsAGate(scopes: Scopes): boolean {
+  return [
+    SCOPE.assetsWrite, SCOPE.vfmVerify, SCOPE.vfmApprove, SCOPE.taggingRequest,
+    SCOPE.taggingWrite, SCOPE.registerMake, SCOPE.registerCheck,
+  ].some(s => scopes.has(s));
+}
+
+/** The batch on each gate's tab (handoff 60 §2b, §2d). The maker's batch is
+ *  the paste box, not a selection. */
+const BATCH_FOR: Partial<Record<GateWaitingOn, "verify" | "approve" | "approve-registration">> = {
+  iad: "verify",
+  iad_approver: "approve",
+  checker: "approve-registration",
+};
+
 /** "3 h", "2 d" — how long the unit has sat in its current state. The
  *  server's datetimes are UTC with no zone. */
 function ageOf(iso: string | null | undefined, now: number): string {
@@ -64,33 +105,56 @@ function ageOf(iso: string | null | undefined, now: number): string {
   return `${Math.round(hours / 24)} d`;
 }
 
-function initialFilter(scopes: Scopes): GateWaitingOn | "" {
+function initialFilter(scopes: Scopes): Filter {
   try {
     const q = new URLSearchParams(window.location.search).get("waiting_on");
     if (q === "" || q === "all") return "";
+    if (q === "mine") return "mine";
     if (q && (WAITING_ON_ORDER as string[]).includes(q)) return q as GateWaitingOn;
   } catch { /* no window in a test renderer */ }
-  return ownGate(scopes);
+  return holdsAGate(scopes) ? "mine" : "";
 }
 
 export default function Candidates() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const scopes = useScopes();
-  const [waitingOn, setWaitingOn] = useState<GateWaitingOn | "">(() => initialFilter(scopes));
+  const [waitingOn, setWaitingOn] = useState<Filter>(() => initialFilter(scopes));
   const canRead = scopes.has(SCOPE.candidatesRead);
+  const qc = useQueryClient();
+
+  // The top bar's search box, on this list (handoff 60 §2a). Debounced a
+  // little: every keystroke is a server search.
+  // Starts from `?q=`, so Back from an asset opened here returns to the
+  // same search — in the list AND in the box (the box is seeded with it).
+  const [initialQ] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("q") ?? ""; }
+    catch { return ""; }
+  });
+  const [typed, setTyped] = useState(initialQ);
+  const [search, setSearch] = useState(initialQ.trim());
+  useEffect(() => {
+    const t = window.setTimeout(() => setSearch(typed.trim()), 250);
+    return () => window.clearTimeout(t);
+  }, [typed]);
 
   useEffect(() => {
     setTitle("Candidates");
-    setSearchHandler(undefined);
-  }, [setTitle, setSearchHandler]);
+    setSearchHandler((q) => setTyped(q), initialQ);
+    return () => setSearchHandler(undefined);
+  }, [setTitle, setSearchHandler, initialQ]);
 
   const {
     data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage,
   } = useInfiniteQuery<CandidatesPage, CadraApiError>({
-    // The filter is in the key: the API records the domain in the cursor.
-    queryKey: ["candidates", waitingOn],
-    queryFn: ({ pageParam }) => fetchCandidatesPage(
-      pageParam as string | undefined, { waitingOn: waitingOn || undefined }),
+    // The filter, search and order are in the key: the API records the
+    // domain and the walk direction in the cursor.
+    queryKey: ["candidates", waitingOn, search, "oldest"],
+    queryFn: ({ pageParam }) => fetchCandidatesPage(pageParam as string | undefined, {
+      waitingOn: waitingOn && waitingOn !== "mine" ? waitingOn : undefined,
+      waitingOnMe: waitingOn === "mine" || undefined,
+      q: search || undefined,
+      sort: "oldest",
+    }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     staleTime: 15_000,
@@ -105,6 +169,17 @@ export default function Candidates() {
     staleTime: 5 * 60_000,
     enabled: canRead,
   });
+
+  // A selection belongs to the list it was made on: a new tab or a new
+  // search starts with none.
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  useEffect(() => { setSelected(new Set()); }, [waitingOn, search]);
+  const [batchOpen, setBatchOpen] = useState<"verify" | "approve" | "approve-registration" | "paste" | null>(null);
+  // The units a batch dialog acts on are taken WHEN IT OPENS: a refresh
+  // behind it must not change what the person is confirming.
+  const [batchRows, setBatchRows] = useState<CandidateRow[]>([]);
+  const [answer, setAnswer] = useState<GateBatchAnswer | null>(null);
+  const [evidenceFor, setEvidenceFor] = useState<CandidateRow | null>(null);
 
   // Re-render the ages once a minute; nothing is refetched by it.
   const [now, setNow] = useState(() => Date.now());
@@ -130,6 +205,39 @@ export default function Candidates() {
   }
 
   const mine = ownGate(scopes);
+  // Whose gate this tab is: the tab's own, or on *Waiting on me* the
+  // person's. The batch, the hidden code and the checker's columns follow it.
+  const tabGate: GateWaitingOn | "" = waitingOn === "mine" ? mine : waitingOn;
+  const batchAction = tabGate ? BATCH_FOR[tabGate] : undefined;
+  const hideCodeOn = (r: CandidateRow) =>
+    waitingOn === "tagging" || (waitingOn === "mine" && r.gates?.waiting_on === "tagging");
+  const showChecker = tabGate === "checker";
+  const showPaste = tabGate === "maker" && scopes.has(SCOPE.registerMake);
+  const selectable = (r: CandidateRow) => !!batchAction
+    && (r.gates?.available ?? []).some(a => a.action === (batchAction as GateAction) && a.can_fire);
+  const selectableRows = rows.filter(selectable);
+  const selectedRows = rows.filter(r => selected.has(r.id) && selectable(r));
+  const allVisibleSelected = selectableRows.length > 0 && selectableRows.every(r => selected.has(r.id));
+  const toggle = (id: number) => setSelected(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  /** One click selects every unit of a receipt that is shown and can be
+   *  acted on — the selection one verification covers. */
+  const selectReceipt = (grn: string) =>
+    setSelected(new Set(selectableRows.filter(r => r.provenance?.grn_reference === grn).map(r => r.id)));
+  const tabValue = waitingOn || "all";
+  const openBatch = (which: "verify" | "approve" | "approve-registration") => {
+    setBatchRows(selectedRows);
+    setBatchOpen(which);
+  };
+  const finished = (a: GateBatchAnswer) => {
+    setBatchOpen(null);
+    setSelected(new Set());
+    setAnswer(a);
+    invalidateAfterBatch(qc, a);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -153,13 +261,14 @@ export default function Candidates() {
 
         <div className="flex gap-1 mt-3 flex-wrap items-center" role="tablist" aria-label="Waiting on">
           <span className="text-[11px] text-muted-foreground mr-1">Waiting on</span>
-          {(["", ...WAITING_ON_ORDER] as const).map(k => (
+          {([...(holdsAGate(scopes) ? ["mine" as const] : []), "", ...WAITING_ON_ORDER] as Filter[]).map(k => (
             <button
               key={k || "all"}
               role="tab"
               aria-selected={waitingOn === k}
               onClick={() => setWaitingOn(k)}
               data-testid={`filter-waiting-${k || "all"}`}
+              title={k === "mine" ? "Only the units you may act on now" : undefined}
               className={cn(
                 "px-3 py-1.5 text-xs font-semibold rounded-xl border transition-colors",
                 waitingOn === k
@@ -167,15 +276,65 @@ export default function Candidates() {
                   : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              {k ? WAITING_ON_WORDS[k] : "Anybody"}
-              {k && k === mine && <span className="ml-1 opacity-70">(you)</span>}
+              {k === "mine" ? "Waiting on me" : k ? WAITING_ON_WORDS[k] : "Anybody"}
+              {k && k !== "mine" && k === mine && <span className="ml-1 opacity-70">(you)</span>}
             </button>
           ))}
           <p className="ml-auto text-[11px] text-muted-foreground" data-testid="candidates-count">
             <span className="font-bold text-foreground">{rows.length.toLocaleString()}</span>
             {total != null && <> of <span className="font-bold text-foreground">{total.toLocaleString()}</span></>}
+            {search && <> matching “{search}”</>}
+            <span className="ml-1">· oldest first</span>
           </p>
         </div>
+
+        {(batchAction || showPaste) && (
+          <div className="flex gap-2 mt-2 flex-wrap items-center" data-testid="batch-bar">
+            {batchAction && (<>
+              <span className="text-[11px] text-muted-foreground" data-testid="batch-selected-count">
+                <span className="font-bold text-foreground">{selectedRows.length}</span> selected
+              </span>
+              {batchAction === "verify" && (
+                <BatchButton testid="button-batch-verify" n={selectedRows.length} onClick={() => openBatch("verify")}>
+                  Verify selected
+                </BatchButton>
+              )}
+              {batchAction === "approve" && (
+                <BatchButton testid="button-batch-approve" n={selectedRows.length} onClick={() => openBatch("approve")}>
+                  Approve selected
+                </BatchButton>
+              )}
+              {batchAction === "approve-registration" && (
+                <BatchButton testid="button-batch-approve-registration" n={selectedRows.length}
+                  onClick={() => openBatch("approve-registration")}>
+                  Approve selected
+                </BatchButton>
+              )}
+              {selectedRows.length > 0 && (
+                <button type="button" onClick={() => setSelected(new Set())}
+                  className="text-[11px] text-muted-foreground hover:text-foreground" data-testid="button-clear-selection">
+                  Clear
+                </button>
+              )}
+              {selectedRows.length > GATE_BATCH_MAX && (
+                <span className="text-[11px] text-amber-700 dark:text-amber-400">
+                  A batch takes at most {GATE_BATCH_MAX} units.
+                </span>
+              )}
+              <span className="text-[11px] text-muted-foreground">
+                {batchAction === "verify"
+                  ? "One verification covers one receipt: click a GRN to select its units, or type the GRN into the search box at the top."
+                  : "Only units you may act on can be selected; a unit the rules bar you from says why in its row."}
+              </span>
+            </>)}
+            {showPaste && (
+              <button type="button" onClick={() => setBatchOpen("paste")} data-testid="button-paste-sap"
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5">
+                <ClipboardPaste size={13} /> Paste SAP codes
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -195,7 +354,11 @@ export default function Candidates() {
           <div className="flex flex-col items-center justify-center py-20 gap-3 px-6 text-center" data-testid="candidates-empty">
             <Inbox size={24} className="text-muted-foreground/30" />
             <p className="text-sm font-semibold">
-              {waitingOn ? `Nothing is waiting on the ${WAITING_ON_WORDS[waitingOn]}.` : "No received unit is waiting to join the register."}
+              {search
+                ? `No unit on this tab matches “${search}”.`
+                : waitingOn === "mine"
+                  ? "Nothing is waiting on you."
+                  : waitingOn ? `Nothing is waiting on the ${WAITING_ON_WORDS[waitingOn]}.` : "No received unit is waiting to join the register."}
             </p>
             {waitingOn && (
               <p className="text-xs text-muted-foreground max-w-md">
@@ -207,26 +370,87 @@ export default function Candidates() {
           <table className="w-full text-xs" data-testid="candidates-table">
             <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground sticky top-0">
               <tr>
-                <th className="text-left font-semibold px-5 py-2">Unit</th>
+                {batchAction && (
+                  <th className="pl-5 pr-1 py-2 w-6">
+                    <input
+                      type="checkbox"
+                      className="accent-primary"
+                      aria-label="Select every unit shown that you may act on"
+                      title="Select every unit shown that you may act on"
+                      checked={allVisibleSelected}
+                      disabled={selectableRows.length === 0}
+                      onChange={e => setSelected(e.target.checked ? new Set(selectableRows.map(r => r.id)) : new Set())}
+                      data-testid="select-all-visible"
+                    />
+                  </th>
+                )}
+                <th className={cn("text-left font-semibold py-2", batchAction ? "px-3" : "px-5")}>
+                  Unit
+                  {waitingOn === "tagging" && (
+                    <span className="block normal-case tracking-normal font-normal" data-testid="unit-code-hidden">
+                      code hidden — read it off the label
+                    </span>
+                  )}
+                </th>
                 <th className="text-left font-semibold px-3 py-2">State</th>
                 <th className="text-left font-semibold px-3 py-2">Mode</th>
                 <th className="text-left font-semibold px-3 py-2">PO</th>
                 <th className="text-left font-semibold px-3 py-2">GRN</th>
                 <th className="text-left font-semibold px-3 py-2">Serial / reference</th>
-                <th className="text-left font-semibold px-3 py-2">In state</th>
+                {showChecker && (<>
+                  <th className="text-left font-semibold px-3 py-2">SAP code</th>
+                  <th className="text-right font-semibold px-3 py-2">Cost</th>
+                  <th className="text-left font-semibold px-3 py-2">Cost centre</th>
+                  <th className="text-left font-semibold px-3 py-2">Class</th>
+                </>)}
+                <th className="text-left font-semibold px-3 py-2" title="How long the unit has been in its present state. Oldest first.">
+                  In state ↓
+                </th>
                 <th className="text-left font-semibold px-3 py-2">Waiting on</th>
                 <th className="text-left font-semibold px-5 py-2">Your action</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(r => (
-                <tr key={r.id} className="border-b border-border align-top" data-testid={`candidate-row-${r.id}`}
+              {rows.map(r => {
+                const canSelect = selectable(r);
+                const hidden = hideCodeOn(r);
+                const reg = r.gates?.registration;
+                const grn = r.provenance?.grn_reference;
+                // Back from the asset returns to this tab (the asset page
+                // reads `from` and `tab`).
+                const href = `/assets/${r.id}?from=candidates&tab=${encodeURIComponent(tabValue)}`
+                  + (search ? `&q=${encodeURIComponent(search)}` : "");
+                return (
+                <tr key={r.id} className={cn("border-b border-border align-top", selected.has(r.id) && canSelect && "bg-primary/5")}
+                    data-testid={`candidate-row-${r.id}`}
                     data-register-state={r.register_state}>
-                  <td className="px-5 py-2.5">
-                    <Link href={`/assets/${r.id}`} className="font-semibold text-primary hover:underline">
-                      {r.asset_code}
-                    </Link>
-                    <div className="text-muted-foreground">{r.name}</div>
+                  {batchAction && (
+                    <td className="pl-5 pr-1 py-2.5 w-6">
+                      {canSelect && (
+                        <input
+                          type="checkbox"
+                          className="accent-primary"
+                          aria-label={`Select ${hidden ? r.name : r.asset_code}`}
+                          checked={selected.has(r.id)}
+                          onChange={() => toggle(r.id)}
+                          data-testid={`select-row-${r.id}`}
+                        />
+                      )}
+                    </td>
+                  )}
+                  <td className={cn("py-2.5", batchAction ? "px-3" : "px-5")}>
+                    {hidden ? (
+                      // The tagger reads the code off the label in hand
+                      // (handoff 60 §2c ruling): the row names the unit only.
+                      <Link href={href} className="font-semibold text-primary hover:underline" data-testid="candidate-name-link">
+                        {r.name}
+                      </Link>
+                    ) : (<>
+                      <Link href={href} className="font-semibold text-primary hover:underline">
+                        {r.asset_code}
+                      </Link>
+                      <div className="text-muted-foreground">{r.name}</div>
+                    </>)}
                   </td>
                   <td className="px-3 py-2.5" title={REGISTER_STATE_WORDS[r.register_state]}>
                     <span className={cn(
@@ -247,19 +471,51 @@ export default function Candidates() {
                     {r.identification_mode ? IDENTIFICATION_MODE_SHORT[r.identification_mode] : "—"}
                   </td>
                   <td className="px-3 py-2.5">{r.provenance?.purchase_order_reference ?? "—"}</td>
-                  <td className="px-3 py-2.5">{r.provenance?.grn_reference ?? "—"}</td>
+                  <td className="px-3 py-2.5">
+                    {grn && batchAction === "verify" && canSelect ? (
+                      <button type="button" onClick={() => selectReceipt(grn)}
+                        className="text-primary hover:underline text-left"
+                        title="Select every unit of this receipt shown here that you may verify"
+                        data-testid={`select-receipt-${r.id}`}>
+                        {grn}
+                      </button>
+                    ) : (grn ?? "—")}
+                  </td>
                   {/* A `record_only` unit has no serial (handoff 59): its
                       reference is what it is known by. */}
-                  <td className="px-3 py-2.5">{r.serial_number || r.reference || "—"}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{ageOf(r.gates?.state_since, now)}</td>
+                  <td className="px-3 py-2.5">{r.serial_number || r.record_reference || "—"}</td>
+                  {showChecker && (<>
+                    <td className="px-3 py-2.5 font-mono" data-testid={`checker-sap-${r.id}`}>{reg?.sap_asset_code ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap" data-testid={`checker-cost-${r.id}`}>
+                      {typeof reg?.cost === "number" ? `₦${reg.cost.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
+                    </td>
+                    <td className="px-3 py-2.5" data-testid={`checker-cost-centre-${r.id}`}>{reg?.cost_centre ?? "—"}</td>
+                    <td className="px-3 py-2.5" data-testid={`checker-class-${r.id}`}>
+                      {reg?.asset_class ? (<>
+                        {reg.asset_class.name}
+                        <span className="block text-muted-foreground">
+                          {reg.asset_class.sap_asset_class ? <>SAP class <span className="font-mono">{reg.asset_class.sap_asset_class}</span></> : "No SAP class"}
+                        </span>
+                      </>) : "—"}
+                    </td>
+                  </>)}
+                  <td className="px-3 py-2.5 text-foreground font-semibold whitespace-nowrap" data-testid="candidate-age">{ageOf(r.gates?.state_since, now)}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap" data-testid="candidate-waiting">
                     {r.gates?.waiting_on ? WAITING_ON_WORDS[r.gates.waiting_on] : "—"}
                   </td>
                   <td className="px-5 py-2.5">
                     <GateActions row={r} compact />
+                    {r.gates?.waiting_on === "iad_approver" && (
+                      <button type="button" onClick={() => setEvidenceFor(r)}
+                        className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                        data-testid={`button-row-evidence-${r.id}`}>
+                        <Paperclip size={11} /> Evidence
+                      </button>
+                    )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -268,6 +524,32 @@ export default function Candidates() {
           <p className="py-4 text-center text-[11px] text-muted-foreground">Loading more…</p>
         )}
       </div>
+
+      {batchOpen === "verify" && (
+        <BatchVerifyDialog rows={batchRows} onClose={() => setBatchOpen(null)} onDone={finished} />
+      )}
+      {(batchOpen === "approve" || batchOpen === "approve-registration") && (
+        <BatchApproveDialog action={batchOpen} rows={batchRows} onClose={() => setBatchOpen(null)} onDone={finished} />
+      )}
+      {batchOpen === "paste" && <PasteRegisterDialog onClose={() => setBatchOpen(null)} />}
+      {answer && <BatchResultsDialog answer={answer} onClose={() => setAnswer(null)} />}
+      {evidenceFor && <RowEvidenceDialog row={evidenceFor} onClose={() => setEvidenceFor(null)} />}
     </div>
+  );
+}
+
+/** "Verify selected (N)" — disabled with nothing selected. */
+function BatchButton({ testid, n, onClick, children }: {
+  testid: string; n: number; onClick: () => void; children: React.ReactNode;
+}) {
+  const ready = n > 0 && n <= GATE_BATCH_MAX;
+  return (
+    <button type="button" disabled={!ready} onClick={onClick} data-testid={testid}
+      className={cn(
+        "px-3 py-1.5 text-xs font-semibold rounded-xl transition-colors",
+        ready ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed",
+      )}>
+      {children} ({n})
+    </button>
   );
 }

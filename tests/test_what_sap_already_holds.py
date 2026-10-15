@@ -218,25 +218,25 @@ def land(client):
 def test_record_only_is_published_with_its_default_schema(client, land):
     assert land["identification_mode"] == "record_only"
     assert land["class_attributes_schema"]["mandatory"] == ["name",
-                                                            "reference"]
+                                                            "record_reference"]
 
 
 def test_a_record_only_unit_is_refused_a_serial_and_needs_its_reference(
         client, gated, land):
     err = assert_envelope_err(client.post("/api/v1/assets", json={
         "name": _uniq("pytest-59-plot"), "category_id": land["id"],
-        "reference": "PLOT " + _digits(5),
+        "record_reference": "PLOT " + _digits(5),
         "serial_number": "SN" + _digits(8)}),
         400, "validation_failed")["error"]
     assert err["details"]["field"] == "serial_number"
     assert err["message"] == (
         f"{LAND} is identified by its SAP record and carries no serial "
         "number; send the unit without one (its title, plot number, licence "
-        "key or contract goes in `reference`).")
+        "key or contract goes in `record_reference`).")
     err = assert_envelope_err(client.post("/api/v1/assets", json={
         "name": _uniq("pytest-59-plot"), "category_id": land["id"]}),
         400, "validation_failed")["error"]
-    assert err["details"]["missing_fields"] == ["reference"]
+    assert err["details"]["missing_fields"] == ["record_reference"]
 
 
 def test_a_record_only_unit_passes_five_gates_as_five_people(
@@ -245,7 +245,7 @@ def test_a_record_only_unit_passes_five_gates_as_five_people(
     count moving only at the checker."""
     a = assert_envelope_ok(client.post("/api/v1/assets", json={
         "name": _uniq("pytest-59-plot"), "category_id": land["id"],
-        "reference": "C OF O " + _digits(6)}), 201)["data"]
+        "record_reference": "C OF O " + _digits(6)}), 201)["data"]
     assert a["register_state"] == "captured"
     assert a["identification_mode"] == "record_only"
     assert a["serial_number"] is None and a["tag"] is None
@@ -308,7 +308,7 @@ def test_a_returned_record_only_registration_goes_back_to_the_maker(
         client, gated, land):
     a = assert_envelope_ok(client.post("/api/v1/assets", json={
         "name": _uniq("pytest-59-licence"), "category_id": land["id"],
-        "reference": "LIC-" + _digits(8)}), 201)["data"]
+        "record_reference": "LIC-" + _digits(8)}), 201)["data"]
     a = gates._walk(client, a, "reg_submitted")
     r = _fire(client, "register_checker", a["id"], "return-registration",
               {"reason": "Wrong cost centre."})
@@ -465,15 +465,15 @@ def test_a_candidate_cannot_be_patched_round_its_receipt(client, gated, land):
     placeholder on any, no clearing what identifies it."""
     plot = assert_envelope_ok(client.post("/api/v1/assets", json={
         "name": _uniq("pytest-59-plot"), "category_id": land["id"],
-        "reference": "PLOT " + _digits(5)}), 201)["data"]
+        "record_reference": "PLOT " + _digits(5)}), 201)["data"]
     err = assert_envelope_err(client.patch(
         f"/api/v1/assets/{plot['id']}", json={"serial_number": "SN" + _digits(8)}),
         400, "validation_failed")["error"]
     assert err["details"]["field"] == "serial_number"
     err = assert_envelope_err(client.patch(
-        f"/api/v1/assets/{plot['id']}", json={"reference": ""}),
+        f"/api/v1/assets/{plot['id']}", json={"record_reference": ""}),
         400, "validation_failed")["error"]
-    assert err["details"]["missing_fields"] == ["reference"]
+    assert err["details"]["missing_fields"] == ["record_reference"]
     unit = gates.receive(client, name=_uniq("pytest-59-unit"),
                          category_id=_serial_class(client))
     err = assert_envelope_err(client.patch(
@@ -501,7 +501,7 @@ def test_a_registered_record_only_unit_is_never_waiting_for_a_label(
         client, gated, land):
     a = gates.new_registered_asset(client, name=_uniq("pytest-59-plot"),
                                    category_id=land["id"],
-                                   reference="PLOT " + _digits(5))
+                                   record_reference="PLOT " + _digits(5))
     assert a["register_state"] == "registered" and a["tag"] is None
     untagged = assert_envelope_ok(client.get(
         "/api/v1/barcode/untagged", params={"q": a["asset_code"]}))["data"]

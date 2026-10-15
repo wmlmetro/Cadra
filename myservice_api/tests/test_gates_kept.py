@@ -247,7 +247,8 @@ class TestGatesKept(GateCrew, CadraTransactionCase):
         a = self.env['nrs.asset'].sudo().create(
             {'name': 'Legacy-shaped', 'category_id': self.furniture.id})
         self.assertEqual(a.register_state, 'registered')
-        self.assertFalse(a.identification_mode)
+        # Stamped from the class since handoff 60 (§1.2) — not checked.
+        self.assertEqual(a.identification_mode, 'tag_id')
 
     # ── Rule 2: the exclusion table ──────────────────────────────────
 

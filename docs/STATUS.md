@@ -1604,3 +1604,41 @@ failing silently, depending on whose phone it was. The engine changed.
   numbers start `5`, measured).
 - **§7** — the three gates that would jam at 70 units a day, ranked with the
   smallest relief for each: report 59 §7.
+
+## Handoff 60 — seventy a day
+
+- **§1 — three Cadra fixes Vendra asked for**: Vendra's credential holds
+  `candidates:read` (migration on every tenant — `nrs19`, `test19`,
+  `boot44` carry a Vendra client — and `bootstrap.ensure_vendra_client`);
+  a new asset carries its class's `identification_mode` with the gates off
+  too (stamped, not checked); `test19` has an INT-05 target (it had none —
+  every affix there was logged *not queued*).
+- **§2a — told, and oldest first**: `GET /candidates?waiting_on_me=true`
+  (the act's scope AND the no-two-gates rule) behind a per-person sidebar
+  badge; `sort=oldest` on a stored, indexed `register_state_since`; the
+  search on; the *Waiting on me* tab first, barred units still under their
+  gate's tab with the sentence.
+- **§2b — IAD verification**: one batch route per batchable gate
+  (`POST /candidates/gates/{verify,approve,register,approve-registration}`)
+  — N single fires, each checked and recorded on its own, per-unit results,
+  `dry_run` by rollback; verify takes one receipt's checklist and evidence,
+  stored once and linked from each event, a mixed-GRN batch refused whole;
+  an *all four* toggle and files kept in the dialog; the approver sees the
+  evidence (`GET /assets/<id>/evidence`, the file behind it) on the asset
+  page and from the row; batch approve.
+- **§2c — tagging**: the scan box cleared and focused after a confirmation;
+  a *Labels to fix* panel on the station (the tagging queue, oldest first,
+  filterable by GRN) into the existing batch print; the asset code hidden
+  on the Candidates tagging rows, and on the station card while the confirm
+  dialog is open.
+- **§2d — maker and checker**: cost prefilled from the unit, cost centre
+  and capitalisation date carried in the session; a paste of
+  `<asset code> <SAP code>` previewed per line by a dry run, then submitted;
+  the checker's row shows SAP code, cost, cost centre and class
+  (`gates.registration`); batch approve; *Back* returns to Candidates with
+  its search.
+- **Ruling 7**: `reference` renamed `record_reference` (BREAKING, no client
+  read it).
+- **Measured**: the click table and the badge per persona per step — report
+  60 §4, from spec 60 driving one GRN of 20 units on `test19`.
+- **Not yet**: deployed — owner, after merge.

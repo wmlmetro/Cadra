@@ -73,7 +73,9 @@ def test_with_the_switch_off_a_receipt_is_registered_and_tagged_at_once(
     assert a["register_state"] == "registered"
     assert a["tag"], "switch off: the label is minted at creation, as before"
     assert a["gates"] == {"waiting_on": None, "state_since": None,
-                          "available": []}
+                          "available": [],
+                          # handoff 60: the maker's submission, none
+                          "registration": None}
 
 
 def test_the_refusals_have_the_envelope_and_write_nothing(client, receipt_switch):

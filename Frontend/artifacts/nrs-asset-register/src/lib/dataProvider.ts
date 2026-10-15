@@ -358,7 +358,7 @@ export interface AssetWriteBody {
   dimensions?: string | null;
   // Handoff 59: what a `record_only` unit (land, a building, a licence) is
   // identified by — a title or plot number, a licence key, a contract.
-  reference?: string | null;
+  record_reference?: string | null;
   category_id?: number | null;
   subcategory_id?: number | null;
   asset_type_id?: number | null;
@@ -2272,7 +2272,7 @@ export const CAPTURABLE_ATTRIBUTES = [
   { field: "dimensions",   label: "Dimensions" },
   // Handoff 59: a `record_only` class's identity — title or plot number,
   // licence key, contract. Its default schema is description + this.
-  { field: "reference",    label: "Reference (title, plot, licence or contract)" },
+  { field: "record_reference", label: "Reference (title, plot, licence or contract)" },
 ] as const;
 export type CapturableAttribute = typeof CAPTURABLE_ATTRIBUTES[number]["field"];
 
@@ -3166,11 +3166,25 @@ export interface GateAvailability {
   reason_required: boolean;
 }
 
+/** What the Register Maker submitted, as entered (handoff 60 §2d) — null
+ *  until a submission. The checker's columns on the Candidates row read it.
+ *  Not `sap.*`: that block is SAP's side (`sap.capitalisation_date` is SAP's
+ *  own date, another field). */
+export interface GateRegistration {
+  sap_asset_code: string | null;
+  cost: number | null;
+  cost_centre: string;
+  capitalisation_date: string | null;
+  asset_class: { id: number; name: string; sap_asset_class: string | null } | null;
+}
+
 export interface AssetGates {
   waiting_on: GateWaitingOn | null;
   /** When the record entered its current state (UTC ISO). */
   state_since: string | null;
   available: GateAvailability[];
+  /** Handoff 60. Optional because an older server does not publish it. */
+  registration?: GateRegistration | null;
 }
 
 /** The gate half of an asset payload, plus what a candidate row shows. */
@@ -3189,13 +3203,16 @@ export interface CandidateRow {
   } | null;
   register_state: RegisterState;
   gates: AssetGates;
+  /** Only what the gates read: the cost the register dialog starts from
+   *  (handoff 60 §2d). `serialize_asset` publishes the whole block. */
+  financial?: { acquisition_cost?: number | null } | null;
   /** The mode the unit was RECEIVED under (handoff 58), fixed at receipt;
    *  null for anything received with the gates off or before 58. Optional
    *  because an older server does not publish it. */
   identification_mode?: Exclude<IdentificationMode, "pool"> | null;
   /** What a `record_only` unit is identified by (handoff 59) — title or
    *  plot number, licence key, contract. */
-  reference?: string | null;
+  record_reference?: string | null;
   /** The attributes a `tag_id` unit is identified by (handoff 58). */
   make?: string | null;
   model_name?: string | null;
@@ -3210,15 +3227,34 @@ export interface CandidatesPage {
   totalEstimate: number | null;
 }
 
+/** `newest` (the server's default) or `oldest` — longest in its present
+ *  state first, by `gates.state_since` (handoff 60 §2a). The walk direction
+ *  is in the cursor: keep it the same across pages. */
+export type CandidatesSort = "newest" | "oldest";
+
+export interface CandidatesFilter {
+  waitingOn?: GateWaitingOn;
+  registerState?: RegisterState;
+  /** Only the units waiting on an act THIS person may do — their gate's
+   *  scope held and the no-two-gates rule not barring them (handoff 60). */
+  waitingOnMe?: boolean;
+  /** The server's search: name, asset code, tag, serial, GRN, PO… */
+  q?: string;
+  sort?: CandidatesSort;
+}
+
 /** `GET /api/v1/candidates` — every asset whose `register_state` is not
  *  `registered`. `candidates:read`. */
 export async function fetchCandidatesPage(
   cursor: string | undefined,
-  f: { waitingOn?: GateWaitingOn; registerState?: RegisterState },
+  f: CandidatesFilter,
 ): Promise<CandidatesPage> {
   const res = await apiGet<CandidateRow[]>("/api/v1/candidates", {
     waiting_on: f.waitingOn,
     register_state: f.registerState,
+    waiting_on_me: f.waitingOnMe ? "true" : undefined,
+    q: f.q?.trim() || undefined,
+    sort: f.sort,
     limit: 100,
     cursor,
   });
@@ -3288,6 +3324,100 @@ export async function fireGate(
   // refused on state instead (409 invalid_state).
   return (await apiPost<CandidateRow>(
     `/api/v1/assets/${assetId}/gates/${action}`, payload)).data;
+}
+
+// ─── Batches (handoff 60 §2) ─────────────────────────────────────────────────
+//
+// A batch is N single-unit fires on the server, each checked and each with
+// its own events; one refused unit never rolls the others back. The answer
+// is a 200 listing every unit. A refusal of the WHOLE batch (a body it cannot
+// read, units from more than one receipt, evidence that fails the rule, no
+// cost centre) is an ordinary error envelope and nothing is written.
+
+export type GateBatchAction = "verify" | "approve" | "approve-registration" | "register";
+
+/** One unit's line in a batch answer. */
+export interface GateBatchLine {
+  /** `register` only: the number of the line as SENT, from 1. */
+  line?: number;
+  asset_id: number | null;
+  asset_code: string | null;
+  name: string | null;
+  grn_reference: string | null;
+  category: { id: number; name: string; sap_asset_class: string | null } | null;
+  cost: number | null;
+  sap_asset_code?: string | null;
+  /** `would_fire` only on a dry run. */
+  outcome: "fired" | "would_fire" | "refused";
+  /** The status this unit alone would have answered. */
+  status: number;
+  code: string | null;
+  /** The refusal, in the words a single fire uses. */
+  message: string | null;
+  details: Record<string, unknown> | null;
+  register_state: RegisterState | null;
+  /** The SAP class-digit warning (register / approve-registration). */
+  warning?: string | null;
+}
+
+export interface GateBatchAnswer {
+  action: GateBatchAction;
+  dry_run: boolean;
+  total: number;
+  /** Fired — or that would fire, on a dry run. */
+  fired: number;
+  refused: number;
+  results: GateBatchLine[];
+  evidence?: { attachment_ids: number[]; files?: unknown };
+}
+
+/** The most units one batch takes (`BATCH_MAX` on the server). */
+export const GATE_BATCH_MAX = 100;
+
+export interface GateBatchVerifyBody {
+  asset_ids: number[];
+  checklist: { quantity: boolean; specification: boolean; condition: boolean; price: boolean };
+  attachments: GateAttachment[];
+  notes?: string;
+  dry_run?: boolean;
+}
+
+export interface GateBatchIdsBody {
+  asset_ids: number[];
+  notes?: string;
+  dry_run?: boolean;
+}
+
+export interface GateBatchRegisterLine {
+  asset_code: string;
+  sap_asset_code: string;
+  /** Absent: the unit's own acquisition cost. */
+  cost?: number;
+}
+
+export interface GateBatchRegisterBody {
+  lines: GateBatchRegisterLine[];
+  cost_centre: string;
+  /** YYYY-MM-DD. */
+  capitalisation_date: string;
+  notes?: string;
+  dry_run?: boolean;
+}
+
+/** `POST /api/v1/candidates/gates/<action>`. A blank `notes` is left out
+ *  rather than sent empty. */
+export async function fireGateBatch(action: "verify", body: GateBatchVerifyBody): Promise<GateBatchAnswer>;
+export async function fireGateBatch(action: "approve" | "approve-registration", body: GateBatchIdsBody): Promise<GateBatchAnswer>;
+export async function fireGateBatch(action: "register", body: GateBatchRegisterBody): Promise<GateBatchAnswer>;
+export async function fireGateBatch(
+  action: GateBatchAction,
+  body: GateBatchVerifyBody | GateBatchIdsBody | GateBatchRegisterBody,
+): Promise<GateBatchAnswer> {
+  const payload: Record<string, unknown> = { ...body };
+  if (typeof payload.notes === "string" && payload.notes.trim()) payload.notes = payload.notes.trim();
+  else delete payload.notes;
+  if (!payload.dry_run) delete payload.dry_run;
+  return (await apiPost<GateBatchAnswer>(`/api/v1/candidates/gates/${action}`, payload)).data;
 }
 
 /** Read a file the person picked into the route's attachment shape. */

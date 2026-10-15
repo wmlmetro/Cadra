@@ -759,7 +759,11 @@ def _serialize_gates(a):
     """The receipt-gate block (handoff 57). Cheap for a registered asset:
     nothing can fire from `registered`, so no event is read."""
     if a.register_state == "registered":
-        return {"waiting_on": None, "state_since": None, "available": []}
+        # `registration` (handoff 60) is the maker's submission while the
+        # unit waits on the checker; on the register it is history, read
+        # from the asset's own fields and its events.
+        return {"waiting_on": None, "state_since": None, "available": [],
+                "registration": None}
     block = a._gates_block(scopes=_caller_scopes())
     if block.get("state_since"):
         block["state_since"] = block["state_since"].replace(" ", "T") + "Z"
@@ -839,7 +843,7 @@ def serialize_asset(a, *, include=()):
         "dimensions": a.dimensions or None,
         # Handoff 59 §2: the title, plot number, licence key or contract that
         # identifies a `record_only` unit.
-        "reference": a.reference or None,
+        "record_reference": a.record_reference or None,
         "identification_mode": a.identification_mode or None,
         "category": _ref(a.category_id),
         "subcategory": _ref(a.subcategory_id),
@@ -1175,8 +1179,9 @@ _WRITABLE_FIELDS = {
     # Section 12 (handoff 58 §4): what a `tag_id` unit is identified by.
     "colour", "material", "dimensions",
     # Handoff 59 §2: what a `record_only` unit is identified by — a title or
-    # plot number, a licence key, a contract.
-    "reference",
+    # plot number, a licence key, a contract. `reference` until handoff 60
+    # (ruling 7, BREAKING): renamed before any client read it.
+    "record_reference",
     "category_id", "subcategory_id", "asset_type_id", "asset_level", "domain",
     "parent_id",
     # `building_id`, `floor_id` and `room_id` were here until handoff 30 and
@@ -1622,8 +1627,11 @@ class CadraAssetsV1(http.Controller):
                                                    "so."},
                          "material": {"type": "string", "nullable": True},
                          "dimensions": {"type": "string", "nullable": True},
-                         "reference": {"type": "string", "nullable": True,
-                                       "description": "Handoff 59. Title or "
+                         "record_reference": {
+                                       "type": "string", "nullable": True,
+                                       "description": "Handoff 59 (named "
+                                                      "`reference` until "
+                                                      "handoff 60). Title or "
                                                       "plot number, licence "
                                                       "key or contract — "
                                                       "what identifies a "

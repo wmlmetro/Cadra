@@ -51,7 +51,7 @@ type FormShape = {
   // Handoff 59 §2: what a `record_only` unit — land, a building, a licence —
   // is identified by instead of a serial: title or plot number, licence key,
   // contract.
-  reference: string;
+  record_reference: string;
   asset_level: string;
   domain: string;
   department: string;
@@ -106,7 +106,7 @@ type FormShape = {
 const blank: FormShape = {
   name: "", asset_tag: "", legacy_asset_code: "", serial_number: "",
   make: "", model_name: "", manufacturer: "",
-  colour: "", material: "", dimensions: "", reference: "",
+  colour: "", material: "", dimensions: "", record_reference: "",
   asset_level: ENUM_DEFAULT.asset_level, domain: "", department: "",
   condition: ENUM_DEFAULT.condition, state: ENUM_DEFAULT.asset_state,
   category_id: null, subcategory_id: null, asset_type_id: null,
@@ -163,7 +163,7 @@ function toBody(f: FormShape, terminal = false, original?: FormShape | null, rec
   assignIfSet("colour", f.colour);
   assignIfSet("material", f.material);
   assignIfSet("dimensions", f.dimensions);
-  assignIfSet("reference", f.reference.trim());
+  assignIfSet("record_reference", f.record_reference.trim());
   assignIfSet("asset_level", f.asset_level);
   assignIfSet("domain", f.domain);
   assignIfSet("department", f.department);
@@ -356,7 +356,7 @@ export default function AssetForm({ mode }: Props) {
         colour: (e.colour as string) ?? "",
         material: (e.material as string) ?? "",
         dimensions: (e.dimensions as string) ?? "",
-        reference: (e.reference as string) ?? "",
+        record_reference: (e.record_reference as string) ?? "",
         // Taken verbatim. A stored value this build does not recognise is kept
         // rather than coerced to a default — withCurrent() puts it in the
         // select so the user can save the record back untouched.
@@ -420,7 +420,7 @@ export default function AssetForm({ mode }: Props) {
   });
   const chosenCategory = (categories.data ?? []).find(c => c.id === form.category_id);
   const recordOnly = chosenCategory?.identification_mode === "record_only";
-  const referenceMissing = recordOnly && mode === "create" && !form.reference.trim();
+  const referenceMissing = recordOnly && mode === "create" && !form.record_reference.trim();
 
   const mutation = useMutation({
     mutationFn: () => mode === "edit"
@@ -567,7 +567,7 @@ export default function AssetForm({ mode }: Props) {
           )}
         </Field>
         <Field label={recordOnly ? "Reference (required)" : "Reference"}>
-          <input className={inputCls} value={form.reference} onChange={e => set("reference", e.target.value)}
+          <input className={inputCls} value={form.record_reference} onChange={e => set("record_reference", e.target.value)}
                  placeholder="Title or plot number, licence key, contract" data-testid="input-reference" />
           {referenceMissing && (
             <p className="text-[10px] text-muted-foreground leading-snug" data-testid="hint-reference-required">

@@ -28,10 +28,11 @@ export interface NavItem {
   name: string;
   path: string;
   icon: LucideIcon;
-  /** Draws a live count beside the label. One value today; it is a named
-   *  marker rather than a number on the item so the count stays a query and
-   *  not a constant somebody forgets to update. */
-  badge?: "approvals";
+  /** Draws a live count beside the label. A named marker rather than a
+   *  number on the item so the count stays a query and not a constant
+   *  somebody forgets to update. `candidates` since handoff 60: the units
+   *  waiting on an act THIS person may do (`?waiting_on_me=true`). */
+  badge?: "approvals" | "candidates";
   /** The scope(s) the SERVER requires for what this page is for — all of
    *  them (a string is one). Required on every item since handoff 46: before
    *  it only the Administration entries carried one, so a Tag-Issuing Unit
@@ -89,8 +90,10 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     { key: "approvals",               name: "Approvals",               path: "/approvals",            icon: Hourglass, badge: "approvals", scope: "assets:read" },
     // Units received but not yet on the register (handoff 57, kept by 58).
     // The register itself hides them, so this is the only list that shows
-    // them.
-    { key: "candidates",              name: "Candidates",              path: "/candidates",           icon: Inbox,           scope: "candidates:read" },
+    // them. The badge (handoff 60) counts only what this person may act
+    // on — the server applies the no-two-gates rule — so a number here is
+    // work they can do, not work they can see.
+    { key: "candidates",              name: "Candidates",              path: "/candidates",           icon: Inbox, badge: "candidates", scope: "candidates:read" },
     { key: "new_asset",               name: "+ New Asset",             path: "/assets/new",           icon: BookOpen,        scope: "assets:write" },
   ]},
   { key: "operations", label: "Operations", items: [

@@ -156,8 +156,11 @@ test("the dialog never shows the expected number; the wrong number is refused in
   await expect(page.getByTestId("tag-affixed-by")).toHaveText("E2E Tagger");
   await expect(page.getByTestId("button-confirm-affixed")).toHaveCount(0);
   await expect(page.getByTestId("lookup-tag-number")).toHaveText(a.tag!);
-  // The scan box got its query back when the dialog closed.
-  await expect(page.getByTestId("scan-box")).toHaveValue(a.tag!);
+  // Handoff 60 §2c: after a confirmation the scan box is EMPTY and has the
+  // focus, so the tagger's next trigger pull is a fresh scan, not the last
+  // number with the next one appended to it (until 60 it got its query back).
+  await expect(page.getByTestId("scan-box")).toHaveValue("");
+  await expect(page.getByTestId("scan-box")).toBeFocused();
   await expect(page.getByTestId("barcode-station")).not.toHaveAttribute("data-blurred", "true");
   await shot(page, "04-card-shows-affixed");
 });

@@ -27,3 +27,5 @@ from . import test_gates_kept
 # Handoff 59: record_only, the SAP class at registration, placeholders,
 # SAP asset numbers in both shapes.
 from . import test_what_sap_already_holds
+# Handoff 60: batches, the per-person count, the evidence, the mode.
+from . import test_seventy_a_day

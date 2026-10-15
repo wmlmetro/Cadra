@@ -1,0 +1,13 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 4 tests using 1 worker
+
+  ✓  1 [chromium] › tests/15-settings-categories.spec.ts:17:7 › /settings/categories › lists categories with editable fields (6.2s)
+  ✓  2 [chromium] › tests/15-settings-categories.spec.ts:30:7 › /settings/categories › a category holding assets cannot be deleted (4.6s)
+  ✓  3 [chromium] › tests/15-settings-categories.spec.ts:39:7 › /settings/categories › creates and deletes a category (16.3s)
+  ✓  4 [chromium] › tests/15-settings-categories.spec.ts:73:7 › /settings/categories › links to depreciation settings without leaving the SPA (5.5s)
+
+  4 passed (38.5s)

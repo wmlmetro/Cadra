@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useSearch } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import {
@@ -21,6 +21,7 @@ import DepreciationCard from "@/components/DepreciationCard";
 import AssetHistoryTimeline from "@/components/AssetHistoryTimeline";
 import WarrantyCard from "@/components/WarrantyCard";
 import { CandidateBanner, GateActions } from "@/components/GateActions";
+import { GateEvidence } from "@/components/GateEvidence";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2, SearchCheck,
@@ -96,9 +97,40 @@ function TabPanel({ tabs }: { tabs: { label: string; content: React.ReactNode }[
   );
 }
 
+/**
+ * Where *Back* goes (handoff 60 §2d). An asset opened from the Candidates
+ * list carries `?from=candidates` — and `&tab=<waiting_on>` for the tab it
+ * was opened from — so Back returns to that list and tab rather than to the
+ * register, which does not even show a candidate. Anything else goes back
+ * to the register list, as it always has.
+ */
+function backTarget(search: string): { path: string; label: string } {
+  const q = new URLSearchParams(search);
+  if (q.get("from") === "candidates") {
+    const tab = q.get("tab");
+    // The list's search comes back too (handoff 60): an approver who
+    // searched one receipt returns to that receipt, box and list agreeing.
+    const back = new URLSearchParams();
+    if (tab) back.set("waiting_on", tab);
+    if (q.get("q")) back.set("q", q.get("q")!);
+    const rest = back.toString();
+    return {
+      path: rest ? `/candidates?${rest}` : "/candidates",
+      label: "Back to Candidates",
+    };
+  }
+  return { path: "/assets/list", label: "Back to Asset Register" };
+}
+
+/** Before IAD has verified a unit there is ordinarily nothing to show, so
+ *  the evidence panel draws nothing there unless an earlier verification
+ *  exists (a unit queried and re-sent keeps its first one). */
+const BEFORE_VERIFICATION = new Set(["captured", "vfm_pending"]);
+
 export default function AssetDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setNavLocation] = useLocation();
+  const back = backTarget(useSearch());
   const { setTitle, setSearchHandler } = useLayoutCtx();
   // Handoff 46: every button in the action bar is a write that needs
   // `assets:write` — Edit, Move, Transfer, Mark verified, Mark found, Mark
@@ -107,6 +139,8 @@ export default function AssetDetail() {
   // is "never". The record, its history and the approval notice stay.
   const scopes = useScopes();
   const canWrite = scopes.has(SCOPE.assetsWrite);
+  // What IAD saw (handoff 60 §2b) is served under `candidates:read`.
+  const canReadEvidence = scopes.has(SCOPE.candidatesRead);
 
   const qc = useQueryClient();
   // `asset.condition` is the model's key (`good`, `decommissioned`), not a
@@ -217,8 +251,8 @@ export default function AssetDetail() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted-foreground text-sm">Asset not found.</p>
-        <button className="mt-4 text-primary text-sm hover:underline" onClick={() => setNavLocation("/assets/list")}>
-          Back to Asset Register
+        <button className="mt-4 text-primary text-sm hover:underline" onClick={() => setNavLocation(back.path)}>
+          {back.label}
         </button>
       </div>
     );
@@ -292,13 +326,16 @@ export default function AssetDetail() {
   return (
     <div className="max-w-4xl mx-auto px-5 py-5">
       {/* Back — to the register LIST. `/assets` is the KPI dashboard, which is
-          not what the label says and not where the user came from. */}
+          not what the label says and not where the user came from. Opened
+          from Candidates (`?from=candidates`), back to Candidates and the
+          same tab (handoff 60 §2d). */}
       <button
-        onClick={() => setNavLocation("/assets/list")}
+        onClick={() => setNavLocation(back.path)}
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4 transition-colors"
         data-testid="button-back"
+        data-back-to={back.path}
       >
-        <ArrowLeft size={13} /> Back to Asset Register
+        <ArrowLeft size={13} /> {back.label}
       </button>
 
       {/* A candidate is not a register asset, and says so before anything
@@ -306,7 +343,23 @@ export default function AssetDetail() {
       {isCandidate && gateRow && (
         <div className="mb-5 space-y-3" data-testid="asset-gates">
           <CandidateBanner row={gateRow} />
+          {/* The IAD approver reads what IAD saw BEFORE the approve button
+              (handoff 60 §2b) — until then they approved blind. */}
+          {canReadEvidence && (
+            <GateEvidence
+              assetId={id ?? ""}
+              hideWhenEmpty={BEFORE_VERIFICATION.has(gateRow.register_state)}
+            />
+          )}
           <GateActions row={gateRow} />
+        </div>
+      )}
+      {/* A registered asset that came through the gates keeps its
+          verification; shown only when there is one, so an asset that was
+          registered before the gates existed draws nothing. */}
+      {!isCandidate && gateRow && canReadEvidence && (
+        <div className="mb-5">
+          <GateEvidence assetId={id ?? ""} hideWhenEmpty />
         </div>
       )}
 
@@ -552,7 +605,7 @@ export default function AssetDetail() {
                   <DetailRow label="Colour" value={gateRow?.colour} />
                   <DetailRow label="Material" value={gateRow?.material} />
                   <DetailRow label="Dimensions" value={gateRow?.dimensions} />
-                  <DetailRow label="Reference" value={gateRow?.reference} />
+                  <DetailRow label="Reference" value={gateRow?.record_reference} />
                   <DetailRow label="Identified by" value={gateRow?.identification_mode
                     ? IDENTIFICATION_MODE_WORDS[gateRow.identification_mode] : undefined} />
                   <DetailRow label="Asset Type" value={asset.assetType} />
