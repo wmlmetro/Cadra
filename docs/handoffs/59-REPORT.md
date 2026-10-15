@@ -657,3 +657,45 @@ and in-registry tests and, for §1, in the browser (spec 59 (ii)).
 | `408f3f7` | the HTTP and in-registry suites; the walk reads the next gate off the state |
 | `93b612a` | decisions, CHANGELOG, endpoint reference §14.11, GO-LIVE §29, STATUS, CLAUDE.md, this report and its evidence |
 | (this commit) | §6.6's grep result |
+
+## Addendum, 2026-10-15 — deployed to the cluster
+
+After the owner merged PR #118: `ci` and `deploy-dev` ran green on the merge
+(`e8fe906`, image `cadra-odoo-19:dev-e8fe906`). Then, at the owner's word,
+**`upgrade-19`** (run 38692128591): tenants `staging, gtb, jaizbankplc,
+lasg`, modules `myservice_asset_register,myservice_api`, `scale_down=true`,
+the image pinned to the merge's build. Every tenant upgraded, then the
+server rolled forward (*"every tenant upgraded — rolling forward to: …
+dev-e8fe906"*, *"deployment "odoo-19" successfully rolled out"*). Each
+tenant's own lines:
+
+```
+handoff 59: placeholder serials on staging — 0 of 11317 assets with a serial (of 11935 assets) carry a placeholder; top: none
+handoff 59: categories on staging whose names suggest a label-less class — 0 of 22 (none); none switched to record_only
+handoff 59: SAP on staging — 0 of 22 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 3 assets with one)
+handoff 59: placeholder serials on gtb — 0 of 0 assets with a serial (of 150 assets) carry a placeholder; top: none
+handoff 59: categories on gtb whose names suggest a label-less class — 0 of 29 (none); none switched to record_only
+handoff 59: SAP on gtb — 0 of 29 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one)
+handoff 59: placeholder serials on jaizbankplc — 0 of 0 assets with a serial (of 150 assets) carry a placeholder; top: none
+handoff 59: categories on jaizbankplc whose names suggest a label-less class — 0 of 29 (none); none switched to record_only
+handoff 59: SAP on jaizbankplc — 0 of 29 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one)
+handoff 59: placeholder serials on lasg — 0 of 0 assets with a serial (of 150 assets) carry a placeholder; top: none
+handoff 59: categories on lasg whose names suggest a label-less class — 0 of 29 (none); none switched to record_only
+handoff 59: SAP on lasg — 0 of 29 categories carry a SAP asset class; 0 SAP asset numbers shared once stripped and upper-cased (of 0 assets with one)
+```
+
+Readiness, no token, after the roll:
+
+```
+staging.app.cadra.ng | {"data": {"ready": true, "database": "staging"}} 200
+gtb.cadra.ng | {"data": {"ready": true, "database": "gtb"}} 200
+jaizbankplc.cadra.ng | {"data": {"ready": true, "database": "jaizbankplc"}} 200
+lasg.cadra.ng | {"data": {"ready": true, "database": "lasg"}} 200
+```
+
+The cluster's `jaizbankplc` carries 150 assets and no serials — not the
+local replica's 4,164 and 210; the two databases are not the same data.
+**Still the owner's:** the browser check on `staging` (Turnstile) under
+*Needs the owner* at the top — set a SAP class on *Desktop / Laptop
+Computer* first, or `staging`'s units in the chain cannot be approved for
+registration.
