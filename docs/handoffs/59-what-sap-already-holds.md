@@ -151,8 +151,9 @@ serial**, and must be refused as one, not accepted and then collided with.
 The Register Maker types the SAP asset number at *Submit to register*. SAP
 uses two formats, and both must be accepted:
 
-- 11 digits starting with the class digit, for example `20000030059`;
-- legacy alphanumeric codes, for example `TEM10ICT4713` and `FIRSESOW196`.
+- 11 digits starting with the class digit (shape `2NNNNNNNNNN`);
+- legacy alphanumeric codes (shapes such as `TEMnnXXXnnnn` and
+  `FIRSXXXXnnn`).
 
 **Measure** what the field, `_check_sap_asset_number_unique` and the maker's
 form accept today, and fix what refuses either shape. Normalise for
@@ -160,7 +161,7 @@ uniqueness (strip, upper-case).
 
 **When the format is numeric and the category has a `sap_asset_class`,**
 warn, don't refuse, if the first digit disagrees with the class's first
-digit: *"20000030059 looks like a class 2000 number; this category maps to
+digit: *"<number> looks like a class 2000 number; this category maps to
 3000."*
 
 Sub-numbers (53 rows of 211,699) are out of scope. Say so in DECISIONS.

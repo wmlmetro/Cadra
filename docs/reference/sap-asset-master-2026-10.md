@@ -5,7 +5,8 @@ company code `FIRS`, received by the owner on 12 October 2026. It has
 211,699 rows and 93 columns, and the latest record was created on
 7 October 2026. **The file isn't in this repo and must never be committed:**
 it is NRS's register. This page holds aggregates only, measured by the
-Architect on 12 October.
+Architect on 12 October. Examples of identifiers are given as *shapes*,
+not as real values.
 
 The export holds **master data only.** It has no acquisition values, no
 depreciation, and no cost centre, plant or location: those are time-dependent
@@ -78,16 +79,8 @@ plus the non-physical part of 3000.
 
 `5D12345M` (820 rows) also looks like a placeholder.
 
-**The most-shared values that look real:**
-
-| Value | Rows |
-|---|---|
-| `VNC3C14984` | 900 |
-| `915162C00692BA21NY` | 854 |
-| `0004F274213C` | 847 |
-| `AHJIL46254` | 523 |
-| `CN3GA103B` | 406 |
-| `210235555310E9001` | 397 |
+**The most-shared values that look real** are on 900, 854, 847, 523, 406
+and 397 assets each.
 
 These are most likely one invoice's or one box's number typed on every unit.
 
@@ -98,10 +91,10 @@ and unique.
 
 There are two formats:
 
-- **146,224 numeric, 11 digits, starting with the class digit**, for
-  example `20000030059`. These were created from 2014 onward.
-- **65,475 alphanumeric legacy codes** from the 2013–14 load, for example
-  `TEM10ICT4713` and `FIRSESOW196`. By prefix: `TEM` 43,653, `FIR` 5,698,
+- **146,224 numeric, 11 digits, starting with the class digit**: the
+  shape `2NNNNNNNNNN` for class 2000. These were created from 2014 onward.
+- **65,475 alphanumeric legacy codes** from the 2013–14 load, in shapes
+  such as `TEMnnXXXnnnn` and `FIRSXXXXnnn`. By prefix: `TEM` 43,653, `FIR` 5,698,
   `TMP` 3,882, `HQT` 2,048, `EMP` 1,161.
 
 53 rows carry a sub-number (`1`, `2000`, `3000`, …), and 5 main numbers
@@ -109,11 +102,11 @@ appear twice because of it.
 
 ## The old FIRS tag (SAP's "Inventory number")
 
-- **Format:** `FIRS/<office code>/<sequence>`, for example
-  `FIRS/HQHC/1617`.
+- **Format:** `FIRS/<office code>/<sequence>`, the shape
+  `FIRS/XXXX/nnnn`.
 - **Coverage:** set on 131,724 active assets.
 - **Not unique:** 12,061 numbers are shared, covering 33,899 assets.
-  `FIRS/HQHC/1617` alone is on 4,214 assets.
+  The most-shared single number is on 4,214 assets.
 
 It can be a reference; it can't be an identity. Ruling 4.3 already makes
 the Cadra asset code what the new label carries.
