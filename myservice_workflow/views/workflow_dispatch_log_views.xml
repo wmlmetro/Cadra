@@ -15,6 +15,14 @@
                   decoration-danger="status in ('rejected','dead')"
                   decoration-warning="status in ('queried','error')"
                   decoration-info="status in ('pending','sent')">
+                <!-- Handoff 62 §5: a day without Vendra dead-letters a day's
+                     events, and re-sending them one form at a time is not a
+                     recovery. Select them (Dead Letters + Asset Events) and
+                     retry together; each keeps its event id. -->
+                <header>
+                    <button name="action_retry_now" type="object"
+                        string="Retry Delivery"/>
+                </header>
                 <field name="name"/>
                 <field name="event_type" optional="show"/>
                 <field name="request_id" optional="show"/>
@@ -152,6 +160,8 @@
                 <separator/>
                 <filter name="events" string="Asset Events"
                     domain="[('event_type','!=',False)]"/>
+                <filter name="register_state_events" string="Register-State Events"
+                    domain="[('event_type','=','asset.register_state.changed')]"/>
                 <filter name="approvals" string="Request Approvals"
                     domain="[('event_type','=',False)]"/>
                 <separator/>

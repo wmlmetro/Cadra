@@ -46,6 +46,12 @@
                                     <field name="rest_endpoint_event"
                                         invisible="purpose == 'workspace'"
                                         placeholder="/api/method/vendra_network.api.tag_event"/>
+                                    <!-- Handoff 62: asset.register_state.changed
+                                         goes to its own receiver on the same
+                                         Vendra. Blank: nothing is queued. -->
+                                    <field name="rest_endpoint_register_state"
+                                        invisible="purpose != 'asset_events'"
+                                        placeholder="/api/method/vendra_network.api.cadra.register_state_event"/>
                                     <field name="rest_endpoint_asset_master"
                                         invisible="purpose != 'sap_assets'"
                                         required="purpose == 'sap_assets' and adapter_type == 'rest'"

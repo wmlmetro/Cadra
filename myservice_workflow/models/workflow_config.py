@@ -92,6 +92,17 @@ class WorkflowConfig(models.Model):
         help="Appended to the base URL for outbound asset lifecycle events. "
              "Vendra is Frappe, so this is typically a whitelisted method "
              "path such as /api/method/vendra_network.api.tag_event.")
+    # Handoff 62. `asset.register_state.changed` goes to its OWN receiver on
+    # the same Vendra, beside `asset.tag.affixed`'s, so neither side's INT-05
+    # handling had to change. Blank is the state of a Vendra that predates
+    # that receiver (Vendra handoff 57): nothing is queued for it, rather
+    # than every move of every unit being refused and dead-lettered.
+    rest_endpoint_register_state = fields.Char(
+        string='Register-State Endpoint',
+        help="Appended to the base URL for `asset.register_state.changed` "
+             "(INT-05b): a gated unit Vendra sent changed register state. "
+             "Typically /api/method/vendra_network.api.cadra."
+             "register_state_event. Blank: those events are not queued.")
     event_enabled = fields.Boolean(
         string='Deliver Asset Events',
         default=True,
@@ -287,6 +298,11 @@ class WorkflowConfig(models.Model):
         self.ensure_one()
         if event_type == 'asset.master.create' and self.rest_endpoint_asset_master:
             return self.rest_endpoint_asset_master
+        if event_type == 'asset.register_state.changed':
+            # Its own receiver, never the general one: Vendra's tag receiver
+            # refuses a body that is not a tag event. Blank here is caught
+            # by the adapter as "no event endpoint" — permanent, said.
+            return self.rest_endpoint_register_state
         return self.rest_endpoint_event
 
     @api.model
@@ -397,11 +413,11 @@ class WorkflowStubAdapter:
             'message': 'Stub — simulated submission accepted',
         }
 
-    def deliver(self, payload, event_id, request_ref=None):
+    def deliver(self, payload, event_id, request_ref=None, event_type=None):
         import uuid
         ref = f"EV-STUB-{uuid.uuid4().hex[:8].upper()}"
         _logger.info("STUB: would deliver event %s (event_id=%s) — ref %s",
-                     payload.get('event'), event_id, ref)
+                     payload.get('event') or event_type, event_id, ref)
         return {
             'ok': True, 'retryable': False, 'status': 200,
             'body': json.dumps({'stub': True, 'ref': ref}),
@@ -527,9 +543,14 @@ class WorkflowRestAdapter:
             _logger.error("Workflow REST submit error: %s", e, exc_info=True)
             return {'ok': False, 'error': f"{type(e).__name__}: {e}"}
 
-    def deliver(self, payload, event_id, request_ref=None):
+    def deliver(self, payload, event_id, request_ref=None, event_type=None):
         """POST one asset lifecycle event. Never raises — the queue reads the
         returned dict and decides whether to try again.
+
+        `event_type` is passed by the queue only for an event whose body does
+        not name itself (`asset.register_state.changed`, handoff 62, whose
+        body is Vendra's table and nothing more); every other event is routed
+        on its body's `event`, exactly as before.
 
         Timeouts are split: a TCP connect that has not completed in ten
         seconds is a dead host, not a slow query, and the read budget should
@@ -542,8 +563,8 @@ class WorkflowRestAdapter:
         # INT-09 (lifecycle changes) are separate operations on separate SAP
         # endpoints, so the adapter asks the config to resolve the path for
         # THIS event rather than assuming one endpoint per target.
-        endpoint = (self.config._endpoint_for_event(payload.get('event'))
-                    or '').lstrip('/')
+        endpoint = (self.config._endpoint_for_event(
+            payload.get('event') or event_type) or '').lstrip('/')
         if not base or not endpoint:
             # Config validation should have caught this at save time; if a row
             # got in another way, say so permanently rather than retrying a
@@ -669,7 +690,7 @@ class WorkflowEmailAdapter:
             return {'ok': False, 'error': 'No Workflow email address configured'}
         return {'ok': True, 'message': f"Email adapter ready → {self.config.email_to}"}
 
-    def deliver(self, payload, event_id, request_ref=None):
+    def deliver(self, payload, event_id, request_ref=None, event_type=None):
         """Machine events do not go by email.
 
         `_check_asset_event_config` refuses this combination at save time, so
