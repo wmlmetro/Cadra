@@ -1,0 +1,118 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 9 tests using 1 worker
+
+  ✓  1 [chromium] › tests/14-settings-depreciation.spec.ts:66:7 › /settings/depreciation › renders the settings surface (2.5s)
+  ✓  2 [chromium] › tests/14-settings-depreciation.spec.ts:75:7 › /settings/depreciation › lists categories with an editable policy (1.7s)
+  ✓  3 [chromium] › tests/14-settings-depreciation.spec.ts:84:7 › /settings/depreciation › the straight-line switch persists across a reload (37.5s)
+  ✓  4 [chromium] › tests/14-settings-depreciation.spec.ts:150:7 › /settings/depreciation › recompute reports back (1.8s)
+  ✘  5 [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls (17.5s)
+  ✘  6 [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls (retry #1) (19.6s)
+  ✓  7 [chromium] › tests/61-photos.spec.ts:113:7 › 61 — photos on an asset › the Store Officer adds a photo, sees it, supersedes it — and it is still marked after the list (7.2s)
+  ✓  8 [chromium] › tests/61-photos.spec.ts:187:7 › 61 — photos on an asset › IAD's evidence: a count in words for the Store Officer, a labelled card for the Auditor (10.6s)
+  ✓  9 [chromium] › tests/61-room-codes.spec.ts:32:5 › the location page shows the room code and prints its label, then the station scans it as a room (10.3s)
+  ✓  10 [chromium] › tests/61-room-codes.spec.ts:88:5 › the form refuses a room code another location holds, in words, and saves nothing (2.3s)
+
+
+  1) [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls 
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for getByTestId('mode-computed')
+        - locator resolved to <button disabled data-testid="mode-computed" class="flex-1 text-left rounded-xl border px-4 py-3 transition-colors disabled:opacity-50 border-border hover:bg-accent">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+          - waiting 100ms
+        29 × waiting for element to be visible, enabled and stable
+           - element is not enabled
+         - retrying click action
+           - waiting 500ms
+
+
+      163 |       await expect(page.getByTestId("button-recompute")).toBeDisabled();
+      164 |     } finally {
+    > 165 |       await computed.click();
+          |                      ^
+      166 |       await expect(page.getByText(/This tenant is ERP-managed/i))
+      167 |         .toHaveCount(0, { timeout: 30_000 });
+      168 |     }
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/14-settings-depreciation.spec.ts:165:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for getByTestId('mode-computed')
+        - locator resolved to <button disabled data-testid="mode-computed" class="flex-1 text-left rounded-xl border px-4 py-3 transition-colors disabled:opacity-50 border-border hover:bg-accent">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not enabled
+        - retrying click action
+          - waiting 100ms
+        29 × waiting for element to be visible, enabled and stable
+           - element is not enabled
+         - retrying click action
+           - waiting 500ms
+
+
+      163 |       await expect(page.getByTestId("button-recompute")).toBeDisabled();
+      164 |     } finally {
+    > 165 |       await computed.click();
+          |                      ^
+      166 |       await expect(page.getByText(/This tenant is ERP-managed/i))
+      167 |         .toHaveCount(0, { timeout: 30_000 });
+      168 |     }
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/14-settings-depreciation.spec.ts:165:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/14-settings-depreciation---99262-es-the-calculation-controls-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls 
+  8 passed (2.0m)

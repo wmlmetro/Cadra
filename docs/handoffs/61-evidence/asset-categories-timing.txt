@@ -1,0 +1,22 @@
+# GET /api/v1/asset-categories on test19, 5 calls each (seconds), suite credential
+## before (one search_count per category per count, 2 counts x 160 rows)
+8.002906
+2.755413
+3.075079
+4.096716
+4.226338
+160 categories
+## after (one grouped _read_group per count)
+0.432234
+4.032912
+1.517938
+0.203919
+0.154439
+160 categories
+## after, a second run once the restarted workers were warm
+0.522947
+0.422573
+0.318370
+0.415079
+0.266323
+160 categories

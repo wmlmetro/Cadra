@@ -1,0 +1,19 @@
+# Handoff 61 fan-out, 2026-10-15: -u myservice_asset_register,myservice_api, one tenant at a time
+handoff 61: test19 — location_code filled on 1271 of 1271 locations; 0 of 1271 still empty; 0 duplicate codes 
+handoff 61: cadra19 — location_code filled on 754 of 754 locations; 0 of 754 still empty; 0 duplicate codes 
+handoff 61: nrs19 — location_code filled on 1154 of 1154 locations; 0 of 1154 still empty; 0 duplicate codes 
+handoff 61: gtb19 — location_code filled on 149 of 149 locations; 0 of 149 still empty; 0 duplicate codes 
+handoff 61: nrs — location_code filled on 847 of 847 locations; 0 of 847 still empty; 0 duplicate codes 
+handoff 61: lasg — location_code filled on 111 of 111 locations; 0 of 111 still empty; 0 duplicate codes 
+handoff 61: gtb — location_code filled on 143 of 143 locations; 0 of 143 still empty; 0 duplicate codes 
+handoff 61: jaizbankplc — location_code filled on 440 of 440 locations; 0 of 440 still empty; 0 duplicate codes 
+
+# Per tenant after the fan-out: total | coded | distinct | malformed | photos table | tag labels reprint_count>0
+test19|1271|1271|1271|0|0|0
+cadra19|754|754|754|0|0|0
+nrs19|1154|1154|1154|0|0|0
+gtb19|149|149|149|0|0|0
+nrs|847|847|847|0|0|0
+lasg|111|111|111|0|0|0
+gtb|143|143|143|0|0|0
+jaizbankplc|440|440|440|0|0|0

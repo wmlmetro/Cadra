@@ -1,0 +1,25 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 16 tests using 1 worker
+
+  ✓   1 [chromium] › tests/54-every-time.spec.ts:129:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a 2D value is accepted on one decode; a 1D value is not (274ms)
+  ✓   2 [chromium] › tests/54-every-time.spec.ts:137:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a 1D value is accepted when two consecutive decodes agree — and only then (174ms)
+  ✓   3 [chromium] › tests/54-every-time.spec.ts:148:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › two frames disagreeing is refused and says Reading…, the newer read becoming the candidate (174ms)
+  ✓   4 [chromium] › tests/54-every-time.spec.ts:156:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a blank frame keeps the pending read; two different values become a choice, never a guess (180ms)
+  ✓   5 [chromium] › tests/54-every-time.spec.ts:167:5 › the wasm is not fetched on page load, is fetched when the camera starts, and the station then decodes with it (3.3s)
+  ✓   6 [chromium] › tests/54-every-time.spec.ts:192:5 › each Cadra label size decodes off its Code 128 side, at the template's own source resolution, and says so (5.3s)
+  ✓   7 [chromium] › tests/54-every-time.spec.ts:216:5 › each Cadra label size decodes off its QR side, at the template's own source resolution, and says so (5.0s)
+  ✓   8 [chromium] › tests/54-every-time.spec.ts:229:5 › one manufacturer-style label per family decodes to its value and its format (7.8s)
+  ✓   9 [chromium] › tests/54-every-time.spec.ts:259:5 › two different values in one frame become a choice; the tap fills the box; Neither keeps scanning (1.9s)
+  ✓  10 [chromium] › tests/54-every-time.spec.ts:286:5 › of two values, the one inside the reticle wins without asking (1.6s)
+  ✓  11 [chromium] › tests/54-every-time.spec.ts:304:5 › after 4 s with no decode a sentence arrives; after 10 s it offers typing, focuses the box and leaves the camera running (12.6s)
+  ✓  12 [chromium] › tests/54-every-time.spec.ts:349:5 › a camera-read wrong tag is refused and the refusal record names the symbology it was read from (14.7s)
+  ✓  13 [chromium] › tests/61-photos.spec.ts:113:7 › 61 — photos on an asset › the Store Officer adds a photo, sees it, supersedes it — and it is still marked after the list (7.7s)
+  ✓  14 [chromium] › tests/61-photos.spec.ts:187:7 › 61 — photos on an asset › IAD's evidence: a count in words for the Store Officer, a labelled card for the Auditor (12.3s)
+  ✓  15 [chromium] › tests/61-room-codes.spec.ts:32:5 › the location page shows the room code and prints its label, then the station scans it as a room (10.2s)
+  ✓  16 [chromium] › tests/61-room-codes.spec.ts:88:5 › the form refuses a room code another location holds, in words, and saves nothing (2.1s)
+
+  16 passed (1.6m)
