@@ -110,6 +110,11 @@ export const SCOPE = {
    *  register is not the same act as walking out with a file of it. Kept in
    *  step with myservice_api/controllers/utils.py, like every entry here. */
   exportRead: "export:read",
+  /** Internal Audit's evidence — the files and photographs IAD attaches
+   *  when it verifies a receipt (handoff 61, ruling 1 on report 60). IAD,
+   *  the Register Maker and Checker, and the Auditor. A caller without it
+   *  is told how many items there are and nothing more. */
+  evidenceRead: "evidence:read",
   /** The employee import and the SAP employee sync. */
   integrationsWrite: "integrations:write",
   /** INT-03 — Vendra's receipt hand-off. No SPA page gates on it; it is

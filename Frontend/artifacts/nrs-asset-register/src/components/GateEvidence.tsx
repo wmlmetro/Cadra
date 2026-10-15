@@ -91,7 +91,26 @@ export function GateEvidence({ assetId, hideWhenEmpty = false }: {
   });
 
   const verifications = data?.verifications ?? [];
-  if (hideWhenEmpty && (isLoading || error || verifications.length === 0)) return null;
+  const sealed = data != null && !data.readable;
+  if (hideWhenEmpty && (isLoading || error
+    || (sealed ? data.count === 0 : verifications.length === 0))) return null;
+
+  if (sealed) {
+    // Handoff 61, ruling 1 on report 60: IAD's working papers are read by
+    // IAD, the Register Maker and Checker and the Auditor. Everybody else
+    // is told how many there are, in the server's words, and nothing more.
+    return (
+      <section
+        className="bg-card border border-card-border rounded-xl p-4"
+        data-testid="gate-evidence"
+        aria-label="Verification evidence"
+      >
+        <p className="text-xs text-foreground flex items-center gap-1.5" data-testid="gate-evidence-sealed">
+          <Paperclip size={13} /> IAD evidence: {data.count} {data.count === 1 ? "item" : "items"}
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section

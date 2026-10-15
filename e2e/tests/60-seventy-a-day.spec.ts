@@ -13,13 +13,15 @@ import { asPersona, ensureSapClass, receiptBody } from "../fixtures/gates";
  * through the real sign-in page in one session, and every act read back from
  * the server afterwards:
  *
- *   store        submits the 20 (API: the store gate has no batch)
+ *   store        Waiting on me → GRN → select all → Submit selected → 20 fired
+ *                (the batch since handoff 61, ruling 5 on report 60)
  *   IAD officer  Waiting on me → GRN in the search box → one click on the GRN
  *                selects the receipt → Verify selected → all four + one file
  *                → 20 fired; the server holds ONE attachment linked from all 20
  *   IAD approver opens what IAD saw from the row and from the asset page;
  *                Back returns to Candidates; select all → Approve → 20 fired
- *   controller   request-tagging ×20 (API: that gate has no batch)
+ *   controller   Waiting on me → GRN → select all → Request tagging for
+ *                selected → 20 fired, each label under its own code (61)
  *   tagger       Labels to fix lists the receipt; the Tagging tab hides the
  *                code; ONE unit confirmed at the station (scan box empty and
  *                focused afterwards); 19 more over the API
@@ -260,17 +262,33 @@ test.describe.serial("60 — seventy a day: one GRN of 20, seven people", () => 
     await stepTaken("received (20 captured)", { storekeeper: +N });
   });
 
-  test("store: the badge counts the 20; 20 submits take it down by 20", async ({ page }) => {
+  test("store: the badge counts the 20; Submit selected takes it down by 20", async ({ page }) => {
     test.skip(ids.length !== N, "setup did not receive the 20");
-    await signIn(page, "storekeeper");
-    const before = await readBadge(page, "storekeeper", "before submitting");
+    const who: Who = "storekeeper";
+    await signIn(page, who);
+    const before = await readBadge(page, who, "before submitting");
     expect(before).toBeGreaterThanOrEqual(N);
-    // No batch at the store gate (handoff 60 builds none): 20 single-unit fires.
-    for (const id of ids) {
-      const r = await asPersona("storekeeper", "POST", `/assets/${id}/gates/submit`, {});
-      expect(r.status, JSON.stringify(r.body).slice(0, 300)).toBe(200);
-    }
-    expect(await readBadge(page, "storekeeper", "after submitting")).toBe(before - N);
+    // The store gate's batch (handoff 61, ruling 5 on report 60): N single
+    // fires on the server, one selection and one click here.
+    await openCandidates(page, who);
+    await searchGrn(page, who, N);
+    await act.check(who, page.getByTestId("select-all-visible"));
+    await expect(page.getByTestId("batch-selected-count")).toContainText(`${N} selected`);
+    await act.click(who, page.getByTestId("button-batch-submit"));
+    const dialog = page.getByTestId("batch-dialog");
+    await expect(dialog).toHaveAttribute("data-action", "submit");
+    const posted = page.waitForResponse((r) => r.request().method() === "POST"
+      && r.url().includes("/api/v1/candidates/gates/submit"), { timeout: 60_000 });
+    await act.click(who, dialog.getByTestId("button-batch-submit"));
+    const res = await posted;
+    const body = await res.json();
+    expect(res.status(), JSON.stringify(body).slice(0, 400)).toBe(200);
+    expect(body.data.fired).toBe(N);
+    const results = page.getByTestId("batch-results");
+    await expect(results.getByTestId("batch-results-summary"))
+      .toHaveText(`${N} of ${N} submitted to Internal Audit, 0 refused.`);
+    await act.click(who, results.getByTestId("button-close-batch-results"));
+    expect(await readBadge(page, who, "after submitting")).toBe(before - N);
     expect(new Set(await states())).toEqual(new Set(["vfm_pending"]));
     await stepTaken("store submitted 20", { storekeeper: -N, iad_officer: +N });
   });
@@ -388,16 +406,31 @@ test.describe.serial("60 — seventy a day: one GRN of 20, seven people", () => 
     await stepTaken("IAD approved 20", { iad_approver: -N, asset_controller: +N });
   });
 
-  test("Asset Controller: requests tagging for the 20 (no batch for this gate)", async ({ page }) => {
+  test("Asset Controller: Request tagging for selected, the 20 at once", async ({ page }) => {
     test.skip(ids.length !== N, "setup did not receive the 20");
     const who: Who = "asset_controller";
     await signIn(page, who);
     const before = await readBadge(page, who, "before requesting tagging");
-    // request-tagging has no batch route (handoff 60 builds none): 20 fires.
-    for (const id of ids) {
-      const r = await asPersona(who, "POST", `/assets/${id}/gates/request-tagging`, {});
-      expect(r.status, JSON.stringify(r.body).slice(0, 300)).toBe(200);
-    }
+    // The controller's batch (handoff 61, ruling 5 on report 60). Still a
+    // person's act: nothing requests a label on IAD's approval.
+    await openCandidates(page, who);
+    await searchGrn(page, who, N);
+    await act.check(who, page.getByTestId("select-all-visible"));
+    await expect(page.getByTestId("batch-selected-count")).toContainText(`${N} selected`);
+    await act.click(who, page.getByTestId("button-batch-request-tagging"));
+    const dialog = page.getByTestId("batch-dialog");
+    await expect(dialog).toHaveAttribute("data-action", "request-tagging");
+    const posted = page.waitForResponse((r) => r.request().method() === "POST"
+      && r.url().includes("/api/v1/candidates/gates/request-tagging"), { timeout: 60_000 });
+    await act.click(who, dialog.getByTestId("button-batch-submit"));
+    const res = await posted;
+    const body = await res.json();
+    expect(res.status(), JSON.stringify(body).slice(0, 400)).toBe(200);
+    expect(body.data.fired).toBe(N);
+    const results = page.getByTestId("batch-results");
+    await expect(results.getByTestId("batch-results-summary"))
+      .toHaveText(`${N} of ${N} given a label to print, 0 refused.`);
+    await act.click(who, results.getByTestId("button-close-batch-results"));
     expect(await readBadge(page, who, "after requesting tagging")).toBe(before - N);
     expect(new Set(await states())).toEqual(new Set(["tag_issued"]));
     // A gated unit's label number IS its asset code.

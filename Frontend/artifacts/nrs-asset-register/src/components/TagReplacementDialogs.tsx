@@ -24,7 +24,7 @@ import { ApiErrorMessage } from "@/components/ApiErrorMessage";
  *
  * It is a two-person flow on the tag model's own state machine: the request
  * names an approver and moves the label to `pending`; the approver — who the
- * model refuses to let be the requester — scraps it and mints the new number,
+ * model refuses to let be the requester — voids the print and reprints the label under the same number,
  * or sends it back to `active` with a reason. Nothing here decides anything;
  * the decider is the token on the call.
  */
@@ -124,7 +124,7 @@ export function RequestTagReplacementDialog({ tagId, tagNumber, open, onOpenChan
             <RefreshCw size={16} className="text-primary" /> Replace tag {tagNumber}
           </DialogTitle>
           <DialogDescription>
-            Asks somebody else to approve a new label for this asset. Until they decide, nothing is scrapped or minted: the label is marked as pending replacement, and its number stops resolving on the scan box while the asset code still does. On approval the old number is scrapped and never reissued, a new number is minted, and the two are linked so the history survives.
+            Asks somebody else to approve a new label for this asset. Until they decide, nothing is voided or reprinted: the label is marked as pending replacement, and its number stops resolving on the scan box while the asset code still does. On approval the print is voided and the label reprinted under the same number, one record per print, linked so the history says which print is current and why the last was voided.
           </DialogDescription>
         </DialogHeader>
 
@@ -247,7 +247,7 @@ export function ApproveTagReplacementDialog({ tag, open, onOpenChange, onApprove
             <Check size={16} /> Approve replacement of {tag.tag_number}
           </DialogTitle>
           <DialogDescription>
-            Scraps this label and mints a new number for {tag.asset.name}. The old number is never reissued. Your name and the time are recorded as the decision.
+            Voids this print and reprints the label under the same number for {tag.asset.name}. Your name and the time are recorded as the decision.
           </DialogDescription>
         </DialogHeader>
 
@@ -291,7 +291,7 @@ export function ApproveTagReplacementDialog({ tag, open, onOpenChange, onApprove
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}
           >
-            {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : "Approve and mint new tag"}
+            {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : "Approve and reprint"}
           </button>
         </DialogFooter>
       </DialogContent>

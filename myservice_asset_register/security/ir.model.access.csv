@@ -37,3 +37,6 @@ access_nrs_asset_change_request_manager,nrs.asset.change.request manager,model_n
 access_nrs_asset_change_request_renomination_employee,nrs.asset.change.request.renomination employee,model_nrs_asset_change_request_renomination,base.group_user,1,0,0,0
 access_nrs_asset_change_request_renomination_user,nrs.asset.change.request.renomination user,model_nrs_asset_change_request_renomination,myservice_asset_register.group_asset_user,1,0,0,0
 access_nrs_asset_change_request_renomination_manager,nrs.asset.change.request.renomination manager,model_nrs_asset_change_request_renomination,myservice_asset_register.group_asset_manager,1,0,0,0
+access_nrs_asset_photo_employee,nrs.asset.photo employee,model_nrs_asset_photo,base.group_user,1,0,0,0
+access_nrs_asset_photo_user,nrs.asset.photo user,model_nrs_asset_photo,myservice_asset_register.group_asset_user,1,0,0,0
+access_nrs_asset_photo_manager,nrs.asset.photo manager,model_nrs_asset_photo,myservice_asset_register.group_asset_manager,1,0,0,0

@@ -5,8 +5,12 @@ Implements the subset of PRD §7.4 that maps cleanly onto the existing
 `generic.location` model (from dist/generic_location). The model is
 field-rich but missing a few PRD-specified attributes:
 
-  - `code` (PRD §7.2 required, unique per tenant)  -> not present;
-    the `/by-code/{code}` endpoint is omitted from MVP.
+  - `code` (PRD §7.2 required, unique per tenant)  -> since handoff 61
+    this is `location_code` (ruling R8): unique per tenant, generated from
+    the hierarchy when empty, editable, printed on a room label
+    (`GET /locations/<id>/label`) and resolved by a scan at
+    `GET /barcode/lookup` (`matched_by: "location"`). A `/by-code/{code}`
+    endpoint is still omitted: the scan resolver is that lookup.
   - `lifecycle_state` (planned/active/under_renovation/decommissioned/
     archived, PRD §7.3) -> not present; closest analog is the boolean
     `active`. The `/transition` endpoint is omitted from MVP.
@@ -18,20 +22,31 @@ These gaps land in a future schema-extension module
 ratified.
 """
 from odoo import http
+from odoo.exceptions import UserError
 from odoo.http import request
+
+from odoo.addons.myservice_asset_register.models.location_code import (
+    LOCATION_CODE_MAX_LENGTH,
+    LocationCodeRefused,
+)
 
 from .query_params import BadFilter, int_filter_terms, parse_bool, parse_enum
 from .utils import (
+    ERR_CONFLICT,
     ERR_INVALID_REQUEST,
+    ERR_MISCONFIGURED,
     ERR_NOT_FOUND,
+    ERR_VALIDATION_FAILED,
     SCOPE_LOCATIONS_READ,
     SCOPE_LOCATIONS_WRITE,
+    _http_response,
     err,
     get_params,
     ok,
     paginate,
     parse_limit,
     refuse_unwritable,
+    require_jwt,
     selection_values,
 )
 from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
@@ -51,6 +66,48 @@ _LOCATION_TYPES = ("building", "floor", "wing", "room", "zone")
 
 # The optional sections `GET /api/v1/locations/<id>` knows how to embed.
 _INCLUDE_SECTIONS = ("children", "ancestors")
+
+# The room label sizes (handoff 61 §7). Medium is the 50 x 30 mm stock, large
+# the 100 x 60 mm — the asset labels' own paper formats. `small` is refused
+# by name, below, not merely absent from this tuple: handoff 54 measured its
+# Code 128 unreadable by a camera, and a person who asks for it is told so.
+_ROOM_LABEL_SIZES = ("medium", "large")
+_ROOM_LABEL_REPORTS = {
+    "medium": "myservice_asset_register.report_location_label_medium",
+    "large": "myservice_asset_register.report_location_label_large",
+}
+
+# A room-code refusal from the model, onto the envelope. `format` is a value
+# no label can carry (400); `taken` and `shadows` are a conflict with
+# something that already exists (409), the same status a unique violation
+# answers on every route (`utils.cadra_endpoint`).
+_CODE_REFUSAL_STATUS = {"format": (ERR_VALIDATION_FAILED, 400),
+                        "taken": (ERR_CONFLICT, 409),
+                        "shadows": (ERR_CONFLICT, 409)}
+
+_LOCATION_CODE_SCHEMA = {
+    "type": "string", "nullable": True, "maxLength": LOCATION_CODE_MAX_LENGTH,
+    "pattern": "^LOC(-[A-Z0-9]+)+$",
+    "description": (
+        "The room code a room label carries (handoff 61, ruling R8). Begins "
+        "`LOC-`; letters A-Z, digits and single hyphens; at most %d "
+        "characters; trimmed and upper-cased on the way in. Unique per "
+        "tenant, archived locations included: a code another location holds, "
+        "or that reads the same as a tag number or asset code, is a 409 "
+        "`conflict` and nothing is written. Absent on create, or empty / "
+        "null on either route: GENERATED from the hierarchy's zone codes "
+        "(`LOC-HQ-F10-OFCN`), or the id where the location has none "
+        "(`LOC-1133`). A generated code is stored and does NOT follow a "
+        "later move or zone-code edit — a printed label keeps scanning; "
+        "send it empty to generate it again." % LOCATION_CODE_MAX_LENGTH),
+}
+
+
+def _code_refusal(e):
+    """`LocationCodeRefused` → the envelope. The caller has rolled back."""
+    code, status = _CODE_REFUSAL_STATUS.get(e.kind, (ERR_VALIDATION_FAILED, 400))
+    return err(code, str(e.args[0] if e.args else e), status=status,
+               details=dict(e.details, reason=e.kind))
 
 
 # ─── serializer ──────────────────────────────────────────────────────
@@ -85,6 +142,9 @@ def serialize_location(loc, *, include=(), include_counts=False):
             "name": loc.type_id.name,
         } if loc.type_id else None,
         "location_type": loc.location_type or None,  # NRS-specific Selection
+        # The room code (handoff 61, R8). `null` only on a tenant whose
+        # module upgrade has not run its fill yet.
+        "location_code": loc.location_code or None,
         "description": loc.description or None,
         "parent_id": loc.parent_id.id if loc.parent_id else None,
         "parent_path": loc.parent_path or None,  # materialized path "1/4/12/"
@@ -210,6 +270,9 @@ def _list_domain(qs):
             ("description", "ilike", q),
             ("zone_code", "ilike", q),
             ("_city", "ilike", q),
+            # Handoff 61: the room code, so `?q=LOC-HQ-F10` finds the rooms
+            # under that floor. Stored, so safe in an OR.
+            ("location_code", "ilike", q),
         ]
         domain += ["|"] * (len(terms) - 1) + terms
     # `location_type` is an enum and used to be appended raw, so
@@ -302,6 +365,9 @@ _WRITABLE_FIELDS = {
     "street", "street2", "zip", "city", "state_id", "country_id",
     "latitude", "longitude", "zone_code", "floor_number", "building_id",
     "partner_id",
+    # Handoff 61 §7 (R8). Refused in words by the model when it cannot be
+    # saved (`LocationCodeRefused`); empty means generate.
+    "location_code",
 }
 
 
@@ -331,7 +397,9 @@ class CadraLocationsV1(http.Controller):
                  scopes=[SCOPE_LOCATIONS_READ],
                  query_params=[
                      {"name": "q", "schema": {"type": "string"},
-                      "description": "Free-text search across name and code"},
+                      "description": ("Free-text search across name, "
+                                      "description, zone code, city and "
+                                      "room code (`location_code`)")},
                      {"name": "type_id", "schema": {"type": "integer"}},
                      {"name": "parent_id", "schema": {"type": "integer"}},
                      {"name": "country_id", "schema": {"type": "integer"}},
@@ -417,6 +485,7 @@ class CadraLocationsV1(http.Controller):
                  summary="Create a new location",
                  scopes=[SCOPE_LOCATIONS_WRITE],
                  idempotent=True,
+                 error_statuses=(409,),
                  request_schema={
                      "type": "object",
                      "required": ["name"],
@@ -444,6 +513,7 @@ class CadraLocationsV1(http.Controller):
                          "floor_number": {"type": "integer", "nullable": True},
                          "building_id": {"type": "integer", "nullable": True},
                          "partner_id": {"type": "integer", "nullable": True},
+                         "location_code": _LOCATION_CODE_SCHEMA,
                      },
                  },
                  request_example={
@@ -466,7 +536,13 @@ class CadraLocationsV1(http.Controller):
             return refuse_unwritable(rejected, _WRITABLE_FIELDS)
         if not vals.get("name"):
             return err(ERR_INVALID_REQUEST, "`name` is required")
-        rec = request.env["generic.location"].sudo().create(vals)
+        try:
+            rec = request.env["generic.location"].sudo().create(vals)
+        except LocationCodeRefused as e:
+            # Refused before the insert (the model checks first), and rolled
+            # back anyway: `err()` alone would not undo anything.
+            request.env.cr.rollback()
+            return _code_refusal(e)
         return serialize_location(rec)
 
     # ── Patch: PATCH /api/v1/locations/<id> ────────────────────────
@@ -492,8 +568,10 @@ class CadraLocationsV1(http.Controller):
                          "city": {"type": "string"},
                          "latitude": {"type": "number", "format": "float"},
                          "longitude": {"type": "number", "format": "float"},
+                         "location_code": _LOCATION_CODE_SCHEMA,
                      },
                  },
+                 error_statuses=(409,),
                  request_example={
                      "description": "Engineering wing — renamed after 2026 reorg",
                      "active": True,
@@ -508,7 +586,15 @@ class CadraLocationsV1(http.Controller):
             return refuse_unwritable(rejected, _WRITABLE_FIELDS)
         if not vals:
             return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
-        rec.write(vals)
+        try:
+            rec.write(vals)
+        except LocationCodeRefused as e:
+            # The model refuses before its `super().write`, so nothing of
+            # this body is written — the other fields beside the code
+            # included — and the rollback makes that true of anything an
+            # override above it began.
+            request.env.cr.rollback()
+            return _code_refusal(e)
         return serialize_location(rec)
 
     # ── Hierarchy: GET /api/v1/locations/<id>/{children,ancestors,descendants} ─
@@ -554,3 +640,86 @@ class CadraLocationsV1(http.Controller):
                 "total_estimate": total,
             },
         )
+
+    # ── Room label: GET /api/v1/locations/<id>/label ───────────────────
+
+    @http.route("/api/v1/locations/<int:id>/label", type="http", auth="none",
+                methods=["GET"], csrf=False)
+    def location_label(self, id, **kwargs):
+        """The room label as a PDF — the file, not the envelope (handoff 61
+        §7, ruling R8). `?size=medium` (50 x 30 mm, the default) or
+        `?size=large` (100 x 60 mm). `locations:read`.
+
+        The app holds a bearer token and no Odoo session, and since handoff
+        45 the back office's `/report/pdf/...` is an administrator's door —
+        so the label is rendered HERE, under the token, and handed back as
+        bytes for the browser to print (`lib/locationLabels.ts`, through
+        `apiGetRaw`). The QR and the Code 128 carry `location_code`
+        verbatim. Refusals are the envelope, like every route's: a missing
+        location is a 404, `size=small` a 400 that says why, a location with
+        no code yet a 409.
+
+        Not recorded by the print funnel: that records ASSET tag prints only
+        (`data/location_label_report.xml` says why a room needs none)."""
+        _, envelope, _ = require_jwt(scopes=[SCOPE_LOCATIONS_READ])
+        if envelope is not None:
+            return _http_response(envelope)
+        raw = kwargs.get("size")
+        if raw == "small":
+            return _http_response(err(
+                ERR_INVALID_REQUEST,
+                "A room label is printed at medium (50 x 30 mm) or large "
+                "(100 x 60 mm). There is no small room label: at 50 x 25 mm "
+                "the Code 128 is too fine for a camera to read (measured in "
+                "handoff 54: 0 of 24 reads), and a room label that only a "
+                "handheld scanner can read is not one the phone can use.",
+                details={"size": raw,
+                         "allowed_values": list(_ROOM_LABEL_SIZES)}))
+        try:
+            size = parse_enum("size", raw, _ROOM_LABEL_SIZES) or "medium"
+        except BadFilter as e:
+            return _http_response(err(ERR_INVALID_REQUEST, str(e),
+                                      details=e.details))
+        loc = request.env["generic.location"].sudo().with_context(
+            active_test=False).browse(id).exists()
+        if not loc:
+            return _http_response(err(
+                ERR_NOT_FOUND, f"Location {id} not found", status=404,
+                details={"location_id": id}))
+        if not loc.location_code:
+            return _http_response(err(
+                ERR_CONFLICT,
+                "Location %s (%s) has no room code yet, so there is nothing "
+                "to print. Save the location with an empty room code to have "
+                "one generated." % (loc.id, loc.name),
+                status=409, details={"location_id": loc.id}))
+        try:
+            # `force_report_rendering`: under `--test-enable` Odoo would
+            # otherwise answer HTML, and an in-registry test of this route
+            # would prove nothing about the PDF. Inert outside test mode.
+            pdf, kind = request.env["ir.actions.report"].sudo().with_context(
+                force_report_rendering=True)._render_qweb_pdf(
+                    _ROOM_LABEL_REPORTS[size], [loc.id])
+        except UserError as e:
+            # Odoo raises `UserError` when wkhtmltopdf is absent or fails —
+            # a fault of the server, said in the envelope rather than as the
+            # bare HTML 500 a route outside `cadra_route` would otherwise
+            # give. Nothing was written to roll back.
+            return _http_response(err(
+                ERR_MISCONFIGURED,
+                "The room label could not be rendered: %s" % e, status=500,
+                details={"location_id": loc.id, "size": size}))
+        if kind != "pdf":
+            # Not expected (the context above forces the PDF); said, never
+            # served as a PDF it is not.
+            return _http_response(err(
+                ERR_MISCONFIGURED,
+                "The room label rendered as %s, not a PDF." % kind,
+                status=500, details={"location_id": loc.id, "size": size}))
+        return request.make_response(pdf, headers=[
+            ("Content-Type", "application/pdf"),
+            ("Content-Disposition", http.content_disposition(
+                "room-label-%s-%s.pdf" % (loc.location_code, size),
+                disposition_type="inline")),
+            ("Content-Length", str(len(pdf))),
+        ])

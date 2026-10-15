@@ -8,10 +8,11 @@ which, and the unit remembers the mode it arrived under:
 
 * `serial` — a manufacturer serial is mandatory, and the class's mandatory
   attributes (by default make and model) with it.
-* `tag_id` — no serial; the class's mandatory attributes (AD-32: description,
-  make or brand, model or catalogue reference, colour, material, dimensions)
-  are the unit's identity until its label is on it, and the asset code is
-  its identity after.
+* `tag_id` — no serial; the class's mandatory attributes (by default since
+  handoff 61, ruling R9: description, colour, material, dimensions — AD-32's
+  make and model are capturable but no longer mandatory by default, because
+  a chair with no visible brand must be recordable) are the unit's identity
+  until its label is on it, and the asset code is its identity after.
 * `pool` — declared, and REFUSED at receipt: pool holdings are Addendum A
   Phase E and nothing here pretends to hold one.
 * `record_only` (handoff 59 §2) — a capitalised asset nothing can be fixed
@@ -86,8 +87,14 @@ CAPTURABLE_FIELDS = {
 #: The schema each mode has until somebody sets one for the class.
 DEFAULT_MANDATORY = {
     MODE_SERIAL: ('make', 'model_name'),
-    MODE_TAG_ID: ('name', 'make', 'model_name', 'colour', 'material',
-                  'dimensions'),
+    # Handoff 61 (ruling R9): a chair with no visible brand must be
+    # recordable, so make and model are no longer mandatory BY DEFAULT for
+    # a tag-identified class — a description, a colour, a material and the
+    # dimensions are what tell one such unit from another. A class whose
+    # schema was set keeps it (0 of 13 `tag_id` classes on the 8 local
+    # tenants had been, measured 2026-10-15). Vendra's own rule asking make
+    # and model at its receipt is Vendra's, and unaffected.
+    MODE_TAG_ID: ('name', 'colour', 'material', 'dimensions'),
     MODE_POOL: (),
     MODE_RECORD_ONLY: ('name', 'record_reference'),
 }

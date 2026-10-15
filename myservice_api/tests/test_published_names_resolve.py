@@ -252,6 +252,10 @@ _BODY_ROUTES = {
     # body is the ids (or the maker's pasted lines) and the evidence every
     # unit's fire shares, refused outside `v1_gates._BATCH_KEYS` /
     # `_LINE_KEYS`.
+    ("POST", "/api/v1/candidates/gates/submit"):
+        (None, None, _GATE_BATCH_BODY),
+    ("POST", "/api/v1/candidates/gates/request-tagging"):
+        (None, None, _GATE_BATCH_BODY),
     ("POST", "/api/v1/candidates/gates/verify"):
         (None, None, _GATE_BATCH_BODY),
     ("POST", "/api/v1/candidates/gates/approve"):
@@ -343,6 +347,18 @@ _BODY_ROUTES = {
                      "`action_request_replacement`"),
     ("POST", "/api/v1/tags/<int:id>/approve-replacement"):
         (None, None, "action: `reason`, recorded as `decision_reason`"),
+    ("POST", "/api/v1/assets/<int:id>/photos"):
+        (None, None, "a multipart photo upload: parts `file`, `source`, "
+                     "`caption`, refused outside "
+                     "`v1_photos.UPLOAD_FILE_FIELDS`/`UPLOAD_TEXT_FIELDS` by "
+                     "`utils.get_multipart`; written by "
+                     "`nrs.asset.photo._upload`, never by field name"),
+    ("POST", "/api/v1/assets/<int:id>/photos/<int:photo_id>/supersede"):
+        (None, None, "action: `reason`, recorded on the `photo_superseded` "
+                     "event"),
+    ("POST", "/api/v1/tags/printed"):
+        (None, None, "action: `tag_ids`, the labels whose print is "
+                     "recorded by `_mark_printed` (handoff 61)"),
     ("POST", "/api/v1/tags/<int:id>/reject-replacement"):
         (None, None, "action: `reason`, REQUIRED and recorded as "
                      "`decision_reason`"),
@@ -717,6 +733,8 @@ _MUST_NOT_RESOLVE = {("request.request", "location_id")}
 #: positional argument is the record. Completeness is checked: a function in
 #: these controllers with `serialize` in its name and no entry here FAILS.
 _SERIALIZERS = {
+    # Handoff 61 §5.
+    ("v1_photos.py", "serialize_photo"): "nrs.asset.photo",
     ("v1_assets.py", "_serialize_depreciation"): "nrs.asset",
     ("v1_assets.py", "_serialize_tagging"): "nrs.asset",
     ("v1_assets.py", "_serialize_sap"): "nrs.asset",

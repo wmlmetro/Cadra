@@ -189,6 +189,9 @@ test.describe("51 — the queue and the refusal (§1)", () => {
     await expect(decided).toHaveAttribute("data-state", "scrapped");
     await expect(decided.getByTestId("replacement-state-pill")).toHaveText("Approved — replaced");
     await expect(decided.getByTestId("replacement-decision")).toContainText("replaced by");
+    // Handoff 61: the successor is the reprint under the SAME number, said
+    // with its count — the number alone would not tell the prints apart.
+    await expect(decided.getByTestId("replacement-reprint")).toHaveText("reprint 1 under the same number");
   });
 
   test("c: the auditor reads the queue and is offered no control at all", async ({ page }) => {
@@ -253,5 +256,6 @@ test.describe("51 — the queue and the refusal (§1)", () => {
     await expect(row).toHaveAttribute("data-state", "scrapped");
     await expect(row.getByTestId("replacement-state-pill")).toHaveText("Approved — replaced");
     await expect(row.getByTestId("replacement-decision")).toContainText("replaced by");
+    await expect(row.getByTestId("replacement-reprint")).toHaveText("reprint 1 under the same number");
   });
 });

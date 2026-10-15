@@ -93,7 +93,7 @@ test("a serial nobody has is a miss that says so, not an error page", async ({ p
 
 // ── Replacement, two people ──────────────────────────────────────────────────
 
-test("service credential asks, admin approves in the browser: old scrapped, new minted, chain intact", async ({ page, api }) => {
+test("service credential asks, admin approves in the browser: the print voided, the label reprinted under the same number, chain intact", async ({ page, api }) => {
   const second = await ApiClient.forServiceCredential();
   test.skip(!second, "set E2E_CLIENT_ID / E2E_CLIENT_SECRET — the model refuses "
                    + "self-approval, so one identity cannot walk this journey");
@@ -144,15 +144,24 @@ test("service credential asks, admin approves in the browser: old scrapped, new 
   expect(fresh.state).toBe("active");
   expect(fresh.asset?.id).toBe(a.id);
   expect(fresh.replaces?.id).toBe(oldTagId);
-  // The old number must never come back.
-  expect(fresh.tag_number).not.toBe(a.tag);
+  // Handoff 61 (R3, a BEHAVIOUR CHANGE): the number stays — the reprint is a
+  // new print of the SAME number, told apart by its count, and the print it
+  // replaces carries its void.
+  expect(fresh.tag_number).toBe(a.tag);
+  expect(fresh.reprint_count).toBe(1);
+  expect(old.reprint_count).toBe(0);
+  expect(old.void_reason).toBe("damaged");
+  expect(old.voided_at).toBeTruthy();
+  expect(old.replaced_by?.reprint_count).toBe(1);
 
-  // 4 · And the screen, in the SAME session, now shows the new number and
-  //     scanning the OLD number is a miss.
+  // 4 · And the screen, in the SAME session: the number resolves by tag, to
+  //     the REPRINT, and the print button names which print it is.
   await expect(page.getByTestId("lookup-matched-by")).toHaveText(/found by tag/i, { timeout: 20_000 });
-  await expect(page.getByText(fresh.tag_number, { exact: false }).first()).toBeVisible();
+  await expect(page.getByTestId("button-print-new-tag")).toContainText(`Print reprint 1 of ${a.tag}`);
   await scan(page, a.tag!);
-  await expect(page.getByTestId("lookup-miss")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("lookup-matched-by")).toHaveText(/found by tag/i, { timeout: 20_000 });
+  const again = await api.get<any>("/api/v1/barcode/lookup", { query: a.tag! });
+  expect(again.tag_id, "the number resolves to the reprint, never the voided print").toBe(fresh.id);
 });
 
 test("a rejection needs a reason and sends the label back to active", async ({ page, api }) => {

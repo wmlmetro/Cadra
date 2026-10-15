@@ -37,7 +37,8 @@ const inputCls =
  *  they left it. The server, not this table, decides what is effective. */
 const MODE_DEFAULT_ATTRIBUTES: Record<IdentificationMode, CapturableAttribute[]> = {
   serial: ["make", "model_name"],
-  tag_id: ["name", "make", "model_name", "colour", "material", "dimensions"],
+  // Handoff 61 (ruling R9): make and model no longer mandatory by default.
+  tag_id: ["name", "colour", "material", "dimensions"],
   // Handoff 59 §2: description, plus what the record is known by.
   record_only: ["name", "record_reference"],
   pool: [],

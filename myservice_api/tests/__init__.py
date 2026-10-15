@@ -29,3 +29,10 @@ from . import test_gates_kept
 from . import test_what_sap_already_holds
 # Handoff 60: batches, the per-person count, the evidence, the mode.
 from . import test_seventy_a_day
+# Handoff 61: the reprint under the same code, photos, room codes, and the
+# rest (the evidence scope, the two batches, the candidate guard, the
+# default furniture schema, the sync filter).
+from . import test_reprint_same_code
+from . import test_asset_photos
+from . import test_location_code
+from . import test_the_same_code_and_the_photo

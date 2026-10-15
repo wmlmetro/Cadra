@@ -28,6 +28,13 @@ EVENT_AFFIX_REFUSED = 'affix_refused'
 # is not itself a gate — a query, a rejection, a return); the no-two-gates
 # rule reads it back.
 EVENT_GATE_FIRED = 'gate_fired'
+# Handoff 61 §5. A photo of the asset (`nrs.asset.photo`, append-only like
+# this record) said to no longer stand, with the reason. The photo row is
+# immutable, so this event IS the supersession: the actor is who superseded
+# it, `photo_id` which photo, `reason` why. Written by
+# `nrs.asset.photo.action_supersede` and by nothing else; the photo list
+# derives "superseded" from it.
+EVENT_PHOTO_SUPERSEDED = 'photo_superseded'
 
 # The symbologies a scanner can claim a value was read in — the
 # BarcodeDetector-style names the app's camera passes up with every decode
@@ -96,13 +103,15 @@ _PAYLOAD_OF_TYPE = {
     # where today the wrong-then-revealed-right sequence leaves one clean
     # affix record saying a human verified the label.
     #
-    # `reason` since handoff 52 §4 — WHICH refusal, one of three keys the
+    # `reason` since handoff 52 §4 — WHICH refusal, one of four keys the
     # recorder writes itself (never caller text): `number_mismatch` (the
     # scanned tag is not the label issued — handoff 51's, and what a NULL
     # reason on a pre-52 row means), `scrapped` (the label presented is
     # dead), `serial_mismatch` (the serial read off the asset is not the
     # one on record — the label going onto the wrong box, and the cheaper
-    # tell, since that refusal reveals nothing to the person refused). The
+    # tell, since that refusal reveals nothing to the person refused), and
+    # since handoff 61 `voided_print` (the number is right but its reprint
+    # was never printed, so the label in hand can only be the voided print). The
     # history sentence differs per reason so a reader can tell a wrong
     # label from a dead one.
     #
@@ -121,6 +130,10 @@ _PAYLOAD_OF_TYPE = {
     # the actor attested to, not only that they clicked.
     EVENT_GATE_FIRED: frozenset(
         {'from_value', 'to_value', 'reason', 'notes', 'gate', 'gate_action'}),
+    # Handoff 61 §5. Which photo, and why — the reason is REQUIRED by the
+    # one writer, `nrs.asset.photo.action_supersede`. No `from_value` /
+    # `to_value`: nothing about the photo changes, which is the point.
+    EVENT_PHOTO_SUPERSEDED: frozenset({'photo_id', 'reason'}),
 }
 
 # Which fields each field-carrying type may name. A reference change naming a
@@ -136,7 +149,7 @@ _FIELDS_OF_TYPE = {
 # `nrs.asset.append.only.mixin._resolve_source`.
 _CONTEXT_SOURCES = (
     'api_verify', 'api_condemn', 'api_mark_missing', 'api_mark_found',
-    'api_write', 'api_affix', 'api_gate',
+    'api_write', 'api_affix', 'api_gate', 'api_photo',
     'action', 'transfer', 'approval', 'direct')
 
 
@@ -178,6 +191,10 @@ class NRSAssetEvent(models.Model):
       `nrs.asset.tag.label._mark_affixed`, whose refusal unwinds the
       request's transaction, so the row is written there on its own cursor
       — see `_record_affix_refusal` on the tag model for the measurement.
+    - **`photo_superseded`** — a photo of the asset (`nrs.asset.photo`)
+      said to no longer stand, and why (handoff 61 §5). A photo is never
+      edited or deleted, so this row is what "superseded" means: the photo
+      list reads it back. Written by `nrs.asset.photo.action_supersede`.
 
     The field-change types are written by `nrs.asset.write`, where every
     writer passes — not by any route — because every field they watch has
@@ -218,6 +235,7 @@ class NRSAssetEvent(models.Model):
         (EVENT_WARRANTY_CHANGED, 'Warranty changed'),
         (EVENT_AFFIX_REFUSED, 'Affix confirmation refused'),
         (EVENT_GATE_FIRED, 'Receipt gate fired'),
+        (EVENT_PHOTO_SUPERSEDED, 'Photo superseded'),
     ], string='Event', required=True, index=True)
 
     occurred_at = fields.Datetime(
@@ -256,6 +274,12 @@ class NRSAssetEvent(models.Model):
     gate = fields.Char(string='Gate', index=True)
     gate_action = fields.Char(string='Gate Action')
 
+    # Carried only by `photo_superseded` (handoff 61 §5). A foreign key,
+    # unlike the Chars above, because what it names cannot be emptied: a
+    # photo is append-only too, and `restrict` says so a second time.
+    photo_id = fields.Many2one(
+        'nrs.asset.photo', string='Photo', index=True, ondelete='restrict')
+
     source = fields.Selection([
         ('api_verify', 'API — verify'),
         ('api_condemn', 'API — condemn'),
@@ -264,6 +288,7 @@ class NRSAssetEvent(models.Model):
         ('api_write', 'API — asset create or update'),
         ('api_affix', 'API — tag-affix confirmation'),
         ('api_gate', 'API — receipt gate'),
+        ('api_photo', 'API — photo superseded'),
         ('action', 'A button on the asset (verify, condemn, mark missing '
                    'or found)'),
         ('transfer', 'Asset transfer completion'),
@@ -289,9 +314,10 @@ class NRSAssetEvent(models.Model):
         return _(
             "An asset event cannot be created directly. One is written only "
             "as a side effect of the asset actually being verified, changing "
-            "status, having a reference or its warranty changed, or having "
-            "an affix confirmation refused, so that the record says "
-            "what happened rather than what somebody typed."
+            "status, having a reference or its warranty changed, having "
+            "an affix confirmation refused, or having a photo superseded, "
+            "so that the record says what happened rather than what "
+            "somebody typed."
         )
 
     # ── When the record began, PER TYPE ───────────────────────────────

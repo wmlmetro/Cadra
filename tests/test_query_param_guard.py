@@ -122,6 +122,10 @@ INVENTORY = {
     ("v1_assets", "warranty_expires_within_days"): ("int", ""),
     ("v1_assets", "include"): ("enum", ""),
     ("v1_assets", "sort"): ("enum", ""),
+    # Handoff 61 §6, the sync filter. A date-time, parsed in `v1_assets`
+    # because the door imports nothing and a datetime cannot be read
+    # without `datetime`.
+    ("v1_assets", "updated_since"): ("date", "_parse_updated_since — 400 for unparseable"),
     ("v1_assets", "as_of"): ("date", "_parse_report_date — 400 for unparseable, absent-but-required, and a future date"),
     ("v1_assets", "from"): ("date", "_parse_report_date"),
     # The two §13.4 log reports. Same parser as the disposal report above —

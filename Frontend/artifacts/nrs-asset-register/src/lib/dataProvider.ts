@@ -1368,10 +1368,14 @@ export const lookupBarcode = async (query: string) =>
 
 // ── Tag replacement (handoff 38) ─────────────────────────────────────────
 //
-// A faded or damaged label is REPLACED, not reprinted: the old number is
-// scrapped and never reissued (`_generate_tag` searches every tag, scrapped
-// ones included, before it settles on a number), a new one is minted, and
-// `replaces` / `replaced_by` keep the chain. It is the two-person pattern of
+// A faded or damaged label is REPRINTED UNDER THE SAME NUMBER (handoff 61,
+// ruling R3 — "the number on the asset doesn't change because a sticker
+// faded"). One label record is one physical print: the approval voids the
+// print (`scrapped`, `voided_at`, `void_reason`) and creates the reprint, a
+// new record with the same `tag_number` and `reprint_count` one higher;
+// `replaces` / `replaced_by` keep the chain. Until handoff 61 a new number
+// was minted, which is why a replacement made before then names a different
+// number in `replaced_by`. It is the two-person pattern of
 // handoff 35 on the tag model's own state machine — somebody asks and names
 // an approver, and somebody ELSE decides — rather than a reuse of
 // `nrs.asset.change.request`, whose one-pending-per-asset index would let a
@@ -1403,11 +1407,28 @@ export interface TagLabel {
   rejected_by: ApprovalRef | null;
   rejected_at: string | null;
   decision_reason: string | null;
-  replaces: { id: number; tag_number: string } | null;
-  replaced_by: { id: number; tag_number: string } | null;
+  /** Which print of `tag_number` this record is: 0 for the first print,
+   *  one more for each approved replacement (handoff 61). */
+  reprint_count: number;
+  /** On a voided print: when it was voided, and why (a
+   *  `tag_replacement_reason` key). Null on a print in service. */
+  voided_at: string | null;
+  void_reason: string | null;
+  replaces: TagPrintLink | null;
+  replaced_by: TagPrintLink | null;
   /** Pending AND the caller may decide it (`_may_decide`, which refuses the
    *  requester). The server's answer, so a screen does not have to guess. */
   can_decide: boolean;
+}
+
+/** One end of the chain between two prints. Since handoff 61 both ends
+ *  usually carry the same `tag_number` and differ only in `reprint_count`. */
+export interface TagPrintLink { id: number; tag_number: string; reprint_count: number }
+
+/** "the original print" / "reprint 2" — `reprint_count` in words, the same
+ *  words the server's refusals use. */
+export function printName(count: number | null | undefined): string {
+  return count ? `reprint ${count}` : "the original print";
 }
 
 export const fetchTag = async (id: number): Promise<TagLabel> =>
@@ -1517,9 +1538,11 @@ export const requestTagReplacement = async (tagId: number, body: TagReplacementR
 };
 
 export interface TagReplacementApproved {
-  /** The OLD tag, now scrapped. */
+  /** The voided print, now `scrapped`, with `voided_at` / `void_reason`. */
   tag: TagLabel;
-  /** The new label, active, carrying `replaces`. */
+  /** The REPRINT: the same `tag_number`, `reprint_count` one higher,
+   *  `replaces` naming the voided print. Not printed yet — the affix route
+   *  refuses it until a print of it is recorded (handoff 61). */
   new_tag: TagLabel;
   asset: ApiAsset;
 }
@@ -1528,6 +1551,20 @@ export const approveTagReplacement = async (tagId: number, reason?: string) =>
   (await apiPost<TagReplacementApproved>(
     `/api/v1/tags/${tagId}/approve-replacement`,
     reason?.trim() ? { reason: reason.trim() } : {},
+    { idempotencyKey: newIdempotencyKey() })).data;
+
+export interface TagsPrintRecorded {
+  recorded: TagLabel[];
+  not_recorded: Array<{ id: number; tag_number: string; reason: string }>;
+}
+
+/** Record that the station printed these labels (`POST /api/v1/tags/printed`,
+ *  `tagging:write`, handoff 61). The app renders labels in the browser and
+ *  so never reaches the PDF funnel that records Odoo's own prints; without
+ *  this a reprint printed from the app could never be confirmed on the
+ *  asset. Label ids, not asset ids. */
+export const recordTagsPrinted = async (tagIds: number[]) =>
+  (await apiPost<TagsPrintRecorded>("/api/v1/tags/printed", { tag_ids: tagIds },
     { idempotencyKey: newIdempotencyKey() })).data;
 
 /** `reason` is REQUIRED by the route (400 on a blank one): the tag goes
@@ -3334,7 +3371,8 @@ export async function fireGate(
 // read, units from more than one receipt, evidence that fails the rule, no
 // cost centre) is an ordinary error envelope and nothing is written.
 
-export type GateBatchAction = "verify" | "approve" | "approve-registration" | "register";
+export type GateBatchAction =
+  | "submit" | "verify" | "approve" | "request-tagging" | "approve-registration" | "register";
 
 /** One unit's line in a batch answer. */
 export interface GateBatchLine {
@@ -3407,7 +3445,7 @@ export interface GateBatchRegisterBody {
 /** `POST /api/v1/candidates/gates/<action>`. A blank `notes` is left out
  *  rather than sent empty. */
 export async function fireGateBatch(action: "verify", body: GateBatchVerifyBody): Promise<GateBatchAnswer>;
-export async function fireGateBatch(action: "approve" | "approve-registration", body: GateBatchIdsBody): Promise<GateBatchAnswer>;
+export async function fireGateBatch(action: "submit" | "approve" | "request-tagging" | "approve-registration", body: GateBatchIdsBody): Promise<GateBatchAnswer>;
 export async function fireGateBatch(action: "register", body: GateBatchRegisterBody): Promise<GateBatchAnswer>;
 export async function fireGateBatch(
   action: GateBatchAction,

@@ -96,6 +96,9 @@ class GateCrew:
             'vfm_verified': (self.approver, 'approve', {}),
             'vfm_approved': (self.controller, 'request-tagging', {}),
             'tagged': (self.maker, 'register', {'payload': register}),
+            # Handoff 61: a walk to `registered` (the checker's step) — until
+            # now every caller stopped at `tagged` or before.
+            'reg_submitted': (self.checker, 'approve-registration', {}),
         }
         while a.register_state != state:
             here = a.register_state
@@ -371,7 +374,7 @@ class TestReceiptGates(GateCrew, CadraTransactionCase):
         self.assertEqual(label.affixed_date, when)
         self.assertEqual(a.register_state, 'tagged')
 
-    def test_replacing_a_tagged_candidates_label_mints_its_successor(self):
+    def test_replacing_a_tagged_candidates_label_is_reprinted_under_its_code(self):
         a = self._to('tagged')
         old = a.active_tag_id
         manager = self.env['res.users'].sudo().create({
@@ -382,6 +385,10 @@ class TestReceiptGates(GateCrew, CadraTransactionCase):
         old.with_user(self.tagger).sudo().action_request_replacement(
             reason='damaged', approver=manager)
         new = old.with_user(manager).sudo().action_approve_replacement()
-        self.assertTrue(new, 'an approved replacement must mint a successor')
+        self.assertTrue(new, 'an approved replacement must reprint the label')
         self.assertEqual(old.state, 'scrapped')
-        self.assertNotEqual(new.name, old.name)
+        # Handoff 61 (R3): the reprint keeps the number, which on a gated
+        # unit IS the asset code (ruling 4.3) — never a location prefix.
+        self.assertEqual(new.name, old.name)
+        self.assertEqual(new.name, a.asset_code)
+        self.assertEqual(new.reprint_count, 1)

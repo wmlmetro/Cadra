@@ -20,6 +20,10 @@ import { API_BASE } from "./api";
 export type LabelSize = "small" | "standard" | "large" | "sheet";
 
 export interface LabelData {
+  /** The `nrs.asset.tag.label` id, when the caller has one — not printed;
+   *  it is what the station sends to `POST /api/v1/tags/printed` so the
+   *  print is recorded (handoff 61). */
+  tag_id?: number | null;
   tag_number: string;
   asset_name?: string;
   asset_code?: string;

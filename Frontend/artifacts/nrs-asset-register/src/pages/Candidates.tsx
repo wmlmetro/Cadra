@@ -86,9 +86,13 @@ function holdsAGate(scopes: Scopes): boolean {
 
 /** The batch on each gate's tab (handoff 60 §2b, §2d). The maker's batch is
  *  the paste box, not a selection. */
-const BATCH_FOR: Partial<Record<GateWaitingOn, "verify" | "approve" | "approve-registration">> = {
+const BATCH_FOR: Partial<Record<GateWaitingOn, "submit" | "verify" | "approve" | "request-tagging" | "approve-registration">> = {
+  // Handoff 61 (ruling 5 on report 60): the two gates that were still two
+  // clicks a unit. A selection may mix receipts for these two.
+  store: "submit",
   iad: "verify",
   iad_approver: "approve",
+  controller: "request-tagging",
   checker: "approve-registration",
 };
 
@@ -174,7 +178,7 @@ export default function Candidates() {
   // search starts with none.
   const [selected, setSelected] = useState<Set<number>>(new Set());
   useEffect(() => { setSelected(new Set()); }, [waitingOn, search]);
-  const [batchOpen, setBatchOpen] = useState<"verify" | "approve" | "approve-registration" | "paste" | null>(null);
+  const [batchOpen, setBatchOpen] = useState<"submit" | "verify" | "approve" | "request-tagging" | "approve-registration" | "paste" | null>(null);
   // The units a batch dialog acts on are taken WHEN IT OPENS: a refresh
   // behind it must not change what the person is confirming.
   const [batchRows, setBatchRows] = useState<CandidateRow[]>([]);
@@ -228,7 +232,7 @@ export default function Candidates() {
   const selectReceipt = (grn: string) =>
     setSelected(new Set(selectableRows.filter(r => r.provenance?.grn_reference === grn).map(r => r.id)));
   const tabValue = waitingOn || "all";
-  const openBatch = (which: "verify" | "approve" | "approve-registration") => {
+  const openBatch = (which: "submit" | "verify" | "approve" | "request-tagging" | "approve-registration") => {
     setBatchRows(selectedRows);
     setBatchOpen(which);
   };
@@ -299,9 +303,20 @@ export default function Candidates() {
                   Verify selected
                 </BatchButton>
               )}
+              {batchAction === "submit" && (
+                <BatchButton testid="button-batch-submit" n={selectedRows.length} onClick={() => openBatch("submit")}>
+                  Submit selected
+                </BatchButton>
+              )}
               {batchAction === "approve" && (
                 <BatchButton testid="button-batch-approve" n={selectedRows.length} onClick={() => openBatch("approve")}>
                   Approve selected
+                </BatchButton>
+              )}
+              {batchAction === "request-tagging" && (
+                <BatchButton testid="button-batch-request-tagging" n={selectedRows.length}
+                  onClick={() => openBatch("request-tagging")}>
+                  Request tagging for selected
                 </BatchButton>
               )}
               {batchAction === "approve-registration" && (
@@ -528,7 +543,8 @@ export default function Candidates() {
       {batchOpen === "verify" && (
         <BatchVerifyDialog rows={batchRows} onClose={() => setBatchOpen(null)} onDone={finished} />
       )}
-      {(batchOpen === "approve" || batchOpen === "approve-registration") && (
+      {(batchOpen === "submit" || batchOpen === "approve" || batchOpen === "request-tagging"
+        || batchOpen === "approve-registration") && (
         <BatchApproveDialog action={batchOpen} rows={batchRows} onClose={() => setBatchOpen(null)} onDone={finished} />
       )}
       {batchOpen === "paste" && <PasteRegisterDialog onClose={() => setBatchOpen(null)} />}

@@ -112,6 +112,7 @@ export const SCOPE_WORDS: Record<string, string> = {
   "tagging:request":    "Ask for a label for an approved unit",
   "register:make":      "Submit a tagged unit to the register, with its SAP code and cost",
   "register:check":     "Approve a submitted unit onto the register",
+  "evidence:read":      "Open Internal Audit's evidence on a received unit",
   "admin":              "Everything — system administrator",
 };
 

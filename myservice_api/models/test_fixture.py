@@ -283,3 +283,19 @@ class MailMessage(models.Model):
     """
     _name = 'mail.message'
     _inherit = ['mail.message', 'cadra.test.fixture.mixin']
+
+
+class NRSAssetPhoto(models.Model):
+    """Photos sent by the suite say so on their face (handoff 61 §5).
+
+    The model is append-only — `write` and `unlink` raise, and it holds its
+    asset with `ondelete='restrict'` — so a photo a test run uploads to a
+    tenant is PERMANENT there, which is exactly the property that put this
+    label on the change request. Its `source` column says which app a photo
+    came through (`web`/`mobile`), declared by the caller; whether a test
+    credential sent it is this field, derived. The append-only guard's
+    `create` runs first (it is earlier in the class's bases) and calls this
+    mixin's, which stamps the label.
+    """
+    _name = 'nrs.asset.photo'
+    _inherit = ['nrs.asset.photo', 'cadra.test.fixture.mixin']

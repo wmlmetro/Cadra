@@ -338,6 +338,9 @@ function App() {
               // attached NOW, not a list from before the last verification.
               && q.queryKey[0] !== "candidates-badge"
               && q.queryKey[0] !== "gate-evidence"
+              // Handoff 61: the photo list carries IAD's evidence too, and
+              // whether this person may read it.
+              && q.queryKey[0] !== "asset-photos"
               && q.queryKey[0] !== "users"
               && q.queryKey[0] !== "user"
               && q.queryKey[0] !== "roles"

@@ -21,7 +21,8 @@ Every answer to a gate is the asset as it now stands (`serialize_asset`,
 with its `register_state` and `gates` block), so the app redraws from the
 server rather than trusting the verb.
 
-BATCHES (handoff 60 §2) — four routes under `/api/v1/candidates/gates/`,
+BATCHES (handoff 60 §2; six since handoff 61) — routes under
+`/api/v1/candidates/gates/`,
 for the gates a person fires on many units at once: `verify`, `approve`,
 `register` (a pasted list of asset code → SAP code) and
 `approve-registration`. **A batch is N single-unit fires**, each through
@@ -40,6 +41,14 @@ included, and nothing remains.
 The evidence of a verification is published for the IAD approver, who
 until handoff 60 approved without seeing it: `GET /assets/<id>/evidence`
 and the file itself at `GET /assets/<id>/evidence/<attachment id>`.
+Since handoff 61 (ruling 1 on report 60) both are behind `evidence:read`
+— IAD, the Register Maker and Checker, the Auditor — through ONE guard,
+`utils.evidence_readable()`; the list answers a caller without it with the
+count and nothing else, and the file route refuses it.
+
+`submit` and `request-tagging` have batches too since handoff 61 (ruling 5
+on report 60), by the same rules; a selection may mix receipts for these
+two, because neither attests to a delivery the way `verify` does.
 
 THE REFUSALS, in the order they are checked — every one BEFORE anything is
 written:
@@ -79,6 +88,7 @@ from .utils import (
     ERR_VALIDATION_FAILED,
     SCOPE_ASSETS_WRITE,
     SCOPE_CANDIDATES_READ,
+    SCOPE_EVIDENCE_READ,
     SCOPE_REGISTER_CHECK,
     SCOPE_REGISTER_MAKE,
     SCOPE_TAGGING_REQUEST,
@@ -86,6 +96,8 @@ from .utils import (
     SCOPE_VFM_VERIFY,
     _http_response,
     err,
+    evidence_count_only,
+    evidence_readable,
     gate_refusal,
     gate_refusal_parts,
     get_params,
@@ -130,6 +142,11 @@ _BODY_KEYS = {
 
 #: The batch routes' bodies (handoff 60 §2). Anything else is refused.
 _BATCH_KEYS = {
+    # Handoff 61, ruling 5 on report 60: the last two gates still at two
+    # clicks a unit. Same rules as 60's — N single fires — and a selection
+    # may mix receipts: neither act attests to one delivery's papers.
+    "submit": ("asset_ids", "notes", "dry_run"),
+    "request-tagging": ("asset_ids", "notes", "dry_run"),
     "verify": ("asset_ids", "checklist", "attachments", "notes", "dry_run"),
     "approve": ("asset_ids", "notes", "dry_run"),
     "register": ("lines", "cost_centre", "capitalisation_date", "notes",
@@ -791,6 +808,37 @@ class CadraGateBatchesV1(http.Controller):
                     "files": len(files)}
         return _batch_answer("verify", lines, dry_run, evidence=evidence)
 
+    @cadra_route("/api/v1/candidates/gates/submit", method="POST",
+                 summary="Store submits many captured receipts to Internal "
+                         "Audit, each fired and recorded on its own",
+                 scopes=[SCOPE_ASSETS_WRITE], success_status=200,
+                 request_schema={"type": "object", "required": ["asset_ids"],
+                                 "properties": {**_IDS, **_NOTES,
+                                                **_DRY_RUN}},
+                 request_example={"asset_ids": [91201, 91202]},
+                 response_schema=_RESULT_SCHEMA)
+    def batch_submit(self, **kwargs):
+        """*Submit selected* (handoff 61, ruling 5 on report 60). A
+        selection may span receipts. Each unit is the single route's fire,
+        refused alone with the single route's sentence."""
+        return _simple_batch("submit", get_params() or {})
+
+    @cadra_route("/api/v1/candidates/gates/request-tagging", method="POST",
+                 summary="The Asset Controller requests labels for many "
+                         "approved units, each fired and recorded on its own",
+                 scopes=[SCOPE_TAGGING_REQUEST], success_status=200,
+                 request_schema={"type": "object", "required": ["asset_ids"],
+                                 "properties": {**_IDS, **_NOTES,
+                                                **_DRY_RUN}},
+                 request_example={"asset_ids": [91201, 91202]},
+                 response_schema=_RESULT_SCHEMA)
+    def batch_request_tagging(self, **kwargs):
+        """*Request tagging for selected* (handoff 61, ruling 5 on report
+        60). Still a PERSON's act: nothing fires it on IAD's approval — it
+        is the Asset Controller's gate (AD-17), and a gate that fires
+        itself is not one. Each unit mints its own label in its own fire."""
+        return _simple_batch("request-tagging", get_params() or {})
+
     @cadra_route("/api/v1/candidates/gates/approve", method="POST",
                  summary="IAD approves value for money on many units, each "
                          "fired and recorded on its own",
@@ -938,13 +986,39 @@ class CadraGateBatchesV1(http.Controller):
                  scopes=[SCOPE_CANDIDATES_READ],
                  response_schema={
                      "type": "object",
-                     "properties": {"verifications": {"type": "array"}}})
+                     "properties": {
+                         "asset_id": {"type": "integer"},
+                         "readable": {
+                             "type": "boolean",
+                             "description": "Whether the caller holds "
+                                            "`evidence:read`. False: "
+                                            "`verifications` is empty and "
+                                            "`count`/`summary` say how many "
+                                            "files there are."},
+                         "count": {"type": "integer",
+                                   "description": "Evidence files across "
+                                                  "every verification."},
+                         "summary": {"type": "string",
+                                     "description": "Non-readers only: "
+                                                    "\"IAD evidence: N "
+                                                    "items\"."},
+                         "requires_scope": {"type": "string"},
+                         "verifications": {"type": "array"}}})
     def asset_evidence(self, id, **kwargs):
+        """Readers (`evidence:read`) get every verification and its files;
+        anybody else holding `candidates:read` gets the count, in words,
+        and nothing that opens a file (handoff 61, ruling 1 on report 60).
+        `readable` says which answer this is."""
         asset, error = _browse_or_404(id)
         if error:
             return error
+        verifications = asset._gate_evidence()
+        count = sum(len(v["files"]) for v in verifications)
+        if not evidence_readable():
+            return dict(evidence_count_only(count), asset_id=asset.id,
+                        verifications=[])
         out = []
-        for v in asset._gate_evidence():
+        for v in verifications:
             ev = v["event"]
             out.append({
                 "event_id": ev.id,
@@ -959,7 +1033,8 @@ class CadraGateBatchesV1(http.Controller):
                     "url": "/api/v1/assets/%d/evidence/%d" % (asset.id, f.id),
                 } for f in v["files"]],
             })
-        return {"asset_id": asset.id, "verifications": out}
+        return {"asset_id": asset.id, "readable": True, "count": count,
+                "verifications": out}
 
     @http.route("/api/v1/assets/<int:id>/evidence/<int:attachment_id>",
                 type="http", auth="none", methods=["GET"], csrf=False)
@@ -967,7 +1042,11 @@ class CadraGateBatchesV1(http.Controller):
         """One evidence file — the file, not the envelope. Only a file one
         of THIS unit's verifications names; any other id is a 404, so the
         route cannot be walked to read an arbitrary attachment."""
-        _, envelope, _ = require_jwt(scopes=[SCOPE_CANDIDATES_READ])
+        # The file is the evidence itself: `evidence:read`, the one scope
+        # the list's guard reads (handoff 61). `candidates:read` alone — an
+        # Asset User, Vendra's credential — is refused here, by name.
+        _, envelope, _ = require_jwt(scopes=[SCOPE_CANDIDATES_READ,
+                                             SCOPE_EVIDENCE_READ])
         if envelope is not None:
             return _http_response(envelope)
         asset = request.env["nrs.asset"].sudo().browse(id).exists()

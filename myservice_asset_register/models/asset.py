@@ -1416,8 +1416,22 @@ class NRSAssetCategory(models.Model):
 
     @api.depends()
     def _compute_asset_count(self):
+        """ONE grouped count for every category in `self` (handoff 61,
+        ruling 6 on report 60): `GET /asset-categories` computes this for
+        the whole taxonomy at once, and one `search_count` per row was 160
+        queries on `test19` — most of a ~3 s answer. `_read_group` goes
+        through `nrs.asset._search` like `search_count` did, so the
+        register's implicit filter (candidates excluded, handoff 57) counts
+        exactly what it counted before."""
+        counts = {}
+        if self.ids:
+            counts = {
+                category.id: n for category, n in
+                self.env['nrs.asset']._read_group(
+                    [('category_id', 'in', self.ids)],
+                    ['category_id'], ['__count'])}
         for c in self:
-            c.asset_count = self.env['nrs.asset'].search_count([('category_id', '=', c.id)])
+            c.asset_count = counts.get(c.id, 0)
 
 
 class NRSAssetSubcategory(models.Model):

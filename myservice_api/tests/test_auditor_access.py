@@ -106,6 +106,9 @@ EXPECTED_AUDITOR_SCOPES = frozenset({
     # receipt candidate at any state — Addendum A §4, "Auditor (read-only):
     # view all records … at any state". docs/DECISIONS.md, 2026-10-07.
     "candidates:read",
+    # Handoff 61, ruling 1 on report 60: IAD's evidence — the Auditor is one
+    # of its five readers. docs/DECISIONS.md, 2026-10-15.
+    "evidence:read",
 })
 
 AUDITOR_GROUP_XMLID = "myservice_api.group_auditor"
