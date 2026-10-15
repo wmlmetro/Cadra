@@ -2414,3 +2414,44 @@ with who owns it. `[open]` unless marked.
     carry the maker's number (resolve the discrepancy before disposing it);
     a back-office *Duplicate* of a candidate produces a registered asset
     with no gate events. `docs/DECISIONS.md`, 2026-10-12.
+
+## 30 · Handoff 61 — the same code, and the photo, 2026-10-15
+
+### 30.1 · Hosting is a known deviation from AI-NFR-04 — `[open]`, NRS's written acceptance required
+
+**AI-NFR-04** (the AI item identification addendum, 13 October 2026) requires
+photos, signatures and training data to be stored in NRS-approved hosting **in
+Nigeria**, and never sent to third-party AI APIs. **The owner has ruled the
+current servers for now** (`docs/AI-CAPTURE-EVALUATION.md`, R7). That is a
+known deviation, and it covers the whole system, not only photos: a photo
+added under handoff 61 is an `ir.attachment` in the same Postgres and
+filestore as the rest of the register.
+
+**Where the servers are.** Nothing in this repository names the region the
+demo cluster runs in. Searched (handoff 61): every DigitalOcean region slug
+across the repo, `region` and `topology.kubernetes.io` in `k8s/`,
+`.github/`, `docs/DEPLOYMENT.md`, `docs/ENVIRONMENT-FACTS.md`, `scripts/` and
+the compose files — no hit about hosting. `cadra-dev` is a Kubernetes
+namespace (`k8s/dev/00-namespace.yaml`); the cluster is the GitHub variable
+`vars.DO_CLUSTER_NAME` (`k8s/dev/CLUSTER-SETUP.md`). The read-only workflows
+(`db-query`, `audit-tenant`, `debug-job`, `uptime-check`) see Postgres, job
+status and HTTP, and none of them prints the cluster's region; finding it
+needs either the DigitalOcean console or a workflow step (`doctl kubernetes
+cluster get "$DO_CLUSTER_NAME" --format Region`) — a workflow change, so the
+owner's call. A client's production server (`docs/DEPLOYMENT.md`'s `prod`
+profile) is wherever that client's VPS is, decided per deployment.
+
+**Before the first photo is stored on a production tenant:** NRS accepts the
+deviation **in writing**. Owner: **the owner.** Until then photos are a
+demonstration feature on the demo estate.
+
+### 30.2 · A room label's Code 128 reads only at the large size — `[landed, keep it that way]`
+
+Room labels (`location_code`, R8) print at the medium and large sizes only,
+as the handoff says, because the small Code 128 reads 0 of 24 by camera. The
+corpus (`docs/handoffs/54-evidence/corpus-table.md`) says the same of the
+MEDIUM ("standard") size: Code 128 small 0/24, medium 0/24, large 9/24; QR
+small 9/24, medium 11/24, large 18/24. So a medium room label is scanned by
+its QR. The mobile team's label guidance says QR first
+(`docs/integrations/mobile-ai-capture-endpoints.md`). §28.2's template
+question is the same question for room labels.

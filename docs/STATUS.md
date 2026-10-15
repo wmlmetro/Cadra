@@ -1642,3 +1642,35 @@ failing silently, depending on whose phone it was. The engine changed.
 - **Measured**: the click table and the badge per persona per step — report
   60 §4, from spec 60 driving one GRN of 20 units on `test19`.
 - **Not yet**: deployed — owner, after merge.
+
+## Handoff 61 — the same code, and the photo
+
+Evidence: `docs/handoffs/61-REPORT.md` and `docs/handoffs/61-evidence/`.
+
+- **§1 (R3) — a replacement reprints under the same number**, gates on or
+  off: one label row per print, the old print voided with its date and
+  reason, `reprint_count`; the gated replacement's location-prefix label
+  (findings §5.6) is gone. A reprint is refused at affix until its print is
+  recorded, and the app records its prints (`POST /tags/printed`).
+- **§0b — IAD's evidence behind `evidence:read`** (IAD, maker, checker,
+  Auditor), one guard; *Submit selected* and *Request tagging for selected*;
+  `GET /asset-categories` 2.8–4.2 s → 0.27–0.52 s on `test19`.
+- **§2 (R10)** — a candidate is not verified, marked missing or found, or
+  given any status or verification date, by any writer, at creation
+  included.
+- **§3 (R9)** — the default `tag_id` schema has no make or model (13 of 13
+  local `tag_id` classes on the default, 0 customised).
+- **§5 — photos**: append-only, multipart inside the envelope, JPEG/PNG by
+  the bytes, 300 KB, 12 standing, superseded with a reason, IAD's evidence
+  in the same list behind the guard; *Photos* on the asset page.
+- **§6** — `GET /assets?updated_since=`.
+- **§7 (R8)** — `location_code` on 4,869 of 4,869 locations on 8 tenants, 0
+  collisions; room labels at medium and large; a room code at the scan box
+  answers *this is a room*.
+- **§8** — `docs/integrations/mobile-ai-capture-endpoints.md`, the mobile
+  team's 24 endpoints. **§9** — GO-LIVE §30 (hosting; no region in the
+  repo).
+- **Suites on `test19`**: pytest 1,457 passed / 7 skipped, both switch
+  states; modules 505 / 482 / 96 / 20, 0 failed, both states; browser 275
+  specs (report 61 §Verification for the per-state numbers and reruns).
+- **Not yet**: deployed — owner, after merge.

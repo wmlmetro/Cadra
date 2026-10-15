@@ -4200,8 +4200,10 @@ A scope of `(none)` means the route names no scope: the auth routes and the
 self-describing meta routes. Three `@http.route` handlers check their scope
 INLINE rather than declaring it — `GET /assets/export.csv` (`export:read`),
 `POST /integrations/employees/import` (`integrations:write`) and, since
-handoff 60, `GET /assets/<id>/evidence/<attachment_id>` (`candidates:read`)
-— so their
+handoff 60, `GET /assets/<id>/evidence/<attachment_id>` (`candidates:read`
+and, since handoff 61, `evidence:read`); since handoff 61 also
+`GET /locations/<id>/label` (`locations:read`) and
+`GET /assets/<id>/photos/<photo_id>` (`assets:read`) — so their
 cells are stated here by hand, as is `PATCH /asset-categories/<id>`, whose
 either-or scope the route checks itself (handoff 58); the guard compares method and path, not
 scope. `GET /settings/sidebar` requires a signed-in caller and no scope, by
@@ -4247,8 +4249,14 @@ design (handoff 48).
 | 36 | POST   | `/api/v1/candidates/gates/approve` | `vfm:approve` (handoff 60) |
 | 37 | POST   | `/api/v1/candidates/gates/register` | `register:make` (handoff 60: a pasted asset code → SAP code list) |
 | 38 | POST   | `/api/v1/candidates/gates/approve-registration` | `register:check` (handoff 60) |
-| 39 | GET    | `/api/v1/assets/<id>/evidence` | `candidates:read` (handoff 60) |
-| 40 | GET    | `/api/v1/assets/<id>/evidence/<attachment_id>` | `candidates:read`, checked inline — the file, not the envelope (handoff 60) |
+| 38a | POST   | `/api/v1/candidates/gates/submit` | `assets:write` (handoff 61: *Submit selected*; receipts may be mixed) |
+| 38b | POST   | `/api/v1/candidates/gates/request-tagging` | `tagging:request` (handoff 61: *Request tagging for selected*; receipts may be mixed) |
+| 39 | GET    | `/api/v1/assets/<id>/evidence` | `candidates:read` (handoff 60); the files listed only with `evidence:read`, otherwise the count (handoff 61) |
+| 40 | GET    | `/api/v1/assets/<id>/evidence/<attachment_id>` | `candidates:read` + `evidence:read` (handoff 61), checked inline — the file, not the envelope (handoff 60) |
+| 40a | POST   | `/api/v1/assets/<id>/photos` | `assets:write` (handoff 61: multipart — `file`, `source`, `caption`; JPEG/PNG ≤ 300 KB, ≤ 12 standing per asset) |
+| 40b | GET    | `/api/v1/assets/<id>/photos` | `assets:read` (handoff 61: photos and IAD evidence, labelled; evidence items only with `evidence:read`, otherwise the count) |
+| 40c | GET    | `/api/v1/assets/<id>/photos/<photo_id>` | `assets:read`, checked inline — the bytes, not the envelope (handoff 61) |
+| 40d | POST   | `/api/v1/assets/<id>/photos/<photo_id>/supersede` | `assets:write` (handoff 61: a `reason`; the photo is kept) |
 | 41 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
 | 42 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
 | 43 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
@@ -4269,6 +4277,7 @@ design (handoff 48).
 | 58 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
 | 59 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
 | 60 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
+| 60a | GET    | `/api/v1/locations/<id>/label` | `locations:read` (handoff 61: the room label PDF, `size` medium or large; the file, not the envelope) |
 | 61 | GET    | `/api/v1/requests` | `requests:read` |
 | 62 | POST   | `/api/v1/requests` | `requests:write` |
 | 63 | GET    | `/api/v1/requests/<id>` | `requests:read` |
@@ -4309,6 +4318,7 @@ design (handoff 48).
 | 98 | GET    | `/api/v1/tags/lookup` | `assets:read` |
 | 99 | GET    | `/api/v1/tags/pending-replacements` | `assets:read` |
 | 100 | GET    | `/api/v1/tags/replacements` | `assets:read` |
+| 100a | POST   | `/api/v1/tags/printed` | `tagging:write` (handoff 61: the app records the prints it renders) |
 | 101 | GET    | `/api/v1/home/form-data` | `requests:read` |
 | 102 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
 | 103 | POST   | `/api/v1/integrations/employees/import` | `integrations:write` |
