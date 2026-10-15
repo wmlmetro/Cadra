@@ -729,3 +729,24 @@ Every refusal added says what happened and what to do, in words; none says
 | `cb88de3` | Spec 61's two fixes, found by the browser run |
 | `18a644b` | DECISIONS, CHANGELOG, GO-LIVE §30, ENVIRONMENT-FACTS, the endpoint index, the mobile map, the D1 note, CLAUDE.md, STATUS |
 | (this commit) | This report and `docs/handoffs/61-evidence/` |
+
+## Addendum — deployed to the cluster, 2026-10-15
+
+PR #120 merged by the owner (`f3f75f6`). `deploy-dev` ran on the merge
+(run 38792498851, success); then, on the owner's instruction, `upgrade-19`
+(run 38792996478, success) with `target_dbs=staging,gtb,jaizbankplc,lasg`,
+`upgrade_modules=myservice_asset_register,myservice_api`, `scale_down=true`,
+`image` blank (`dev-latest`). `upgrade succeeded` for each of the four;
+replicas restored and rolled out. The migration's own lines:
+
+| Tenant | room codes |
+|---|---|
+| staging | filled on 1,642 of 1,642 locations; 0 empty; 0 duplicate codes |
+| gtb | 143 of 143; 0; 0 |
+| jaizbankplc | 59 of 59; 0; 0 |
+| lasg | 111 of 111; 0; 0 |
+
+`GET /api/v1/meta/readiness`, no token: `{"ready": true}` on
+`staging.app.cadra.ng`, `gtb.cadra.ng`, `jaizbankplc.cadra.ng` and
+`lasg.cadra.ng`. The staging click-through (Needs the owner, 4) is still
+the owner's — it needs Turnstile in a browser.
