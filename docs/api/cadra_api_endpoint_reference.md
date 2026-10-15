@@ -4186,7 +4186,7 @@ a deleted parameter's old value to twenty-four writing tests.
 
 # Endpoint index (grouped by area, alphabetical inside groups)
 
-Every first-party route under `/api/v1` — 133 of them as of handoff 58 (115 at handoff 52); the
+Every first-party route under `/api/v1` — 141 of them as of handoff 60 (133 at handoff 58, 115 at handoff 52); the
 first-party routes OUTSIDE `/api/v1` are `docs/api/EXTERNAL-SURFACES.md`'s.
 This table is held to the code by `tests/test_endpoint_reference.py` (handoff
 52 §6b), which re-derives the route census from every
@@ -4197,9 +4197,11 @@ endpoint index while carrying 64 rows of 115 routes — an integrator reading
 it would have built against half an API.
 
 A scope of `(none)` means the route names no scope: the auth routes and the
-self-describing meta routes. Two `@http.route` handlers check their scope
-INLINE rather than declaring it — `GET /assets/export.csv` (`export:read`)
-and `POST /integrations/employees/import` (`integrations:write`) — so their
+self-describing meta routes. Three `@http.route` handlers check their scope
+INLINE rather than declaring it — `GET /assets/export.csv` (`export:read`),
+`POST /integrations/employees/import` (`integrations:write`) and, since
+handoff 60, `GET /assets/<id>/evidence/<attachment_id>` (`candidates:read`)
+— so their
 cells are stated here by hand, as is `PATCH /asset-categories/<id>`, whose
 either-or scope the route checks itself (handoff 58); the guard compares method and path, not
 scope. `GET /settings/sidebar` requires a signed-in caller and no scope, by
@@ -4241,107 +4243,113 @@ design (handoff 48).
 | 32 | POST   | `/api/v1/assets/<id>/gates/approve-registration` | `register:check` |
 | 33 | POST   | `/api/v1/assets/<id>/gates/return-registration` | `register:check` |
 | 34 | GET    | `/api/v1/candidates` | `candidates:read` |
-| 35 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
-| 36 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
-| 37 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
-| 38 | POST   | `/api/v1/assets/<id>/tag-affixed` | `tagging:write` |
-| 39 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
-| 40 | POST   | `/api/v1/assets/<id>/verify` | `assets:write` |
-| 41 | GET    | `/api/v1/assets/by-tag/<tag>` | `assets:read` |
-| 42 | GET    | `/api/v1/assets/export` | `export:read` |
-| 43 | GET    | `/api/v1/assets/export.csv` | `export:read` |
-| 44 | GET    | `/api/v1/asset-categories` | `assets:read` |
-| 45 | POST   | `/api/v1/asset-categories` | `settings:write` |
-| 46 | DELETE | `/api/v1/asset-categories/<id>` | `settings:write` |
-| 47 | PATCH  | `/api/v1/asset-categories/<id>` | `settings:write`, or `settings:classes` for `identification_mode` / `class_attributes_schema` / `sap_asset_class` alone (checked in the route) |
-| 48 | GET    | `/api/v1/locations` | `locations:read` |
-| 49 | POST   | `/api/v1/locations` | `locations:write` |
-| 50 | GET    | `/api/v1/locations/<id>` | `locations:read` |
-| 51 | PATCH  | `/api/v1/locations/<id>` | `locations:write` |
-| 52 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
-| 53 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
-| 54 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
-| 55 | GET    | `/api/v1/requests` | `requests:read` |
-| 56 | POST   | `/api/v1/requests` | `requests:write` |
-| 57 | GET    | `/api/v1/requests/<id>` | `requests:read` |
-| 58 | PATCH  | `/api/v1/requests/<id>` | `requests:write` |
-| 59 | POST   | `/api/v1/requests/<id>/assign` | `requests:write` |
-| 60 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
-| 61 | POST   | `/api/v1/requests/<id>/transition` | `requests:write` |
-| 62 | GET    | `/api/v1/requests/by-reference/<reference>` | `requests:read` |
-| 63 | GET    | `/api/v1/approvals` | `assets:read` |
-| 64 | GET    | `/api/v1/approvals/<id>` | `assets:read` |
-| 65 | POST   | `/api/v1/approvals/<id>/approve` | `approvals:write` |
-| 66 | POST   | `/api/v1/approvals/<id>/reject` | `approvals:write` |
-| 67 | POST   | `/api/v1/approvals/<id>/renominate` | `assets:write` |
-| 68 | POST   | `/api/v1/approvals/<id>/withdraw` | `assets:write` |
-| 69 | GET    | `/api/v1/approvals/approvers` | `assets:write` |
-| 70 | GET    | `/api/v1/dashboard/fleet-command` | `operations:read` |
-| 71 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
-| 72 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
-| 73 | GET    | `/api/v1/security/kpis` | `operations:read` |
-| 74 | GET    | `/api/v1/security/map-data` | `operations:read` |
-| 75 | GET    | `/api/v1/security/recent` | `operations:read` |
-| 76 | GET    | `/api/v1/security/trend` | `operations:read` |
-| 77 | GET    | `/api/v1/fleet` | `operations:read` |
-| 78 | GET    | `/api/v1/fleet/<id>` | `operations:read` |
-| 79 | GET    | `/api/v1/fleet/dashboard` | `operations:read` |
-| 80 | GET    | `/api/v1/fleet/map` | `operations:read` |
-| 81 | GET    | `/api/v1/fm/dashboard` | `operations:read` |
-| 82 | POST   | `/api/v1/barcode/generate` | `tagging:write` |
-| 83 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
-| 84 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
-| 85 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
-| 86 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
-| 87 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
-| 88 | GET    | `/api/v1/tags/<id>` | `assets:read` |
-| 89 | POST   | `/api/v1/tags/<id>/approve-replacement` | `approvals:write` |
-| 90 | POST   | `/api/v1/tags/<id>/reject-replacement` | `approvals:write` |
-| 91 | POST   | `/api/v1/tags/<id>/request-replacement` | `tagging:write` |
-| 92 | GET    | `/api/v1/tags/lookup` | `assets:read` |
-| 93 | GET    | `/api/v1/tags/pending-replacements` | `assets:read` |
-| 94 | GET    | `/api/v1/tags/replacements` | `assets:read` |
-| 95 | GET    | `/api/v1/home/form-data` | `requests:read` |
-| 96 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
-| 97 | POST   | `/api/v1/integrations/employees/import` | `integrations:write` |
-| 98 | GET    | `/api/v1/integrations/employees/import/<job_id>` | `integrations:write` |
-| 99 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
-| 100 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
-| 101 | GET    | `/api/v1/reports/access-changes` | `access:read` |
-| 102 | GET    | `/api/v1/reports/asset-register` | `assets:read` |
-| 103 | GET    | `/api/v1/reports/configuration-changes` | `settings:read` |
-| 104 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
-| 105 | GET    | `/api/v1/reports/disposals` | `assets:read` |
-| 106 | GET    | `/api/v1/identity/employees` | `identity:read` |
-| 107 | GET    | `/api/v1/identity/employees/<id>` | `identity:read` |
-| 108 | GET    | `/api/v1/identity/employees/<id>/assets` | `identity:read` + `assets:read` |
-| 109 | GET    | `/api/v1/identity/employees/by-ir/<ir_number>` | `identity:read` |
-| 110 | GET    | `/api/v1/users` | `admin` |
-| 111 | POST   | `/api/v1/users` | `admin` |
-| 112 | GET    | `/api/v1/users/<user_id>` | `admin` |
-| 113 | POST   | `/api/v1/users/<user_id>/deactivate` | `admin` |
-| 114 | POST   | `/api/v1/users/<user_id>/invite` | `admin` |
-| 115 | POST   | `/api/v1/users/<user_id>/reactivate` | `admin` |
-| 116 | POST   | `/api/v1/users/<user_id>/roles` | `admin` |
-| 117 | GET    | `/api/v1/roles` | `admin` |
-| 118 | GET    | `/api/v1/settings` | `assets:read` |
-| 119 | GET    | `/api/v1/settings/approvals` | `assets:read` |
-| 120 | GET    | `/api/v1/settings/branding` | `assets:read` |
-| 121 | PATCH  | `/api/v1/settings/branding` | `settings:write` |
-| 122 | GET    | `/api/v1/settings/depreciation` | `assets:read` |
-| 123 | PATCH  | `/api/v1/settings/depreciation` | `settings:write` |
-| 124 | POST   | `/api/v1/settings/depreciation/recompute` | `settings:write` |
-| 125 | PATCH  | `/api/v1/settings/receipt-gate` | `settings:write` |
-| 126 | GET    | `/api/v1/settings/role-exclusions` | `settings:read` |
-| 127 | POST   | `/api/v1/settings/role-exclusions` | `settings:write` |
-| 128 | PATCH  | `/api/v1/settings/role-exclusions/<id>` | `settings:write` |
-| 129 | GET    | `/api/v1/settings/conflicting-grants` | `settings:write` |
-| 130 | GET    | `/api/v1/settings/serial-placeholders` | `settings:read` |
-| 131 | PUT    | `/api/v1/settings/serial-placeholders` | `settings:write` |
-| 132 | GET    | `/api/v1/settings/sidebar` | (any signed-in caller) |
-| 133 | PATCH  | `/api/v1/settings/sidebar` | `admin` |
-| 134 | GET    | `/api/v1/brand` | (none) |
-| 135 | GET    | `/api/v1/brand/logo` | (none) |
+| 35 | POST   | `/api/v1/candidates/gates/verify` | `vfm:verify` (handoff 60: N units of one GRN, one checklist and evidence set) |
+| 36 | POST   | `/api/v1/candidates/gates/approve` | `vfm:approve` (handoff 60) |
+| 37 | POST   | `/api/v1/candidates/gates/register` | `register:make` (handoff 60: a pasted asset code → SAP code list) |
+| 38 | POST   | `/api/v1/candidates/gates/approve-registration` | `register:check` (handoff 60) |
+| 39 | GET    | `/api/v1/assets/<id>/evidence` | `candidates:read` (handoff 60) |
+| 40 | GET    | `/api/v1/assets/<id>/evidence/<attachment_id>` | `candidates:read`, checked inline — the file, not the envelope (handoff 60) |
+| 41 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
+| 42 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
+| 43 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
+| 44 | POST   | `/api/v1/assets/<id>/tag-affixed` | `tagging:write` |
+| 45 | POST   | `/api/v1/assets/<id>/transfer-custody` | `assets:write` |
+| 46 | POST   | `/api/v1/assets/<id>/verify` | `assets:write` |
+| 47 | GET    | `/api/v1/assets/by-tag/<tag>` | `assets:read` |
+| 48 | GET    | `/api/v1/assets/export` | `export:read` |
+| 49 | GET    | `/api/v1/assets/export.csv` | `export:read` |
+| 50 | GET    | `/api/v1/asset-categories` | `assets:read` |
+| 51 | POST   | `/api/v1/asset-categories` | `settings:write` |
+| 52 | DELETE | `/api/v1/asset-categories/<id>` | `settings:write` |
+| 53 | PATCH  | `/api/v1/asset-categories/<id>` | `settings:write`, or `settings:classes` for `identification_mode` / `class_attributes_schema` / `sap_asset_class` alone (checked in the route) |
+| 54 | GET    | `/api/v1/locations` | `locations:read` |
+| 55 | POST   | `/api/v1/locations` | `locations:write` |
+| 56 | GET    | `/api/v1/locations/<id>` | `locations:read` |
+| 57 | PATCH  | `/api/v1/locations/<id>` | `locations:write` |
+| 58 | GET    | `/api/v1/locations/<id>/ancestors` | `locations:read` |
+| 59 | GET    | `/api/v1/locations/<id>/children` | `locations:read` |
+| 60 | GET    | `/api/v1/locations/<id>/descendants` | `locations:read` |
+| 61 | GET    | `/api/v1/requests` | `requests:read` |
+| 62 | POST   | `/api/v1/requests` | `requests:write` |
+| 63 | GET    | `/api/v1/requests/<id>` | `requests:read` |
+| 64 | PATCH  | `/api/v1/requests/<id>` | `requests:write` |
+| 65 | POST   | `/api/v1/requests/<id>/assign` | `requests:write` |
+| 66 | POST   | `/api/v1/requests/<id>/comment` | `requests:write` |
+| 67 | POST   | `/api/v1/requests/<id>/transition` | `requests:write` |
+| 68 | GET    | `/api/v1/requests/by-reference/<reference>` | `requests:read` |
+| 69 | GET    | `/api/v1/approvals` | `assets:read` |
+| 70 | GET    | `/api/v1/approvals/<id>` | `assets:read` |
+| 71 | POST   | `/api/v1/approvals/<id>/approve` | `approvals:write` |
+| 72 | POST   | `/api/v1/approvals/<id>/reject` | `approvals:write` |
+| 73 | POST   | `/api/v1/approvals/<id>/renominate` | `assets:write` |
+| 74 | POST   | `/api/v1/approvals/<id>/withdraw` | `assets:write` |
+| 75 | GET    | `/api/v1/approvals/approvers` | `assets:write` |
+| 76 | GET    | `/api/v1/dashboard/fleet-command` | `operations:read` |
+| 77 | GET    | `/api/v1/dashboard/kpis` | `dashboards:read` |
+| 78 | GET    | `/api/v1/dashboard/map` | `dashboards:read` |
+| 79 | GET    | `/api/v1/security/kpis` | `operations:read` |
+| 80 | GET    | `/api/v1/security/map-data` | `operations:read` |
+| 81 | GET    | `/api/v1/security/recent` | `operations:read` |
+| 82 | GET    | `/api/v1/security/trend` | `operations:read` |
+| 83 | GET    | `/api/v1/fleet` | `operations:read` |
+| 84 | GET    | `/api/v1/fleet/<id>` | `operations:read` |
+| 85 | GET    | `/api/v1/fleet/dashboard` | `operations:read` |
+| 86 | GET    | `/api/v1/fleet/map` | `operations:read` |
+| 87 | GET    | `/api/v1/fm/dashboard` | `operations:read` |
+| 88 | POST   | `/api/v1/barcode/generate` | `tagging:write` |
+| 89 | GET    | `/api/v1/barcode/kpis` | `assets:read` |
+| 90 | GET    | `/api/v1/barcode/lookup` | `assets:read` |
+| 91 | GET    | `/api/v1/barcode/print-url` | `assets:read` |
+| 92 | GET    | `/api/v1/barcode/recent-tags` | `assets:read` |
+| 93 | GET    | `/api/v1/barcode/untagged` | `assets:read` |
+| 94 | GET    | `/api/v1/tags/<id>` | `assets:read` |
+| 95 | POST   | `/api/v1/tags/<id>/approve-replacement` | `approvals:write` |
+| 96 | POST   | `/api/v1/tags/<id>/reject-replacement` | `approvals:write` |
+| 97 | POST   | `/api/v1/tags/<id>/request-replacement` | `tagging:write` |
+| 98 | GET    | `/api/v1/tags/lookup` | `assets:read` |
+| 99 | GET    | `/api/v1/tags/pending-replacements` | `assets:read` |
+| 100 | GET    | `/api/v1/tags/replacements` | `assets:read` |
+| 101 | GET    | `/api/v1/home/form-data` | `requests:read` |
+| 102 | POST   | `/api/v1/home/quick-submit` | `requests:write` |
+| 103 | POST   | `/api/v1/integrations/employees/import` | `integrations:write` |
+| 104 | GET    | `/api/v1/integrations/employees/import/<job_id>` | `integrations:write` |
+| 105 | POST   | `/api/v1/integrations/sap/employee-sync` | `integrations:write` |
+| 106 | POST   | `/api/v1/integrations/workflow/callback` | `integrations:write` |
+| 107 | GET    | `/api/v1/reports/access-changes` | `access:read` |
+| 108 | GET    | `/api/v1/reports/asset-register` | `assets:read` |
+| 109 | GET    | `/api/v1/reports/configuration-changes` | `settings:read` |
+| 110 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
+| 111 | GET    | `/api/v1/reports/disposals` | `assets:read` |
+| 112 | GET    | `/api/v1/identity/employees` | `identity:read` |
+| 113 | GET    | `/api/v1/identity/employees/<id>` | `identity:read` |
+| 114 | GET    | `/api/v1/identity/employees/<id>/assets` | `identity:read` + `assets:read` |
+| 115 | GET    | `/api/v1/identity/employees/by-ir/<ir_number>` | `identity:read` |
+| 116 | GET    | `/api/v1/users` | `admin` |
+| 117 | POST   | `/api/v1/users` | `admin` |
+| 118 | GET    | `/api/v1/users/<user_id>` | `admin` |
+| 119 | POST   | `/api/v1/users/<user_id>/deactivate` | `admin` |
+| 120 | POST   | `/api/v1/users/<user_id>/invite` | `admin` |
+| 121 | POST   | `/api/v1/users/<user_id>/reactivate` | `admin` |
+| 122 | POST   | `/api/v1/users/<user_id>/roles` | `admin` |
+| 123 | GET    | `/api/v1/roles` | `admin` |
+| 124 | GET    | `/api/v1/settings` | `assets:read` |
+| 125 | GET    | `/api/v1/settings/approvals` | `assets:read` |
+| 126 | GET    | `/api/v1/settings/branding` | `assets:read` |
+| 127 | PATCH  | `/api/v1/settings/branding` | `settings:write` |
+| 128 | GET    | `/api/v1/settings/depreciation` | `assets:read` |
+| 129 | PATCH  | `/api/v1/settings/depreciation` | `settings:write` |
+| 130 | POST   | `/api/v1/settings/depreciation/recompute` | `settings:write` |
+| 131 | PATCH  | `/api/v1/settings/receipt-gate` | `settings:write` |
+| 132 | GET    | `/api/v1/settings/role-exclusions` | `settings:read` |
+| 133 | POST   | `/api/v1/settings/role-exclusions` | `settings:write` |
+| 134 | PATCH  | `/api/v1/settings/role-exclusions/<id>` | `settings:write` |
+| 135 | GET    | `/api/v1/settings/conflicting-grants` | `settings:write` |
+| 136 | GET    | `/api/v1/settings/serial-placeholders` | `settings:read` |
+| 137 | PUT    | `/api/v1/settings/serial-placeholders` | `settings:write` |
+| 138 | GET    | `/api/v1/settings/sidebar` | (any signed-in caller) |
+| 139 | PATCH  | `/api/v1/settings/sidebar` | `admin` |
+| 140 | GET    | `/api/v1/brand` | (none) |
+| 141 | GET    | `/api/v1/brand/logo` | (none) |
 
 
 ## 11.8 GET `/api/v1/settings` and PATCH `/api/v1/settings/receipt-gate` — are receipts gated? (handoff 57, kept by 58)
@@ -4993,6 +5001,95 @@ warning (class 3500's numbers start `5`, as in SAP):
 ```json
 "_warnings": {"sap_asset_number": "2xxxxxxxxxx looks like a class 2000 number; this category maps to 3000."}
 ```
+
+### 14.12 Seventy a day — batches, the count, the evidence (handoff 60)
+
+**`GET /api/v1/candidates`, two additive parameters.**
+
+- `waiting_on_me=true` — only the units waiting on an act the caller may
+  do: they hold the act's scope AND the no-two-gates rule does not bar
+  them (a unit on which they fired a different gate). The sidebar badge is
+  this list's `pagination.total_estimate` at `limit=1`. A barred unit is
+  still listed under its plain `waiting_on`, its `gates.available[]` entry
+  `can_fire: false` with the refusal sentence. The act each state waits for:
+  `captured` and `vfm_query` → Store (`assets:write`), `vfm_pending` →
+  verify, `vfm_verified` → approve, `vfm_approved` → request tagging,
+  `tag_issued` → the affix (`tagging:write`), `tagged`/`reg_ready` →
+  register, `reg_submitted` → approve registration.
+- `sort=oldest|newest` — `oldest` lists the unit longest in its present
+  state first (`gates.state_since`, then id); `newest` (the default,
+  unchanged) by id. Keep `sort` the same for every page: a cursor issued
+  for one walk is a `400` on the other.
+
+**The batch routes — `POST /api/v1/candidates/gates/<action>`.** For
+`verify` (`vfm:verify`), `approve` (`vfm:approve`), `register`
+(`register:make`) and `approve-registration` (`register:check`). **A batch is
+N single-unit fires**: each unit is checked by every rule its single route
+applies — state, scope, the no-two-gates rule, the placeholder and SAP-class
+checks — in its own savepoint, and writes its own append-only events. A
+batch never writes one event for many units, and one refused unit never
+rolls back the others. Always `200`, with:
+
+```json
+{"action": "verify", "dry_run": false, "total": 20, "fired": 17,
+ "refused": 3, "results": [
+   {"asset_id": 93501, "asset_code": "NRS-AST-057400", "outcome": "fired",
+    "status": 200, "code": null, "message": null,
+    "register_state": "vfm_verified", "...": "..."},
+   {"asset_id": 93502, "outcome": "refused", "status": 409,
+    "code": "conflict", "message": "You received this unit on 15 Oct; a different person must verify it.",
+    "details": {"reason": "segregation_of_duties", "earlier": {"...": "..."}},
+    "register_state": "vfm_pending"}],
+ "evidence": {"attachment_ids": [4410], "files": 1}}
+```
+
+`status`, `code` and `message` are what that unit's single route would have
+answered. Every body takes `dry_run: true`: the whole batch runs and is
+rolled back, so the preview is the real answer (a SAP code duplicated inside
+a paste included) and nothing remains; `outcome` reads `would_fire`. At
+most 100 units; an id twice, an unknown key, a non-list → `400
+invalid_request`, nothing written.
+
+- **`verify`** — `{asset_ids, checklist, attachments, notes?}`. The checklist
+  and the evidence are checked ONCE, in the single route's words, and the
+  attachments are stored ONCE and linked from every fired unit's event (if
+  no unit fires, they are deleted). **One receipt at a time**: units from
+  more than one GRN (a unit with none counts as its own) are refused whole,
+  `400 validation_failed`: *"These units come from 3 receipts; verify one
+  receipt at a time so the evidence matches."*
+- **`approve`**, **`approve-registration`** — `{asset_ids, notes?}`.
+- **`register`** — `{lines: [{asset_code, sap_asset_code, cost?}],
+  cost_centre, capitalisation_date, notes?}`. The asset code is matched
+  case-insensitively; the cost defaults to the unit's own; the class is the
+  unit's category. Each result carries `line` (from 1), `category`
+  (with `sap_asset_class`), `cost`, `sap_asset_code` and any `warning` —
+  what the maker's preview shows. A code that names no unit is a `404` line;
+  a cost centre or date missing is refused whole, in the single route's
+  words.
+
+**`gates.registration`** — additive key in every asset's `gates` block:
+`null` until the Register Maker submits, then what the maker entered:
+`{sap_asset_code, cost, cost_centre, capitalisation_date, asset_class:
+{id, name, sap_asset_class}}`. The checker reads it on the list row.
+(`sap.capitalisation_date` is SAP's own date, another field.)
+
+**The evidence, for the IAD approver** — `GET /api/v1/assets/<id>/evidence`
+(`candidates:read`): `{asset_id, verifications: [{event_id, occurred_at,
+actor_name, checklist, notes, files: [{id, name, mimetype, size, url}]}]}`,
+newest first. The file is `GET /api/v1/assets/<id>/evidence/<attachment_id>`
+(`candidates:read`, checked inline): the bytes, with `Content-Type` and
+`Content-Disposition: attachment`; an id that none of THIS unit's
+verifications names is a `404` envelope, so the route cannot be walked to
+read another attachment.
+
+**`identification_mode` on a new asset, gates on or off.** Until handoff 60
+only a gated receipt was stamped, so a gates-off asset published `null`.
+Every asset created since carries its class's mode (`serial` when the class
+names none); records created before keep what they had. A `tag_id` unit
+created with the gates off is therefore affixed on its label and the
+attributes tick, as a gated one is; a `record_only` one is minted no label at
+creation.
+
 
 ## 15 · Role exclusions — Addendum A §4, rule 2 (handoff 58)
 

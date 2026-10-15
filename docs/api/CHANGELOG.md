@@ -33,6 +33,64 @@ live at was never the point.
 
 ---
 
+## 2026-10-15 — handoff 60: seventy a day · `myservice_api` 19.0.3.32.0, `myservice_asset_register` 19.0.1.29.0
+
+With the receipt switch off, a tenant sees the additive routes and keys
+below, the renamed key, and one change of behaviour (a new asset carries
+its class's identification mode). Everything else is for the gates.
+
+- **BREAKING (rename): `reference` → `record_reference`** on `POST` /
+  `PATCH /api/v1/assets`, on every asset, and as a capturable name in a
+  class's `class_attributes_schema` (the `record_only` default is now
+  `{"mandatory": ["name", "record_reference"]}`). Handoff 59 published the
+  asset's top-level `reference` beside two other `reference` keys with other
+  meanings (a move's transfer, a disposal's); handoff 37's one-name rule
+  renames it before anything outside Cadra reads it. Additive since 59 only
+  (three days); **no client reads or sends it yet — Vendra's `record_only`
+  follow-up (its handoff 56) is told the new name.** `reference` is now
+  refused on `POST`/`PATCH /assets` like any unknown key (`400
+  invalid_request`, `details.rejected_fields`). Each tenant's stored values
+  and class schemas are carried over by the 19.0.1.29.0 migration.
+- **New: `POST /api/v1/candidates/gates/verify`** (`vfm:verify`),
+  **`/approve`** (`vfm:approve`), **`/register`** (`register:make`) and
+  **`/approve-registration`** (`register:check`) — a gate fired on many units
+  at once, as N single-unit fires, each checked by every rule and recorded
+  on its own; one refused unit rolls back nothing else. Always `200` with a
+  per-unit `results` list carrying the status, code and sentence each unit
+  would have had alone; `dry_run: true` previews and writes nothing. `verify`
+  takes one checklist and one evidence set for the units of ONE receipt
+  (several GRNs: `400 validation_failed`, *"These units come from N
+  receipts; verify one receipt at a time so the evidence matches."*), stored
+  once and linked from each unit's event. `register` takes pasted lines of
+  `{asset_code, sap_asset_code, cost?}`. Endpoint reference §14.12.
+- **New: `GET /api/v1/assets/<id>/evidence`** (`candidates:read`) — each
+  verification's checklist, notes and files; and **`GET
+  /api/v1/assets/<id>/evidence/<attachment_id>`** — the file itself (not the
+  envelope), `404` for any attachment that unit's verifications do not name.
+- **Additive: `waiting_on_me` and `sort` on `GET /api/v1/candidates`.**
+  `waiting_on_me=true` lists only what the caller may act on (their scope,
+  and the no-two-gates rule not barring them); the app's sidebar badge is
+  its `total_estimate`. `sort=oldest` lists the unit longest in its state
+  first; `newest` (the default) is unchanged. A cursor from one `sort` is a
+  `400` on the other.
+- **Additive: `gates.registration`** on every asset — `null`, or the
+  Register Maker's submission as entered (`sap_asset_code`, `cost`,
+  `cost_centre`, `capitalisation_date`, `asset_class`). `cost_centre` and
+  the maker's capitalisation date were published nowhere before.
+- **BEHAVIOUR CHANGE, every tenant: a new asset carries its class's
+  `identification_mode`**, gates on or off (`serial` when the class names
+  none). Until now a gates-off asset published `null` (Vendra report 54
+  §5.3). Stamped, not checked: nothing a gates-off receipt sends is refused
+  that was not before. Two consequences, both of the mode itself: a new
+  `tag_id` unit (a chair) is affixed with the attributes tick, as a gated
+  one is (`attributes_confirmed: true` on `POST /assets/<id>/tag-affixed`);
+  a new `record_only` unit is minted no label at creation. Records created
+  before keep what they had (`null` on older gates-off rows).
+- **Vendra's credential gains `candidates:read`** (the 19.0.3.32.0
+  migration, every tenant; `scripts/bootstrap.py` for a new one). Read only;
+  it adds no group. **Vendra must call `/auth/token` again** — a refresh
+  family keeps the scopes it was issued with.
+
 ## 2026-10-12 — handoff 59: what SAP already holds · `myservice_api` 19.0.3.31.0, `myservice_asset_register` 19.0.1.28.0
 
 With the receipt switch off, a tenant sees the additive keys and enum values
