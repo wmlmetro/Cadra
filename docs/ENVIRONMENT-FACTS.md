@@ -484,3 +484,18 @@ issued under its prefix past 999 — one `COUNT` each, ~11 s per asset on
 (17 % in an hour, against 37 minutes for the whole run in handoff 45). If the
 suite is suddenly slow, sample `pg_stat_activity` before blaming the load:
 `docker exec myservicenrs-db-1 psql -U odoo -d postgres -Atc "select left(query,200) from pg_stat_activity where state='active'"`.
+
+### Vendra answers `401` for any path its auth hook does not cover (handoff 62)
+
+Cadra's INT-05 target sends `Authorization: Bearer …`. Frappe's
+`validate_auth` (`frappe/auth.py:613-628`) answers ANY two-part
+`Authorization` header that nothing authenticated with `401
+frappe.exceptions.AuthenticationError`, before routing — whether or not the
+method exists. `vendra_network.api.cadra.tag_event` works only because
+Vendra's `auth_hooks` (`vendra_network/hooks.py`) include
+`authenticate_cadra_callback`, which authenticates that ONE path. Cadra
+classifies a 401 as final, so an event sent to a Vendra path the hook does
+not cover is dead-lettered on its first attempt, and it reads like a bad
+credential. Before rotating keys, check that Vendra's auth hook covers the
+path. (Handoff 62 first wrote "a method it does not know"; the verification
+pass corrected it from Vendra's own `hooks.py`.)

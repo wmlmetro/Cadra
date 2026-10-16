@@ -1,0 +1,49 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 10 tests using 1 worker
+
+[1/10] [chromium] › tests/14-settings-depreciation.spec.ts:66:7 › /settings/depreciation › renders the settings surface
+[2/10] [chromium] › tests/14-settings-depreciation.spec.ts:75:7 › /settings/depreciation › lists categories with an editable policy
+[3/10] [chromium] › tests/14-settings-depreciation.spec.ts:84:7 › /settings/depreciation › the straight-line switch persists across a reload
+[4/10] [chromium] › tests/14-settings-depreciation.spec.ts:150:7 › /settings/depreciation › recompute reports back
+[5/10] [chromium] › tests/14-settings-depreciation.spec.ts:155:7 › /settings/depreciation › ERP-managed mode disables the calculation controls
+[6/10] [chromium] › tests/19-every-save-is-accepted.spec.ts:58:5 › asset create — every input this tenant can fill
+[chromium] › tests/19-every-save-is-accepted.spec.ts:58:5 › asset create — every input this tenant can fill
+[sweep] POST /api/v1/assets ← acquisition_cost, acquisition_date, asset_level, category_id, condition, current_value, custodian_id, department, domain, legacy_asset_code, location_id, make, manufacturer, model_name, name, notes, parent_id, purchase_date, purchase_value, replacement_cost, serial_number, state, warrantor, warranty_months, warranty_reference, warranty_start_date → 201
+
+[7/10] [chromium] › tests/19-every-save-is-accepted.spec.ts:140:5 › location create, then edit — every input
+[chromium] › tests/19-every-save-is-accepted.spec.ts:140:5 › location create, then edit — every input
+[sweep] POST /api/v1/locations ← active, city, description, floor_number, latitude, location_type, longitude, name, parent_id, street, street2, zip, zone_code → 201
+
+[sweep] PATCH /api/v1/locations/52542 ← active, building_id, city, description, floor_number, latitude, location_type, longitude, name, parent_id, street, street2, zip, zone_code → 200
+
+[8/10] [chromium] › tests/19-every-save-is-accepted.spec.ts:188:5 › a request raised with a location KEEPS it — create, detail, edit
+[chromium] › tests/19-every-save-is-accepted.spec.ts:188:5 › a request raised with a location KEEPS it — create, detail, edit
+[sweep] POST /api/v1/requests ← deadline_date, impact, location_id, nrs_asset_id, priority, request_text, type_id, urgency → 201
+
+[sweep] PATCH /api/v1/requests/18754 ← deadline_date, impact, location_id, priority, request_text, type_id, urgency → 200
+
+[sweep] PATCH /api/v1/requests/18754 ← priority → 200
+
+[9/10] [chromium] › tests/19-every-save-is-accepted.spec.ts:249:5 › category: create, edit its identity, save its depreciation policy, delete
+[chromium] › tests/19-every-save-is-accepted.spec.ts:249:5 › category: create, edit its identity, save its depreciation policy, delete
+[sweep] POST /api/v1/asset-categories ← name → 201
+
+[sweep] PATCH /api/v1/asset-categories/34200 ← code, description, domain, name, pm_interval_days, sequence → 200
+
+[sweep] PATCH /api/v1/asset-categories/34200 ← declining_rate, depreciation_method, salvage_rate, useful_life_months → 200
+
+[10/10] [chromium] › tests/19-every-save-is-accepted.spec.ts:298:5 › depreciation settings and branding — a save, and the save that puts it back
+[chromium] › tests/19-every-save-is-accepted.spec.ts:298:5 › depreciation settings and branding — a save, and the save that puts it back
+[sweep] PATCH /api/v1/settings/depreciation ← proration → 200
+
+[sweep] PATCH /api/v1/settings/depreciation ← proration → 200
+
+[sweep] PATCH /api/v1/settings/branding ← logo, name, primary, primary_dark, sender_email, short_name → 200
+
+[sweep] PATCH /api/v1/settings/branding ← logo, name, primary, primary_dark, sender_email, short_name → 200
+
+  10 passed (2.0m)

@@ -33,6 +33,33 @@ live at was never the point.
 
 ---
 
+## 2026-10-15 — handoff 62: the state, told · `myservice_workflow` 19.0.3.3.0
+
+**Additive.** Nothing a consumer already receives changed: `asset.tag.affixed`
+is the same body, headers and endpoint, byte for byte, and every `/api/v1`
+route answers as before. With the gates off no unit is a candidate, so
+nothing new is sent (a candidate still in flight when a tenant switches the
+gates off still moves, and its moves are sent).
+
+- **New outbound event: `asset.register_state.changed`** (INT-05b, contract
+  `docs/integrations/INT-05b-register-state.md`). Cadra POSTs it to Vendra
+  each time a receipt unit Vendra sent (`import_source = vendra` with a
+  `grn_reference`) moves through the receipt gates: one event per act, the
+  state the act left the unit in — seven for a labelled unit, five for a
+  `record_only` one; N for a batch of N. Body: `event_id`, `asset_id`,
+  `asset_code`, `grn_reference`, `register_state`, `waiting_on`,
+  `state_since`; `reason` on a query, a rejection and a return;
+  `sap_asset_code` at `registered`. No person. INT-05's road: the same
+  target, credential, outbox, retry ladder and dead letter.
+- **New config field on the INT-05 target: *Register-State Endpoint***
+  (`workflow.config.rest_endpoint_register_state`). Blank (every tenant
+  today): nothing is queued for the event.
+- **`state_since` (`gates.state_since` on `GET /assets/<id>`, and the
+  Candidates list's order) now strictly increases per unit.** Two moves of a
+  unit in the same second used to carry the same value; the later now
+  carries one second more. A value can run a second or two ahead of the
+  clock.
+
 ## 2026-10-15 — handoff 61: the same code, and the photo · `myservice_api` 19.0.3.33.0, `myservice_asset_register` 19.0.1.30.0
 
 With the receipt switch off, a tenant sees the additive routes and keys

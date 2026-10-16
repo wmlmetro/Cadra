@@ -3697,6 +3697,21 @@ acurl $API/api/v1/fm/dashboard                            | jq '.data.kpis'
 acurl $API/api/v1/openapi.json                            | jq '.paths | keys | length'   # → 45
 ```
 
+## 9.3 What Cadra sends — the outbound integrations
+
+The routes above are what other systems call. These are the messages Cadra
+POSTs to them, each from an outbox row written in the transaction that
+observed the fact, delivered by the retry queue (capped exponential
+backoff, dead-letter), with `X-Idempotency-Key` = the event's `event_id`.
+Each has its own contract, which is the reference for its body.
+
+| Interface | Event | To | Raised when | Contract |
+|---|---|---|---|---|
+| INT-05 | `asset.tag.affixed` | Vendra, *Event Endpoint* | a label is confirmed on an asset (`POST /assets/<id>/tag-affixed`) | `docs/integrations/INT-05-tag-affixed-callback.md` |
+| **INT-05b** (handoff 62) | `asset.register_state.changed` | Vendra, *Register-State Endpoint* | a unit Vendra sent moves through the receipt gates: one event per act, the state it came to rest in, `reason` on a query/reject/return, `sap_asset_code` at `registered`; no person | `docs/integrations/INT-05b-register-state.md` |
+| INT-06 | `asset.master.create` | SAP, *Asset Master Endpoint* | an asset reaches the register (gates on: the checker's approval) | `docs/integrations/INT-06-07-09-sap-requirements.md` |
+| INT-09 | lifecycle events | SAP, *Event Endpoint* | a transfer, a disposal, a change SAP holds | `docs/integrations/INT-06-07-09-sap-requirements.md` |
+
 ---
 
 # §10 — Reports

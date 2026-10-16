@@ -55,7 +55,7 @@ import base64
 import binascii
 import json
 import logging
-from datetime import date as _date_cls
+from datetime import date as _date_cls, timedelta
 
 import pytz
 
@@ -773,6 +773,10 @@ class NRSAssetGates(models.Model):
         return self
 
     def _gate_move(self, to, action, gate, reason=None, notes=None):
+        """THE move: every change of `register_state` passes through here
+        (handoff 62 searched for another writer and found none — `create`
+        sets a birth state, which is not a change). `myservice_workflow`
+        hangs the `asset.register_state.changed` event on it."""
         frm = self.register_state
         self.env['nrs.asset.event']._record(
             self, EVENT_GATE_FIRED, source='api_gate' if self._in_api()
@@ -781,7 +785,25 @@ class NRSAssetGates(models.Model):
             notes=json.dumps(notes, sort_keys=True) if notes else None)
         self.with_context(**{_GATE_WRITE_KEY: True}).sudo().write(
             {'register_state': to,
-             'register_state_since': fields.Datetime.now()})
+             'register_state_since': self._next_state_since()})
+
+    def _next_state_since(self):
+        """Now — or one second after the unit's last move, if that is later.
+
+        STRICTLY increasing per unit (handoff 62 §1): a datetime column holds
+        whole seconds, and two moves of one unit land in the same second
+        every time one act makes two (`request-tagging` issues the label; a
+        `record_only` approval skips tagging) and whenever two people act
+        within a second. Vendra keeps the newest state by this value, so two
+        equal values would leave it to guess which came second. The later
+        move carries the later value; the cost is that a value can run up
+        to a second or two ahead of the clock."""
+        self.ensure_one()
+        now = fields.Datetime.now()
+        last = self.register_state_since
+        if last and now <= last:
+            return last + timedelta(seconds=1)
+        return now
 
     def _in_api(self):
         from odoo.http import request

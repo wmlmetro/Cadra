@@ -2455,3 +2455,29 @@ small 9/24, medium 11/24, large 18/24. So a medium room label is scanned by
 its QR. The mobile team's label guidance says QR first
 (`docs/integrations/mobile-ai-capture-endpoints.md`). §28.2's template
 question is the same question for room labels.
+
+## 31 · Handoff 62 — the state, told, 2026-10-15
+
+### 31.1 · How long Cadra keeps trying Vendra — `[open]`, for the Architect
+
+`asset.register_state.changed` rides INT-05's ladder: 8 attempts over
+2 h 3 min, then a dead letter. Measured (report 62 §5): a 24-hour Vendra
+outage dead-letters a whole working day's events (490 of 490); recovery is a
+person selecting them under *Workflow → Failed Deliveries* and pressing
+*Retry Delivery*, or Vendra's refresh-on-open. The budget is per target
+(*Max Delivery Attempts*); 30 covers a day at the 3,600 s cap, and applies to
+`asset.tag.affixed` too because they share the target. Decide before go-live
+whether a day's outage should need a person.
+
+### 31.2 · Deploy order for the register-state event — `[open]`, owner
+
+1. `upgrade-19` with `myservice_workflow` on every cluster tenant (one new
+   column, `workflow_config.rest_endpoint_register_state`; nothing is sent).
+2. Vendra handoff 57's receiver deployed, **with its path in Vendra's
+   `auth_hooks`** — Frappe answers 401 before routing for any path no hook
+   authenticates.
+3. Then, on each tenant whose Vendra has the receiver, set *Register-State
+   Endpoint* on the *Vendra (INT-05 asset events)* target — proposed
+   `/api/method/vendra_network.api.cadra.register_state_event`. Setting it
+   before step 2 dead-letters every move on its first attempt (Vendra
+   answers `401` for a path its auth hook does not cover).

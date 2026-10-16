@@ -30,6 +30,14 @@ registers, Register Checker approves. A tenant without the file cannot be
 tested with the gates on, and the helper FAILS saying so — never skips: a
 skip would turn a switch-on run green by proving nothing.
 
+Handoff 62: the same walker drives `scripts/walk_units.py`, the one
+supported way to walk a unit on a local test tenant from outside the suites
+(Vendra's Builder uses it; its permission layer rightly refuses `odoo
+shell`). So this file imports WITHOUT pytest: a failure is `pytest.fail`
+inside a pytest run, exactly as before, and a `GateWalkError` outside one.
+`walk_to`, `query` and `reject` are the script's three verbs; `_walk` takes
+an `on_step` callback so the script can print each state as it lands.
+
 Handoff 59: a unit of a `record_only` class (land, buildings, software)
 passes FIVE gates — IAD's approval skips the two tagging gates — so the walk
 reads the next gate off the unit's state at every step rather than off a
@@ -38,10 +46,10 @@ fixed list. And a registration needs its class to carry SAP's asset class
 as the Asset Controller, the way a tenant going live would.
 """
 import pathlib
+import sys
 import time
 import uuid
 
-import pytest
 import requests
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -66,6 +74,26 @@ _FROM = {
 FIXTURE_SAP_CLASS = "3000"
 
 _tokens = {}
+
+#: The states a unit can be walked TO and rest in, in chain order. Not
+#: `tag_requested` (`request-tagging` issues the label in the same act) and
+#: not `vfm_query` / `vfm_rejected` (those are `query` and `reject`).
+RESTING = ("vfm_pending", "vfm_verified", "vfm_approved", "tag_issued",
+           "tagged", "reg_ready", "reg_submitted", "registered")
+
+
+class GateWalkError(AssertionError):
+    """A walk that could not go on, outside pytest. An AssertionError, so
+    a caller that caught the old asserts still catches it."""
+
+
+def _fail(message):
+    """`pytest.fail` inside a pytest run — what the suites always got — and
+    `GateWalkError` outside one, so this file imports without pytest."""
+    pytest = sys.modules.get("pytest")
+    if pytest is not None:
+        pytest.fail(message)
+    raise GateWalkError(message)
 
 
 def _uniq(prefix):
@@ -135,7 +163,7 @@ def _token(client, key):
         return _tokens[cache]
     path = _personas_file(client)
     if not path.exists():
-        pytest.fail(
+        _fail(
             f"The receipt gates are ON on this tenant and {path} does not "
             "exist, so nothing can walk a unit through them: the chain needs "
             "seven different people. Seed the demo personas "
@@ -151,7 +179,7 @@ def _token(client, key):
             f"persona {key} could not sign in: {r.status_code} {r.text[:300]}")
         _tokens[cache] = r.json()["data"]["access_token"]
         return _tokens[cache]
-    pytest.fail(f"{path} has no `{key}` persona — the gates need one.")
+    _fail(f"{path} has no `{key}` persona — the gates need one.")
 
 
 def _as(client, key, method, path, body=None):
@@ -222,7 +250,7 @@ def _class_has_sap_class(client, asset):
         f"{r.status_code} {r.text[:300]}")
 
 
-def _walk(client, asset, until):
+def _walk(client, asset, until, on_step=None):
     state = asset.get("register_state") or "registered"
     # One gate at a time, the next read off the state the last one left:
     # a `record_only` unit goes from IAD's approval to the maker (§2).
@@ -232,9 +260,81 @@ def _walk(client, asset, until):
         assert state in _FROM, f"cannot walk a unit at {state!r} to {until}"
         action, key = CREW[_FROM[state]]
         asset = _fire(client, asset, action, key, until)
+        if on_step:
+            on_step(state, action, key, asset)
         state = asset["register_state"]
     assert state == until, state
     return asset
+
+
+def walk_to(client, asset, state, on_step=None):
+    """The unit walked forward to `state` (one of `RESTING`) and returned.
+
+    Refuses a state the unit cannot reach: one behind it, or one its kind
+    skips (`tag_issued`/`tagged` for a `record_only` unit, `reg_ready` for a
+    labelled one) — the walk would otherwise go straight past to
+    `registered` and say nothing."""
+    if state not in RESTING:
+        _fail(f"{state!r} is not a state a unit is walked to; one of "
+              f"{', '.join(RESTING)} (or use query / reject).")
+    here = asset.get("register_state") or "registered"
+    record_only = asset.get("identification_mode") == "record_only"
+    if record_only and state in ("vfm_approved", "tag_issued", "tagged"):
+        # `vfm_approved` too: IAD's approval of a record_only unit goes
+        # straight on to `reg_ready` (handoff 59 §2), so a walk to it would
+        # run on past and register the unit (verification pass, 62).
+        _fail(f"asset {asset['id']} is record_only: it has no label, and "
+              f"its chain never rests at {state!r} (IAD's approval takes "
+              "it straight to reg_ready).")
+    if not record_only and state == "reg_ready":
+        _fail(f"asset {asset['id']} carries a label: `reg_ready` is a "
+              "record_only unit's state; walk it to `tagged`.")
+    order = ("captured",) + RESTING
+    if here not in order:
+        _fail(f"asset {asset['id']} is at {here!r}, outside the forward "
+              "chain; nothing walks it from there.")
+    if order.index(here) > order.index(state):
+        _fail(f"asset {asset['id']} is already at {here!r}, past "
+              f"{state!r}; a walk only goes forward.")
+    walked = _walk(client, asset, state, on_step=on_step)
+    if walked.get("register_state") != state:
+        _fail(f"asset {asset['id']} stopped at "
+              f"{walked.get('register_state')!r}, not {state!r}.")
+    return walked
+
+
+def _iad_act(client, asset, action, key, words, on_step):
+    """`query` or `reject`, from `vfm_pending` (walked there if the unit is
+    still `captured`) — IAD's two acts that are not gates."""
+    here = asset.get("register_state") or "registered"
+    if here == "captured":
+        asset = _walk(client, asset, "vfm_pending", on_step=on_step)
+        here = asset["register_state"]
+    if here not in ("vfm_pending", "vfm_verified"):
+        _fail(f"asset {asset['id']} is at {here!r}; Internal Audit can "
+              f"{action} a unit only while it waits on them "
+              "(vfm_pending or vfm_verified).")
+    r = _as(client, key, "POST", f"/assets/{asset['id']}/gates/{action}",
+            {"reason": words})
+    assert r.status_code == 200, (
+        f"gate {action} as {key} on asset {asset['id']}: HTTP "
+        f"{r.status_code} {r.text[:400]}")
+    got = client.get(f"/api/v1/assets/{asset['id']}")
+    assert got.status_code == 200, got.text[:300]
+    after = got.json()["data"]
+    if on_step:
+        on_step(here, action, key, after)
+    return after
+
+
+def query(client, asset, question, on_step=None):
+    """IAD's officer queries the unit — it goes back to Store."""
+    return _iad_act(client, asset, "query", "iad_officer", question, on_step)
+
+
+def reject(client, asset, reason, on_step=None):
+    """IAD's approver rejects the unit."""
+    return _iad_act(client, asset, "reject", "iad_approver", reason, on_step)
 
 
 def on_the_register(client, asset):

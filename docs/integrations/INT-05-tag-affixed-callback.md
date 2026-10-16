@@ -3,6 +3,10 @@
 **Status:** built in Cadra (handoff 06). **Not yet received by anything** — this
 document is the contract Vendra builds its endpoint against.
 
+*Since handoff 62 a second event travels this road to the same Vendra:
+`asset.register_state.changed`, to its own endpoint, contract
+`INT-05b-register-state.md`. Nothing below changed for it.*
+
 Cadra raises this event when a Tag-Issuing Unit operative confirms, through
 `POST /api/v1/assets/{id}/tag-affixed`, that the label Cadra issued for an
 asset is physically on that asset. It is the signal that lets a Vendra receipt

@@ -530,9 +530,13 @@ class WorkflowDispatchLog(models.Model):
             return False
 
         adapter = config._get_adapter()
+        # An event whose body names itself is delivered exactly as it always
+        # was; one whose body does not (handoff 62) is told its type, which
+        # the adapter routes on.
+        route = {} if payload.get('event') else {'event_type': self.event_type}
         try:
             result = adapter.deliver(payload, self.event_id,
-                                     request_ref=self.name)
+                                     request_ref=self.name, **route)
         except Exception as e:                      # noqa: BLE001
             # catch-all: unknown — `deliver()` is an ADAPTER BOUNDARY whose
             # published contract is "never raises", so anything arriving here
@@ -676,15 +680,29 @@ class WorkflowDispatchLog(models.Model):
                 # own response body. A receiver answering with an HTML error
                 # page would otherwise mangle the note it is being reported
                 # in, so everything interpolated here is escaped.
-                body = Markup(_(
-                    '<p>⚠️ <strong>Integration event not delivered</strong> — '
-                    '%(summary)s</p>'
-                    '<p>Event <code>%(event)s</code> (%(ref)s) could not be '
-                    'delivered to %(target)s after %(attempts)d attempt(s). '
-                    'The tag record in Cadra is unaffected; the downstream '
-                    'system has not been told about it.</p>'
-                    '<p>Last error: %(error)s</p>'
-                )) % {
+                if self.event_type == 'asset.register_state.changed':
+                    # Handoff 62: not a tag; the unit's state stands.
+                    body = Markup(_(
+                        '<p>⚠️ <strong>Integration event not delivered</strong>'
+                        ' — %(summary)s</p>'
+                        '<p>Event <code>%(event)s</code> (%(ref)s) could not '
+                        'be delivered to %(target)s after %(attempts)d '
+                        'attempt(s). The unit\'s register state in Cadra is '
+                        'unaffected; the downstream system has not been told '
+                        'it changed.</p>'
+                        '<p>Last error: %(error)s</p>'
+                    ))
+                else:
+                    body = Markup(_(
+                        '<p>⚠️ <strong>Integration event not delivered</strong> — '
+                        '%(summary)s</p>'
+                        '<p>Event <code>%(event)s</code> (%(ref)s) could not be '
+                        'delivered to %(target)s after %(attempts)d attempt(s). '
+                        'The tag record in Cadra is unaffected; the downstream '
+                        'system has not been told about it.</p>'
+                        '<p>Last error: %(error)s</p>'
+                    ))
+                body = body % {
                     'summary': escape(summary),
                     'event': escape(self.event_type or ''),
                     'ref': escape(self.name or ''),
