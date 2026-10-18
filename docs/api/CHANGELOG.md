@@ -49,7 +49,9 @@ the SAP mirror is not the register (measured, report 63 §5.6).
     `settings:write` held by a System Administrator (the token must also
     carry `admin`). `202` and the run; read in the background. A missing
     column is a `400 validation_failed` naming it, and nothing is stored;
-    a second upload while one runs is a `409`; over 200 MB a `413`.
+    a second upload while one runs is a `409`; over 150 MB a `413` in
+    words (over 200 MB the proxy refuses it first, with its own HTML 413);
+    a zip that is not SAP's workbook a `400` in words.
   - `GET /api/v1/sap-assets/imports`, `GET /api/v1/sap-assets/imports/<id>`
     — the runs and their counts.
   - `GET /api/v1/sap-assets` — the slice, by `office` (or `none`), `class`,

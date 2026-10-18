@@ -36,4 +36,5 @@ def migrate(cr, version):
         cr.dbname, len(moved), len(rows), NEW_ATTEMPTS,
         ", ".join("#%d %s" % (r[0], r[1]) for r in moved) or "none",
         len(kept),
-        ", ".join("#%d %s: %d/%ds/%ds" % r for r in kept) or "none")
+        # `%s`, not `%d`: a hand-edited row may hold a NULL.
+        ", ".join("#%s %s: %s/%ss/%ss" % r for r in kept) or "none")

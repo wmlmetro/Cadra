@@ -88,6 +88,7 @@ class TestSapExportReader(CadraTransactionCase):
 
     def test_values_read_as_sap_wrote_them(self):
         strings = []
+        # 29999999990 is invented, and absent from SAP's October export.
         self.assertEqual(reader.text_value((None, '29999999990'), strings),
                          '29999999990')
         self.assertEqual(reader.text_value((None, '2.999999999E10'), strings),
@@ -476,6 +477,18 @@ class TestCategorySaveIsBatched(CadraTransactionCase):
                              (acc, bv, state))
 
     def test_a_recompute_that_changes_nothing_moves_no_write_date(self):
+        # Assets with NO schedule too (method none, no cost) — the engine's
+        # `None` end date against the cache's `False` made every one of them
+        # "changed" on every recompute (the verification pass): 19,453 of
+        # 22,042 on `test19`. And a cost that does not round evenly.
+        none_cat = self.env['nrs.asset.category'].sudo().create({
+            'name': 'No schedule %s' % _uid(), 'depreciation_method': 'none'})
+        self.assets |= self.env['nrs.asset'].sudo().create([
+            {'name': 'no schedule', 'category_id': none_cat.id},
+            {'name': 'no cost', 'category_id': self.cat.id},
+            {'name': 'odd cost', 'category_id': self.cat.id,
+             'acquisition_cost': 1000.0 / 3,
+             'acquisition_date': datetime.date(2021, 7, 13)}])
         self.assets._apply_depreciation()
         self.env.flush_all()
         self.env.cr.execute(

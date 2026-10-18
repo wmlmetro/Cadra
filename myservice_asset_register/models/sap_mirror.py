@@ -857,7 +857,10 @@ class NRSSapImportRun(models.Model):
             # logged with its traceback and the run is marked failed with
             # the type and text, so the screen stops saying "running".
             _logger.exception('SAP mirror import %s failed', self.id)
-            self.env.cr.rollback()
+            # Undo the half-written batch; under the test runner the cursor
+            # is the test's own transaction, which is not ours to roll back.
+            if not _under_test():
+                self.env.cr.rollback()
             self._fail('%s: %s' % (type(e).__name__, e))
             more = False
         finally:
@@ -865,6 +868,8 @@ class NRSSapImportRun(models.Model):
                 fh.close()
         self._account(cpu0, wall0)
         self._commit()
+        if self.state in ('done', 'failed'):
+            self._collect_filestore()
         return more
 
     def _account(self, cpu0, wall0):
@@ -884,10 +889,33 @@ class NRSSapImportRun(models.Model):
         self._drop_upload()
 
     def _drop_upload(self):
-        """The export is NRS's register and is not kept (§1)."""
+        """The export is NRS's register and is not kept (§1).
+
+        Unlinking the attachment deletes its ROW; Odoo leaves the bytes in
+        the filestore until its daily garbage collection (the verification
+        pass's finding). So the tick that ends the run commits and then runs
+        that collection itself (`_collect_filestore`), and the file is gone
+        when the run says `done` — not up to a day later."""
         att = self._attachment()
         if att:
             att.unlink()
+
+    def _collect_filestore(self):
+        """Odoo's own filestore garbage collection, now rather than at
+        the next autovacuum. It commits and locks `ir_attachment` itself, so
+        it runs after the tick's commit and never under the test runner."""
+        if _under_test():
+            return
+        try:
+            self.env['ir.attachment'].sudo()._gc_file_store()
+        except Exception:
+            # catch-all: reported — the run's own work is committed; a
+            # failed collection leaves the bytes for the daily autovacuum,
+            # which is what would have happened anyway. Logged so the
+            # deviation from "not kept" is visible.
+            _logger.warning('SAP mirror import %s: the filestore collection '
+                            'failed; the upload is deleted by the daily '
+                            'autovacuum instead', self.id, exc_info=True)
 
     # ── published shape ───────────────────────────────────────────────
 

@@ -200,8 +200,11 @@ class NRSAssetTag(models.Model):
         'Active on Two Assets', compute='_compute_active_number_shared',
         search='_search_active_number_shared',
         help='This label is active and the same number is active on '
-             'another asset too. Which asset really holds it is for a '
-             'person to decide; nothing resolves it automatically.')
+             'another label too — another asset\'s in every case measured '
+             '(84 of 84 numbers, report 61). Exactly the labels that keep '
+             'the unique index from being created. Which asset really '
+             'holds the number is for a person to decide; nothing resolves '
+             'it automatically.')
 
     @api.model
     def _shared_active_number_ids(self):
@@ -211,7 +214,7 @@ class NRSAssetTag(models.Model):
              WHERE t.state = 'active' AND EXISTS (
                    SELECT 1 FROM nrs_asset_tag_label o
                     WHERE o.state = 'active' AND o.name = t.name
-                      AND o.id <> t.id AND o.asset_id <> t.asset_id)""")
+                      AND o.id <> t.id)""")
         return [r[0] for r in self.env.cr.fetchall()]
 
     def _compute_active_number_shared(self):

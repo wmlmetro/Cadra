@@ -5189,7 +5189,8 @@ whose maker typed the number counts.
 ### 16.1 POST `/api/v1/sap-assets/imports` — import SAP's export
 
 `multipart/form-data`, ONE part `file`: the `.XLSX` as SAP produced it (up
-to 200 MB). The header row is read in the request; everything else by a
+to 150 MB; the proxies refuse a body over 200 MB with their own HTML 413
+before Cadra sees it). The header row is read in the request; everything else by a
 background job in passes of at most 25 s of CPU. `202` with the run:
 
 ```json
@@ -5218,10 +5219,16 @@ CPU); the same file again read **211,699 unchanged**.
 * **The office** comes from a `FIRS/<office>/…` old tag (`office_source:
   "tag"`), or is `none`. SAP's location extract, when NRS sends it, fills it
   as `location_extract`, and an export import never overwrites that.
-* **The uploaded file is not kept** once the run ends, done or failed.
+* **The uploaded file is not kept** once the run ends, done or failed: the
+  attachment is deleted and Odoo's filestore collection is run at once, so
+  the bytes go too.
 * A refused row is counted under its reason (`no asset number`, `an
   unreadable date in "<column>"`, `the same asset number and sub-number
-  twice in this file`) and never stored.
+  twice in this file`) and never stored. **A refused row is not "seen"**: a
+  record the mirror already holds whose new row was refused is marked
+  `in_latest_export: false` with everything else the file did not carry —
+  the run's `refused_reasons` says how many. Re-importing a corrected
+  file puts it back.
 
 | Status | Code | When |
 |---|---|---|
@@ -5229,7 +5236,7 @@ CPU); the same file again read **211,699 unchanged**.
 | 400 | `validation_failed` | `file` missing or empty; not an .XLSX; **a required column missing — named** (`details.missing`, `details.required`); a sheet over 2 GB uncompressed. Nothing is imported or stored. |
 | 403 | `forbidden` | no `settings:write`; or `settings:write` without `admin` — *"Importing SAP's asset master is the System Administrator's act…"* |
 | 409 | `conflict` | another run is queued or running — one at a time (`details.run_id`) |
-| 413 | `validation_failed` | over 200 MB |
+| 413 | `validation_failed` | over 150 MB (in words, `details.max_bytes`); a body over 200 MB is refused by the proxy, not by Cadra |
 
 ### 16.2 GET `/api/v1/sap-assets` — the slice
 

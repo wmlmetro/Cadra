@@ -225,10 +225,22 @@ class NRSAsset(models.Model):
                 policy = r._depreciation_policy()
                 accumulated, book_value, state = engine.value_at(
                     as_of, **policy)
-                new = (accumulated, book_value, state,
-                       engine.schedule_end_date(**policy))
-            old = (r.accumulated_depreciation, r.current_book_value,
-                   r.depreciation_state, r.depreciation_end_date)
+                # As the columns will hold them: money rounded to the
+                # currency (what a Monetary write stored), no end date
+                # `False` (the engine says `None` when there is no schedule
+                # — method none, no start, no cost — and the cache says
+                # `False`; compared raw, every such asset looked changed on
+                # every recompute: 19,453 of 22,042 on `test19`, found by the
+                # verification pass).
+                rnd = r.currency_id.round if r.currency_id else (
+                    lambda v: round(v, 2))
+                new = (rnd(accumulated or 0.0), rnd(book_value or 0.0),
+                       state or False,
+                       engine.schedule_end_date(**policy) or False)
+            old = (r.accumulated_depreciation or 0.0,
+                   r.current_book_value or 0.0,
+                   r.depreciation_state or False,
+                   r.depreciation_end_date or False)
             if new != old:
                 changed.append((r.id,) + new)
         self._store_depreciation_figures(changed)

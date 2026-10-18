@@ -1,0 +1,6 @@
+MEASURE assets 20284 | first recompute wrote 0 in 3.4s | second recompute wrote 0 in 2.1s
+MEASURE category 1 policy save: 18197 assets in 7.1s
+BEFORE (same shell, same tenant, the code as handoff 62 left it, profiled under cProfile, rolled back):
+  assets 18008 in category 1 | cat.write 0.1s | _sync_policy_from_category 38.8s | _apply_depreciation + flush 29.7s | 208 queries
+  162,072 calls of nrs.asset.write (nine per asset); mail.thread._track_prepare 25.1s cumulative
+AFTER (the lines above): one write per category for the policy; the derived figures by batched SQL for the assets whose figures changed.

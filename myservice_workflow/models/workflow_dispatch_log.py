@@ -752,7 +752,7 @@ class WorkflowDispatchLog(models.Model):
                     'be a duplicate the receiver is expected to discard.'
                 ) % row.name)
             budget = max(1, (row.config_id.retry_max_attempts or 32)
-                         if row.config_id else 8)
+                         if row.config_id else 32)
             row._dispatch().write({
                 'status': 'pending',
                 'max_attempts': (row.attempts or 0) + budget,

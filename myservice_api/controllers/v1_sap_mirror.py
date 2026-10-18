@@ -35,6 +35,10 @@ Vendra's credential.
 import base64
 import io
 import json
+import zipfile
+import zlib
+
+from lxml import etree
 
 from odoo import fields, http
 from odoo.http import request
@@ -68,8 +72,11 @@ from .v1 import PAGINATION_QUERY_PARAMS, cadra_route
 from .v1_assets import _browse_or_404, _parse_updated_since
 
 #: The export as SAP produced it is ~75 MB; this is the ceiling an upload
-#: is refused above, in words, before anything is stored.
-MAX_UPLOAD_BYTES = 200 * 1024 * 1024
+#: is refused above, in words, before anything is stored. BELOW the
+#: proxies' 200 MB (nginx locally, the cluster ingress), which refuse above
+#: it with their own HTML 413 before Odoo sees the request — so a file
+#: between this and 200 MB is told why in the envelope.
+MAX_UPLOAD_BYTES = 150 * 1024 * 1024
 #: The parts of the upload body.
 UPLOAD_FILE_FIELDS = ("file",)
 
@@ -284,6 +291,10 @@ class CadraSapMirrorV1(http.Controller):
                  scopes=[SCOPE_SETTINGS_WRITE],
                  success_status=202,
                  error_statuses=(409, 413),
+                 # Odoo's default ceiling is 128 MiB; this route's is 150 MB,
+                 # refused in words below. A margin above it for the form's
+                 # own bytes, so the words are what a 151 MB file gets.
+                 max_content_length=MAX_UPLOAD_BYTES + (8 << 20),
                  request_schema={
                      "type": "object",
                      "description": "multipart/form-data with ONE part, "
@@ -349,6 +360,18 @@ class CadraSapMirrorV1(http.Controller):
             return err(ERR_VALIDATION_FAILED,
                        "The header row cannot be read: %s. Nothing was "
                        "imported." % e.reason)
+        except (etree.XMLSyntaxError, zlib.error, zipfile.BadZipFile,
+                StopIteration, KeyError, EOFError) as e:
+            # A zip that is a workbook in name only: a member that is not
+            # XML, a corrupt deflate stream, a sheet whose rows are not in
+            # the spreadsheetml namespace (strict OOXML). Said, not a 500.
+            return err(
+                ERR_VALIDATION_FAILED,
+                "This file cannot be read as SAP's .XLSX export (%s). "
+                "Upload the export as SAP produced it. Nothing was "
+                "imported." % type(e).__name__,
+                details={"file_name": upload.filename,
+                         "reason": type(e).__name__})
         run = Run.create({
             "file_name": upload.filename or "export.xlsx",
             "file_size": upload.size,

@@ -139,7 +139,8 @@ PAGINATION_QUERY_PARAMS = (
 
 def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
                 success_status=None, request_schema=None, request_example=None,
-                query_params=None, response_schema=None, error_statuses=()):
+                query_params=None, response_schema=None, error_statuses=(),
+                max_content_length=None):
     """REST route registrar + auth/envelope wrapper.
 
     method:          "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
@@ -173,6 +174,12 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
                      spec does not declare is one a code-generated client
                      handles in its generic error branch, so this is not
                      documentation — it is the contract.
+    max_content_length: The largest request body Odoo lets through to this
+                     route, in bytes (handoff 63). Odoo's own default is
+                     128 MiB (`odoo/http.py`, DEFAULT_MAX_CONTENT_LENGTH),
+                     above which werkzeug answers its own HTML 413 before
+                     the route runs; a route that refuses an oversized file
+                     IN WORDS sets this above its own limit.
     """
     method = method.upper()
 
@@ -203,12 +210,16 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
             idempotent=idempotent,
             success_status=success_status,
         )(fn)
+        routing = {}
+        if max_content_length:
+            routing["max_content_length"] = max_content_length
         return http.route(
             path,
             type="http",
             auth="none",
             methods=[method],
             csrf=False,
+            **routing,
         )(wrapped)
     return decorator
 
