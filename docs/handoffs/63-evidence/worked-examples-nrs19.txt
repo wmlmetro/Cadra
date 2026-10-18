@@ -1,0 +1,26 @@
+== 1. old tag, unique
+   asked: {'old_tag': 'XXXX/nnnn'}
+   basis=old_tag pool=1 tied_at_top=1 already_linked=0 office_from=None
+   #1 old_tag_unique — "old tag, unique"
+== 2. old tag shared; the description settles it
+   asked: {'old_tag': 'XXXX/nnnn', 'description': '6 word(s)'}
+   basis=old_tag pool=3 tied_at_top=1 already_linked=0 office_from=None
+   #1 old_tag_shared_description — "old tag, shared by 3; description matches"
+   #2 old_tag_shared_description — "old tag, shared by 3; description matches 2 of 3 words"
+   #3 old_tag_shared — "old tag, shared by 3; description does not match"
+== 3. no record carries the tag; a unique serial
+   asked: {'old_tag': 'XXXX/XXXX/nnnn', 'serial': 'nXXXnnnnnn'}
+   basis=serial pool=1 tied_at_top=1 already_linked=0 office_from=None
+   #1 serial_unique — "serial, unique"
+== 4. tag not in SAP; description within the office inside the tag
+   asked: {'old_tag': 'XXXX/XXXX/nnnnnnnn', 'description': '8 word(s)'}
+   basis=description pool=1 tied_at_top=1 already_linked=0 office_from=tag
+   #1 description_office — "description; office XXXX"
+== 5. untagged; description and class, nationwide
+   asked: {'description': '4 word(s)', 'asset_class': '1 word(s)'}
+   basis=description pool=16705 tied_at_top=70 already_linked=0 office_from=None
+   #1 description_nationwide — "description and class; office unknown"
+   #2 description_nationwide — "description and class; office unknown"
+   #3 description_nationwide — "description and class; office unknown"
+   #4 description_nationwide — "description and class; office unknown"
+   #5 description_nationwide — "description and class; office unknown"

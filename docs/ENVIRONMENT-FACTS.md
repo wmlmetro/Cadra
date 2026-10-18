@@ -499,3 +499,51 @@ not cover is dead-lettered on its first attempt, and it reads like a bad
 credential. Before rotating keys, check that Vendra's auth hook covers the
 path. (Handoff 62 first wrote "a method it does not know"; the verification
 pass corrected it from Vendra's own `hooks.py`.)
+
+### A code change reaches every tenant before its schema does — even mid-handoff (handoff 63)
+
+The `odoo` container bind-mounts the working tree and its prefork workers
+are recycled on their own schedule; a recycled worker imports the Python ON
+DISK. So a new stored field written into a module is live on every tenant
+within minutes, with no restart, and every tenant not yet upgraded answers
+`503 server_misconfigured` (`GET /api/v1/meta/readiness` lists the columns).
+Handoff 63 broke `test19` this way for another session working on it, before
+anything was committed. **Write a schema change and fan its upgrade out in
+the same sitting**, and tell anyone else using the bench first.
+
+### `docker compose … up -d` of ANY service can recreate `odoo` without the db filter (handoff 63)
+
+`docker compose -f docker-compose.yml -f docker-compose.19.yml up -d
+--force-recreate proxy` recreated `odoo` as well, and without
+`ODOO_DBFILTER` exported it came back with `--db-filter=^odoo$`: every
+`<tenant>.localhost` answered *"No database is selected"* (HTML 404).
+`docker inspect myservicenrs-odoo-1 --format '{{json .Args}}'` shows the
+filter in force. Export `ODOO_DBFILTER='^%d$'` on every `up`, not only the
+first.
+
+### An Odoo cron job is killed after 60 s of CPU here (handoff 63)
+
+`config/odoo.19.conf` sets `limit_time_real_cron = 1200` but not
+`limit_time_cpu`, whose default is **60 s**, and `WorkerCron` applies it per
+unit of work (`odoo/service/server.py`, `RLIMIT_CPU`). The cluster sets 600.
+A job longer than that is SIGXCPU-killed and retried forever. The SAP
+mirror's import (a 52 s parse of the October file) runs in ticks of ≤ 25 s
+of CPU for this reason. Odoo 19's own cron progress API does not help: its
+`_run_job` calls a job that reports work remaining at least ten times in
+the same process.
+
+### After a bulk SQL load, `ANALYZE` the table (handoff 63)
+
+Loading 211,699 rows into `nrs_sap_asset` by `execute_values` left the
+planner's estimates stale until autovacuum caught up; with a join against
+`nrs_asset` it also mis-estimated the assets carrying a SAP number (6,999
+guessed, 2 real) and hashed the whole mirror on every matcher call (370 ms
+instead of 1 ms). The import now runs `ANALYZE nrs_sap_asset` when it ends;
+a hand-loaded table needs the same.
+
+### The local proxy takes uploads up to 200 MB (handoff 63)
+
+`config/nginx.dev.conf`'s `client_max_body_size` was 50m, which refused SAP's
+75 MB export with nginx's own HTML 413 before Odoo saw it. It is 200m, the
+cluster ingress's figure. It is a bind-mounted single file: recreate the
+proxy after editing it (and see above about the db filter when you do).

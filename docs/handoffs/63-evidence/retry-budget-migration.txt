@@ -1,0 +1,8 @@
+INFO test19 odoo.upgrade.myservice_workflow.19.0.3.4.0.post-migrate: retry budget on test19: 1 of 1 target(s) moved from 8 to 32 attempts (#4852 Vendra (INT-05 asset events)); 0 customised, left alone (none) 
+INFO cadra19 odoo.upgrade.myservice_workflow.19.0.3.4.0.post-migrate: retry budget on cadra19: 0 of 0 target(s) moved from 8 to 32 attempts (none); 0 customised, left alone (none) 
+INFO nrs19 odoo.upgrade.myservice_workflow.19.0.3.4.0.post-migrate: retry budget on nrs19: 1 of 2 target(s) moved from 8 to 32 attempts (#2 SAP (mock) — INT-06/07/09); 1 customised, left alone (#1 Vendra (INT-05 asset events): 8/60s/300s) 
+INFO gtb19 odoo.upgrade.myservice_workflow.19.0.3.4.0.post-migrate: retry budget on gtb19: 0 of 0 target(s) moved from 8 to 32 attempts (none); 0 customised, left alone (none) 
+INFO nrs odoo.upgrade.myservice_workflow.19.0.3.4.0.post-migrate: retry budget on nrs: 0 of 0 target(s) moved from 8 to 32 attempts (none); 0 customised, left alone (none) 
+INFO lasg odoo.upgrade.myservice_workflow.19.0.3.4.0.post-migrate: retry budget on lasg: 0 of 0 target(s) moved from 8 to 32 attempts (none); 0 customised, left alone (none) 
+INFO gtb odoo.upgrade.myservice_workflow.19.0.3.4.0.post-migrate: retry budget on gtb: 0 of 0 target(s) moved from 8 to 32 attempts (none); 0 customised, left alone (none) 
+INFO jaizbankplc odoo.upgrade.myservice_workflow.19.0.3.4.0.post-migrate: retry budget on jaizbankplc: 1 of 1 target(s) moved from 8 to 32 attempts (#1 Handoff 08 — second-tenant scheduler proof); 0 customised, left alone (none) 

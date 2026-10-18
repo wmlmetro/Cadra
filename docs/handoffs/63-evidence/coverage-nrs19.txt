@@ -1,0 +1,47 @@
+GET /reports/sap-coverage → 200 in 4.06 s
+sentence: Cadra holds 0 of 161647 (0.0%) of SAP's active assets. Of the 11957 Cadra assets on the register with no SAP asset number, the matcher ranks 3404 first by a unique old tag or serial (3031 by tag, 373 by serial); 959 of those point at a SAP record another Cadra asset also points at, which leaves 2445 that could be linked with confidence today.
+sap: {'records_held': 211699, 'in_latest_export': 211699, 'not_in_latest_export': 0, 'active_in_latest_export': 161647}
+totals: {'sap_active': 161647, 'linked': 0, 'linked_to_a_receipt_candidate': 0, 'not_linked': 161647, 'sap_retired': 50052, 'cadra_assets': 11959, 'cadra_with_sap_number': 2, 'cadra_sap_number_not_in_mirror': 2, 'cadra_without_sap_number': 11957, 'held': '0 of 161647 (0.0%)'}
+reconcilable_today: {'assets_without_sap_number': 11957, 'with_an_old_tag': 7694, 'by_unique_old_tag': 3031, 'by_unique_serial': 373, 'total': 3404, 'sap_records': 2894, 'contested_sap_records': 449, 'contested_assets': 959, 'uncontested': 2445}
+
+by_class — class | sap_active | linked | linked_to_a_receipt_candidate | not_linked | sap_retired | cadra_assets | cadra_with_sap_number | cadra_sap_number_not_in_mirror | cadra_without_sap_number | held
+  1000 | 2237 | 0 | 0 | 2237 | 572 | 0 | 0 | 0 | 0 | 0 of 2237 (0.0%)
+  2000 | 80370 | 0 | 0 | 80370 | 14992 | 0 | 0 | 0 | 0 | 0 of 80370 (0.0%)
+  3000 | 45330 | 0 | 0 | 45330 | 16900 | 0 | 0 | 0 | 0 | 0 of 45330 (0.0%)
+  3100 | 0 | 0 | 0 | 0 | 0 | 71 | 2 | 2 | 69 | 0 of 0
+  3500 | 59 | 0 | 0 | 59 | 0 | 0 | 0 | 0 | 0 | 0 of 59 (0.0%)
+  4000 | 24978 | 0 | 0 | 24978 | 9743 | 0 | 0 | 0 | 0 | 0 of 24978 (0.0%)
+  6000 | 90 | 0 | 0 | 90 | 1 | 0 | 0 | 0 | 0 | 0 of 90 (0.0%)
+  7000 | 7848 | 0 | 0 | 7848 | 7441 | 0 | 0 | 0 | 0 | 0 of 7848 (0.0%)
+  8000 | 361 | 0 | 0 | 361 | 403 | 0 | 0 | 0 | 0 | 0 of 361 (0.0%)
+  9000 | 16 | 0 | 0 | 16 | 0 | 0 | 0 | 0 | 0 | 0 of 16 (0.0%)
+  9300 | 358 | 0 | 0 | 358 | 0 | 0 | 0 | 0 | 0 | 0 of 358 (0.0%)
+  None | 0 | 0 | 0 | 0 | 0 | 11888 | 0 | 0 | 11888 | 0 of 0
+
+by_office — 901 rows: 900 offices and 1 row of records with no office
+  no office: sap_active 37831, linked 0, not_linked 37831
+  offices: active records per office — mean 137.6, median 19.0, max 8046, min 0; linked on any office: 0
+  office #1 (code masked): sap_active 8046, linked 0, held 0 of 8046 (0.0%)
+  office #2 (code masked): sap_active 6061, linked 0, held 0 of 6061 (0.0%)
+  office #3 (code masked): sap_active 3698, linked 0, held 0 of 3698 (0.0%)
+  office #4 (code masked): sap_active 3454, linked 0, held 0 of 3454 (0.0%)
+  office #5 (code masked): sap_active 3371, linked 0, held 0 of 3371 (0.0%)
+  office #6 (code masked): sap_active 1957, linked 0, held 0 of 1957 (0.0%)
+  office #7 (code masked): sap_active 1941, linked 0, held 0 of 1941 (0.0%)
+  office #8 (code masked): sap_active 1926, linked 0, held 0 of 1926 (0.0%)
+  office #9 (code masked): sap_active 1892, linked 0, held 0 of 1892 (0.0%)
+  office #10 (code masked): sap_active 1811, linked 0, held 0 of 1811 (0.0%)
+
+definitions:
+  sap_active — SAP records in the latest import that are active in SAP (no deactivation date).
+  linked — Of those, the records whose SAP asset number a Cadra asset carries (stripped and upper-cased; receipt candidates included).
+  linked_to_a_receipt_candidate — Of the linked, those whose Cadra asset is still a receipt candidate, not yet on the register.
+  not_linked — sap_active minus linked: SAP's assets Cadra does not hold.
+  sap_retired — Records in the latest import that SAP has deactivated. Not counted in sap_active.
+  cadra_assets — Cadra assets on the register (not receipt candidates), by the SAP class of their category; `class: null` means the category has no SAP class.
+  cadra_with_sap_number — Of cadra_assets, those carrying an SAP asset number.
+  cadra_sap_number_not_in_mirror — Of those, the ones whose SAP number the mirror holds no record of — the reverse gap.
+  cadra_without_sap_number — Of cadra_assets, those with no SAP asset number.
+  held — linked of sap_active, as a share.
+  by_office — SAP's side only: Cadra's locations carry no SAP office code, so the Cadra columns are null. `office: null` is every SAP record with no office — no `FIRS/<office>/…` old tag, until SAP's location extract is imported.
+  reconcilable_today — Cadra assets with no SAP number that the matcher would rank FIRST by a unique old tag (the asset's legacy asset code) or a unique real serial: exactly one active, unlinked SAP record carries it. `contested_*`: those whose SAP record another Cadra asset would also be linked to; `uncontested` is what is left.

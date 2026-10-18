@@ -33,6 +33,56 @@ live at was never the point.
 
 ---
 
+## 2026-10-18 — handoff 63: what SAP holds, in Cadra · `myservice_api` 19.0.3.34.0, `myservice_asset_register` 19.0.1.31.0, `myservice_workflow` 19.0.3.4.0
+
+**Additive**, plus two behaviour changes a consumer can observe (marked).
+Nothing about an asset's payload, list, count, report or export changed:
+the SAP mirror is not the register (measured, report 63 §5.6).
+
+- **New scope `sap_mirror:read`** — SAP's asset master as Cadra holds it.
+  Held by the Asset Controller, the Register Maker and Checker and the
+  Auditor (and `admin`). NOT by Asset Users, the Store Officer or Vendra's
+  credential. A credential granted it is put in the Auditor group
+  (`SCOPE_GROUPS`, the `evidence:read` shape).
+- **New routes** (reference §16):
+  - `POST /api/v1/sap-assets/imports` — multipart `file`, SAP's .XLSX.
+    `settings:write` held by a System Administrator (the token must also
+    carry `admin`). `202` and the run; read in the background. A missing
+    column is a `400 validation_failed` naming it, and nothing is stored;
+    a second upload while one runs is a `409`; over 200 MB a `413`.
+  - `GET /api/v1/sap-assets/imports`, `GET /api/v1/sap-assets/imports/<id>`
+    — the runs and their counts.
+  - `GET /api/v1/sap-assets` — the slice, by `office` (or `none`), `class`,
+    `updated_since`, `active`, `in_latest_export`; paged.
+  - `GET /api/v1/sap-assets/match` — up to five active, unlinked records,
+    each with `reason_code` and `reason`.
+  - `GET /api/v1/sap-assets/<id>` and `GET /api/v1/assets/<id>/sap-record`
+    — one record and its linked asset, both ways.
+  - `GET /api/v1/reports/sap-coverage` — how much of SAP's register Cadra
+    holds, by class and by office, every count defined.
+- **BEHAVIOUR CHANGE — outbound retry budget (INT-05, INT-05b).** A new
+  delivery target's default is 32 attempts (60 s doubling to a 3,600 s
+  cap: 26 h 3 min of trying), was 8 (2 h 3 min). The 19.0.3.4.0 migration
+  moved every target still on the old default and left customised ones
+  alone. A receiver down for a working day now receives that day's
+  `asset.tag.affixed` and `asset.register_state.changed` events when it
+  returns, late, instead of none of them; it never received them twice
+  (each keeps its `event_id`). Events already queued keep the budget they
+  were queued with.
+- **BEHAVIOUR CHANGE — a depreciation recompute moves `updated_at` only
+  for assets whose figures changed.** Saving a category's policy, switching
+  the depreciation mode and the monthly recompute used to rewrite every
+  asset they touched, so `GET /assets?updated_since=` (handoff 61 §6)
+  handed a sync every asset of the class as changed. Now an asset whose
+  accumulated depreciation, book value, depreciation state and end date are
+  unchanged keeps its `updated_at`. The figures are the same figures.
+- **A tag number active on two labels is refused by the database** on every
+  tenant where none is today (5 of 8 local tenants): the unique index
+  `nrs_asset_tag_label_active_name_uniq`. The ORM already refused it in
+  words; the index catches a writer that goes round the ORM. A tenant with
+  such numbers (`test19` 68, `jaizbankplc` 15, `nrs19` 1) gets the index
+  on the first upgrade after they are resolved.
+
 ## 2026-10-15 — handoff 62: the state, told · `myservice_workflow` 19.0.3.3.0
 
 **Additive.** Nothing a consumer already receives changed: `asset.tag.affixed`

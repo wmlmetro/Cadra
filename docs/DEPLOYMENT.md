@@ -362,6 +362,29 @@ three-attempt retry into any fan-out, waiting for the database to come back
 between attempts. Retry a crash; do not retry a code fault.
 [ENVIRONMENT-FACTS.md](ENVIRONMENT-FACTS.md) carries the measurement.
 
+### Load SAP's asset master (handoff 63)
+
+Settings → *SAP asset master* in the app, as a system administrator: upload
+SAP's asset-master export, the `.XLSX` as SAP produced it. The server checks
+the header row on upload and reads the rest in the background; the page
+shows the run. Two things on the path must allow it, checked against the
+files on 2026-10-18:
+
+- **The upload size.** The October export is 75 MB. Odoo's own ceiling is
+  128 MB (`odoo/http.py`, `DEFAULT_MAX_CONTENT_LENGTH`) and the route's 200
+  MB. `config/Caddyfile` (prod) sets no `request_body` limit; the cluster
+  ingresses (`k8s/dev/60-ingress.yaml`, `62-ingress-19.yaml`) set
+  `proxy-body-size: 200m`; the local `config/nginx.dev.conf` was 50m and is
+  200m since handoff 63.
+- **The cron.** The import runs as ticks of the *SAP mirror — read the
+  queued asset-master import* scheduled action, each ≤ 25 s of CPU, so it
+  fits `limit_time_cpu` whatever it is (`config/odoo.prod.conf` 600 s; the
+  local `config/odoo.19.conf` leaves Odoo's 60 s default). A server whose
+  cron does not run never reads the file: the run stays `queued`.
+
+The uploaded file is deleted when the run ends. Re-uploading the same export
+changes nothing (every record counted `unchanged`).
+
 ### Back up the database
 
 ```bash

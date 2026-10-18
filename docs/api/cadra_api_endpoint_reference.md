@@ -4272,6 +4272,7 @@ design (handoff 48).
 | 40b | GET    | `/api/v1/assets/<id>/photos` | `assets:read` (handoff 61: photos and IAD evidence, labelled; evidence items only with `evidence:read`, otherwise the count) |
 | 40c | GET    | `/api/v1/assets/<id>/photos/<photo_id>` | `assets:read`, checked inline — the bytes, not the envelope (handoff 61) |
 | 40d | POST   | `/api/v1/assets/<id>/photos/<photo_id>/supersede` | `assets:write` (handoff 61: a `reason`; the photo is kept) |
+| 40e | GET    | `/api/v1/assets/<id>/sap-record` | `sap_mirror:read` (handoff 63: the SAP mirror record this asset is linked to, or why not — §16) |
 | 41 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
 | 42 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
 | 43 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
@@ -4375,6 +4376,13 @@ design (handoff 48).
 | 139 | PATCH  | `/api/v1/settings/sidebar` | `admin` |
 | 140 | GET    | `/api/v1/brand` | (none) |
 | 141 | GET    | `/api/v1/brand/logo` | (none) |
+| 142 | POST   | `/api/v1/sap-assets/imports` | `settings:write` **and** `admin` (handoff 63: multipart `file`, SAP's .XLSX; `202`, read in the background — §16.1) |
+| 143 | GET    | `/api/v1/sap-assets/imports` | `sap_mirror:read` (handoff 63: the runs, newest first) |
+| 144 | GET    | `/api/v1/sap-assets/imports/<id>` | `sap_mirror:read` (handoff 63: one run) |
+| 145 | GET    | `/api/v1/sap-assets` | `sap_mirror:read` (handoff 63: a page of the mirror by `office`, `class`, `updated_since`, `active`, `in_latest_export` — §16.2) |
+| 146 | GET    | `/api/v1/sap-assets/match` | `sap_mirror:read` (handoff 63: up to five active, unlinked records, each with its reason — §16.3) |
+| 147 | GET    | `/api/v1/sap-assets/<id>` | `sap_mirror:read` (handoff 63: one record, with its linked asset) |
+| 148 | GET    | `/api/v1/reports/sap-coverage` | `sap_mirror:read` (handoff 63: how much of SAP's register Cadra holds — §16.4) |
 
 
 ## 11.8 GET `/api/v1/settings` and PATCH `/api/v1/settings/receipt-gate` — are receipts gated? (handoff 57, kept by 58)
@@ -5155,3 +5163,140 @@ role_b, reason}]}]` with `meta.total` and `meta.statement`. There is no
 DELETE: switch an exclusion off. Every create and change is a row in
 `/reports/configuration-changes` (`cadra.role_exclusion.<id>`); a change of a
 class's identification mode is one too (`cadra.class_identification.<id>`).
+
+## 16 · The SAP mirror — what SAP holds, in Cadra (handoff 63)
+
+`nrs.sap.asset` is SAP's fixed-asset master for NRS as a **read-only
+reference table**, loaded from SAP's own export (the October 2026 file:
+211,699 records, 161,647 active). It is **not the register**: no mirror
+record is an asset, and no list, count, report or export of assets reads it
+(measured: the eleven register routes unchanged with the mirror loaded,
+`docs/handoffs/63-evidence/register-filter-probe-nrs19.txt`).
+
+**Who reads it — `sap_mirror:read`:** the Asset Controller, the Register
+Maker and Checker, the Auditor and (through `admin`) the System
+Administrator. **Not** an Asset User, the Store Officer or Vendra's
+credential. **Who imports it:** `settings:write` held by a System
+Administrator — the token must also carry `admin`; an Asset Manager holding
+`settings:write` alone is refused, in words.
+
+**The link to the register** is computed at read time, never stored: a
+Cadra asset whose `sap_asset_number` (stripped, upper-cased — handoff 59's
+rule; sub-numbers compared with leading zeros dropped, the company code when
+the asset carries one) matches a record is LINKED to it. A receipt candidate
+whose maker typed the number counts.
+
+### 16.1 POST `/api/v1/sap-assets/imports` — import SAP's export
+
+`multipart/form-data`, ONE part `file`: the `.XLSX` as SAP produced it (up
+to 200 MB). The header row is read in the request; everything else by a
+background job in passes of at most 25 s of CPU. `202` with the run:
+
+```json
+{"id": 2, "state": "queued", "file_name": "NRS Asset.XLSX",
+ "file_size": 74664054, "file_kept": true,
+ "uploaded_by": {"id": 2, "name": "Administrator"},
+ "progress": {"sheet_bytes": 654917958, "read_bytes": 9285, "percent": 0.0},
+ "rows_read": 0, "created": 0, "updated": 0, "unchanged": 0, "refused": 0,
+ "refused_reasons": [], "marked_not_in_latest_export": 0, "message": null}
+```
+
+Poll `GET /api/v1/sap-assets/imports/<id>` until `state` is `done` or
+`failed`. On `nrs19` the October file read in **100 s** (3 passes, 75 s of
+CPU); the same file again read **211,699 unchanged**.
+
+* **Columns are found by header name.** Required: `Company Code`, `Asset`,
+  `Sub-number`, `Asset Class`, `Asset description`, `Inventory number`,
+  `Serial number`, `Capitalized on`, `Deactivation on`. Optional: the second
+  `Asset description`, `First acquisition on`, `Created On`, `Vendor`.
+* **Upsert on (asset number, sub-number).** A record missing from the new
+  export is marked `in_latest_export: false` — **never deleted**. An
+  unchanged record does not move its `updated_at`.
+* **A placeholder serial** (the tenant's list, `GET
+  /settings/serial-placeholders`) is stored as `serial_kind:
+  "placeholder"` with the value in `serial_placeholder` — never as a serial.
+* **The office** comes from a `FIRS/<office>/…` old tag (`office_source:
+  "tag"`), or is `none`. SAP's location extract, when NRS sends it, fills it
+  as `location_extract`, and an export import never overwrites that.
+* **The uploaded file is not kept** once the run ends, done or failed.
+* A refused row is counted under its reason (`no asset number`, `an
+  unreadable date in "<column>"`, `the same asset number and sub-number
+  twice in this file`) and never stored.
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_request` | not `multipart/form-data`; a part other than `file`; `file` sent twice |
+| 400 | `validation_failed` | `file` missing or empty; not an .XLSX; **a required column missing — named** (`details.missing`, `details.required`); a sheet over 2 GB uncompressed. Nothing is imported or stored. |
+| 403 | `forbidden` | no `settings:write`; or `settings:write` without `admin` — *"Importing SAP's asset master is the System Administrator's act…"* |
+| 409 | `conflict` | another run is queued or running — one at a time (`details.run_id`) |
+| 413 | `validation_failed` | over 200 MB |
+
+### 16.2 GET `/api/v1/sap-assets` — the slice
+
+Paged like every list (`limit`, `cursor`, `total_estimate`). Filters:
+`office` (a code, or `none` for the records with no office — every untagged
+one until SAP's location extract arrives), `class` (exact),
+`updated_since` (handoff 61 §6's rules: start the next sync from the FIRST
+page's `meta.timestamp`), `active` and `in_latest_export` (booleans; an
+unparseable value is a 400). Each record:
+
+```json
+{"id": 41, "company_code": "FIRS", "asset_number": "2NNNNNNNNNN",
+ "sub_number": "0", "class": "2000", "description": "OFFICE CHAIR",
+ "description_2": null, "old_tag": "FIRS/XXXX/nnnn",
+ "office_code": "XXXX", "office_source": "tag",
+ "serial_number": null, "serial_kind": "placeholder",
+ "serial_placeholder": "XXXX", "capitalized_on": "2019-03-14",
+ "first_acquired_on": "2019-03-14", "created_in_sap_on": "2019-03-01",
+ "deactivated_on": null, "active": true, "vendor": null,
+ "in_latest_export": true, "linked_asset": null,
+ "updated_at": "2026-10-18T21:47:14Z"}
+```
+
+For an offline phone, the largest office's furniture slice is measured in
+report 63.
+
+### 16.3 GET `/api/v1/sap-assets/match` — which SAP record is this item?
+
+Query: any of `old_tag`, `description`, `class`, `office`, `serial` (an
+`office` alone is refused: it matches everything in it). Returns **up to
+five ACTIVE, UNLINKED records**, each with `rank`, `reason_code`, `reason`
+and the record:
+
+1. an exact old tag (trimmed, upper-case, `\` → `/`) — `old tag, unique`;
+2. among records sharing it, the description — `old tag, shared by 7;
+   description matches` (or `matches 2 of 3 words`, `does not match`);
+3. when no record carries the tag and a `serial` is given, an exact real
+   serial — `serial, unique` / `serial, shared by N` (a placeholder is said
+   to be one in `notes` and never matched);
+4. otherwise class and description within the office — the `office` given,
+   or the one inside the tag — `description and class; office XXXX`, and
+   nationwide only when no office is known — `…; office unknown`.
+
+Description matching is whole-word and case-insensitive over both SAP
+descriptions; no fuzzy matching. The answer also carries `basis`, `pool`
+(active unlinked records at the deciding step), `tied_at_top`,
+`already_linked` and `already_linked_note` (*"3 more already on Cadra's
+register"*), `office_used`, `office_from` and `notes`. An old-tag lookup
+takes ~1 ms on `nrs19`; a nationwide description search ~190 ms.
+
+### 16.4 GET `/api/v1/reports/sap-coverage` — how much of SAP's register Cadra holds
+
+By class and by office: SAP records active (`sap_active`), `linked` to a
+Cadra asset, `not_linked`, `sap_retired`; and Cadra's side by the SAP class
+of each asset's category — `cadra_assets`, `cadra_with_sap_number`,
+`cadra_sap_number_not_in_mirror` (the reverse gap),
+`cadra_without_sap_number`. By office, Cadra's columns are `null`: Cadra's
+locations carry no SAP office code. `reconcilable_today`: the Cadra assets
+with no SAP number the matcher ranks first by a unique old tag (the asset's
+legacy asset code) or a unique serial, with those pointing at a SAP record
+another Cadra asset also points at counted apart (`contested_*`,
+`uncontested`). **Every count's meaning is in `definitions`**, sent with
+the report; `sentence` says the result in words, and says so when the
+mirror is empty.
+
+### 16.5 GET `/api/v1/sap-assets/<id>` and GET `/api/v1/assets/<id>/sap-record`
+
+One record with its `linked_asset`; and, the other way round, the record an
+asset is linked to — `{asset_id, sap_asset_number, linked, sentence,
+sap_asset}`, the sentence saying why when it is not linked.
