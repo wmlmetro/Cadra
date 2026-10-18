@@ -134,16 +134,24 @@ class NRSAsset(models.Model):
 
         Explicit rather than a stored compute: an asset that has opted out must
         keep its own values, and a compute cannot leave a field unassigned.
+
+        ONE write per category, not one per asset (handoff 63, ruling 3):
+        every asset following a category takes the same four values, so the
+        whole class is one recordset write. Saving a category's policy on
+        `test19`'s class of 18,008 made 18,008 writes here and eight more
+        per asset below — 162,072 trips through the register's write chain
+        and mail tracking, 68 s — while the database saw 208 queries.
         """
+        by_category = {}
         for r in self:
-            cat = r.category_id
-            if not r.use_category_policy or not cat:
-                continue
+            if r.use_category_policy and r.category_id:
+                by_category.setdefault(r.category_id, []).append(r.id)
+        for cat, ids in by_category.items():
             # One write, not four assignments. Field-at-a-time would validate
             # after each one, so setting the method to declining_balance before
             # the rate lands trips _check_asset_depreciation_policy on a policy
             # that is actually valid.
-            r.write({
+            self.browse(ids).write({
                 'depreciation_method': cat.depreciation_method or METHOD_NONE,
                 'useful_life_months': cat.useful_life_months or 0,
                 'declining_rate': cat.declining_rate or 0.0,
@@ -207,19 +215,64 @@ class NRSAsset(models.Model):
         of the comparison (`asset_snapshot.snapshot_today`'s own rule).
         """
         as_of = as_of or snapshot_today()
+        changed = []
         for r in self:
             if r.depreciation_method == METHOD_ERP_MANAGED:
                 # Keep the externally-supplied figures; only label the state.
-                r.depreciation_state = STATE_ERP_MANAGED
-                r.depreciation_end_date = False
-                continue
+                new = (r.accumulated_depreciation, r.current_book_value,
+                       STATE_ERP_MANAGED, False)
+            else:
+                policy = r._depreciation_policy()
+                accumulated, book_value, state = engine.value_at(
+                    as_of, **policy)
+                new = (accumulated, book_value, state,
+                       engine.schedule_end_date(**policy))
+            old = (r.accumulated_depreciation, r.current_book_value,
+                   r.depreciation_state, r.depreciation_end_date)
+            if new != old:
+                changed.append((r.id,) + new)
+        self._store_depreciation_figures(changed)
 
-            policy = r._depreciation_policy()
-            accumulated, book_value, state = engine.value_at(as_of, **policy)
-            r.accumulated_depreciation = accumulated
-            r.current_book_value = book_value
-            r.depreciation_state = state
-            r.depreciation_end_date = engine.schedule_end_date(**policy)
+    #: The four figures `_apply_depreciation` derives. Nothing computes
+    #: from them (no `@api.depends` names one), no recorder watches them and
+    #: none is tracked.
+    _DEPRECIATION_FIGURES = ('accumulated_depreciation', 'current_book_value',
+                             'depreciation_state', 'depreciation_end_date')
+
+    def _store_depreciation_figures(self, rows):
+        """Write `(id, accumulated, book value, state, end date)` rows in
+        one statement per thousand rather than four ORM writes per asset.
+
+        Handoff 63, ruling 3. Each `r.field = value` above used to be a
+        `write()` — four per asset, each through the register's whole write
+        chain (gates, recorders, SAP events) and `mail.thread` tracking, for
+        figures none of those look at. They are pure derivations, so they
+        are written as data: flushed first (a pending ORM write of the same
+        column must not land on top afterwards), stored by SQL, the cache
+        invalidated so the next read sees them. Only rows whose figures
+        CHANGED are written, and only they move `write_date` — a recompute
+        that changes nothing is no longer a change to every asset, which
+        `GET /assets?updated_since=` (handoff 61 §6) would hand a phone as
+        thousands of changed records."""
+        if not rows:
+            return
+        records = self.browse([r[0] for r in rows])
+        records.flush_recordset(list(self._DEPRECIATION_FIGURES))
+        from psycopg2.extras import execute_values
+        execute_values(
+            self.env.cr,
+            "UPDATE nrs_asset a SET accumulated_depreciation = v.acc, "
+            "       current_book_value = v.bv, depreciation_state = v.st, "
+            "       depreciation_end_date = v.ed, write_uid = %d, "
+            "       write_date = (now() AT TIME ZONE 'UTC') "
+            "  FROM (VALUES %%s) AS v (id, acc, bv, st, ed) "
+            " WHERE a.id = v.id" % self.env.uid,
+            [(i, acc or 0.0, bv or 0.0, st or None, ed or None)
+             for i, acc, bv, st, ed in rows],
+            template='(%s, %s::numeric, %s::numeric, %s::varchar, %s::date)',
+            page_size=1000)
+        records.invalidate_recordset(
+            list(self._DEPRECIATION_FIGURES) + ['write_date', 'write_uid'])
 
     def get_depreciation_schedule(self, as_of=None):
         """The period-by-period board, generated on demand.

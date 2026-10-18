@@ -1,6 +1,6 @@
 {
     'name': 'Cadra API (v1)',
-    'version': '19.0.3.33.0',
+    'version': '19.0.3.34.0',
     'summary': 'Cadra API-first layer (JWT, PRD envelope, idempotency, auto OpenAPI)',
     'author': 'WestMetro Limited',
     'website': 'https://westmetrong.com',

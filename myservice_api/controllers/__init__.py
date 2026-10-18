@@ -31,3 +31,6 @@ from . import v1_role_exclusions
 # envelope.
 from . import v1_photos
 from . import backoffice
+# Handoff 63 — the SAP mirror: SAP's asset master, read-only; its import, the
+# matcher and the coverage report.
+from . import v1_sap_mirror

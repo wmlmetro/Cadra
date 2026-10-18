@@ -292,6 +292,15 @@ SCOPE_SETTINGS_CLASSES   = "settings:classes"
 # is served; a caller without it is told how many items there are and
 # nothing else.
 SCOPE_EVIDENCE_READ      = "evidence:read"
+# Handoff 63 §1: SAP's asset master as Cadra holds it — the mirror, its
+# imports, the matcher and the coverage report. Read by the Asset
+# Controller, the Register Maker and Checker, the Auditor and (through the
+# `admin` wildcard) the System Administrator; NOT by Asset Users and NOT by
+# Vendra's credential: it is NRS's whole fixed-asset register, not a
+# working list. Ends `:read` so the Auditor-is-read-only pin holds.
+# Importing a new export is not this scope's: it takes `settings:write`
+# held by a System Administrator (`v1_sap_mirror.py`).
+SCOPE_SAP_MIRROR_READ    = "sap_mirror:read"
 
 ALL_SCOPES = frozenset({
     SCOPE_ASSETS_READ, SCOPE_ASSETS_WRITE,
@@ -313,6 +322,7 @@ ALL_SCOPES = frozenset({
     SCOPE_TAGGING_REQUEST, SCOPE_REGISTER_MAKE, SCOPE_REGISTER_CHECK,
     SCOPE_SETTINGS_CLASSES,
     SCOPE_EVIDENCE_READ,
+    SCOPE_SAP_MIRROR_READ,
     SCOPE_ADMIN,
 })
 
@@ -411,13 +421,19 @@ GROUP_SCOPES = (
     ("myservice_asset_register.group_asset_controller", (
         SCOPE_CANDIDATES_READ, SCOPE_TAGGING_REQUEST,
         # Handoff 58 §4: the Controller decides how a class is identified.
-        SCOPE_SETTINGS_CLASSES)),
+        SCOPE_SETTINGS_CLASSES,
+        # Handoff 63: what SAP holds — the Controller issues the codes an
+        # audit capture matches against it.
+        SCOPE_SAP_MIRROR_READ)),
     # Handoff 61: the maker and the checker register cost against IAD's
-    # evidence, so they read it (ruling 1 on report 60).
+    # evidence, so they read it (ruling 1 on report 60). Handoff 63: they
+    # register against SAP's asset master, so they read the mirror too.
     ("myservice_asset_register.group_register_maker", (
-        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_MAKE, SCOPE_EVIDENCE_READ)),
+        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_MAKE, SCOPE_EVIDENCE_READ,
+        SCOPE_SAP_MIRROR_READ)),
     ("myservice_asset_register.group_register_checker", (
-        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_CHECK, SCOPE_EVIDENCE_READ)),
+        SCOPE_CANDIDATES_READ, SCOPE_REGISTER_CHECK, SCOPE_EVIDENCE_READ,
+        SCOPE_SAP_MIRROR_READ)),
 
     # The Auditor (specification §3's `audit_viewer`, INT-10 §4.3). READ
     # scopes only, and every one of them already exists — the five §13.4
@@ -454,6 +470,8 @@ GROUP_SCOPES = (
         SCOPE_CANDIDATES_READ,
         # Handoff 61: IAD's evidence (ruling 1 on report 60).
         SCOPE_EVIDENCE_READ,
+        # Handoff 63: SAP's asset master and how much of it Cadra holds.
+        SCOPE_SAP_MIRROR_READ,
     )),
 
     # The employee roster and the SAP/spreadsheet imports that feed it.
@@ -567,6 +585,8 @@ SCOPE_GROUPS = {
     # whole job is reading them, never with a gate role (which would carry
     # that role's exclusions and its gate).
     SCOPE_EVIDENCE_READ:      ("myservice_api.group_auditor",),
+    # Handoff 63, the same shape: the read-only group among its holders.
+    SCOPE_SAP_MIRROR_READ:    ("myservice_api.group_auditor",),
     SCOPE_INTEGRATIONS_WRITE: ("myservice_identity.group_identity_manager",),
     SCOPE_TAGGING_WRITE:      ("myservice_asset_register.group_tag_issuing_unit",),
     # SCOPE_WEBHOOKS_ADMIN and SCOPE_ADMIN map to nothing on purpose — see the

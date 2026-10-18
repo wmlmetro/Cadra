@@ -64,6 +64,7 @@ const AdminUsers                 = lazy(() => import("@/pages/admin/Users"));
 const AdminAccessChanges         = lazy(() => import("@/pages/admin/AccessChanges"));
 const AdminConfigurationChanges  = lazy(() => import("@/pages/admin/ConfigurationChanges"));
 const DisposalsReport            = lazy(() => import("@/pages/reports/DisposalsReport"));
+const SapCoverageReport          = lazy(() => import("@/pages/reports/SapCoverage"));
 const RegisterSnapshot           = lazy(() => import("@/pages/reports/RegisterSnapshot"));
 const ExportRegister             = lazy(() => import("@/pages/reports/ExportRegister"));
 const NotFound                   = lazy(() => import("@/pages/not-found"));
@@ -77,6 +78,7 @@ const AssetCategoriesSettings    = lazy(() => import("@/pages/settings/AssetCate
 const BrandingSettings           = lazy(() => import("@/pages/settings/Branding"));
 const SidebarSettings            = lazy(() => import("@/pages/settings/Sidebar"));
 const ReceiptGateSettings        = lazy(() => import("@/pages/settings/ReceiptGate"));
+const SapAssetMasterSettings     = lazy(() => import("@/pages/settings/SapAssetMaster"));
 const RoleExclusionsSettings     = lazy(() => import("@/pages/settings/RoleExclusions"));
 const MaintenanceReadinessReport = lazy(() => import("@/pages/reports/MaintenanceReadinessReport"));
 const LocationCoverageReport     = lazy(() => import("@/pages/reports/LocationCoverageReport"));
@@ -202,11 +204,13 @@ function AppRoutes() {
           <Route path="/settings/sidebar"               component={SidebarSettings}              />
           <Route path="/settings/receipt-gate"          component={ReceiptGateSettings}          />
           <Route path="/settings/role-exclusions"       component={RoleExclusionsSettings}       />
+          <Route path="/settings/sap-asset-master"      component={SapAssetMasterSettings}       />
           <Route path="/reports/maintenance-readiness"  component={MaintenanceReadinessReport}  />
           <Route path="/reports/location-coverage"      component={LocationCoverageReport}      />
           <Route path="/reports/tag-adoption"           component={TagAdoptionReport}           />
           {/* The auditor's own screens (handoff 49) */}
           <Route path="/reports/disposals"              component={DisposalsReport}             />
+          <Route path="/reports/sap-coverage"           component={SapCoverageReport}           />
           <Route path="/reports/asset-register"         component={RegisterSnapshot}            />
           <Route path="/reports/export"                 component={ExportRegister}              />
           <Route path="/hr/sap-sync"            component={SAPSyncStatus}        />

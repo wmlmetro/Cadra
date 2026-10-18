@@ -321,7 +321,7 @@ class WorkflowDispatchLog(models.Model):
             'adapter_type': config.adapter_type,
             'payload_sent': json.dumps(payload, indent=2, default=str,
                                        sort_keys=True),
-            'max_attempts': max(1, config.retry_max_attempts or 8),
+            'max_attempts': max(1, config.retry_max_attempts or 32),
             'retry_base_seconds': max(1, config.retry_base_seconds or 60),
             'retry_cap_seconds': max(1, config.retry_cap_seconds or 3600),
             'next_attempt_at': fields.Datetime.now(),
@@ -751,7 +751,7 @@ class WorkflowDispatchLog(models.Model):
                     'Event %s has already been delivered. Re-sending it would '
                     'be a duplicate the receiver is expected to discard.'
                 ) % row.name)
-            budget = max(1, (row.config_id.retry_max_attempts or 8)
+            budget = max(1, (row.config_id.retry_max_attempts or 32)
                          if row.config_id else 8)
             row._dispatch().write({
                 'status': 'pending',

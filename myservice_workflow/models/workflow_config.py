@@ -133,13 +133,18 @@ class WorkflowConfig(models.Model):
     #
     # Per tenant, because "how long do we keep trying" is a question about
     # the OTHER end's operational habits, not about Cadra. The defaults wait
-    # 1m, 2m, 4m, 8m, 16m, 32m, 60m between eight attempts — 2 h 3 min of
-    # trying (measured in handoff 62, which first corrected "a little over
-    # three hours" here), which covers a redeploy or a certificate swap without a human
-    # touching anything, and dead-letters before the queue becomes a place
-    # events go to be forgotten.
+    # 1m, 2m, 4m, 8m, 16m and 32m, then an hour between attempts, for 32
+    # attempts — 26 h 3 min of trying: a receiver down for a whole working
+    # day gets that day's events when it comes back (handoff 63, ruling 8).
+    # Until then the default was 8 attempts — 2 h 3 min (measured in
+    # handoff 62, §5) — and a day's outage dead-lettered every event of the
+    # day. The ruling said "30 attempts … about 26 hours"; at this ladder 30
+    # is 24 h 3 min, a day with three minutes to spare, so it is 32. The
+    # same budget serves `asset.tag.affixed`, which should survive a day
+    # too. Existing targets on the old default were moved by the 19.0.3.4.0
+    # migration; a customised one was left alone.
     retry_max_attempts = fields.Integer(
-        string='Max Delivery Attempts', default=8,
+        string='Max Delivery Attempts', default=32,
         help='After this many failed attempts the event is dead-lettered and '
              'surfaced to a human rather than retried forever.')
     retry_base_seconds = fields.Integer(

@@ -32,3 +32,7 @@ from . import location_code
 # Handoff 61 §5 — photos on an asset, append-only. After the mixin and the
 # event record, both of which it uses.
 from . import asset_photo
+# Handoff 63 — the SAP mirror: SAP's asset master as a read-only reference
+# table, its streamed import and the matcher. After `serial_placeholders`'
+# users and `asset_sap` (the SAP number it links on); imports nothing else.
+from . import sap_mirror

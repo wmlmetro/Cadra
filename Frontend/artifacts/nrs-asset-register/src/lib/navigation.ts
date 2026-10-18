@@ -11,7 +11,7 @@ import {
   Users, ScanBarcode, Upload, RefreshCw,
   Wrench, Tag, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
   Hourglass, ShieldCheck, History, PanelLeft,
-  FileCog, Trash2, Camera, Download, Inbox, UserX,
+  FileCog, Trash2, Camera, Download, Inbox, UserX, Database, Scale,
   type LucideIcon,
 } from "lucide-react";
 
@@ -124,6 +124,10 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     { key: "location_coverage",       name: "Location Coverage",       path: "/reports/location-coverage",     icon: MapPin,       scope: ["dashboards:read", "locations:read"] },
     { key: "tag_adoption",            name: "Tag Adoption",            path: "/reports/tag-adoption",          icon: Tag,          scope: "assets:read" },
     { key: "depreciation_report",     name: "Depreciation",            path: "/reports/depreciation",          icon: TrendingDown, scope: "dashboards:read" },
+    // How much of SAP's register Cadra holds (handoff 63 §3). The SAP
+    // mirror's readers: the Asset Controller, the Register Maker and
+    // Checker, the Auditor — not every Asset User.
+    { key: "sap_coverage",            name: "SAP Coverage",            path: "/reports/sap-coverage",          icon: Scale,        scope: "sap_mirror:read" },
   ]},
   // `settings:write`, not a read scope: these screens exist to CHANGE the
   // configuration. Their reads are served under `assets:read` because other
@@ -144,6 +148,11 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     // `settings:write`, as the server's writes and its conflicting-grants
     // read are; `settings:read` alone can open the page and see the table.
     { key: "role_exclusions",         name: "Role exclusions",         path: "/settings/role-exclusions", icon: UserX,         scope: "settings:write" },
+    // Importing SAP's asset-master export (handoff 63 §1). `admin`: the
+    // server's import takes `settings:write` HELD BY A SYSTEM
+    // ADMINISTRATOR, and an Asset Manager holding `settings:write` alone is
+    // refused it — so the item is drawn for the one who can.
+    { key: "sap_asset_master",        name: "SAP asset master",        path: "/settings/sap-asset-master", icon: Database,     scope: "admin" },
     // Which of these items this tenant shows (handoff 48). `admin`, as the
     // server's PATCH is. The one item that cannot be switched off, with its
     // group: it is where they are switched back on.
