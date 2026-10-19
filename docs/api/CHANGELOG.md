@@ -33,6 +33,14 @@ live at was never the point.
 
 ---
 
+## 2026-10-19 — handoff 64 (Identify from photo, R11)
+
+- **New:** `POST /api/v1/ai/identify` (`assets:write`, multipart: `photo_id`, or `file` + `source`), behind the tenant switch `cadra.ai.identify`, **off on every tenant**. Returns a suggestion — class with confidence and up to two alternatives, attributes, condition, text read, SAP candidates (records only with `sap_mirror:read`, else the count), `suggestion_id`. Writes nothing on any asset. Refusals: `403 forbidden` `switched_off`, `429 rate_limited` `daily_cap`, `503 server_misconfigured` `provider_not_ready`, `503`/`502 internal_error` (`provider_timeout`, `provider_error`, `provider_declined`, `answer_discarded`). Endpoint reference §17.
+- **New:** `GET` / `PATCH /api/v1/settings/ai-identify` (`settings:read` / `settings:write`): switch, provider, model, timeout, daily cap, effort, today's count, `key_placed`. The key is never returned or accepted.
+- **New (additive):** `GET /api/v1/settings` carries `ai_identify` (`enabled`, `provider`, `provider_label`, `notice`).
+- **New (additive):** `POST /api/v1/assets` and `PATCH /api/v1/assets/<id>` accept `ai_suggestion: {"id", "ignored": [...]}`, and answer `data.ai_suggestion` (`id`, `event_id`, `counts`, `fields`) when sent. Not an asset field; it is not in `details.writable`. Refused before anything is written: malformed `400`, unknown id `404`, `not_identified` / `other_asset` `400`, `already_applied` / `photo_expired` / `photo_limit` `409`.
+- **New history type (additive enum value):** `details_suggested` on `GET /api/v1/assets/<id>/history`, and in its `fidelity.events`.
+
 ## 2026-10-19 — handoff 63b: the faster loop · no module version change (Python only; a tag sequence is created per prefix on first use)
 
 **ADDITIVE — a new error code, `409 tag_number_taken`, and the one 409 to

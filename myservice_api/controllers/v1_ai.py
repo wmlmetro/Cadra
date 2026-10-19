@@ -117,7 +117,12 @@ def notice(provider):
 def _params(env, names):
     """`{name: value}` read with raw SQL — not through `get_param`'s
     ormcache, so a value an owner sets from a shell is the value the next
-    request reads, on every worker, without a restart."""
+    request reads, on every worker, without a restart. Flushed first: a
+    value this request has just written through `set_param` is still in the
+    ORM's buffer, and the settings PATCH answers with what it wrote (found
+    by the live-check dry run: it answered with the values from BEFORE its
+    own write)."""
+    env["ir.config_parameter"].flush_model()
     env.cr.execute("SELECT key, value FROM ir_config_parameter "
                    "WHERE key = ANY(%s)", (list(names),))
     return dict(env.cr.fetchall())

@@ -78,6 +78,7 @@ const AssetCategoriesSettings    = lazy(() => import("@/pages/settings/AssetCate
 const BrandingSettings           = lazy(() => import("@/pages/settings/Branding"));
 const SidebarSettings            = lazy(() => import("@/pages/settings/Sidebar"));
 const ReceiptGateSettings        = lazy(() => import("@/pages/settings/ReceiptGate"));
+const AiIdentifySettings         = lazy(() => import("@/pages/settings/AiIdentify"));
 const SapAssetMasterSettings     = lazy(() => import("@/pages/settings/SapAssetMaster"));
 const RoleExclusionsSettings     = lazy(() => import("@/pages/settings/RoleExclusions"));
 const MaintenanceReadinessReport = lazy(() => import("@/pages/reports/MaintenanceReadinessReport"));
@@ -203,6 +204,7 @@ function AppRoutes() {
           <Route path="/settings/branding"              component={BrandingSettings}             />
           <Route path="/settings/sidebar"               component={SidebarSettings}              />
           <Route path="/settings/receipt-gate"          component={ReceiptGateSettings}          />
+          <Route path="/settings/ai-identify"           component={AiIdentifySettings}           />
           <Route path="/settings/role-exclusions"       component={RoleExclusionsSettings}       />
           <Route path="/settings/sap-asset-master"      component={SapAssetMasterSettings}       />
           <Route path="/reports/maintenance-readiness"  component={MaintenanceReadinessReport}  />

@@ -2611,3 +2611,44 @@ the sequence — answers `409 tag_number_taken`, `details.retryable: true`,
 which Vendra 59 retries. **Keep it:** a new path that mints a tag number
 draws it from `_tag_sequence_next`, never from a max.
 
+
+
+## 33 · Identify from photo (handoff 64, R11)
+
+### 33.1 · Photos go to the provider — `[open]`, owner
+
+R11 puts a photo on the AI provider's servers (Anthropic) each time a person
+presses *Identify*. This joins R7's hosting deviation: **NRS's written
+acceptance names the provider before production photos are sent.** Until
+then `cadra.ai.identify` stays off on every NRS tenant (it is off by default
+everywhere). The screens say it once: *"Photograph the item, not people. The
+photo is sent to Anthropic (Claude) to read it."*
+
+### 33.2 · The key, and the switch — `[open]`, owner
+
+The key is the owner's: `scripts/set_ai_key.sh <db>` locally, the
+`CADRA_AI_API_KEY` key of the `cadra-odoo` secret on the cluster (bootstrap
+mirrors it one way). Placing it turns nothing on; an administrator turns the
+switch on in *Settings → Identify from photo*, which refuses while no key is
+placed.
+
+### 33.3 · The live check — `[open]`, owner
+
+`scripts/ai_live_check.py` sends the owner's own 30–50 office photos and
+prints right-first-time, right-in-top-three, seconds and cost per photo;
+the totals go into report 64 as an addendum. Run once the key is on
+`test19` or `staging`.
+
+### 33.4 · The register must be mapped before the prompt is useful — `[open]`, NRS
+
+The prompt carries each class's mapped SAP class and that class's twenty
+commonest SAP descriptions. On `nrs19` today 1 of 22 classes carries a SAP
+class (`3100`, which is not one — report 59), so the model sees the class
+names and no SAP wording. The mapping report 59 proposed is NRS's decision;
+until it is made, descriptions will be in the model's words rather than
+SAP's.
+
+### 33.5 · An SAP candidate fills nothing — `[landed 64, keep it that way]`
+
+No asset route writes `sap_asset_number`; the candidates are shown, with
+their reasons, for reference. Linking is handoff 65.

@@ -163,6 +163,21 @@ def test_the_real_provider_cannot_be_switched_on_without_a_key(client):
     assert _settings(client)["enabled"] is s["enabled"]
 
 
+def test_the_patch_answers_with_what_it_wrote(client):
+    """Found by the live-check dry run: the PATCH read the settings back
+    with raw SQL before its own write was flushed, and answered with the
+    values from BEFORE it."""
+    was = _settings(client)
+    target = 499 if was["daily_cap"] != 499 else 498
+    try:
+        got = assert_envelope_ok(client.patch(
+            AI, json={"daily_cap": target, "effort": "medium"}))["data"]
+        assert (got["daily_cap"], got["effort"]) == (target, "medium")
+    finally:
+        assert_envelope_ok(client.patch(AI, json={
+            "daily_cap": was["daily_cap"], "effort": was["effort"]}))
+
+
 def test_settings_values_are_checked(client):
     for body, field in (({"daily_cap": 0}, "daily_cap"),
                         ({"timeout_seconds": 600}, "timeout_seconds"),
