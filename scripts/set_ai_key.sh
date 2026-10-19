@@ -22,8 +22,9 @@
 # shell history, in a log or in this script's output — only its length is
 # said. `.env` is untracked (handoff 04); never commit it.
 #
-# On the cluster the server reads the same variable from the optional
-# `CADRA_AI_API_KEY` key of the `cadra-odoo` secret — see docs/DEPLOYMENT.md.
+# On the cluster the server reads the same variable from the `cadra-odoo`
+# secret, into which deploy-dev syncs the GitHub repository secret
+# `CADRA_AI_API_KEY` — set it there, not on the cluster (docs/DEPLOYMENT.md).
 set -euo pipefail
 
 MODE=""

@@ -531,8 +531,9 @@ tenant's values back (`tests/test_what_the_photo_says.py::ai_on`);
 a database** (handoff 65) — `ai_provider.provider_key()` reads
 `CADRA_AI_API_KEY` from the Odoo process: the local `.env`
 (`scripts/set_ai_key.sh`, no database argument, then `up -d
---force-recreate odoo`) or the optional key of the `cadra-odoo` secret on
-the cluster. One key per server; never in a test, a log, an error or a
+--force-recreate odoo`) or, on the cluster, the GitHub secret
+`CADRA_AI_API_KEY`, which `deploy-dev` syncs into `cadra-odoo` (never patch
+that secret by hand — every push regenerates it). One key per server; never in a test, a log, an error or a
 route; Settings says only `key_placed`. Migration 19.0.3.36.0 deleted the
 old `myservice_api.ai_api_key` row — do not bring it back;
 (3) **a save that used a suggestion names it** — `ai_suggestion: {id,

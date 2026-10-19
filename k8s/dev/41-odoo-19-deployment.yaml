@@ -54,8 +54,11 @@ spec:
             # from photo, read by the SERVER from its environment on every
             # call and kept in no database (it was a bootstrap-mirrored
             # parameter in 64). Absent: no tenant can identify, and each
-            # says so. A change takes effect on the next rollout. Placing it
-            # switches nothing on (`cadra.ai.identify`, per tenant).
+            # says so. Set it as the GitHub secret `CADRA_AI_API_KEY`:
+            # deploy-dev syncs it into cadra-odoo on every push (a key
+            # patched in by hand is wiped by the next push). A change takes
+            # effect on the next ROLLOUT of odoo-19, which a push does not
+            # do. Placing it switches nothing on (`cadra.ai.identify`).
             - name: CADRA_AI_API_KEY
               valueFrom:
                 secretKeyRef:

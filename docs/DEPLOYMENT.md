@@ -209,9 +209,13 @@ failure, so a half-provisioned tenant is never committed.
      handoff 65): the Odoo server reads `CADRA_AI_API_KEY` from its own
      environment — the compose `odoo` service's `environment` (from `.env`,
      written by `scripts/set_ai_key.sh`, then `up -d --force-recreate odoo`)
-     or, on the cluster, the optional `CADRA_AI_API_KEY` key of the
-     `cadra-odoo` secret on the Odoo Deployment (a rollout picks a change
-     up) — and no database holds it. The Odoo image carries the
+     or, on the cluster, the GitHub repository secret `CADRA_AI_API_KEY`,
+     which `deploy-dev` syncs into the `cadra-odoo` secret on every push
+     like the other secrets (optional; unset means no key). Do not patch it
+     onto the cluster secret by hand: that step regenerates the whole
+     secret and the next push wipes it. The server picks a new value up on
+     the next rollout of `odoo-19`, which a push does not do (`upgrade-19`
+     with the pinned image rolls it). No database holds it. The Odoo image carries the
      `anthropic` SDK (pinned in both Dockerfiles), so an image built before
      handoff 64 identifies nothing.
    - Adds the admin user to `group_asset_manager` and `group_security_admin`.

@@ -2628,9 +2628,10 @@ photo is sent to Anthropic (Claude) to read it."*
 
 The key is the owner's and the server's (handoff 65): `CADRA_AI_API_KEY` in
 the server's environment — `scripts/set_ai_key.sh` writes the local `.env`
-(then recreate odoo); on the cluster, the `CADRA_AI_API_KEY` key of the
-`cadra-odoo` secret, picked up by a rollout of the Odoo Deployment. No
-database holds it. Placing it turns nothing on; an administrator turns the
+(then recreate odoo); on the cluster, the GitHub repository secret
+`CADRA_AI_API_KEY`, synced into `cadra-odoo` by `deploy-dev` on every push
+and picked up by the next rollout of `odoo-19`. Never patched onto the
+cluster secret by hand — the next push wipes it. No database holds it. Placing it turns nothing on; an administrator turns the
 switch on in *Settings → Identify from photo*, which refuses while no key is
 placed.
 
