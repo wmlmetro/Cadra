@@ -1,0 +1,103 @@
+# Handoff 63b §3b — a category policy save, test19 category 1 'Generator'
+
+## BEFORE (code as 63 left it), in-process, rolled back
+category 1 'Generator', useful_life_months -> 144
+assets 19042 | queries 231
+  cat.write                              0.04 s     0.00 ms/asset
+  search                                 0.57 s     0.03 ms/asset
+  _sync_policy_from_category+flush      16.04 s     0.84 ms/asset
+  _apply_depreciation+flush              5.52 s     0.29 ms/asset
+  TOTAL                                 22.17 s     1.16 ms/asset
+         26655969 function calls (26589561 primitive calls) in 21.883 seconds
+   Ordered by: cumulative time
+   List reduced from 599 to 35 due to restriction <35>
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.001    0.001   22.166   22.166 <string>:30(save)
+        1    0.051    0.051   16.030   16.030 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:132(_sync_policy_from_category)
+        2    0.371    0.186   15.061    7.531 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:199(_apply_depreciation)
+        1    0.000    0.000   13.684   13.684 /mnt/extra-addons/myservice_workflow/models/sap_asset_events.py:371(write)
+        1    0.001    0.001   13.684   13.684 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:327(write)
+    76168    1.770    0.000    6.953    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/depreciation_engine.py:206(build_schedule)
+1478312/1435714    2.242    0.000    6.659    0.000 /usr/lib/python3/dist-packages/odoo/orm/fields.py:1642(__get__)
+      226    0.006    0.000    4.733    0.021 /usr/lib/python3/dist-packages/odoo/orm/environments.py:527(execute_query)
+      231    0.007    0.000    4.670    0.020 /usr/lib/python3/dist-packages/odoo/sql_db.py:420(execute)
+      231    4.465    0.019    4.661    0.020 {method 'execute' of 'psycopg2.extensions.cursor' objects}
+        1    0.000    0.000    4.137    4.137 /mnt/extra-addons/myservice_asset_register/models/asset_gates.py:562(write)
+        1    0.000    0.000    4.137    4.137 /mnt/extra-addons/myservice_asset_register/models/asset_identification.py:290(write)
+        1    0.000    0.000    4.137    4.137 /mnt/extra-addons/myservice_asset_register/models/asset_sap.py:303(write)
+        1    0.000    0.000    4.137    4.137 /mnt/extra-addons/myservice_asset_register/models/asset.py:427(write)
+        1    0.000    0.000    4.137    4.137 /mnt/extra-addons/myservice_asset_register/models/asset.py:486(_write_recorded)
+        1    0.001    0.001    4.081    4.081 /usr/lib/python3/dist-packages/odoo/addons/mail/models/mail_thread.py:383(write)
+        2    0.006    0.003    4.061    2.030 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:254(_store_depreciation_figures)
+       21    0.442    0.021    3.725    0.177 /usr/lib/python3/dist-packages/odoo/addons/mail/models/mail_thread.py:526(_track_prepare)
+        1    0.001    0.001    3.653    3.653 /usr/lib/python3/dist-packages/odoo/orm/models.py:6723(invalidate_recordset)
+        2    0.060    0.030    3.645    1.823 /usr/lib/python3/dist-packages/odoo/orm/models.py:6387(_flush)
+        2    0.002    0.001    3.644    1.822 /usr/lib/python3/dist-packages/odoo/orm/models.py:6366(flush_recordset)
+    38084    0.083    0.000    3.586    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/depreciation_engine.py:258(value_at)
+    38084    0.035    0.000    3.516    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/depreciation_engine.py:298(schedule_end_date)
+       21    0.052    0.002    3.286    0.156 /usr/lib/python3/dist-packages/odoo/orm/models.py:4524(_write_multi)
+  1067800    0.839    0.000    3.284    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/depreciation_engine.py:101(add_months)
+   668727    0.415    0.000    3.013    0.000 /usr/lib/python3/dist-packages/odoo/orm/models.py:6674(__getitem__)
+       34    0.049    0.001    2.658    0.078 /usr/lib/python3/dist-packages/odoo/orm/models.py:3879(_fetch_query)
+  1067800    0.476    0.000    2.445    0.000 /usr/lib/python3.12/calendar.py:161(monthrange)
+       32    0.008    0.000    2.240    0.070 /usr/lib/python3/dist-packages/odoo/orm/models.py:3754(_fetch_field)
+       32    0.008    0.000    2.231    0.070 /usr/lib/python3/dist-packages/odoo/orm/models.py:3774(fetch)
+    38084    0.187    0.000    2.208    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:184(_depreciation_policy)
+  1067800    1.086    0.000    1.952    0.000 /usr/lib/python3.12/calendar.py:154(weekday)
+   306963    0.425    0.000    1.594    0.000 /usr/lib/python3/dist-packages/odoo/orm/fields_relational.py:42(__get__)
+  2391472    1.187    0.000    1.187    0.000 {built-in method builtins.round}
+     2284    0.981    0.000    0.982    0.000 /usr/lib/python3/dist-packages/odoo/orm/fields.py:1595(_insert_cache)
+rolled back
+
+## AFTER, in-process, rolled back (no second _apply_depreciation; summary_at)
+category 1 'Generator', useful_life_months -> 144
+assets 19042 | queries 221
+  cat.write                              0.05 s     0.00 ms/asset
+  search                                 0.21 s     0.01 ms/asset
+  _sync_policy_from_category+flush      12.58 s     0.66 ms/asset
+  _apply_depreciation+flush              0.00 s     0.00 ms/asset
+  TOTAL                                 12.84 s     0.67 ms/asset
+         15829385 function calls (15763017 primitive calls) in 12.768 seconds
+   Ordered by: cumulative time
+   List reduced from 602 to 35 due to restriction <35>
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000   12.845   12.845 <string>:30(save)
+        1    0.068    0.068   12.580   12.580 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:132(_sync_policy_from_category)
+        1    0.001    0.001   10.862   10.862 /mnt/extra-addons/myservice_workflow/models/sap_asset_events.py:371(write)
+        1    0.001    0.001   10.861   10.861 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:329(write)
+        1    0.155    0.155    6.705    6.705 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:199(_apply_depreciation)
+1169953/1127355    1.845    0.000    5.128    0.000 /usr/lib/python3/dist-packages/odoo/orm/fields.py:1642(__get__)
+        1    0.002    0.002    4.155    4.155 /mnt/extra-addons/myservice_asset_register/models/asset_gates.py:562(write)
+        1    0.000    0.000    4.154    4.154 /mnt/extra-addons/myservice_asset_register/models/asset_identification.py:290(write)
+        1    0.001    0.001    4.153    4.153 /mnt/extra-addons/myservice_asset_register/models/asset_sap.py:303(write)
+        1    0.000    0.000    4.152    4.152 /mnt/extra-addons/myservice_asset_register/models/asset.py:427(write)
+        1    0.001    0.001    4.151    4.151 /mnt/extra-addons/myservice_asset_register/models/asset.py:486(_write_recorded)
+        1    0.000    0.000    4.088    4.088 /usr/lib/python3/dist-packages/odoo/addons/mail/models/mail_thread.py:383(write)
+       21    0.456    0.022    3.718    0.177 /usr/lib/python3/dist-packages/odoo/addons/mail/models/mail_thread.py:526(_track_prepare)
+   668727    0.424    0.000    2.949    0.000 /usr/lib/python3/dist-packages/odoo/orm/models.py:6674(__getitem__)
+      216    0.004    0.000    2.743    0.013 /usr/lib/python3/dist-packages/odoo/orm/environments.py:527(execute_query)
+        1    0.002    0.002    2.476    2.476 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:256(_store_depreciation_figures)
+      221    0.005    0.000    2.475    0.011 /usr/lib/python3/dist-packages/odoo/sql_db.py:420(execute)
+      221    2.290    0.010    2.467    0.011 {method 'execute' of 'psycopg2.extensions.cursor' objects}
+        1    0.000    0.000    2.222    2.222 /usr/lib/python3/dist-packages/odoo/orm/models.py:6723(invalidate_recordset)
+        2    0.052    0.026    2.210    1.105 /usr/lib/python3/dist-packages/odoo/orm/models.py:6387(_flush)
+        2    0.001    0.001    2.210    1.105 /usr/lib/python3/dist-packages/odoo/orm/models.py:6366(flush_recordset)
+    19042    0.049    0.000    1.943    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/depreciation_engine.py:309(summary_at)
+       21    0.033    0.002    1.891    0.090 /usr/lib/python3/dist-packages/odoo/orm/models.py:4524(_write_multi)
+    19042    0.469    0.000    1.853    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/depreciation_engine.py:206(build_schedule)
+   268879    0.425    0.000    1.650    0.000 /usr/lib/python3/dist-packages/odoo/orm/fields_relational.py:42(__get__)
+    19042    0.102    0.000    1.570    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/asset.py:184(_depreciation_policy)
+       24    0.054    0.002    1.502    0.063 /usr/lib/python3/dist-packages/odoo/orm/models.py:3879(_fetch_query)
+       22    0.003    0.000    1.308    0.059 /usr/lib/python3/dist-packages/odoo/orm/models.py:3754(_fetch_field)
+       22    0.006    0.000    1.305    0.059 /usr/lib/python3/dist-packages/odoo/orm/models.py:3774(fetch)
+   266950    0.234    0.000    0.881    0.000 /mnt/extra-addons/myservice_asset_depreciation/models/depreciation_engine.py:101(add_months)
+114252/95210    0.092    0.000    0.795    0.000 /usr/lib/python3/dist-packages/odoo/orm/fields.py:1850(recompute)
+   268847    0.350    0.000    0.749    0.000 /usr/lib/python3/dist-packages/odoo/orm/fields_relational.py:354(convert_to_record)
+   266950    0.128    0.000    0.647    0.000 /usr/lib/python3.12/calendar.py:161(monthrange)
+       20    0.000    0.000    0.640    0.032 /usr/lib/python3/dist-packages/odoo/orm/fields.py:1858(apply_except_missing)
+       20    0.001    0.000    0.640    0.032 /usr/lib/python3/dist-packages/odoo/orm/fields.py:1897(compute_value)
+rolled back
+
+## HTTP on test19, tools/category_save_timing.py
+before 07:02: save 13.2 s, restore 20.6 s, 19,042 recomputed; test_patch_category_policy_propagates_to_its_assets 29.81 s
+after  08:0x: save 9.7 s, restore 9.7 s, 19,042 recomputed; the same test 19.84 s
