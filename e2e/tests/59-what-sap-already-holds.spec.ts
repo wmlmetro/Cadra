@@ -82,7 +82,11 @@ async function signIn(page: Page, p: Persona) {
   await page.waitForURL((u) => u.pathname !== "/app/" && u.pathname !== "/app", { timeout: 30_000 });
 }
 
-const isoDay = (offsetDays = 0) => new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
+// A LAGOS day (UTC+1, no summer time): since handoff 63b the
+// configuration-change report bounds its period in Lagos days, so a UTC
+// date here missed a change made between 23:00 and 24:00 UTC.
+const isoDay = (offsetDays = 0) =>
+  new Date(Date.now() + 3_600_000 + offsetDays * 86_400_000).toISOString().slice(0, 10);
 
 /** Every parameter row on the configuration record touched since yesterday,
  *  all pages. */
