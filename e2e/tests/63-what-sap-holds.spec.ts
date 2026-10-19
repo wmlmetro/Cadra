@@ -96,15 +96,28 @@ test.describe("handoff 63 — what SAP holds, in Cadra", () => {
     await expect(page.getByTestId("sap-import-run").filter({ has: page.locator("[data-state='running'], [data-state='queued']") }))
       .toHaveCount(0, { timeout: 120_000 });
     await page.getByTestId("sap-import-file").setInputFiles(file);
+    // Handoff 65 §3: this invented file holds 3 records, so on a tenant whose
+    // mirror already holds others it would mark far more than 5% absent and
+    // be HELD. The administrator says "Yes, mark them absent" — the box is
+    // unticked by default.
+    await expect(page.getByTestId("sap-import-mark-absent")).not.toBeChecked();
+    await page.getByTestId("sap-import-mark-absent").check();
+    // The card is found by the run THIS upload made: the list's first card
+    // is the previous run until the refetch lands, and that one is `done`.
+    const posted = page.waitForResponse((r) => r.url().endsWith("/api/v1/sap-assets/imports")
+      && r.request().method() === "POST");
     await page.getByTestId("sap-import-submit").click();
+    const runId = (await (await posted).json()).data.id;
     await expect(page.getByTestId("sap-import-queued")).toBeVisible();
-    const card = page.getByTestId("sap-import-run").first();
+    const card = page.locator(`[data-testid='sap-import-run'][data-run-id='${runId}']`);
     await expect(card).toHaveAttribute("data-state", "done", { timeout: 180_000 });
     await expect(card.getByTestId("run-rows-read")).toHaveText("4");
     await expect(card.getByTestId("run-created")).toHaveText("3");
     await expect(card.getByTestId("run-refused")).toHaveText("1");
     await expect(card).toContainText("no asset number");
     await expect(card).toContainText("The uploaded file was not kept.");
+    // The run records who skipped the guard.
+    await expect(card.getByTestId("run-absent-guard")).toContainText("Yes, mark them absent");
 
     // The row, from the server: the newest run is this one, done, no file.
     const token = await apiToken("administrator");
@@ -113,6 +126,7 @@ test.describe("handoff 63 — what SAP holds, in Cadra", () => {
     expect(runs.data[0].state).toBe("done");
     expect(runs.data[0].created).toBe(3);
     expect(runs.data[0].file_kept).toBe(false);
+    expect(runs.data[0].absent_guard.confirmed).toBe(true);
     const slice = await (await fetch(`${ORIGIN}/api/v1/sap-assets?office=${office}`, {
       headers: { Authorization: `Bearer ${token}` } })).json();
     expect(slice.pagination.total_estimate).toBe(3);

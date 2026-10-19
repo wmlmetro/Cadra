@@ -159,6 +159,13 @@ export function PhotoIdentifyPanel({ assetId, photoId, onClose }: {
   const suggestion = identify.data;
   const proposed = suggestion ? proposedValues(suggestion) : {};
   const fields = SUGGESTED_FIELDS.filter(f => f in proposed);
+  // A field the asset ALREADY holds as suggested is shown "Same" and offers
+  // no choice, so it is neither used nor ignored: it is left out of the
+  // save's `ignored`, and the server records it `accepted` with
+  // `already_held` (handoff 65 §0a.3 — it was recorded `ignored`). The
+  // comparison is the server's `_norm`: trimmed, case-folded.
+  const isSame = (f: SuggestedField) =>
+    String(currentOf(asset.data, f) ?? "").trim().toLowerCase() === String(proposed[f] ?? "").trim().toLowerCase();
 
   const save = useMutation<unknown, CadraApiError>({
     mutationFn: async () => {
@@ -166,7 +173,7 @@ export function PhotoIdentifyPanel({ assetId, photoId, onClose }: {
       for (const f of chosen) body[f] = proposed[f];
       body.ai_suggestion = {
         id: suggestion!.suggestion_id,
-        ignored: fields.filter(f => !chosen.has(f)),
+        ignored: fields.filter(f => !chosen.has(f) && !isSame(f)),
       };
       return apiPatch(`/api/v1/assets/${assetId}`, body, { idempotencyKey: newIdempotencyKey() });
     },
@@ -220,7 +227,7 @@ export function PhotoIdentifyPanel({ assetId, photoId, onClose }: {
               <tbody>
                 {fields.map(f => {
                   const now = currentOf(asset.data, f);
-                  const same = String(now ?? "").trim().toLowerCase() === String(proposed[f] ?? "").trim().toLowerCase();
+                  const same = isSame(f);
                   const on = chosen.has(f);
                   return (
                     <tr key={f} className="border-t border-border/60" data-testid={`ai-compare-${f}`}>

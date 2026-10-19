@@ -33,6 +33,21 @@ live at was never the point.
 
 ---
 
+## 2026-10-19 — handoff 65: the link · `myservice_asset_register` 19.0.1.33.0, `myservice_api` 19.0.3.36.0
+
+- **New:** the link — a register asset given its SAP asset number from the SAP mirror by two people. `GET /api/v1/sap-links/candidates` (`sap_mirror:read`), `POST /api/v1/sap-links/propose` (`register:make`, a batch with `dry_run`), `GET /api/v1/sap-links` (`sap_mirror:read`), `POST /api/v1/sap-links/approve` and `/return` (`register:check`), `POST /api/v1/assets/<id>/sap-link/undo` (`register:make`). One person may not propose and decide one asset's link: `409 conflict`, `details.reason = "segregation_of_duties"`. An approval writes `sap.asset_number`, `asset_subnumber`, `company_code` and **nothing is sent to SAP**. A link is refused while the asset has an asset-master posting in flight (`sap.posting_state` `queued`/`posted`).
+- **New:** the contested list — `GET /api/v1/sap-links/contested`, `POST /api/v1/sap-links/contested/<sap_id>/propose` and `/flag` (`register:make`). A flag is a record for NRS; nothing is merged, retired or deleted.
+- **New enum value (additive):** `sap.code_source` = `linked_from_sap_mirror`, written only by a link's approval; a hand write of it is refused.
+- **New key (additive):** `sap.duplicate_flag` on every asset — `{sap_asset_number, note, flagged_by: {id, name}, flagged_at}` or null.
+- **New history types (additive enum values):** `sap_link` (proposed, approved, returned, and the same for an undo — *"Linked to SAP asset N (old tag, unique), proposed by A, approved by B."*) and `sap_duplicate_flagged`, in the history and its `fidelity.events`.
+- **BEHAVIOUR CHANGE — `POST /api/v1/sap-assets/imports`:** a run against a mirror that already holds records first counts what it would mark "not in the latest export", writing nothing; over 5% it stops as the new run state **`held`** (additive enum value) with `message` and `absent_guard`. A second text part `mark_absent=true` ("Yes, mark them absent") skips the count and is recorded on the run (`absent_guard.confirmed`, `confirmed_by`). A guarded re-import reads the file twice.
+- **New key (additive):** `absent_guard` on every import run. `duration_seconds` is now given for a `held` run too.
+- **New key (additive):** `class_evidence` on `GET /api/v1/reports/sap-coverage` — per Cadra category, the SAP classes its linked assets carry, with a definition. Nothing writes a category's SAP class from it.
+- **BEHAVIOUR CHANGE — `GET /api/v1/reports/access-changes`:** a day in the period is a LAGOS day (`lagos_days_in_utc`, the configuration report's helper since 63b). A caller naming UTC dates sees its window move one hour earlier; the payload is unchanged.
+- **BEHAVIOUR CHANGE — *Identify from photo*:** the key is read from the server's environment (`CADRA_AI_API_KEY`), not a tenant parameter; the upgrade deletes `myservice_api.ai_api_key` on every tenant. Until the variable is set, `POST /ai/identify` answers `503 server_misconfigured` and `GET /settings/ai-identify` says `key_placed: false`. `key_command` is `scripts/set_ai_key.sh` (no database); **new (additive)** `key_variable`.
+- **BEHAVIOUR CHANGE — `ai_suggestion` outcomes:** a proposed field neither sent nor named in `ignored` that the asset already holds is `accepted` with `already_held: true` (it was `ignored`). **Additive:** the `already_held` key.
+- **Docs:** the endpoint reference's error codes match `utils.py` — `unprocessable` (422, never defined) removed; `validation_failed`, `not_implemented`, `idempotency_mismatch` listed. `legacy_asset_code` is documented as the old FIRS tag every SAP reconciliation reads.
+
 ## 2026-10-19 — handoff 64 (Identify from photo, R11)
 
 - **New:** `POST /api/v1/ai/identify` (`assets:write`, multipart: `photo_id`, or `file` + `source`), behind the tenant switch `cadra.ai.identify`, **off on every tenant**. Returns a suggestion — class with confidence and up to two alternatives, attributes, condition, text read, SAP candidates (records only with `sap_mirror:read`, else the count), `suggestion_id`. Writes nothing on any asset. Refusals: `403 forbidden` `switched_off`, `429 rate_limited` `daily_cap`, `503 server_misconfigured` `provider_not_ready`, `503`/`502 internal_error` (`provider_timeout`, `provider_error`, `provider_declined`, `answer_discarded`). Endpoint reference §17.

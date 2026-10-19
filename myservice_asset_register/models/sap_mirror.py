@@ -117,7 +117,18 @@ RUN_STATES = [
     ('running', 'Running'),
     ('done', 'Done'),
     ('failed', 'Failed'),
+    # Handoff 65 §3: the file would have marked more than
+    # `ABSENT_GUARD_SHARE` of the mirror absent; stopped before writing.
+    ('held', 'Stopped — would mark too much absent'),
 ]
+#: Handoff 65 §3. An import that would mark more than this share of the
+#: mirror's current records "not in the latest export" stops before it
+#: writes anything: a truncated file, or another company's, is the likely
+#: cause, and marking 200,000 records absent is not undone by re-importing.
+ABSENT_GUARD_SHARE = 0.05
+#: Where the counting pass keeps the keys it has read. UNLOGGED and outside
+#: the ORM: scratch for one run, emptied when the pass ends.
+_SEEN_TABLE = 'nrs_sap_import_seen'
 
 _OFFICE_FROM_TAG = re.compile(r'^FIRS/([A-Z0-9]+)/')
 _WORDS = re.compile(r'[A-Z0-9]+')
@@ -419,12 +430,70 @@ class NRSSapAsset(models.Model):
         }
 
     @api.model
+    def _class_evidence(self):
+        """§4 (handoff 65): what the links say about the class mapping.
+
+        For each Cadra category, the SAP classes its LINKED register assets
+        actually carry in SAP's export — a Cadra asset is linked when its SAP
+        number names a mirror record (`_LINK_COND`), whichever way the number
+        got there. `[(category_id, configured_class, sap_class, assets,
+        via_link)]`, `via_link` counting those written by a two-person link.
+        Evidence for NRS's decision on report 59's proposed mapping; NOTHING
+        here writes `sap_asset_class`."""
+        self.env.flush_all()
+        self.env.cr.execute("""
+            SELECT a.category_id, nullif(btrim(c.sap_asset_class), ''),
+                   s.asset_class, count(DISTINCT a.id),
+                   count(DISTINCT a.id) FILTER (
+                       WHERE a.sap_code_source = 'linked_from_sap_mirror')
+              FROM nrs_asset a
+              JOIN LATERAL (SELECT s.asset_class FROM nrs_sap_asset s
+                             WHERE %s ORDER BY s.id LIMIT 1) s ON TRUE
+              LEFT JOIN nrs_asset_category c ON c.id = a.category_id
+             WHERE a.register_state = 'registered'
+               AND coalesce(btrim(a.sap_asset_number), '') <> ''
+             GROUP BY 1, 2, 3""" % _LINK_COND)
+        return self.env.cr.fetchall()
+
+    @api.model
     def _confident_links(self):
         """§6: Cadra assets with no SAP number that the matcher would rank
         first by a unique old tag or a unique real serial. The same rules
         as `SapMatcher._by_tag` / `_by_serial` when `total == 1` and that
-        one record is unlinked, written as one query over the register."""
+        one record is unlinked, written as one query over the register.
+        The counts of `_confident_targets`, which the link (handoff 65)
+        reads, so the report and the list can never disagree."""
+        t = self._confident_targets()
+        target, claims = t['target'], t['claims']
+        contested = {sid for sid, aids in claims.items() if len(aids) > 1}
+        contested_assets = sum(len(claims[sid]) for sid in contested)
+        by_tag = sum(1 for _sid, basis in target.values() if basis == 'old_tag')
+        return {
+            'assets_without_sap_number': t['assets'],
+            'with_an_old_tag': t['tagged'],
+            'by_unique_old_tag': by_tag,
+            'by_unique_serial': len(target) - by_tag,
+            'total': len(target),
+            'sap_records': len(claims),
+            'contested_sap_records': len(contested),
+            'contested_assets': contested_assets,
+            'uncontested': len(target) - contested_assets,
+        }
+
+    @api.model
+    def _confident_targets(self):
+        """Every confident match on the register, asset by asset (handoff 65).
+
+        `target`: `{asset_id: (sap_id, basis)}`, `basis` `old_tag` or
+        `serial`, for each registered asset with no SAP number whose old tag
+        (`legacy_asset_code`, normalised) is carried by exactly one active,
+        unlinked SAP record — or, when NO active record carries its tag, whose
+        real serial is. `claims`: `{sap_id: [asset_id, …]}`, the same pairs
+        the other way round; a record claimed by two or more assets is
+        CONTESTED, and is a confident link for none of them (handoff 63 §6,
+        ruled by 65: a review list, never an automatic choice)."""
         cr = self.env.cr
+        self.env.flush_all()
         is_ph = serial_placeholders.matcher(serial_placeholders.load(self.env))
         cr.execute("""
             SELECT a.id, a.legacy_asset_code, a.serial_number
@@ -466,41 +535,25 @@ class NRSSapAsset(models.Model):
                  GROUP BY 1""" % LINKED_CTE, [list(serials)])
             unique_serial = {v: sid for v, sid, n, linked in cr.fetchall()
                              if n == 1 and not linked}
-        by_tag, by_serial_only, target = set(), set(), {}
+        target = {}
         tagged = 0
         for aid, legacy, serial in assets:
             t = norm_tag(legacy)
             if t:
                 tagged += 1
             if t and t in unique_tag:
-                by_tag.add(aid)
-                target[aid] = unique_tag[t]
+                target[aid] = (unique_tag[t], 'old_tag')
                 continue
             s = serial_placeholders.normalise(serial) if serial else ''
             # The matcher tries the serial only when no active record
             # carries the tag at all.
             if s in unique_serial and t not in found_tags:
-                by_serial_only.add(aid)
-                target[aid] = unique_serial[s]
-        # A SAP record two Cadra assets would each be linked to is not a
-        # confident link for either: one of the two is the wrong asset (or
-        # Cadra holds the item twice). Counted apart, never resolved here.
+                target[aid] = (unique_serial[s], 'serial')
         claims = {}
-        for aid, sid in target.items():
+        for aid, (sid, _basis) in target.items():
             claims.setdefault(sid, []).append(aid)
-        contested = {sid for sid, aids in claims.items() if len(aids) > 1}
-        contested_assets = sum(len(claims[sid]) for sid in contested)
-        return {
-            'assets_without_sap_number': len(assets),
-            'with_an_old_tag': tagged,
-            'by_unique_old_tag': len(by_tag),
-            'by_unique_serial': len(by_serial_only),
-            'total': len(by_tag) + len(by_serial_only),
-            'sap_records': len(claims),
-            'contested_sap_records': len(contested),
-            'contested_assets': contested_assets,
-            'uncontested': len(target) - contested_assets,
-        }
+        return {'assets': len(assets), 'tagged': tagged, 'target': target,
+                'claims': claims}
 
     # ── the matcher (handoff 63 §2) ───────────────────────────────────
 
@@ -757,6 +810,39 @@ class NRSSapImportRun(models.Model):
     header_map = fields.Text(readonly=True)
     sheet_prefix = fields.Text(readonly=True)
     resume_offset = fields.Integer(readonly=True)
+    # ── handoff 65 §3: the absent guard ──────────────────────────────
+    data_offset = fields.Integer(
+        readonly=True, help='Where the first data row begins — the counting '
+                            'pass reads from here, and so does the writing '
+                            'pass after it.')
+    phase = fields.Selection(
+        [('count', 'Counting what would be marked absent'),
+         ('write', 'Writing')], readonly=True, default='write',
+        help='A run against a mirror that already holds records first COUNTS '
+             'what the file would mark absent, writing nothing; only then '
+             'does it write.')
+    would_mark_absent = fields.Integer(
+        'Would Mark Not in Latest Export', readonly=True,
+        help='What the counting pass found: records in the mirror now that '
+             'this file does not carry.')
+    mirror_records_before = fields.Integer(
+        readonly=True, help='Records in the latest export before this run, '
+                            'the share is taken of.')
+    absent_confirmed = fields.Boolean(
+        'Marking Absent Confirmed', readonly=True,
+        help='The System Administrator uploaded this file with "Yes, mark '
+             'them absent": the guard was not applied.')
+    absent_confirmed_by = fields.Many2one('res.users', readonly=True,
+                                          ondelete='restrict')
+
+    def init(self):
+        self.env.cr.execute(
+            "CREATE UNLOGGED TABLE IF NOT EXISTS %s ("
+            " run_id integer NOT NULL, sap_key varchar NOT NULL)"
+            % _SEEN_TABLE)
+        self.env.cr.execute(
+            "CREATE INDEX IF NOT EXISTS %s_run_key_idx ON %s "
+            "(run_id, sap_key)" % (_SEEN_TABLE, _SEEN_TABLE))
 
     # ── the job ───────────────────────────────────────────────────────
 
@@ -823,31 +909,26 @@ class NRSSapImportRun(models.Model):
                 self.write({'header_map': json.dumps(colmap),
                             'sheet_prefix': prefix.decode('utf-8'),
                             'resume_offset': start})
+            if not self.data_offset:
+                self.write({'data_offset': self.resume_offset})
+                if self.rows_read:
+                    # A run already writing when handoff 65 was installed
+                    # (verification pass, finding 3): counting the REST of
+                    # its file would call what it has already written
+                    # absent. It finishes as it began.
+                    self.write({'phase': 'write'})
+                else:
+                    self._choose_phase()
             colmap = json.loads(self.header_map)
             prefix = self.sheet_prefix.encode('utf-8')
             strings = export.shared_strings()
             writer = _Writer(self, strings, export.date1904)
-            pending, offset, more = [], self.resume_offset, False
-            for rows, next_offset, last in export.iter_batches(
-                    colmap, strings, self.resume_offset, prefix):
-                pending += rows
-                offset = next_offset
-                if last:
-                    # The end of the sheet: finish here, whatever the
-                    # budget says — a tick that stopped now would resume AT
-                    # the end, read nothing, and stop again, for ever.
-                    break
-                over = (time.process_time() - cpu0 > budget
-                        or time.monotonic() - wall0 > TICK_WALL_SECONDS)
-                if len(pending) >= FLUSH_ROWS or over:
-                    writer.flush(pending, offset)
-                    pending = []
-                if over:
-                    more = True
-                    break
-            if not more:
-                writer.flush(pending, offset)
-                writer.finish()
+            if self.phase == 'count':
+                more = self._count_tick(export, colmap, strings, prefix,
+                                        writer, cpu0, wall0, budget)
+            else:
+                more = self._write_tick(export, colmap, strings, prefix,
+                                        writer, cpu0, wall0, budget)
         except reader.ExportRefused as e:
             self._fail(str(e))
             more = False
@@ -868,9 +949,102 @@ class NRSSapImportRun(models.Model):
                 fh.close()
         self._account(cpu0, wall0)
         self._commit()
-        if self.state in ('done', 'failed'):
+        if self.state in ('done', 'failed', 'held'):
             self._collect_filestore()
         return more
+
+    def _write_tick(self, export, colmap, strings, prefix, writer, cpu0,
+                    wall0, budget):
+        """One tick of the writing pass (handoff 63): upsert what was read,
+        and at the end of the sheet mark what the file did not carry."""
+        pending, offset, more = [], self.resume_offset, False
+        for rows, next_offset, last in export.iter_batches(
+                colmap, strings, self.resume_offset, prefix):
+            pending += rows
+            offset = next_offset
+            if last:
+                # The end of the sheet: finish here, whatever the
+                # budget says — a tick that stopped now would resume AT
+                # the end, read nothing, and stop again, for ever.
+                break
+            over = (time.process_time() - cpu0 > budget
+                    or time.monotonic() - wall0 > TICK_WALL_SECONDS)
+            if len(pending) >= FLUSH_ROWS or over:
+                writer.flush(pending, offset)
+                pending = []
+            if over:
+                more = True
+                break
+        if not more:
+            writer.flush(pending, offset)
+            writer.finish()
+        return more
+
+    # ── handoff 65 §3: count before writing ───────────────────────────
+
+    def _choose_phase(self):
+        """Count first, unless the mirror is empty (nothing to mark) or the
+        System Administrator confirmed marking absent at upload."""
+        self.env.cr.execute(
+            "SELECT count(*) FROM nrs_sap_asset WHERE in_latest_export")
+        before = self.env.cr.fetchone()[0]
+        self.write({'mirror_records_before': before,
+                    'phase': 'count' if before and not self.absent_confirmed
+                    else 'write'})
+
+    def _count_tick(self, export, colmap, strings, prefix, writer, cpu0,
+                    wall0, budget):
+        """One tick of the counting pass: read rows, keep their keys in the
+        scratch table, write NOTHING to the mirror. At the end of the sheet,
+        decide: under the guard, rewind and write; over it, stop."""
+        keys, offset, last = [], self.resume_offset, False
+        for rows, next_offset, last in export.iter_batches(
+                colmap, strings, self.resume_offset, prefix):
+            for _num, raw in rows:
+                try:
+                    keys.append(writer._row(raw)['sap_key'])
+                except reader.RowRefused:
+                    continue
+            offset = next_offset
+            if last:
+                break
+            if time.process_time() - cpu0 > budget \
+                    or time.monotonic() - wall0 > TICK_WALL_SECONDS:
+                break
+        if keys:
+            execute_values(
+                self.env.cr, 'INSERT INTO %s (run_id, sap_key) VALUES %%s'
+                % _SEEN_TABLE, [(self.id, k) for k in keys],
+                template='(%s, %s)', page_size=5000)
+        self.write({'resume_offset': offset})
+        if not last:
+            return True
+        self.env.cr.execute(
+            "SELECT count(*) FROM nrs_sap_asset s WHERE s.in_latest_export "
+            "AND NOT EXISTS (SELECT 1 FROM %s k WHERE k.run_id = %%s "
+            "AND k.sap_key = s.sap_key)" % _SEEN_TABLE, [self.id])
+        absent = self.env.cr.fetchone()[0]
+        self.env.cr.execute('DELETE FROM %s WHERE run_id = %%s' % _SEEN_TABLE,
+                            [self.id])
+        before = self.mirror_records_before or 0
+        if before and absent > ABSENT_GUARD_SHARE * before:
+            self.write({
+                'state': 'held', 'would_mark_absent': absent,
+                'finished_at': fields.Datetime.now(),
+                'message': (
+                    'Stopped before writing anything: this file would mark '
+                    '%d of the mirror\'s %d records (%.1f%%) as not in the '
+                    'latest export — more than %d%%. A truncated file, or an '
+                    'export of something else, is the likely cause. Nothing '
+                    'in the mirror was changed. If the file is right, upload '
+                    'it again with "Yes, mark them absent".' % (
+                        absent, before, 100.0 * absent / before,
+                        round(ABSENT_GUARD_SHARE * 100)))})
+            self._drop_upload()
+            return False
+        self.write({'phase': 'write', 'would_mark_absent': absent,
+                    'resume_offset': self.data_offset})
+        return True
 
     def _account(self, cpu0, wall0):
         rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
@@ -878,12 +1052,16 @@ class NRSSapImportRun(models.Model):
                 + time.process_time() - cpu0,
                 'ticks': (self.ticks or 0) + 1,
                 'peak_rss_mb': max(self.peak_rss_mb or 0, rss)}
-        if self.state in ('done', 'failed') and self.started_at:
+        if self.state in ('done', 'failed', 'held') and self.started_at:
             vals['duration_seconds'] = (
                 fields.Datetime.now() - self.started_at).total_seconds()
         self.write(vals)
 
     def _fail(self, message):
+        # The counting pass's scratch rows, committed tick by tick, go with
+        # the run (verification pass, finding 4).
+        self.env.cr.execute('DELETE FROM %s WHERE run_id = %%s' % _SEEN_TABLE,
+                            [self.id])
         self.write({'state': 'failed', 'message': message,
                     'finished_at': fields.Datetime.now()})
         self._drop_upload()

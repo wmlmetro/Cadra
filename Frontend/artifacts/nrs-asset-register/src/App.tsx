@@ -48,6 +48,7 @@ const AssetDetail                = lazy(() => import("@/pages/AssetDetail"));
 const AssetForm                  = lazy(() => import("@/pages/AssetForm"));
 const Approvals                  = lazy(() => import("@/pages/Approvals"));
 const Candidates                 = lazy(() => import("@/pages/Candidates"));
+const SapLinks                   = lazy(() => import("@/pages/SapLinks"));
 const Locations                  = lazy(() => import("@/pages/Locations"));
 const LocationDetail             = lazy(() => import("@/pages/LocationDetail"));
 const LocationForm               = lazy(() => import("@/pages/LocationForm"));
@@ -190,6 +191,8 @@ function AppRoutes() {
           <Route path="/approvals"           component={Approvals}      />
           {/* Received units not yet on the register (handoff 57). */}
           <Route path="/candidates"          component={Candidates}     />
+          {/* A register asset given its SAP number by two people (handoff 65). */}
+          <Route path="/sap-links"           component={SapLinks}       />
           <Route path="/assets/:id"          component={AssetDetail}    />
           <Route path="/locations"           component={Locations}      />
           <Route path="/locations/new"       component={() => <LocationForm mode="create" />} />
@@ -343,6 +346,9 @@ function App() {
               // confident wrong number, and the approver must read what IAD
               // attached NOW, not a list from before the last verification.
               && q.queryKey[0] !== "candidates-badge"
+              // Link to SAP (handoff 65): a queue somebody decides from, for
+              // the reason `approvals` is not restored.
+              && q.queryKey[0] !== "sap-links"
               && q.queryKey[0] !== "gate-evidence"
               // Handoff 61: the photo list carries IAD's evidence too, and
               // whether this person may read it.

@@ -134,7 +134,11 @@ class TestSapExportReader(CadraTransactionCase):
 
 class _ImportMixin:
 
-    def _run(self, rows, *, cpu_budget=None, user=None, **kw):
+    def _run(self, rows, *, cpu_budget=None, user=None, mark_absent=True,
+             **kw):
+        """`mark_absent` (handoff 65 §3): these tests import small invented
+        files over whatever mirror the tenant holds, so they say "Yes, mark
+        them absent" unless the guard is what they test."""
         raw = shapes.build_xlsx(rows, **kw)
         export = reader.Export(io.BytesIO(raw))
         header, prefix, start = export.header()
@@ -144,7 +148,8 @@ class _ImportMixin:
             'file_data': base64.b64encode(raw),
             'uploaded_by': (user or self.env.user).id,
             'header_map': json.dumps(reader.header_map(header)),
-            'sheet_prefix': prefix.decode('utf-8'), 'resume_offset': start})
+            'sheet_prefix': prefix.decode('utf-8'), 'resume_offset': start,
+            'absent_confirmed': mark_absent})
         return run._run_to_end(cpu_budget=cpu_budget)
 
     def _rec(self, number):
@@ -158,6 +163,57 @@ class TestSapImport(_ImportMixin, CadraTransactionCase):
     def setUp(self):
         super().setUp()
         self.u = _uid()
+
+    # ── handoff 65 §3: the 5% guard ───────────────────────────────────
+
+    def _scratch_rows(self, run):
+        self.env.cr.execute(
+            "SELECT count(*) FROM nrs_sap_import_seen WHERE run_id = %s",
+            [run.id])
+        return self.env.cr.fetchone()[0]
+
+    def test_a_count_under_the_guard_rewinds_and_writes(self):
+        """1 of 40 absent (2.5%): counted, then written from the FIRST data
+        row — read over many ticks, so the count's resume and the rewind are
+        both exercised (verification pass, finding 5)."""
+        u = self.u
+        rows = [shapes.record('2W%s%03d' % (u, i)) for i in range(40)]
+        self._run(rows)
+        new = shapes.record('2W%sNEW' % u)
+        with patch.object(reader, 'FEED_BYTES', 400):
+            run = self._run(rows[:39] + [new], mark_absent=False,
+                            cpu_budget=0.0)
+        self.assertEqual(run.state, 'done', run.message)
+        self.assertEqual((run.phase, run.mirror_records_before,
+                          run.would_mark_absent), ('write', 40, 1))
+        self.assertGreater(run.ticks, 4, 'the count and the write each '
+                                         'took more than one tick')
+        self.assertEqual(run.rows_read, 40, 'the write pass read every row '
+                                            'once, from the first')
+        self.assertEqual((run.created_count, run.marked_absent_count), (1, 1))
+        self.assertEqual(run.unchanged_count + run.updated_count, 39)
+        self.assertFalse(run.absent_confirmed)
+        self.assertEqual(self._scratch_rows(run), 0, 'the scratch is emptied')
+        self.assertFalse(self._rec('2W%s039' % u).in_latest_export)
+
+    def test_a_count_over_the_guard_holds_and_writes_nothing(self):
+        u = self.u
+        rows = [shapes.record('2H%s%03d' % (u, i)) for i in range(40)]
+        self._run(rows)
+        before = self.env['nrs.sap.asset'].search_count(
+            [('in_latest_export', '=', True)])
+        run = self._run(rows[:2] + [shapes.record('2H%sNEW' % u)],
+                        mark_absent=False)
+        self.assertEqual(run.state, 'held')
+        self.assertEqual((run.would_mark_absent, run.mirror_records_before,
+                          run.created_count, run.marked_absent_count),
+                         (38, 40, 0, 0))
+        self.assertIn('truncated', run.message)
+        self.assertFalse(self._rec('2H%sNEW' % u), 'nothing was created')
+        self.assertEqual(self.env['nrs.sap.asset'].search_count(
+            [('in_latest_export', '=', True)]), before, 'nothing was marked')
+        self.assertFalse(run._attachment(), 'the file is not kept')
+        self.assertEqual(self._scratch_rows(run), 0)
 
     def test_an_import_reads_counts_and_drops_the_file(self):
         u = self.u

@@ -11,6 +11,12 @@
  *
  * Importing is `settings:write` held by a system administrator (`admin`),
  * as the server's POST is; the run history is `sap_mirror:read`.
+ *
+ * Handoff 65 §3: a file that would mark more than 5% of the mirror *not in
+ * the latest export* is HELD before anything is written — a truncated or
+ * wrong file is the likely cause. The administrator who knows the file is
+ * right uploads it again with "Yes, mark them absent" ticked
+ * (`mark_absent=true`), and the run records who said so.
  */
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +30,9 @@ import { cn } from "@/lib/utils";
 
 export interface SapImportRun {
   id: number;
-  state: "queued" | "running" | "done" | "failed";
+  /** `held` (handoff 65): stopped before writing anything, because the
+   *  file would have marked more than 5% of the mirror absent. */
+  state: "queued" | "running" | "done" | "failed" | "held";
   file_name: string;
   file_size: number;
   file_kept: boolean;
@@ -45,6 +53,15 @@ export interface SapImportRun {
   refused_reasons: { reason: string; rows: number }[];
   marked_not_in_latest_export: number;
   message: string | null;
+  /** Handoff 65 §3 — the 5% guard. Absent on a server before 65. */
+  absent_guard?: {
+    phase: "count" | "write";
+    would_mark_absent: number | null;
+    mirror_records_before: number | null;
+    threshold_share: number;
+    confirmed: boolean;
+    confirmed_by: { id: number; name: string } | null;
+  };
 }
 
 export const SAP_IMPORTS_KEY = ["sap-assets", "imports"] as const;
@@ -66,10 +83,31 @@ function mb(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function pct(share: number): string {
+  return `${(share * 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
+}
+
+/** What the 5% guard found or was told, in one sentence; null when there is
+ *  nothing to say (a server before 65, or a run still counting). */
+function guardWords(run: SapImportRun): string | null {
+  const g = run.absent_guard;
+  if (!g) return null;
+  if (g.confirmed) {
+    return `"Yes, mark them absent" — the ${pct(g.threshold_share)} check was skipped for this file, confirmed by ${g.confirmed_by?.name ?? "—"}.`;
+  }
+  if (g.would_mark_absent != null && g.mirror_records_before) {
+    return `Would mark ${n(g.would_mark_absent)} of ${n(g.mirror_records_before)} records in the mirror not in the latest export `
+      + `(the limit is ${pct(g.threshold_share)}).`;
+  }
+  return null;
+}
+
 function RunCard({ run }: { run: SapImportRun }) {
   const live = run.state === "queued" || run.state === "running";
+  const held = run.state === "held";
+  const guard = guardWords(run);
   return (
-    <div className="glass-card rounded-2xl p-4 space-y-3" data-testid="sap-import-run" data-state={run.state}>
+    <div className="glass-card rounded-2xl p-4 space-y-3" data-testid="sap-import-run" data-state={run.state} data-run-id={run.id}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">{run.file_name}</p>
@@ -81,8 +119,8 @@ function RunCard({ run }: { run: SapImportRun }) {
           "text-[10px] font-semibold px-2 py-0.5 rounded-lg border whitespace-nowrap",
           run.state === "done" && "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/40",
           run.state === "failed" && "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800/40",
-          live && "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/40",
-        )}>{run.state}</span>
+          (live || held) && "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/40",
+        )} data-testid="run-state">{held ? "Stopped — would mark too much absent" : run.state}</span>
       </div>
       {live && (
         <div>
@@ -95,7 +133,11 @@ function RunCard({ run }: { run: SapImportRun }) {
         </div>
       )}
       {run.message && (
-        <p className="text-[12px] text-red-700 dark:text-red-300">{run.message}</p>
+        <p className={cn("text-[12px]", held ? "text-amber-800 dark:text-amber-300" : "text-red-700 dark:text-red-300")}
+           data-testid="run-message">{run.message}</p>
+      )}
+      {guard && (
+        <p className="text-[12px] text-muted-foreground" data-testid="run-absent-guard">{guard}</p>
       )}
       <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-[12px]">
         <div><dt className="text-muted-foreground">Rows read</dt><dd className="font-semibold" data-testid="run-rows-read">{n(run.rows_read)}</dd></div>
@@ -132,6 +174,9 @@ export default function SapAssetMasterPage() {
   const canImport = scopes.hasAll(SCOPE.settingsWrite, SCOPE.admin);
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  // "Yes, mark them absent" — unticked by default, and unticked again after
+  // every upload: skipping the guard is a decision about ONE file.
+  const [markAbsent, setMarkAbsent] = useState(false);
 
   useEffect(() => {
     setTitle("Settings — SAP asset master");
@@ -151,10 +196,12 @@ export default function SapAssetMasterPage() {
     mutationFn: async (f: File) => {
       const form = new FormData();
       form.append("file", f);
+      if (markAbsent) form.append("mark_absent", "true");
       return (await apiUpload<SapImportRun>("/api/v1/sap-assets/imports", form)).data;
     },
     onSuccess: () => {
       setFile(null);
+      setMarkAbsent(false);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: SAP_IMPORTS_KEY });
       qc.invalidateQueries({ queryKey: ["reports", "sap-coverage"] });
@@ -164,6 +211,7 @@ export default function SapAssetMasterPage() {
   const err = (runs.error ?? upload.error) as CadraApiError | null;
   const list = runs.data ?? [];
   const busy = list.some((r) => r.state === "queued" || r.state === "running");
+  const newestHeld = list[0]?.state === "held";
 
   return (
     <div className="p-6 space-y-5 max-w-[900px] mx-auto">
@@ -212,6 +260,27 @@ export default function SapAssetMasterPage() {
                 Import
               </button>
             </div>
+            <label className="flex items-start gap-2 text-[12px] text-foreground">
+              <input type="checkbox" className="accent-primary mt-0.5" checked={markAbsent}
+                     onChange={(e) => setMarkAbsent(e.target.checked)}
+                     data-testid="sap-import-mark-absent" />
+              <span>
+                Yes, mark them absent — skip the 5% check
+                <span className="block text-[11px] text-muted-foreground">
+                  An import that would mark more than 5% of the mirror as no longer in SAP's
+                  export stops before writing anything. Tick this only when you know the file
+                  is complete and right; the import records that you said so.
+                </span>
+              </span>
+            </label>
+            {newestHeld && (
+              <p className="text-[12px] rounded-xl border px-3 py-2 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-200/70 dark:border-amber-800/30"
+                 data-testid="sap-import-held-advice">
+                The last import stopped before writing: it would have marked too much of the mirror absent,
+                and a truncated or wrong file is the likely cause. If the file is right, upload the same
+                file again with "Yes, mark them absent" ticked.
+              </p>
+            )}
             {busy && (
               <p className="text-[11px] text-muted-foreground">An import is reading now; one runs at a time.</p>
             )}

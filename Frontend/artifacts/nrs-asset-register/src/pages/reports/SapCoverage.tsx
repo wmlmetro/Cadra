@@ -7,6 +7,12 @@
  * column and this page prints it under the table, word for word, rather
  * than inventing its own. A tenant whose mirror is empty is told that, not
  * shown a page of zeros as if Cadra held nothing.
+ *
+ * Handoff 65 §4: once assets are linked, each Cadra category carries
+ * evidence — the SAP classes its linked assets actually have in SAP's
+ * export. Shown per category, as the evidence for the proposed class
+ * mapping NRS still has to confirm. Nothing here writes a category's SAP
+ * class, and the page says so.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +21,7 @@ import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { apiGet, CadraApiError } from "@/lib/api";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { AlertCircle, Clock, Scale } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ClassRow {
   class: string | null;
@@ -36,6 +43,18 @@ interface OfficeRow {
   not_linked: number;
   held: string;
 }
+/** One Cadra category's evidence (handoff 65 §4). */
+interface ClassEvidenceRow {
+  category: { id: number | null; name: string };
+  configured_class: string | null;
+  linked: number;
+  via_link: number;
+  sap_classes: { class: string | null; assets: number }[];
+  /** null: the category has no SAP class configured to agree with. */
+  agrees: boolean | null;
+  sentence: string;
+}
+
 export interface SapCoverage {
   as_of: string;
   sentence: string;
@@ -56,6 +75,8 @@ export interface SapCoverage {
     contested_assets: number;
     uncontested: number;
   };
+  /** Absent on a server before handoff 65. */
+  class_evidence?: ClassEvidenceRow[];
 }
 
 const n = (v: number | null | undefined) => (v == null ? "—" : v.toLocaleString());
@@ -198,6 +219,58 @@ export default function SapCoverageReport() {
             </p>
           </div>
         </>
+      )}
+
+      {d.class_evidence && (
+        <div className="glass-card rounded-2xl p-4 overflow-x-auto space-y-2" data-testid="cov-class-evidence">
+          <p className="text-sm font-semibold">What the links say about the class mapping</p>
+          <p className="text-[12px] text-muted-foreground">
+            For each Cadra category, the SAP classes its linked assets carry in SAP's own export. This is
+            evidence for the proposed mapping, which NRS confirms. <span className="font-semibold text-foreground">Nothing
+            here changes a category's SAP class</span> — that is set on the categories screen.
+          </p>
+          {d.class_evidence.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground" data-testid="cov-class-evidence-empty">
+              No register asset carries a SAP number that names a record in the mirror yet, so there is no evidence to show.
+            </p>
+          ) : (
+            <table className="w-full text-[12px]">
+              <thead><tr className="text-left text-muted-foreground">
+                <th className="py-1 pr-3">Category</th>
+                <th className="py-1 pr-3">Configured class</th>
+                <th className="py-1 pr-3 text-right">Linked</th>
+                <th className="py-1 pr-3 text-right">Via Link to SAP</th>
+                <th className="py-1 pr-3">SAP classes (most first)</th>
+              </tr></thead>
+              <tbody>
+                {d.class_evidence.map((row) => (
+                  <tr key={row.category.id ?? "none"}
+                      className={cn("border-t border-border/50 align-top", row.agrees === false && "bg-amber-50/60 dark:bg-amber-950/20")}
+                      data-testid="cov-class-evidence-row" data-agrees={row.agrees === null ? "none" : String(row.agrees)}>
+                    <td className="py-1 pr-3 font-medium">{row.category.name}</td>
+                    <td className="py-1 pr-3 font-mono">{row.configured_class ?? <span className="font-sans text-muted-foreground">none</span>}</td>
+                    <td className="py-1 pr-3 text-right">{n(row.linked)}</td>
+                    <td className="py-1 pr-3 text-right">{n(row.via_link)}</td>
+                    <td className="py-1 pr-3">
+                      <span className="font-mono">
+                        {row.sap_classes.map((c) => `${c.class ?? "(none)"}: ${n(c.assets)}`).join(" · ")}
+                      </span>
+                      {row.agrees === false && (
+                        <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/40">
+                          differs from configured
+                        </span>
+                      )}
+                      <span className="block text-[11px] text-muted-foreground">{row.sentence}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {d.definitions.class_evidence && (
+            <p className="text-[11px] text-muted-foreground">{d.definitions.class_evidence}</p>
+          )}
+        </div>
       )}
 
       <div className="text-[11px] text-muted-foreground space-y-1" data-testid="cov-definitions">

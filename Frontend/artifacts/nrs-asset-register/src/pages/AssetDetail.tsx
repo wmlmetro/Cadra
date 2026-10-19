@@ -23,12 +23,13 @@ import WarrantyCard from "@/components/WarrantyCard";
 import { CandidateBanner, GateActions } from "@/components/GateActions";
 import { GateEvidence } from "@/components/GateEvidence";
 import { AssetPhotos } from "@/components/AssetPhotos";
+import { SapLinkUndo } from "@/components/SapLinkUndo";
 import {
   ArrowLeft, Monitor, Car, Sofa, User, MapPin, Clock,
   AlertCircle, ChevronRight, Edit3, ShieldCheck, AlertTriangle, Trash2, ArrowRightLeft, Loader2, SearchCheck,
   Hourglass,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatIsoDateTime } from "@/lib/utils";
 import { useEnumLabel } from "@/hooks/useEnums";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 
@@ -61,6 +62,19 @@ function CategoryIcon({ category }: { category: string }) {
   if (category === "Fleet / Vehicles") return <Car className={cls} />;
   return <Sofa className={cls} />;
 }
+
+/** `sap.code_source`, in words — the model's own labels
+ *  (`asset_sap.py`, `sap_code_source`). A key this build does not know is
+ *  printed as the key it is, never guessed at. */
+const SAP_CODE_SOURCE_WORDS: Record<string, string> = {
+  integration: "Returned by SAP (INT-07)",
+  import: "Loaded from a legacy extract",
+  manual: "Entered by hand",
+  confirmed: "Entered by hand, confirmed by SAP",
+  // Handoff 65: a Register Maker proposed it from SAP's export (the mirror)
+  // and a Register Checker approved it.
+  linked_from_sap_mirror: "Linked from SAP's export by two people",
+};
 
 function DetailRow({ label, value }: { label: string; value?: React.ReactNode }) {
   if (value === null || value === undefined || value === "") return null;
@@ -574,6 +588,24 @@ export default function AssetDetail() {
               <ConditionBadge condition={asset.condition} />
               <AssetStatusPills status={asset.status} lifecycleState={asset.lifecycleState} showDot />
             </div>
+            {/* Handoff 65 §2: one of a group of Cadra assets that all point
+                at ONE SAP record, flagged by the Register Maker. A record
+                for NRS — nothing was merged, retired or deleted. */}
+            {asset.sapDuplicateFlag && (
+              <div className="mt-3 flex items-start gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg px-3 py-2"
+                   data-testid="asset-duplicate-flag">
+                <AlertCircle size={12} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-800 dark:text-amber-300">
+                  <span className="font-semibold">Flagged as a likely duplicate</span>
+                  {asset.sapDuplicateFlag.sapAssetNumber && <> — SAP asset <span className="font-mono">{asset.sapDuplicateFlag.sapAssetNumber}</span></>}
+                  {asset.sapDuplicateFlag.note && <>: {asset.sapDuplicateFlag.note}</>}
+                  {(asset.sapDuplicateFlag.flaggedBy || asset.sapDuplicateFlag.flaggedAt) && (
+                    <> (by {asset.sapDuplicateFlag.flaggedBy ?? "—"}{asset.sapDuplicateFlag.flaggedAt && <>, {formatIsoDateTime(asset.sapDuplicateFlag.flaggedAt.replace(" ", "T"))}</>})</>
+                  )}
+                  . Nothing was merged or retired.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -596,6 +628,21 @@ export default function AssetDetail() {
                     : isCandidate
                       ? (gateRow?.tag ?? "Not issued yet")
                       : asset.assetTag} />
+                  {/* Finance's half of the dual code, and how it got here.
+                      Absent when the asset has none. */}
+                  <DetailRow label="SAP Asset Number" value={asset.sapAssetNumber ? (
+                    <span data-testid="asset-sap-number">
+                      <span className="font-mono">{asset.sapAssetNumber}</span>
+                      {asset.sapCodeSource && (
+                        <span className="block text-muted-foreground" data-testid="asset-sap-code-source">
+                          {SAP_CODE_SOURCE_WORDS[asset.sapCodeSource] ?? asset.sapCodeSource}
+                        </span>
+                      )}
+                      {asset.sapCodeSource === "linked_from_sap_mirror" && (
+                        <span className="block"><SapLinkUndo assetId={String(asset.id)} sapNumber={asset.sapAssetNumber} /></span>
+                      )}
+                    </span>
+                  ) : undefined} />
                   <DetailRow label="Serial / VIN" value={asset.serial} />
                   <DetailRow label="Manufacturer" value={asset.manufacturer} />
                   <DetailRow label="Model" value={asset.model} />

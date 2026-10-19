@@ -50,6 +50,18 @@ spec:
                 secretKeyRef:
                   name: cadra-odoo
                   key: ODOO_MASTER_PASSWORD
+            # Handoff 65. Optional: the owner's provider key for Identify
+            # from photo, read by the SERVER from its environment on every
+            # call and kept in no database (it was a bootstrap-mirrored
+            # parameter in 64). Absent: no tenant can identify, and each
+            # says so. A change takes effect on the next rollout. Placing it
+            # switches nothing on (`cadra.ai.identify`, per tenant).
+            - name: CADRA_AI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_AI_API_KEY
+                  optional: true
           envFrom:
             - configMapRef:
                 name: odoo-bootstrap-19

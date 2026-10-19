@@ -215,6 +215,12 @@ _EVENT_TITLES = {
     # the person did with each proposed field. After `photo_added`, because
     # the save that claims a pending photo writes both in the same second.
     "details_suggested": "Details suggested from a photo",
+    # Handoff 65. A register asset's link to its SAP record — proposed,
+    # decided, undone — and a group flagged as a likely duplicate. After
+    # `provenance_changed` in time: an approval writes the SAP number (a
+    # reference change) and then this, in the same second.
+    "sap_link": "SAP link",
+    "sap_duplicate_flagged": "Flagged as a likely duplicate",
     "details_changed": "Details changed",
     "integration_event": "Event for an external system",
     "maintenance_request": "Maintenance request raised",
@@ -731,6 +737,57 @@ class NRSAssetHistory(models.Model):
                     provider=applied.get("provider"),
                     model=applied.get("model"),
                     prompt_version=applied.get("prompt_version"))
+            elif etype == "sap_link":
+                # Handoff 65 §1. Who proposed, who decided, and why — the
+                # sentence the handoff asks for on an approval.
+                published = "sap_link"
+                try:
+                    who = json.loads(ev.notes or "{}")
+                except ValueError:
+                    who = {}
+                number = ev.to_value or ev.from_value or "—"
+                maker = who.get("proposed_by") or "—"
+                checker = who.get("decided_by") or "—"
+                action = ev.gate_action or ""
+                if action == "approve":
+                    summary = ("Linked to SAP asset %s (%s), proposed by %s, "
+                               "approved by %s." % (number, ev.reason or "—",
+                                                    maker, checker))
+                elif action == "approve_undo":
+                    summary = ("Link to SAP asset %s undone (%s), proposed by "
+                               "%s, approved by %s." % (
+                                   number, ev.reason or "—", maker, checker))
+                elif action == "propose":
+                    summary = "Link to SAP asset %s proposed (%s) by %s." % (
+                        number, ev.reason or "—", maker)
+                elif action == "propose_undo":
+                    summary = ("Undoing the link to SAP asset %s proposed by "
+                               "%s: %s" % (number, maker, ev.reason or "—"))
+                elif action in ("return", "return_undo"):
+                    summary = "%s SAP asset %s returned by %s: %s" % (
+                        "Link to" if action == "return"
+                        else "Undoing the link to", number, checker,
+                        ev.reason or "—")
+                else:
+                    summary = "SAP link: %s (%s)" % (action or "—", number)
+                detail.update({"action": action or None,
+                               "sap_asset_number": number
+                               if number != "—" else None,
+                               "gate": ev.gate or None,
+                               "reason": ev.reason or None,
+                               "link_id": who.get("link_id"),
+                               "sap_record_id": who.get("sap_record_id"),
+                               "reason_code": who.get("reason_code"),
+                               "proposed_by": who.get("proposed_by"),
+                               "decided_by": who.get("decided_by")})
+            elif etype == "sap_duplicate_flagged":
+                # Handoff 65 §2. A record for NRS; nothing was merged.
+                published = "sap_duplicate_flagged"
+                summary = ("Flagged as a likely duplicate — this and other "
+                           "Cadra assets point at SAP asset %s: %s" % (
+                               ev.to_value or "—", ev.notes or "—"))
+                detail.update(sap_asset_number=ev.to_value or None,
+                              note=ev.notes or None)
             else:
                 # A reference or a warranty field: the same shape, a field
                 # with a before and an after. The warranty fields carry no
@@ -814,6 +871,10 @@ class NRSAssetHistory(models.Model):
              "a photo superseded"),
             ("ai_suggestion_applied", "details_suggested",
              "a save that used details suggested from a photo"),
+            ("sap_link", "sap_link",
+             "a link to SAP's record proposed, decided or undone"),
+            ("sap_duplicate_flagged", "sap_duplicate_flagged",
+             "a flag as a likely duplicate"),
         )
         out = []
         for stored, published, what in kinds:
@@ -888,6 +949,18 @@ class NRSAssetHistory(models.Model):
                     "that nobody can edit or delete it. There is no earlier "
                     "record to look for: identification did not exist before "
                     "then." % _when(began))
+            elif stored in ("sap_link", "sap_duplicate_flagged"):
+                # Handoff 65: both arrived with their record; a link to SAP's
+                # export and a duplicate flag were never recorded any other
+                # way.
+                statement = (
+                    "None has been recorded on this system yet, for any "
+                    "asset: %s is recorded so that nobody can edit or delete "
+                    "it." % what if not began else
+                    "From %s, when the first one was recorded here, %s is "
+                    "recorded so that nobody can edit or delete it. There is "
+                    "no earlier record to look for: it did not exist before "
+                    "then." % (_when(began), what))
             elif not began:
                 statement = (
                     "No record of this kind has been written on this system "

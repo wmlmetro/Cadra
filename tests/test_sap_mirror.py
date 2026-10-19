@@ -56,16 +56,23 @@ def _as(client, key, method, path, **kw):
         **kw)
 
 
-def _upload(client, key, data, name="export.xlsx"):
+def _upload(client, key, data, name="export.xlsx", mark_absent=None):
     return _as(client, key, "POST", "/sap-assets/imports",
-               files={"file": (name, data)})
+               files={"file": (name, data)},
+               data=({"mark_absent": mark_absent}
+                     if mark_absent is not None else None))
 
 
-def _import(client, rows, **kw):
-    """Upload as the administrator and wait for the background job."""
+def _import(client, rows, mark_absent="true", **kw):
+    """Upload as the administrator and wait for the background job.
+
+    `mark_absent` (handoff 65 §3): an invented file of a few records over
+    the tenant's mirror would mark nearly all of it absent, so these tests
+    say "Yes, mark them absent" unless the guard is what they test."""
     deadline = time.time() + 240
     while True:
-        r = _upload(client, "administrator", shapes.build_xlsx(rows, **kw))
+        r = _upload(client, "administrator", shapes.build_xlsx(rows, **kw),
+                    mark_absent=mark_absent)
         if r.status_code != 409 or time.time() > deadline:
             break
         time.sleep(3)   # another run (a previous test's) is still reading
@@ -74,7 +81,7 @@ def _import(client, rows, **kw):
     while time.time() < deadline:
         run = _as(client, "administrator", "GET",
                   f"/sap-assets/imports/{run_id}").json()["data"]
-        if run["state"] in ("done", "failed"):
+        if run["state"] in ("done", "failed", "held"):
             return run
         time.sleep(2)
     pytest.fail(f"import {run_id} did not finish in 240 s: {run}")

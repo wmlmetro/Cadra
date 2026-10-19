@@ -77,7 +77,7 @@ SIDEBAR_GROUPS = (
     ("dashboards", ("facility_command_center", "fleet_command",
                     "it_assets_command")),
     ("asset_register", ("asset_dashboard", "all_assets", "approvals",
-                        "candidates", "new_asset")),
+                        "candidates", "sap_links", "new_asset")),
     ("operations", ("locations", "new_location")),
     ("hr_staff", ("employees", "sap_sync", "bulk_import")),
     ("fleet_transport", ("fleet",)),

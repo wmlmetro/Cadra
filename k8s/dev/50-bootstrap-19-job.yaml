@@ -212,15 +212,6 @@ spec:
                   name: cadra-odoo
                   key: CADRA_TURNSTILE_SECRET
                   optional: true
-            # Handoff 64. Optional: the owner's provider key for Identify
-            # from photo. Unset/empty leaves each tenant's stored key alone;
-            # placing one switches nothing on (`cadra.ai.identify`).
-            - name: CADRA_AI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: cadra-odoo
-                  key: CADRA_AI_API_KEY
-                  optional: true
             - name: SMTP_HOST
               valueFrom:
                 secretKeyRef:

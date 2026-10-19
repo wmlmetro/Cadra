@@ -19,16 +19,24 @@ module holds:
   BEFORE anybody sees it: a class the tenant does not have, a condition
   outside the published enum, a malformed shape, is discarded and counted.
 
-THE KEY is a secret and the owner's. It is read from one parameter,
-`myservice_api.ai_api_key`, which `scripts/bootstrap.py` mirrors one way
-from `CADRA_AI_API_KEY` and `scripts/set_ai_key.sh` writes from stdin — the
-Turnstile secret's road. It is never logged, never put in an error, never
-returned by any route; the configuration-change report redacts it by name
-(`api_key`). Every test runs on the fake.
+THE KEY is a secret and the owner's, and it lives in the SERVER'S
+ENVIRONMENT, never in the database (handoff 65 §0a.1, report 64 deviation
+2): `provider_key()` reads `CADRA_AI_API_KEY` from this process — the local
+`.env` (written by `scripts/set_ai_key.sh`) or the cluster's `cadra-odoo`
+secret, handed to the Odoo container by compose and by the deployment. Handoff
+64 kept it in an `ir_config_parameter` row, which any back-office system
+administrator can read and every database backup carries; migration
+`19.0.3.36.0` deleted that row on every tenant and nothing reads or writes it
+now. One key per SERVER, not per tenant — every tenant the process serves
+asks the provider with it, and each tenant's own switch (`cadra.ai.identify`,
+off by default) still decides whether it asks at all. It is never logged,
+never put in an error, never returned by any route: the routes say only
+whether one is present. Every test runs on the fake.
 """
 import json
 import logging
 import math
+import os
 import re
 import time
 
@@ -56,8 +64,9 @@ PARAM_MODEL = "cadra.ai.model"
 PARAM_TIMEOUT = "cadra.ai.timeout_seconds"
 PARAM_DAILY_CAP = "cadra.ai.daily_cap"
 PARAM_EFFORT = "cadra.ai.effort"
-#: The secret. `myservice_api.*` like the Turnstile secret it copies.
-PARAM_KEY = "myservice_api.ai_api_key"
+#: The secret's NAME — an environment variable of the server process, never a
+#: parameter (handoff 65). Read by `provider_key()` and nothing else.
+ENV_KEY = "CADRA_AI_API_KEY"
 
 DEFAULT_PROVIDER = PROVIDER_ANTHROPIC
 DEFAULT_MODEL = "claude-opus-5-5"
@@ -541,11 +550,11 @@ class AnthropicProvider(Provider):
             raise ProviderTimeout() from None
         except anthropic.AuthenticationError:
             raise ProviderError(
-                "The provider refused this tenant's key (401). The owner "
-                "places a new one.") from None
+                "The provider refused this server's key (401). The owner "
+                "sets a new one in CADRA_AI_API_KEY.") from None
         except anthropic.PermissionDeniedError:
             raise ProviderError(
-                "The provider refused this tenant's key for this model "
+                "The provider refused this server's key for this model "
                 "(403).") from None
         except anthropic.NotFoundError:
             raise ProviderError(
@@ -621,6 +630,16 @@ def strip_metadata(data, mimetype):
             i += 12 + length
         return bytes(out)
     return data
+
+
+def provider_key():
+    """The provider key from the server's environment, or "" when none is
+    set. Read on every call rather than once at import, so the answer is
+    whatever the process holds NOW — and a container recreated with the
+    variable (`up -d --force-recreate odoo`, or a rollout on the cluster) is
+    the only thing that changes it. Returned only to the caller that hands
+    it to the provider; nothing serialises it."""
+    return (os.environ.get(ENV_KEY) or "").strip()
 
 
 def provider_for(name, api_key):

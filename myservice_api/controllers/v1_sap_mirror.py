@@ -45,6 +45,7 @@ from odoo.http import request
 
 from odoo.addons.myservice_asset_register.models import sap_export_reader
 from odoo.addons.myservice_asset_register.models.sap_mirror import (
+    ABSENT_GUARD_SHARE,
     MAX_SHEET_BYTES,
     OFFICE_SOURCES,
     SERIAL_KINDS,
@@ -163,7 +164,12 @@ RUN_SCHEMA = {
     "properties": {
         "id": {"type": "integer"},
         "state": {"type": "string",
-                  "enum": ["queued", "running", "done", "failed"]},
+                  "enum": ["queued", "running", "done", "failed", "held"],
+                  "description": "`held` (handoff 65): stopped before "
+                                 "writing anything, because the file would "
+                                 "have marked more than 5% of the mirror "
+                                 "not in the latest export; `message` says "
+                                 "how many."},
         "file_name": {"type": "string"},
         "file_size": {"type": "integer", "description": "Bytes uploaded."},
         "file_kept": {"type": "boolean",
@@ -193,6 +199,21 @@ RUN_SCHEMA = {
                 "reason": {"type": "string"}, "rows": {"type": "integer"}}}},
         "marked_not_in_latest_export": {"type": "integer"},
         "message": {"type": "string", "nullable": True},
+        "absent_guard": {"type": "object", "description": (
+            "Handoff 65 §3. `phase`: `count` while the run counts what it "
+            "would mark absent (writing nothing), then `write`. "
+            "`would_mark_absent` of `mirror_records_before` is what the "
+            "count found; over `threshold_share` the run is `held`. "
+            "`confirmed`: uploaded with `mark_absent=true` — \"Yes, mark "
+            "them absent\" — by `confirmed_by`, and not counted."),
+            "properties": {
+                "phase": {"type": "string", "enum": ["count", "write"]},
+                "would_mark_absent": {"type": "integer", "nullable": True},
+                "mirror_records_before": {"type": "integer",
+                                          "nullable": True},
+                "threshold_share": {"type": "number"},
+                "confirmed": {"type": "boolean"},
+                "confirmed_by": _USER_REF}},
     },
 }
 
@@ -247,7 +268,8 @@ def serialize_run(run):
         "started_at": _iso(run.started_at),
         "finished_at": _iso(run.finished_at),
         "duration_seconds": (round(run.duration_seconds, 1)
-                             if run.state in ("done", "failed") else None),
+                             if run.state in ("done", "failed", "held")
+                             else None),
         "cpu_seconds": round(run.cpu_seconds or 0, 1),
         "ticks": run.ticks,
         "peak_memory_mb": round(run.peak_rss_mb or 0),
@@ -265,6 +287,17 @@ def serialize_run(run):
                                                key=lambda kv: -kv[1])],
         "marked_not_in_latest_export": run.marked_absent_count,
         "message": run.message or None,
+        "absent_guard": {
+            "phase": run.phase or "write",
+            "would_mark_absent": run.would_mark_absent
+            if run.phase == "write" and not run.absent_confirmed
+            and run.mirror_records_before or run.state == "held" else None,
+            "mirror_records_before": run.mirror_records_before or None,
+            "threshold_share": ABSENT_GUARD_SHARE,
+            "confirmed": bool(run.absent_confirmed),
+            "confirmed_by": ({"id": run.absent_confirmed_by.id,
+                              "name": run.absent_confirmed_by.name}
+                             if run.absent_confirmed_by else None)},
     }
 
 
@@ -282,6 +315,48 @@ def _share(n, of):
         "%d of 0" % n
 
 
+def _class_evidence(Sap):
+    """§4: one row per Cadra category with linked assets, its SAP classes
+    most-carried first, and the sentence the handoff asks for."""
+    cats = {}
+    for cat_id, configured, cls, n, via in Sap._class_evidence():
+        row = cats.setdefault(cat_id, {"configured": configured,
+                                       "classes": [], "linked": 0,
+                                       "via_link": 0})
+        row["classes"].append({"class": cls, "assets": n})
+        row["linked"] += n
+        row["via_link"] += via
+    names = {c.id: c.name for c in request.env[
+        "nrs.asset.category"].sudo().browse([c for c in cats if c])}
+    out = []
+    for cat_id, row in cats.items():
+        classes = sorted(row["classes"],
+                         key=lambda c: (-c["assets"], c["class"] or "~"))
+        name = names.get(cat_id) or "No category"
+        configured = row["configured"]
+        top = classes[0]["class"] if classes else None
+        out.append({
+            "category": {"id": cat_id or None, "name": name},
+            "configured_class": configured,
+            "linked": row["linked"],
+            "via_link": row["via_link"],
+            "sap_classes": classes,
+            "agrees": (None if not configured else
+                       all(c["class"] == configured for c in classes)),
+            "sentence": "%s: %d linked; %s." % (
+                name, row["linked"], ", ".join(
+                    "SAP class %s for %d" % (c["class"] or "(none)",
+                                             c["assets"])
+                    for c in classes))
+            + (" Configured: %s." % configured if configured
+               else " No SAP class configured.")
+            + (" The most-carried class differs from the configured one."
+               if configured and top and top != configured else ""),
+        })
+    out.sort(key=lambda r: (-r["linked"], r["category"]["name"]))
+    return out
+
+
 class CadraSapMirrorV1(http.Controller):
 
     # ── the import ───────────────────────────────────────────────────
@@ -297,13 +372,19 @@ class CadraSapMirrorV1(http.Controller):
                  max_content_length=MAX_UPLOAD_BYTES + (8 << 20),
                  request_schema={
                      "type": "object",
-                     "description": "multipart/form-data with ONE part, "
-                                    "`file`: the .XLSX as SAP produced it. "
+                     "description": "multipart/form-data: `file`, the .XLSX "
+                                    "as SAP produced it, and optionally "
+                                    "`mark_absent` = `true` (handoff 65: "
+                                    "\"Yes, mark them absent\" — skip the "
+                                    "5% guard, recorded on the run). "
                                     "The token must also hold `admin` — a "
                                     "System Administrator's act.",
                      "required": ["file"],
                      "properties": {"file": {"type": "string",
-                                             "format": "binary"}}},
+                                             "format": "binary"},
+                                    "mark_absent": {"type": "string",
+                                                    "enum": ["true",
+                                                             "false"]}}},
                  response_schema=RUN_SCHEMA)
     def import_sap_export(self, **kwargs):
         # A System Administrator's act (handoff 63 §1): `settings:write` is
@@ -318,10 +399,19 @@ class CadraSapMirrorV1(http.Controller):
                 "imported.", status=403,
                 details={"required_scopes": [SCOPE_SETTINGS_WRITE,
                                              SCOPE_ADMIN]})
-        _values, uploads, error = get_multipart(
-            file_fields=UPLOAD_FILE_FIELDS, required=("file",))
+        values, uploads, error = get_multipart(
+            file_fields=UPLOAD_FILE_FIELDS, text_fields=("mark_absent",),
+            required=("file",))
         if error:
             return error
+        # Handoff 65 §3: "Yes, mark them absent" — the guard is not applied
+        # to this file, and the run records who said so.
+        flag = (values.get("mark_absent") or "").lower()
+        if flag not in ("", "true", "false"):
+            return err(ERR_INVALID_REQUEST,
+                       "`mark_absent` is true or false. Nothing was imported.",
+                       details={"field": "mark_absent"})
+        mark_absent = flag == "true"
         upload = uploads["file"]
         if upload.size > MAX_UPLOAD_BYTES:
             return err(
@@ -381,6 +471,9 @@ class CadraSapMirrorV1(http.Controller):
             "header_map": json.dumps(colmap),
             "sheet_prefix": prefix.decode("utf-8"),
             "resume_offset": start,
+            "absent_confirmed": mark_absent,
+            "absent_confirmed_by": request.env.user.id if mark_absent
+            else False,
         })
         request.env.ref(
             "myservice_asset_register.cron_sap_mirror_import").sudo()._trigger()
@@ -643,6 +736,7 @@ class CadraSapMirrorV1(http.Controller):
                      for office, active, linked in cov["sap_by_office"]]
         conf = cov["confident"]
         sap = cov["sap"]
+        evidence = _class_evidence(Sap)
         totals["held"] = _share(totals["linked"], totals["sap_active"])
         return {
             "as_of": _iso(fields.Datetime.now()),
@@ -696,6 +790,17 @@ class CadraSapMirrorV1(http.Controller):
                              "null. `office: null` is every SAP record with "
                              "no office — no `FIRS/<office>/…` old tag, "
                              "until SAP's location extract is imported.",
+                "class_evidence": "Per Cadra category (handoff 65 §4): its "
+                                  "register assets whose SAP number names a "
+                                  "mirror record, and the SAP classes those "
+                                  "records carry in SAP's export — the "
+                                  "evidence for the proposed class mapping. "
+                                  "`configured_class` is the category's SAP "
+                                  "class as set today (null: none); this "
+                                  "report never writes it — NRS confirms "
+                                  "the mapping. `via_link` counts the "
+                                  "assets linked by two people on Link to "
+                                  "SAP.",
                 "reconcilable_today": "Cadra assets with no SAP number that "
                                       "the matcher would rank FIRST by a "
                                       "unique old tag (the asset's legacy "
@@ -714,4 +819,5 @@ class CadraSapMirrorV1(http.Controller):
             "by_class": by_class,
             "by_office": by_office,
             "reconcilable_today": conf,
+            "class_evidence": evidence,
         }

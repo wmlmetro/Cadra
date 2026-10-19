@@ -1,0 +1,22 @@
+# §0b — one real reprint, test19, 2026-10-19 (for Vendra 59)
+asset 106929 NRS-AST-070796, GRN MAT-PRE-2026-00784, import_source vendra
+
+## labels (id|name|state|label_state|reprint_count|voided_date|affixed_date)
+78805|NRS-AST-070796|scrapped|scrapped|0|2026-10-19 11:31:33|2026-10-19 06:06:06
+78806|NRS-AST-070796|active|affixed|1||2026-10-19 11:31:48
+
+## INT-05 asset.tag.affixed rows (id|name|tag_label_id|status|http_status|attempts|created|responded)
+13105|WDL-2026-13046|78805|acknowledged|202|1|2026-10-19 06:06:06.100697|2026-10-19 06:06:07
+13108|WDL-2026-13049|78806|acknowledged|202|1|2026-10-19 11:31:48.918714|2026-10-19 11:31:50
+
+## payload.tag of the reprint's event
+{
+    "affixed_at": "2026-10-19T11:31:48Z",
+    "affixed_by": "Babatunde Olaniyan",
+    "affixed_by_name": null,
+    "issued_at": "2026-10-19T11:31:33Z",
+    "label_id": 78806,
+    "label_state": "affixed",
+    "number": "NRS-AST-070796",
+    "printed_at": "2026-10-19T11:31:48Z"
+  }

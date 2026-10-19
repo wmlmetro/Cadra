@@ -2626,16 +2626,21 @@ photo is sent to Anthropic (Claude) to read it."*
 
 ### 33.2 · The key, and the switch — `[open]`, owner
 
-The key is the owner's: `scripts/set_ai_key.sh <db>` locally, the
-`CADRA_AI_API_KEY` key of the `cadra-odoo` secret on the cluster (bootstrap
-mirrors it one way). Placing it turns nothing on; an administrator turns the
+The key is the owner's and the server's (handoff 65): `CADRA_AI_API_KEY` in
+the server's environment — `scripts/set_ai_key.sh` writes the local `.env`
+(then recreate odoo); on the cluster, the `CADRA_AI_API_KEY` key of the
+`cadra-odoo` secret, picked up by a rollout of the Odoo Deployment. No
+database holds it. Placing it turns nothing on; an administrator turns the
 switch on in *Settings → Identify from photo*, which refuses while no key is
 placed.
 
 ### 33.3 · The live check — `[open]`, owner
 
 `scripts/ai_live_check.py` sends the owner's own 30–50 office photos and
-prints right-first-time, right-in-top-three, seconds and cost per photo;
+prints right-first-time, right-in-top-three, seconds and cost per photo —
+since handoff 65 once per model with `--models
+claude-opus-5-5,claude-sonnet-5-5,claude-haiku-5-5`, so the owner picks the
+cheapest that is right often enough (the default stays Opus until then);
 the totals go into report 64 as an addendum. Run once the key is on
 `test19` or `staging`.
 
@@ -2651,4 +2656,40 @@ SAP's.
 ### 33.5 · An SAP candidate fills nothing — `[landed 64, keep it that way]`
 
 No asset route writes `sap_asset_number`; the candidates are shown, with
-their reasons, for reference. Linking is handoff 65.
+their reasons, for reference. Linking is handoff 65 — two people on *Link
+to SAP*, never a suggestion (§34).
+
+## 34 · The link (handoff 65)
+
+### 34.1 · Linking NRS's register needs two real people on `nrs19` — `[open]`, owner
+
+The confident list on `nrs19` is 2,445 assets (report 63's number,
+exactly). Nothing is linked there: `nrs19` is unclassified, holds no
+Register Maker or Checker and no credential with `sap_mirror:read`, and a
+classified copy with demo personas was refused by the Builder's safety
+layer because `nrs19` holds a real NRS staff extract. To link it: the owner
+classifies `nrs19` (§7's ruling says `client`) and grants the Register
+Maker and Register Checker roles to two NRS officers — or seeds the demo
+personas there knowingly, whose acts are then labelled test fixtures.
+
+### 34.2 · The class mapping now has evidence — `[open]`, NRS
+
+Measured on `nrs19` by linking the 2,445 inside a rolled-back transaction:
+*IT Equipment: 2,353 linked; SAP class 3000 for 2,241, 2000 for 58, 4000 for
+36, 7000 for 16, 1000 for 2.* *Fleet / Vehicles: 92 linked; 1000 for 91,
+4000 for 1.* Neither category carries a SAP class today. This is the
+evidence for report 59's proposed mapping (IT Equipment → 3000, Fleet →
+1000); NRS confirms it. Nothing writes `sap_asset_class` from it.
+
+### 34.3 · The 959 contested assets — `[open]`, NRS
+
+449 SAP records are each claimed by two or more of `nrs19`'s assets (959
+assets). They are on the contested list for a person to choose one or flag
+the group as a likely duplicate; Cadra never chooses.
+
+### 34.4 · A guarded re-import reads the file twice — `[landed 65, keep it that way]`
+
+An import over a non-empty mirror counts first and writes only if under
+5% would be marked absent. The October file's full re-import took 348 s
+on a busy bench (63: 100 s). "Yes, mark them absent" skips the count.
+

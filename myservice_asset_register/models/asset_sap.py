@@ -41,6 +41,12 @@ SAP_SOURCE_MANUAL = 'manual'
 # A code the Register Maker typed that SAP's INT-06 answer then returned
 # unchanged (handoff 58, P4): still the maker's entry, now evidenced.
 SAP_SOURCE_CONFIRMED = 'confirmed'
+# Handoff 65: written from SAP's own export (the mirror) by a Register Maker's
+# proposal and a Register Checker's approval. SAP's number, not a person's
+# guess at it — but read from an export, not returned by the integration, so
+# it is neither of the two above. Only `nrs.sap.link` writes it.
+SAP_SOURCE_LINKED = 'linked_from_sap_mirror'
+_SAP_LINK_CONTEXT = 'cadra_sap_link'
 
 # How far the INT-06 posting has got. Maintained by the transport module; a
 # plain stored field rather than a compute over dispatch rows, so the asset
@@ -105,6 +111,7 @@ class NRSAssetSAP(models.Model):
         (SAP_SOURCE_IMPORT, 'Loaded from a legacy extract'),
         (SAP_SOURCE_MANUAL, 'Entered by hand'),
         (SAP_SOURCE_CONFIRMED, 'Entered by hand, confirmed by SAP'),
+        (SAP_SOURCE_LINKED, "Linked from SAP's export by two people"),
     ], string='SAP Code Source', copy=False, index=True,
        help='How the SAP asset number got onto this record. A code returned '
             'by SAP is evidence that finance booked the asset; a code typed '
@@ -273,6 +280,14 @@ class NRSAssetSAP(models.Model):
 
     @api.model
     def _assert_sap_evidence_allowed(self, vals):
+        if vals.get('sap_code_source') == SAP_SOURCE_LINKED \
+                and not self.env.context.get(_SAP_LINK_CONTEXT):
+            # Handoff 65: the source says two people linked it; only the
+            # link's approval may say so.
+            raise ValidationError(_(
+                '"Linked from SAP\'s export by two people" is recorded only '
+                'when a Register Checker approves a Register Maker\'s '
+                'proposal on Link to SAP.'))
         if self.env.context.get(self._SAP_EVIDENCE_CONTEXT):
             return
         if vals.get('sap_code_source') in (SAP_SOURCE_INTEGRATION,
@@ -359,13 +374,17 @@ class NRSAssetSAP(models.Model):
         returned = vals.get('sap_asset_number')
         entered = (self.sap_asset_number or '').strip()
         if returned and entered and self.sap_code_source in (
-                SAP_SOURCE_MANUAL, SAP_SOURCE_CONFIRMED):
+                SAP_SOURCE_MANUAL, SAP_SOURCE_CONFIRMED, SAP_SOURCE_LINKED):
             # The maker's number stays: it is what the maker entered and the
-            # checker approved (handoff 58, P4). Never replaced silently.
+            # checker approved (handoff 58, P4). Never replaced silently. A
+            # number two people LINKED from SAP's export (handoff 65) is the
+            # same kind of two-person act and stays the same way.
             vals.pop('sap_asset_number')
             if str(returned).strip().casefold() == entered.casefold():
-                # The same number: the label changes and nothing else does.
-                vals['sap_code_source'] = SAP_SOURCE_CONFIRMED
+                # The same number: the label changes and nothing else does —
+                # except a link, which keeps saying how it was made.
+                if self.sap_code_source != SAP_SOURCE_LINKED:
+                    vals['sap_code_source'] = SAP_SOURCE_CONFIRMED
                 vals['sap_returned_asset_number'] = False
             else:
                 vals['sap_returned_asset_number'] = str(returned).strip()

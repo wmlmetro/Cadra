@@ -18,7 +18,9 @@ What is proved:
   non-image, the provider timing out, failing or declining, a malformed
   answer discarded AND counted, the daily cap;
 * the audit trail: a save with 4 accepted and 1 changed, the record on the
-  answer, the history line, the photo claimed; and a suggestion nobody saved
+  answer, the history line, the photo claimed; a field the asset already
+  holds as suggested — the Photos tab's *Same* — recorded accepted with
+  `already_held`, not ignored (handoff 65); and a suggestion nobody saved
   leaving nothing on any asset.
 
 The tenant's own settings are put back after every test (`ai_on`).
@@ -144,7 +146,10 @@ def test_the_settings_never_return_the_key_and_refuse_to_take_one(client):
     s = _settings(client)
     assert "key" not in s and "api_key" not in s
     assert isinstance(s["key_placed"], bool)
-    assert s["key_command"].startswith("scripts/set_ai_key.sh ")
+    # Handoff 65: the key is the SERVER's, in its environment — one per
+    # server, so the command names no database.
+    assert s["key_command"] == "scripts/set_ai_key.sh"
+    assert s["key_variable"] == "CADRA_AI_API_KEY"
     r = client.patch(AI, json={"api_key": "sk-not-a-key"})
     body = assert_envelope_err(r, 400, "invalid_request")
     assert body["error"]["details"]["rejected_fields"] == ["api_key"]
@@ -418,9 +423,73 @@ def test_ignored_fields_are_recorded_as_ignored(client, ai_on):
         "ai_suggestion": {"id": s["suggestion_id"], "ignored": ["name"]}})
     applied = assert_envelope_ok(r)["data"]["ai_suggestion"]
     assert applied["fields"]["colour"]["outcome"] == "accepted"
+    assert "already_held" not in applied["fields"]["colour"]
     assert applied["fields"]["name"]["outcome"] == "ignored"
-    assert applied["counts"]["accepted"] == 1
+    # The rest were neither sent nor named: each is accepted-and-held when
+    # the asset already held the suggestion (handoff 65), ignored otherwise.
+    held = [f for f, o in applied["fields"].items()
+            if o.get("already_held")]
+    for f, o in applied["fields"].items():
+        if f in ("colour", "name"):
+            continue
+        assert o["outcome"] == ("accepted" if f in held else "ignored"), f
+    assert applied["counts"]["accepted"] == 1 + len(held)
     assert applied["counts"]["changed"] == 0
+
+
+def _holds(asset, field):
+    """What the asset row holds in a suggested field — the Photos tab's
+    `currentOf`, in the server's comparison (trimmed, case-folded)."""
+    if field == "category_id":
+        value = (asset.get("category") or {}).get("id")
+    elif field == "model_name":
+        value = asset.get("model")
+    else:
+        value = asset.get(field)
+    return str(value if value is not None else "").strip().casefold()
+
+
+def test_a_field_the_asset_already_holds_is_accepted_not_ignored(client,
+                                                                 ai_on):
+    """Report 64's nit, fixed in handoff 65: the Photos tab shows a field
+    the asset already holds as suggested as *Same*, with no button, and
+    leaves it out of both the body and `ignored`. It was recorded
+    `ignored`; it is `accepted` with `already_held: true` — the register
+    bore the suggestion out, and nothing was written for it."""
+    asset = gates.receive(client, name=f"pytest-ai-same-{_u()}",
+                          colour="BLACK")
+    up = client.post(f"/api/v1/assets/{asset['id']}/photos",
+                     files={"file": ("chair-06.png", png(seed=12),
+                                     "image/png")},
+                     data={"source": "web"})
+    photo = assert_envelope_ok(up, 201)["data"]
+    s = assert_envelope_ok(_identify(client, photo_id=photo["id"]),
+                           201)["data"]
+    assert s["attributes"]["colour"] == "BLACK"   # the stand-in's answer
+    before = assert_envelope_ok(client.get(
+        f"/api/v1/assets/{asset['id']}"))["data"]
+    proposed = {"category_id": s["category"]["id"],
+                "condition": s["condition"]["value"],
+                **{k: v for k, v in s["attributes"].items() if v}}
+    same = {f for f, v in proposed.items()
+            if _holds(before, f) == str(v).strip().casefold()}
+    assert "colour" in same and "name" not in same
+    # The panel's save: "Use this" on the name; Same left out; the rest
+    # shown, not chosen — ignored.
+    ignored = sorted(set(proposed) - same - {"name"})
+    r = client.patch(f"/api/v1/assets/{asset['id']}", json={
+        "name": s["attributes"]["name"],
+        "ai_suggestion": {"id": s["suggestion_id"], "ignored": ignored}})
+    applied = assert_envelope_ok(r)["data"]["ai_suggestion"]
+    for f in same:
+        assert applied["fields"][f]["outcome"] == "accepted", f
+        assert applied["fields"][f]["already_held"] is True, f
+    assert applied["fields"]["name"]["outcome"] == "accepted"
+    assert "already_held" not in applied["fields"]["name"]
+    for f in ignored:
+        assert applied["fields"][f]["outcome"] == "ignored", f
+    assert applied["counts"] == {"accepted": len(same) + 1, "changed": 0,
+                                 "ignored": len(ignored)}
 
 
 def test_an_unsaved_suggestion_leaves_nothing_on_any_asset(client, ai_on):

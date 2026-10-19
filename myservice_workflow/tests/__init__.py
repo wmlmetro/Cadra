@@ -5,3 +5,4 @@ from . import test_callback_replay
 from . import test_register_state_event
 from . import test_retry_budget
 from . import test_connection_probe
+from . import test_sap_link_outbox

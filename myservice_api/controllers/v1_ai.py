@@ -21,17 +21,19 @@ THE ROUTES
 
 * `GET /api/v1/settings/ai-identify` — `settings:read`. The switch, the
   provider and model, the timeout, the daily cap with TODAY's count, and
-  whether a key is placed (`key_placed`) — never the key.
+  whether the server holds a key (`key_placed`) — never the key.
 * `PATCH /api/v1/settings/ai-identify` — `settings:write`. Everything above
-  except the key, which is the owner's (`scripts/set_ai_key.sh`).
+  except the key, which is the owner's and lives in the SERVER'S
+  environment (`CADRA_AI_API_KEY`, handoff 65): no route reads it back, none
+  accepts it, and no database row holds it.
 
 THE REFUSALS, every one in words and before the provider is asked:
 
 * `403 forbidden`, `reason: switched_off` — the tenant's switch is off;
 * `429 rate_limited`, `reason: daily_cap` — *"today's 500 identifications
   are used; fill the details by hand"*;
-* `503 server_misconfigured` — no key placed, or the test stand-in on a
-  database not marked `test`;
+* `503 server_misconfigured` — no key in the server's environment, or the
+  test stand-in on a database not marked `test`;
 * the photo's own: `413` over 300 KB, `415` not a JPEG or PNG, `400`
   empty or unreadable;
 * `400 invalid_request` — neither or both of `photo_id` / `file`.
@@ -97,10 +99,13 @@ _logger = logging.getLogger(__name__)
 IDENTIFY_FILE_FIELDS = ("file",)
 IDENTIFY_TEXT_FIELDS = ("photo_id", "source")
 
-#: What the settings PATCH accepts. NOT the key: it is the owner's, placed
-#: from a shell, and no route reads it back.
+#: What the settings PATCH accepts. NOT the key: it is the owner's, set in
+#: the server's environment (`CADRA_AI_API_KEY`), and no route reads it back.
 SETTINGS_KEYS = ("enabled", "provider", "model", "timeout_seconds",
                  "daily_cap", "effort")
+
+#: The local road to the key (it writes `CADRA_AI_API_KEY` into `.env`).
+KEY_COMMAND = "scripts/set_ai_key.sh"
 
 NOT_NOW = ("The photo could not be identified just now; fill the details "
            "by hand.")
@@ -137,11 +142,12 @@ def _int(value, default):
 
 def ai_settings(env):
     """The tenant's AI settings, every default applied. `key` is the secret
-    and is returned ONLY to the caller in this module that hands it to the
-    provider; nothing serialises it."""
+    — read from the server's ENVIRONMENT (`ai.provider_key`), never from the
+    tenant's parameters (handoff 65) — and is returned ONLY to the caller in
+    this module that hands it to the provider; nothing serialises it."""
     raw = _params(env, (ai.PARAM_ENABLED, ai.PARAM_PROVIDER, ai.PARAM_MODEL,
                         ai.PARAM_TIMEOUT, ai.PARAM_DAILY_CAP,
-                        ai.PARAM_EFFORT, ai.PARAM_KEY))
+                        ai.PARAM_EFFORT))
     provider = (raw.get(ai.PARAM_PROVIDER) or "").strip() or \
         ai.DEFAULT_PROVIDER
     effort = (raw.get(ai.PARAM_EFFORT) or "").strip() or ai.DEFAULT_EFFORT
@@ -154,7 +160,7 @@ def ai_settings(env):
                                 ai.DEFAULT_TIMEOUT),
         "daily_cap": _int(raw.get(ai.PARAM_DAILY_CAP), ai.DEFAULT_DAILY_CAP),
         "effort": effort if effort in ai.EFFORTS else ai.DEFAULT_EFFORT,
-        "key": (raw.get(ai.PARAM_KEY) or "").strip(),
+        "key": ai.provider_key(),
     }
 
 
@@ -182,8 +188,13 @@ def _settings_block(env):
         "daily_cap": s["daily_cap"],
         "effort": s["effort"],
         "efforts": list(ai.EFFORTS),
+        # Whether the SERVER holds a key — one per server, not per tenant
+        # (handoff 65). `key_command` is the local road (it writes `.env`;
+        # it took a database name until 65), `key_variable` the name the
+        # cluster's `cadra-odoo` secret carries it under.
         "key_placed": bool(s["key"]),
-        "key_command": "scripts/set_ai_key.sh %s" % env.cr.dbname,
+        "key_command": KEY_COMMAND,
+        "key_variable": ai.ENV_KEY,
         "database_class": database_class(env),
         "today": {"day": lagos_today().isoformat(), "calls": calls,
                   "remaining": max(0, s["daily_cap"] - calls)},
@@ -205,9 +216,10 @@ def _provider_misconfigured(env, s):
                 "answers only on a database marked `test`. Choose "
                 "`anthropic` in Settings.")
     if s["provider"] == ai.PROVIDER_ANTHROPIC and not s["key"]:
-        return ("No provider key is placed on this tenant. The owner "
-                "places it with `scripts/set_ai_key.sh %s`."
-                % env.cr.dbname)
+        return ("No provider key is set on this server. The owner sets "
+                "`%s` in the server's environment — `%s` locally, the "
+                "`cadra-odoo` secret on the cluster — and recreates the "
+                "Odoo container." % (ai.ENV_KEY, KEY_COMMAND))
     return None
 
 
@@ -373,8 +385,16 @@ _SETTINGS_SCHEMA = {"type": "object", "properties": {
     "daily_cap": {"type": "integer"},
     "effort": {"type": "string", "enum": list(ai.EFFORTS)},
     "key_placed": {"type": "boolean",
-                   "description": "Whether the owner has placed a key. "
-                                  "The key itself is never returned."},
+                   "description": "Whether the server holds a provider key "
+                                  "(`CADRA_AI_API_KEY` in its environment — "
+                                  "one per server, not per tenant). The key "
+                                  "itself is never returned."},
+    "key_command": {"type": "string",
+                    "description": "The local command that sets the key "
+                                   "(it writes `.env`)."},
+    "key_variable": {"type": "string",
+                     "description": "The environment variable the server "
+                                    "reads the key from."},
     "today": {"type": "object"},
 }}
 
@@ -598,8 +618,9 @@ class CadraAiV1(http.Controller):
                        "Send at least one of: %s." % ", ".join(SETTINGS_KEYS))
         rejected = [k for k in body if k not in SETTINGS_KEYS]
         if rejected:
-            hint = ("The key is the owner's and is never set over the API: "
-                    "`scripts/set_ai_key.sh %s`." % env.cr.dbname) \
+            hint = ("The key is the owner's and is never set over the API "
+                    "or kept in the database: it is `%s` in the server's "
+                    "environment (`%s` locally)." % (ai.ENV_KEY, KEY_COMMAND)) \
                 if any("key" in k for k in rejected) else None
             return refuse_unwritable(rejected, SETTINGS_KEYS, hint=hint)
         current = ai_settings(env)

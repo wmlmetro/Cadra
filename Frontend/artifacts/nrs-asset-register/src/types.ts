@@ -204,6 +204,14 @@ export interface Asset {
   sapReconciliationState?: string;
   /** `sap.asset_number` — finance's half of the dual code. */
   sapAssetNumber?: string;
+  /** `sap.code_source` — how that number got onto the record, as the
+   *  model's key (`integration`, `import`, `manual`, `confirmed`,
+   *  `linked_from_sap_mirror`). Absent when there is none. */
+  sapCodeSource?: string;
+  /** `sap.duplicate_flag` (handoff 65 §2): the Register Maker flagged this
+   *  asset as one of a group that all point at ONE SAP record — a likely
+   *  duplicate. A record for NRS; nothing was merged. Absent: no flag. */
+  sapDuplicateFlag?: AssetSapDuplicateFlag;
   custodianId?: number;
   custodianName?: string;
   custodianIR?: string;
@@ -958,4 +966,12 @@ export interface AssetRegisterSnapshot {
   };
   omitted_asset_ids: number[];
   assets: AssetSnapshotRow[];
+}
+
+/** `sap.duplicate_flag` on an asset (handoff 65 §2), as the server sends it. */
+export interface AssetSapDuplicateFlag {
+  sapAssetNumber?: string;
+  note?: string;
+  flaggedBy?: string;
+  flaggedAt?: string;
 }

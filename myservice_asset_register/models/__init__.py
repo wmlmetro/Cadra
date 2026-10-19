@@ -40,3 +40,7 @@ from . import ai_suggestion
 # table, its streamed import and the matcher. After `serial_placeholders`'
 # users and `asset_sap` (the SAP number it links on); imports nothing else.
 from . import sap_mirror
+# Handoff 65 — the link of a register asset to its SAP record, by two
+# people, and the duplicate flag. After the mirror (its matcher and link
+# join) and the gates (the no-two-gates rule it reuses).
+from . import sap_link

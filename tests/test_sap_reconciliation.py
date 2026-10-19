@@ -37,6 +37,8 @@ SAP_KEYS = (
     "reconciliation_state", "synced_at",
     # Handoff 58, P4: the maker's and SAP's numbers when they disagree.
     "discrepancy",
+    # Handoff 65 §2: one of a group flagged as a likely duplicate.
+    "duplicate_flag",
 )
 
 RECONCILIATION_STATES = ["not_tagged", "pending", "reconciled", "exception"]
@@ -465,8 +467,11 @@ def test_the_openapi_document_describes_the_sap_block(client):
     # `confirmed` since handoff 58 (P4): entered by the Register Maker and
     # then confirmed by SAP's INT-06 answer — the model's selection, in its
     # order (rule 4: the published enum follows the model).
+    # `linked_from_sap_mirror` since handoff 65 (additive): two people
+    # linked it from SAP's own export.
     assert sap["properties"]["code_source"]["enum"] == \
-        ["integration", "import", "manual", "confirmed"]
+        ["integration", "import", "manual", "confirmed",
+         "linked_from_sap_mirror"]
     assert sap["properties"]["posting_state"]["enum"] == \
         ["none", "queued", "posted", "failed"]
 
