@@ -5505,9 +5505,11 @@ GET (`settings:read`): `enabled`, `provider`, `provider_label`, `model`
 `today` (`day`, `calls`, `remaining` — the Lagos day), `notice`,
 `prompt_version`. PATCH (`settings:write`) takes `enabled`, `provider`,
 `model`, `timeout_seconds` (5–60), `daily_cap` (1–100,000), `effort`. **The
-key is never set or returned over the API**: the owner places it with
-`scripts/set_ai_key.sh <db>` (local) or the `CADRA_AI_API_KEY` key of the
-`cadra-odoo` secret (cluster, mirrored by bootstrap). Switching on is
+key is never set or returned over the API**, and no database holds it
+(handoff 65): the server reads `CADRA_AI_API_KEY` from its environment —
+`scripts/set_ai_key.sh` writes the local `.env`; on the cluster it is the
+GitHub repository secret `CADRA_AI_API_KEY`, synced into `cadra-odoo` by
+`deploy-dev`. One key per server. Switching on is
 refused while the provider cannot answer (no key; the stand-in off a `test`
 database). `GET /api/v1/settings` (`assets:read`) carries `ai_identify`
 (`enabled`, `provider`, `provider_label`, `notice`) for every screen.

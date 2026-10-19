@@ -178,6 +178,13 @@ jobs:
           CADRA_EMAIL_RELAY_URL: ${{ vars.CADRA_EMAIL_RELAY_URL }}
           CADRA_EMAIL_RELAY_SECRET: ${{ secrets.CADRA_EMAIL_RELAY_SECRET }}
           CADRA_TURNSTILE_SECRET: ${{ secrets.CADRA_TURNSTILE_SECRET }}
+          # Handoff 65: the Identify-from-photo provider key, read by the Odoo
+          # server from its environment. OPTIONAL — an unset GitHub secret
+          # syncs an empty value, which the server reads as "no key". It
+          # MUST come through here: this step regenerates the whole
+          # cadra-odoo secret on every push, so a key patched onto the
+          # cluster by hand is wiped by the next push to dev.
+          CADRA_AI_API_KEY: ${{ secrets.CADRA_AI_API_KEY }}
         run: |
           set -e
           : "${POSTGRES_PASSWORD:?GitHub secret POSTGRES_PASSWORD is required}"
@@ -204,6 +211,7 @@ jobs:
             --from-literal=CADRA_EMAIL_RELAY_URL="${CADRA_EMAIL_RELAY_URL}" \
             --from-literal=CADRA_EMAIL_RELAY_SECRET="${CADRA_EMAIL_RELAY_SECRET}" \
             --from-literal=CADRA_TURNSTILE_SECRET="${CADRA_TURNSTILE_SECRET}" \
+            --from-literal=CADRA_AI_API_KEY="${CADRA_AI_API_KEY}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply 19 ConfigMaps + Postgres + filestore PVC + Service
