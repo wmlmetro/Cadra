@@ -66,11 +66,14 @@ _EVENT_RECORD = "nrs.asset.event"
 # register REFUSED, written beside the check on its own cursor so the 400's
 # rollback cannot unwind it.
 # `gate_fired` is handoff 57's — a receipt gate (kept by 58).
+# `details_suggested` since handoff 64 (additive): a save that used details
+# suggested from a photo, before `photo_added` in the stored order.
 # `photo_superseded` and `photo_added` since handoff 61 (additive): a photo
 # is its own append-only row, and superseding one is an event.
 _RECORDED_TYPES = ["verified", "verification_date_set", "status_changed",
                    "provenance_changed", "warranty_changed", "affix_refused",
-                   "gate_fired", "photo_superseded", "photo_added"]
+                   "gate_fired", "photo_superseded", "details_suggested",
+                   "photo_added"]
 
 _HIERARCHY_FIELDS = ("building_id", "floor_id", "room_id")
 
