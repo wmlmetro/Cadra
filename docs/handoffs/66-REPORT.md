@@ -162,7 +162,7 @@ label layout as data).
 | Browser | specs 46, 65, 66 **17 of 17** on `test19f`, gates off (spec 46 checks all 13 personas against every audit item: drawn ⇒ answered, hidden ⇒ 403) |
 | Endpoint reference | 198 routes, 198 index rows (`test_endpoint_reference.py` 4 of 4) |
 | Final local pytest (fresh `test19f`, template rebuilt, gates ON) | **1,531 passed, 0 failed, 10 skipped of 1,541** in 14 m 37 s |
-| CI | 39318028299 on `06439a2`: 2 failed of 1,540 in each leg (the SPA scope maps, not yet pushed); 39319646680 cancelled by the next push; 39320416377 on `c0d52d3`: pytest passed both legs, the in-registry step red in both legs with its result beyond GitHub's truncated log. **Reproduced locally with CI's exact command on the same fresh `test19f`: 1 failed, 0 errors of 1,306** — `TestSapMirrorScope`'s pin on who reads SAP's mirror, which the two audit roles now do (decided, Deviations 9); fixed, 0 failed of 4. **CI on the fix: pending, amended below** |
+| CI | 39318028299 on `06439a2`: 2 failed of 1,540 in each leg (the SPA scope maps, not yet pushed); 39319646680 cancelled by the next push; 39320416377 on `c0d52d3`: pytest passed both legs, the in-registry step red in both legs with its result beyond GitHub's truncated log. **Reproduced locally with CI's exact command on the same fresh `test19f`: 1 failed, 0 errors of 1,306** — `TestSapMirrorScope`'s pin on who reads SAP's mirror, which the two audit roles now do (decided, Deviations 9); fixed, 0 failed of 4. **CI 39325435784 on `0d52ffc` (the fix): green, both switch states** — pytest 1,525 passed, 16 skipped of 1,541 in each leg; the in-registry step passed in both (its result line is beyond GitHub's truncated log; locally, the same command on the same tenant gave 0 failed after the fix) |
 
 ## Deviations and findings
 
@@ -290,3 +290,6 @@ Started 20:35 WAT; budget 4 h, stated at Step 0, with the split named.
   (amended below).
 - **Verification pass**, 21:20–21:30; its fixes 21:30–21:37.
 - **Report**, 21:40–21:50, written while the final suite ran.
+- **CI's hidden in-registry failure**, 22:00–22:10 (reproduced locally,
+  because GitHub's log of that step stops before its result); CI green
+  22:28. No idle wait: the report was pushed marked *CI pending* at 22:00.
