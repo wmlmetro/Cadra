@@ -29,9 +29,41 @@ This handoff builds that link.
    here.
 3. **The UTC day:** fixed in 63b.
 4. **A truncated export:** yes, guard it (§3).
+- **From report 63b, two small items:**
+  - `GET /reports/access-changes` still uses UTC days. Make them Lagos
+    days, as 63b did for the configuration report.
+  - The endpoint reference lists `unprocessable` (422), which `utils.py`
+    doesn't define. Make the reference match the code.
 5. **`legacy_asset_code` holds the old FIRS tag:** the matcher, this
    handoff and 66's audit capture all read that one field. Say so in the
    endpoint reference.
+
+## 0a · Report 64 is accepted (20 min of follow-ups)
+
+Identify-from-photo was built, verified and documented in about 1½ hours
+of a 4½-hour budget. The verification pass caught a phone's GPS location
+going to the provider. Nothing is saved without a person, and the
+suggestion's audit is per field. Good work.
+
+1. **The key lives in the environment, never in the database** (deviation
+   2). An `ir_config_parameter` row is readable by any back-office system
+   administrator, and it lands in database backups.
+   - The server reads `CADRA_AI_API_KEY` from its environment: the
+     cluster's `cadra-odoo` secret, or the local `.env`.
+   - **Remove the database road and any stored value** (a migration that
+     deletes the row, printing per tenant whether one existed).
+   - `scripts/set_ai_key.sh` writes the local `.env` entry instead,
+     prompting with no echo.
+   - *Settings* still says whether a key is present: true or false, never
+     the key.
+2. **Choosing the model from the live check:** `scripts/ai_live_check.py`
+   takes `--models a,b,c` and runs the same folder through each. One table
+   per model: category right first time, right in the top three, seconds,
+   and cost per photo. The owner runs it once across **Opus 5.5, Sonnet
+   5.5 and Haiku 5.5**, and picks the cheapest model that's right often
+   enough. The default stays Opus until he does.
+3. **The two known nits** (a field shown *Same* is recorded *ignored*; no
+   test pins the cap's Lagos midnight): fix both. They're small.
 
 ## 0b · One real reprint, for Vendra (15 min)
 
