@@ -265,6 +265,21 @@ class WorkflowConfig(models.Model):
         if self.adapter_type == 'stub':
             return self._notify('Stub mode — no real connection. Change adapter type when ready.')
         adapter = self._get_adapter()
+        if self.purpose == PURPOSE_ASSET_EVENTS \
+                and isinstance(adapter, WorkflowRestAdapter):
+            # Handoff 64 §3b. A Vendra target has no `/ping`, and Frappe
+            # answers 401 to a bearer token on any path no auth hook covers,
+            # so the GET below failed for EVERY Vendra target whether or not
+            # delivery worked. Test what Cadra actually sends instead: a
+            # POST to each configured event endpoint, with the delivery's
+            # own headers and auth, carrying a probe the receiver refuses
+            # for its CONTENT (no event id) — so a 400 proves the token got
+            # through and nothing was recorded, and a 401 proves it did not.
+            lines, ok = adapter.probe_event_endpoints()
+            message = ' '.join(lines)
+            if ok:
+                return self._notify(message)
+            raise UserError(message)
         result = adapter.ping()
         if result.get('ok'):
             return self._notify(f"Connection successful: {result.get('message','OK')}")
@@ -474,6 +489,74 @@ class WorkflowRestAdapter:
         # send whoever pressed the button to look at the wrong system.
         except req.RequestException as e:
             return {'ok': False, 'error': f"{type(e).__name__}: {e}"}
+
+    #: The probe's body. No `event_id`, and no `X-Idempotency-Key` /
+    #: `X-Event-Id` header: Vendra's receivers (INT-05's `tag_event`,
+    #: INT-05b's `register_state_event`) authenticate FIRST and then refuse
+    #: a body with no event id with a 400 before anything is written — so
+    #: the probe can never be mistaken for, or stored as, an event.
+    PROBE_BODY = {'cadra_connection_test': True,
+                  'note': 'Cadra Test Connection. Not an event: no event id, '
+                          'refuse it.'}
+
+    @staticmethod
+    def _probe_words(status):
+        """`(ok, words)` for the status a probe got back."""
+        if status in (400, 422):
+            return True, 'reachable, token accepted'
+        if 200 <= status < 300 or status == 409:
+            return True, ('reachable, token accepted (it answered HTTP %d '
+                          'to a test body that is not an event — check it '
+                          'recorded nothing)' % status)
+        if status in (401, 403):
+            return False, ('reachable, but the token was refused (HTTP %d) '
+                           '— the key on this target, or the receiver\'s '
+                           'auth hook for this path' % status)
+        if status == 404:
+            return False, 'reachable, but nothing receives at this path (HTTP 404)'
+        if status == 405:
+            return False, 'reachable, but this path does not take a POST (HTTP 405)'
+        if status >= 500:
+            return False, 'reachable, but the receiver failed (HTTP %d)' % status
+        return False, 'reachable, but it answered HTTP %d' % status
+
+    def probe_event_endpoints(self):
+        """Test each event endpoint the way `deliver` POSTs to it.
+
+        Returns `(lines, ok)`: one sentence per endpoint, and whether every
+        configured one passed. Never raises; an unreachable host is a line."""
+        import requests as req
+        base = (self.config.rest_base_url or '').rstrip('/')
+        targets = (('Tag events', self.config.rest_endpoint_event),
+                   ('Register-state events',
+                    self.config.rest_endpoint_register_state))
+        lines, ok = [], True
+        if not base:
+            return ['This target has no base URL.'], False
+        timeout = self.config.rest_timeout or 10
+        for label, endpoint in targets:
+            endpoint = (endpoint or '').strip().lstrip('/')
+            if not endpoint:
+                lines.append('%s: no endpoint set, so none are sent.' % label)
+                if label == 'Tag events':
+                    ok = False
+                continue
+            url = '%s/%s' % (base, endpoint)
+            try:
+                r = req.post(url, json=self.PROBE_BODY,
+                             headers=self._get_headers(),
+                             auth=self._get_auth(),
+                             timeout=(max(1, min(10, timeout)), timeout))
+            # The answer this button exists to give: every way of being
+            # unreachable arrives as a `RequestException` (see `ping`).
+            except req.RequestException as e:
+                ok = False
+                lines.append('%s: unreachable (%s).' % (label, type(e).__name__))
+                continue
+            passed, words = self._probe_words(r.status_code)
+            ok = ok and passed
+            lines.append('%s: %s.' % (label, words))
+        return lines, ok
 
     def submit(self, payload):
         import requests as req
