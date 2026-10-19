@@ -478,3 +478,37 @@ def test_ai_config_for_the_phone(client, world):
     assert data["capture"]["max_working_days_back"] == 5
     assert "remaining_today" in data["ai_identify"]
     assert_envelope_err(_as(client, REV, "GET", "/ai/config"), 403)
+
+
+def _login_scopes(client, key):
+    """A FRESH login's scopes — not the token cached by `gates._token`."""
+    path = gates._personas_file(client)
+    _k, login, password = next(l.split() for l in path.read_text().splitlines()
+                               if l.startswith(key + " "))
+    r = requests.post(f"{client.base}/api/v1/auth/login", timeout=60,
+                      json={"login": login, "password": password})
+    token = assert_envelope_ok(r)["data"]["access_token"]
+    payload = token.split(".")[1]
+    payload += "=" * (-len(payload) % 4)
+    return set(json.loads(base64.urlsafe_b64decode(payload))["scopes"])
+
+
+def test_a_refused_or_previewed_grant_leaves_no_role_behind(client, world):
+    """Handoff 66, found while building it: a grant REFUSED by the role
+    exclusion, or PREVIEWED with `dry_run`, read the person's memberships
+    inside the savepoint it rolled back, and Odoo's group cache kept them —
+    the capturer's next logins carried `audit:review`."""
+    uid = w_cap = world["cap_id"]
+    before = _login_scopes(client, CAP)
+    assert "audit:review" not in before and "assets:write" not in before
+    for dry in (True, False):
+        assert_envelope_err(client.post(
+            f"/api/v1/users/{uid}/roles",
+            json={"roles": ["audit_capturer", "audit_reviewer"],
+                  "dry_run": dry}), 403, "forbidden")
+    assert_envelope_ok(client.post(
+        f"/api/v1/users/{w_cap}/roles",
+        json={"roles": ["audit_capturer", "asset_manager"],
+              "dry_run": True}))
+    for _ in range(3):  # more than one worker may answer
+        assert _login_scopes(client, CAP) == before

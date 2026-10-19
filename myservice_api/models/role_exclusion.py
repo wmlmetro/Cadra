@@ -58,7 +58,7 @@ nothing else), with the person and the time. Nothing reads it back.
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, ValidationError
 
-from .access_guard import _role_name
+from .access_guard import _role_name, forget_group_memberships
 
 CONFIG_KEY = 'cadra.role_exclusion.%d'
 
@@ -189,6 +189,9 @@ def _judge(env, users, before):
         for exclusion in _forbidden_pairs(env, now):
             pair = {exclusion.group_a.id, exclusion.group_b.id}
             if not pair <= was:
+                # The membership just read is cached with the groups the
+                # rollback is about to undo (handoff 66).
+                forget_group_memberships(env)
                 raise AccessError(_exclusion_message(exclusion))
 
 

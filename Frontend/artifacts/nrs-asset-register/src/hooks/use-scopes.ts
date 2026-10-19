@@ -121,6 +121,17 @@ export const SCOPE = {
    *  Users, not Vendra. Importing a new export is `settings:write` held by a
    *  system administrator (`admin`). */
   sapMirrorRead: "sap_mirror:read",
+  /** The audit in the room (handoff 66): campaigns with their progress and
+   *  closing lists, captures, devices, blocks and the code ledger. The
+   *  capturer, the reviewer, the Asset Controller and the Auditor. */
+  auditRead: "audit:read",
+  /** Capturing an item in the room, from a device bound to the person. */
+  auditCapture: "audit:capture",
+  /** Accepting or returning somebody else's capture — the second person. */
+  auditReview: "audit:review",
+  /** Devices, code blocks, campaigns and the found-not-in-SAP exceptions:
+   *  the Asset Controller's. */
+  auditManage: "audit:manage",
   /** The employee import and the SAP employee sync. */
   integrationsWrite: "integrations:write",
   /** INT-03 — Vendra's receipt hand-off. No SPA page gates on it; it is

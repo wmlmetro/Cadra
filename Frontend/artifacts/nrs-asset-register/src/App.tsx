@@ -49,6 +49,12 @@ const AssetForm                  = lazy(() => import("@/pages/AssetForm"));
 const Approvals                  = lazy(() => import("@/pages/Approvals"));
 const Candidates                 = lazy(() => import("@/pages/Candidates"));
 const SapLinks                   = lazy(() => import("@/pages/SapLinks"));
+// The audit in the room (handoff 66 §6).
+const AuditCampaigns             = lazy(() => import("@/pages/audit/AuditCampaigns"));
+const AuditReview                = lazy(() => import("@/pages/audit/AuditReview"));
+const AuditCapture               = lazy(() => import("@/pages/audit/AuditCapture"));
+const AuditExceptions            = lazy(() => import("@/pages/audit/AuditExceptions"));
+const AuditDevices               = lazy(() => import("@/pages/audit/AuditDevices"));
 const Locations                  = lazy(() => import("@/pages/Locations"));
 const LocationDetail             = lazy(() => import("@/pages/LocationDetail"));
 const LocationForm               = lazy(() => import("@/pages/LocationForm"));
@@ -193,6 +199,11 @@ function AppRoutes() {
           <Route path="/candidates"          component={Candidates}     />
           {/* A register asset given its SAP number by two people (handoff 65). */}
           <Route path="/sap-links"           component={SapLinks}       />
+          <Route path="/audit/campaigns"     component={AuditCampaigns}  />
+          <Route path="/audit/review"        component={AuditReview}     />
+          <Route path="/audit/capture"       component={AuditCapture}    />
+          <Route path="/audit/exceptions"    component={AuditExceptions} />
+          <Route path="/audit/devices"       component={AuditDevices}    />
           <Route path="/assets/:id"          component={AssetDetail}    />
           <Route path="/locations"           component={Locations}      />
           <Route path="/locations/new"       component={() => <LocationForm mode="create" />} />
@@ -349,6 +360,10 @@ function App() {
               // Link to SAP (handoff 65): a queue somebody decides from, for
               // the reason `approvals` is not restored.
               && q.queryKey[0] !== "sap-links"
+              // The audit (handoff 66): a review queue, a block's next code
+              // and the closing lists are all questions about NOW — a
+              // restored next code is a code somebody already used.
+              && q.queryKey[0] !== "audit"
               && q.queryKey[0] !== "gate-evidence"
               // Handoff 61: the photo list carries IAD's evidence too, and
               // whether this person may read it.

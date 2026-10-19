@@ -151,7 +151,8 @@ from .query_params import BadFilter, parse_bool, parse_enum
 from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from ..models.audit_access import _STRUCTURAL_LOGINS
 # ONE constant, two readers: the model refuses on it, `/roles` publishes it.
-from ..models.access_guard import API_GRANTABLE_XMLIDS
+from ..models.access_guard import (API_GRANTABLE_XMLIDS,
+                                   forget_group_memberships)
 # ONE alias table, three readers: these routes, the guard's refusal and the
 # access-change record (handoff 44 §3 — it lived here, and the guard said
 # Odoo's name for the same group).
@@ -767,7 +768,8 @@ class CadraUsersV1(http.Controller):
                 if dry_run:
                     raise _DryRun()
         except _DryRun:
-            pass
+            # The preview read memberships it has just undone (handoff 66).
+            forget_group_memberships(request.env)
 
         before_keys = [r["key"] for r in before["roles_direct"]]
         after_keys = [r["key"] for r in after["roles_direct"]]

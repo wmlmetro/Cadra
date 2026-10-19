@@ -1,0 +1,16 @@
+Stale group cache after a refused or previewed grant (handoff 66, found by the screens subagent).
+Script: scratchpad stale.py — capturer persona (uid 89, test19f), 4 logins before and after POST /users/89/roles {roles:[audit_capturer,audit_reviewer]} dry_run true then false (both 403).
+
+BEFORE the fix (code at 06439a2):
+before [(False, 89) x4]
+grant dry=True 403
+grant dry=False 403
+after  [(True, 89) x4]   <- token carries audit:review the person does not hold
+
+AFTER forget_group_memberships:
+before [(False, 89) x4]
+grant dry=True 403
+grant dry=False 403
+after  [(False, 89) x4]
+
+Pinned: tests/test_the_audit.py::test_a_refused_or_previewed_grant_leaves_no_role_behind

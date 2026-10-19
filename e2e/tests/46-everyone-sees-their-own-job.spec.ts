@@ -101,6 +101,13 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/reports/disposals", probes: [G("/reports/disposals?from=2026-01-01&to=2026-10-03&limit=1")] },
   { path: "/reports/asset-register", probes: [G("/reports/asset-register?as_of=2026-10-01&limit=1")] },
   { path: "/reports/export", probes: [G("/assets/export?limit=1")] },
+  // Handoff 66 — the audit in the room. Writes probe with the h46 body: a
+  // holder is refused 400 (a field the route does not accept), never a write.
+  { path: "/audit/campaigns", probes: [G("/audit/campaigns")] },
+  { path: "/audit/review", probes: [W("POST", "/audit/captures/accept")] },
+  { path: "/audit/capture", probes: [W("POST", "/audit/captures")] },
+  { path: "/audit/exceptions", probes: [W("POST", "/audit/captures/0/void")] },
+  { path: "/audit/devices", probes: [W("POST", "/audit/devices"), G("/audit/people")] },
   { path: "/admin/users", probes: [G("/users?limit=1")] },
   { path: "/tools/barcode", probes: [G("/barcode/kpis")] },
 ];
