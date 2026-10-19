@@ -2543,7 +2543,9 @@ cluster's tenants' counts after the deploy (the upgrade log prints them).
 
 Measured on `test19`'s class of 18,008 before the change: 162,072 ORM writes
 (nine per asset) over 208 queries, 68 s. One write per category and the
-derived figures by batched SQL now (report 63 §0).
+derived figures by batched SQL now: the same save of 18,197 assets 7.1 s,
+and a recompute that changes nothing writes 0 of 20,284 assets (report 63
+§0).
 
 ### 32.6 · The delivery retry budget covers a day — `[landed, keep it that way]`
 
@@ -2567,3 +2569,13 @@ migration in §32.7; a customised one is listed in the upgrade log.**
 4. The upgrade log has, per tenant, the tag-number line (§32.4) and the
    retry-budget line (§32.6).
 5. Then §32.1 on `staging`. The ingress already takes 200 MB.
+
+### 32.8 · The configuration-change report's day is a UTC day — `[open]`, for the Architect
+
+`GET /reports/configuration-changes?from=D&to=D` bounds D in UTC
+(`ir.config_parameter.configuration_change_report`). The register's day is a
+Lagos day everywhere else (handoff 37). From 00:00 to 01:00 Lagos, a setting
+changed NOW is not in that day's report — it is in the previous one. Found by
+handoff 63's gates-on run, which crossed midnight: the four tests that read
+"today's" report failed in that hour and passed after it. A published
+report's period is API surface; changing it is a ruling, not a fix.

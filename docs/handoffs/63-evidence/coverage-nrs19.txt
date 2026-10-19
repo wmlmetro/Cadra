@@ -1,5 +1,5 @@
-GET /reports/sap-coverage → 200 in 4.06 s
-sentence: Cadra holds 0 of 161647 (0.0%) of SAP's active assets. Of the 11957 Cadra assets on the register with no SAP asset number, the matcher ranks 3404 first by a unique old tag or serial (3031 by tag, 373 by serial); 959 of those point at a SAP record another Cadra asset also points at, which leaves 2445 that could be linked with confidence today.
+GET /reports/sap-coverage → 200 in 2.16 s
+sentence: Cadra holds 0 of SAP's 161647 active assets (0.0%). Of the 11957 Cadra assets on the register with no SAP asset number, the matcher ranks 3404 first by a unique old tag or serial (3031 by tag, 373 by serial); 959 of those point at a SAP record another Cadra asset also points at, which leaves 2445 that could be linked with confidence today.
 sap: {'records_held': 211699, 'in_latest_export': 211699, 'not_in_latest_export': 0, 'active_in_latest_export': 161647}
 totals: {'sap_active': 161647, 'linked': 0, 'linked_to_a_receipt_candidate': 0, 'not_linked': 161647, 'sap_retired': 50052, 'cadra_assets': 11959, 'cadra_with_sap_number': 2, 'cadra_sap_number_not_in_mirror': 2, 'cadra_without_sap_number': 11957, 'held': '0 of 161647 (0.0%)'}
 reconcilable_today: {'assets_without_sap_number': 11957, 'with_an_old_tag': 7694, 'by_unique_old_tag': 3031, 'by_unique_serial': 373, 'total': 3404, 'sap_records': 2894, 'contested_sap_records': 449, 'contested_assets': 959, 'uncontested': 2445}

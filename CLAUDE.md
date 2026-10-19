@@ -10,6 +10,77 @@ Guidance for Claude Code and any developer working in this repository. It holds 
 - **`docs/integrations/INT-10-audit-access.md`** — the audit and value-for-money read-access contract, and which clauses Cadra has closed.
 - **Canonical spec** — the PRD and NRS specification under `docs/` (`Cadra_Platform_PRD_v0.4.docx`, `Cadra_at_NRS_Specification_v0.1.docx`). When README and spec disagree, the spec wins.
 
+## Speed: a handoff is hours, not days (owner's rule, 18 October 2026)
+
+Measured from reports 59 to 62:
+
+- a handoff takes **2½ to 7½ hours** of wall clock, and 59 took most of
+  three days;
+- the full pytest suite takes **12 to 20 minutes** gates off and **19 to
+  44 minutes** gates on, run locally at least twice per handoff, plus the
+  module suites, the browser suite in both states and a serial fan-out;
+- `test19` keeps growing (16,445 assets in one class), so every run gets
+  slower;
+- reports run to 600–840 lines;
+- **CI already runs the full pytest suite and the in-registry module suites
+  on a fresh database on every push.**
+
+The rules, from now on:
+
+1. **Step 0 states a time budget.** The target is **under 3 hours**. If
+   the plan won't fit, say so at Step 0 and propose where to split; don't
+   discover it at hour six.
+2. **While building, run only the tests for what you touched:** the test
+   files for the routes, models and screens you changed.
+3. **Once, at the end: one full local pytest run**, in the switch state
+   the change matters to:
+   - gates **on** if gate, candidate or receipt code changed;
+   - otherwise **off**.
+4. **CI is the full proof for everything else.** Push the branch. CI runs
+   the full pytest suite and the module suites on a fresh database. Cite
+   the CI run (link and result) in the report instead of rerunning them
+   locally. Run module suites locally only for modules you changed.
+5. **The browser suite:** run only the specs for screens you changed, in
+   one switch state. Run the full browser suite only when shared layout,
+   routing or the top bar changed.
+6. **Run long things in parallel, in the background.** Start the final
+   suite, then the verification pass (read-only, over the diff) at the
+   same time, then write the report while both run. After the pass's
+   fixes, rerun the **affected** tests and let CI rerun the rest.
+7. **Fan-out:** upgrade `test19` and `nrs19` (and any tenant the handoff
+   names) during the work. The other local tenants get a single script
+   run at the end, not one upgrade at a time.
+8. **The report is at most ~200 lines:**
+   - *Needs the owner*;
+   - *In plain words*;
+   - what was built;
+   - the numbers that prove it;
+   - deviations and questions.
+
+   Evidence goes in `NN-evidence/`, not in the report.
+9. **Measure where the time went.** The progress lines carry timestamps,
+   and the report ends with one line per phase: build, tests, verification
+   pass, report.
+
+## Progress you report while you work (owner's rule, 18 October 2026)
+
+The owner tracks every handoff by a percentage, so give one throughout:
+
+1. **At Step 0, print the plan.** List the handoff's work as numbered
+   steps, each with a weight, the weights summing to 100. Verification
+   and the report are steps too. For example: *§1 15 · §2 25 · §3 10 ·
+   suites 20 · drives 15 · report 15*.
+2. **After every step, print one line:**
+   `Progress: 40% — §2 done (3 of 7). Next: §3, the room labels.`
+3. **Before anything long** (a full suite, a fan-out, an upgrade), print
+   that it has started and roughly how long it takes. Print again when it
+   ends.
+4. **Keep `docs/handoffs/NN-PROGRESS.md` current.** Same lines, newest
+   last, so the owner can open it at any time. Commit it with the report.
+5. **Blocked?** Print `Blocked at 55%: <what is needed, from whom>` and
+   stop there. A blocked handoff never shows a higher number.
+6. **100% means the report is pushed**, nothing less. Never round up.
+
 ## Working model — two Claude roles
 
 This project is run by **two cooperating Claude sessions**, the same way its sibling `vendra_network` is:
@@ -99,7 +170,7 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
   ```
   **Run it against `test19`, not `jaizbankplc`.** `jaizbankplc` is a replica of a live client's register and the suite wrote into it for 154 sessions — 88% of its assets are `pytest-*` fixtures. `test19` carries a full credential pair (`docs/api/.creds.test19`) and its client is flagged `is_test_credential`, which the guard also requires: a credential that does not say it is a test credential writes records nobody can identify as fixtures afterwards.
 
-  The venv is `tests/.venv` (Python 3.13) — the repo's own Python, not the container's. `docs/api/smoke_test.py` is the 30-second liveness check. **The skip count is a function of the tenant, not a constant** — on `test19` it was **10** from handoff 44 to 45: 2 Turnstile, 3 partition-data-absent, 1 no `workflow.config`, 1 no SAP asset number, 1 documented `is_tagged`, 1 because `POST /api/v1/assets` always mints a tag so *the serial of an UNTAGGED asset* is proved in-registry (handoff 38), and — until handoff 46 — 1 because `test_user_lifecycle.py`'s *other credential's user* refusal needs a second API credential and `test19` had only the suite's own (handoff 43). **Since handoff 46 it is 9**: the demo-persona seed's inert credential (`cadra_demo_personas`) is a second credential, so that test runs (refusals only, nothing written). **Two skips that WERE there are gone, and come back on any tenant whose credential is root**: the administrators-may-withdraw skip (handoff 35) and the credential-already-holds-`system` skip (handoff 43) — both exist because the suite's credential held `base.group_system`, and handoff 44 removed it on `test19` (`scripts/strip_credential_system_group.py`); on `cadra19`/`nrs19` it is still held until the owner runs that script. History: 9 until handoff 27 (whose Playwright spec gave the `is_verified` partition test its data — the tenant changed, not the suite), 12 from handoff 43 to 44. No admin-scope skips, because that tenant's credential holds `admin`. `docs/ENVIRONMENT-FACTS.md` carries the older breakdown. Check the categories, not the count.
+  The venv is `tests/.venv` (Python 3.13) — the repo's own Python, not the container's. `docs/api/smoke_test.py` is the 30-second liveness check. **The skip count is a function of the tenant, not a constant** — on `test19` it was **10** from handoff 44 to 45: 2 Turnstile, 3 partition-data-absent, 1 no `workflow.config`, 1 no SAP asset number, 1 documented `is_tagged`, 1 because `POST /api/v1/assets` always mints a tag so *the serial of an UNTAGGED asset* is proved in-registry (handoff 38), and — until handoff 46 — 1 because `test_user_lifecycle.py`'s *other credential's user* refusal needs a second API credential and `test19` had only the suite's own (handoff 43). **Since handoff 46 it is 9**: the demo-persona seed's inert credential (`cadra_demo_personas`) is a second credential, so that test runs (refusals only, nothing written). **At handoff 63 it was 7**, both switch states: 2 Turnstile, 2 partition-data-absent (`closed`, `is_staff_bus`), 1 no `workflow.config`, 1 `is_tagged`'s `null`, 1 the untagged serial — the `is_verified` partition and the SAP-asset-number skips have data on `test19` now. **Two skips that WERE there are gone, and come back on any tenant whose credential is root**: the administrators-may-withdraw skip (handoff 35) and the credential-already-holds-`system` skip (handoff 43) — both exist because the suite's credential held `base.group_system`, and handoff 44 removed it on `test19` (`scripts/strip_credential_system_group.py`); on `cadra19`/`nrs19` it is still held until the owner runs that script. History: 9 until handoff 27 (whose Playwright spec gave the `is_verified` partition test its data — the tenant changed, not the suite), 12 from handoff 43 to 44. No admin-scope skips, because that tenant's credential holds `admin`. `docs/ENVIRONMENT-FACTS.md` carries the older breakdown. Check the categories, not the count.
 - **The browser suite is NOT behind the test-database guard, and its default target is a client's replica.** `e2e/config.ts` falls back to `http://jaizbankplc.localhost:8069`. Name the tenant every time, and rebuild the served bundle first — a plain `npm run build` breaks `/app/`:
   ```
   (cd Frontend/artifacts/nrs-asset-register && BASE_PATH=/app/ npm run build)
