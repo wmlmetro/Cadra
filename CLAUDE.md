@@ -367,6 +367,10 @@ finding for the Architect — do not invent a scope to hide it.
    own branch in `asset_history._history_recorded_events` in the same
    change**: the final `else` publishes an unknown type as a reference
    change.
+   **Since handoff 65 a SAP link proposal is the SIXTH:** `nrs.sap.link`
+   holds its asset `restrict` and refuses `unlink`; every act on it also
+   writes a `sap_link` event, so the residue scripts already refuse those
+   assets through the event table.
 1. **An asset with a row in any of them cannot be deleted** — and since handoff 28 every asset created at a location has one from birth. A test that needs to delete an asset has to create it nowhere and unassigned, **and must not verify it, change its status, change one of the three references or change its warranty first**: an event is a CHANGE, so creating an asset writes none, but the first of those pins it. `scripts/remove_test_residue.py` and `scripts/mark_test_fixtures.py` refuse on all three by name (and on the fourth above); `scripts/nrs_hq_seed.py` refuses the wipe and offers `CADRA_SEED_DESTROY_CUSTODY=1` and, separately and on purpose, `CADRA_SEED_DESTROY_MOVEMENTS=1` and `CADRA_SEED_DESTROY_EVENTS=1`.
 2. **A test cannot backdate or remove a row through the ORM.** Fixtures that need one in the past, or need it absent to simulate the time before the recorder, use raw SQL and say so (`test_snapshot_rollback.py`, `myservice_api/tests/test_asset_history.py`).
 3. **Disposed is terminal, and the rule is in the same place** (`nrs.asset._assert_disposed_is_terminal`, handoff 30). A disposed asset cannot change `state`, `location_id` or `custodian_id` through any write to the asset — **and the two doors `write` cannot see are shut separately**: both columns are `ON DELETE SET NULL`, so `generic.location.unlink` and `hr.employee.unlink` refuse to delete a location or an employee that a disposed asset names (archive instead). The verification pass found both by asking whether *"through any door"* was true. A write that NAMES the three fields without changing them is allowed, because the app's edit form re-sends them on every save. There is no context flag round it, on purpose, and no reversal route — that is an open ruling. A test or seed that disposes of an asset and then moves it will now raise. **Since handoff 32 the DATE is guarded too, in the same method**: a disposed asset's `disposal_date` cannot be emptied (correcting it to another day is a proper act and stays), and **only a date arriving in the SAME write as the disposal counts as the caller's** — otherwise `_stamp_disposal` stamps today, overwriting a date PATCHed onto the asset while it was still live. `_stamp_disposal(vals)` takes the write's body as a required positional argument so a second caller has to decide rather than inherit the old behaviour by leaving it out.
@@ -523,8 +527,14 @@ which answers from the photo's FILE NAME (`chair-01.png`, `…-firs-ABJ-0001…`
 `…-malformed…`, `…-timeout…`) and answers only on a database marked `test`;
 an HTTP test turns it on through `PATCH /settings/ai-identify` and puts the
 tenant's values back (`tests/test_what_the_photo_says.py::ai_on`);
-(2) **the key is `myservice_api.ai_api_key` and is the owner's** — never in a
-test, a log, an error or a route; `scripts/set_ai_key.sh <db>` places it;
+(2) **the key is the owner's and lives in the SERVER'S ENVIRONMENT, never in
+a database** (handoff 65) — `ai_provider.provider_key()` reads
+`CADRA_AI_API_KEY` from the Odoo process: the local `.env`
+(`scripts/set_ai_key.sh`, no database argument, then `up -d
+--force-recreate odoo`) or the optional key of the `cadra-odoo` secret on
+the cluster. One key per server; never in a test, a log, an error or a
+route; Settings says only `key_placed`. Migration 19.0.3.36.0 deleted the
+old `myservice_api.ai_api_key` row — do not bring it back;
 (3) **a save that used a suggestion names it** — `ai_suggestion: {id,
 ignored}` on `POST`/`PATCH /assets`, taken off the body before
 `_filter_writable`; it decides what is recorded (an `ai_suggestion_applied`
@@ -532,6 +542,29 @@ event), never what is written;
 (4) **the Odoo image carries the `anthropic` SDK** (pinned in both
 Dockerfiles, two Debian-owned dependencies installed beside first): a
 container recreated from an old image identifies nothing and says so.
+
+### Since handoff 65 a register asset is LINKED to its SAP record by two people
+
+`nrs.sap.link` (`myservice_asset_register/models/sap_link.py`, routes
+`v1_sap_links.py`): the Register Maker proposes, the Register Checker
+approves, and the approval writes SAP's number with `sap_code_source =
+linked_from_sap_mirror` and **sends nothing to SAP**. Four things you will hit:
+(1) **the no-two-gates rule reads link acts too** — `_segregation_events`
+counts `gate_fired` AND `sap_link` events with a gate (`link_make`,
+`link_check`), so whoever fired a receipt gate on an asset cannot act on its
+link, and the reverse; a test that links an asset needs it LEGACY-SHAPED —
+on the register with no SAP number, made with the switch OFF
+(`tests/test_the_link.py::_legacy_shaped`), because a gated registration
+always carries a number;
+(2) **`linked_from_sap_mirror` is refused to every writer but the
+approval** (context `cadra_sap_link`), and a link is refused while the asset
+has an asset-master posting in flight;
+(3) **an import over a non-empty mirror COUNTS before it writes** — over 5%
+"not in the latest export" it stops `held` and writes nothing; a test that
+imports an invented file over the tenant's mirror sends `mark_absent=true`
+(the `_import` helpers do by default);
+(4) **a duplicate flag is an `nrs.asset.event`** (`sap_duplicate_flagged`),
+not a model — nothing is merged.
 
 ### A move and a handover need a second person, and the gate is on the model
 
@@ -707,6 +740,7 @@ done
 | 63 | **What SAP holds, in Cadra.** SAP's asset master as `nrs.sap.asset`, a read-only reference table that is NOT the register — the eleven register routes measured unchanged with 211,699 records loaded · imported from SAP's own `.XLSX` on *Settings → SAP asset master* by a system administrator (`settings:write` + `admin`), the header checked at upload (a missing column refused naming it), the rest read by a cron in ticks of ≤ 25 s of CPU with a streaming parser resumable at a row boundary — the October file in 100 s on `nrs19`, the reference doc's counts exactly, a re-import all `unchanged`; missing records marked, never deleted; placeholders aside; the office from the old tag; the file not kept · `sap_mirror:read` (Controller, Maker, Checker, Auditor) · the link COMPUTED, not stored · the matcher, five reasons, linked records excluded and counted; 61 §12's table reprinted from it · `GET /reports/sap-coverage`: Cadra holds 0 of 161,647; 2,445 of 11,957 linkable today (3,404 ranked first, 959 contested) · §0: tags active on two assets listed + an index that creates itself at zero; a category save one write (was 162,072); the retry budget 32 attempts, not the ruling's 30 (24 h 3 min) · found: a worker running the working tree served the new model before its schema existed and broke another session's tenant; a `compose up` of the proxy recreated Odoo without the db filter |
 | 63b | **The faster loop.** CI proves both switch states on every push, in parallel, in the time one took (`gates: [off, on]`, ~13 min) · `scripts/fresh_test_tenant.sh`: `test19f` from a template in ~5 s, the fixtures `test19` carries seeded into it and into CI (CI's skips 39 → 16) — the full suite 9 min gates off / 15 min on, against `test19`'s 14 m 42 s / 24 m 36 s · xdist measured unsafe (`-n 4`: 30 failed; shared state), not adopted · the configuration-change report's day a Lagos day (BEHAVIOUR CHANGE) · a category save restates its class once, from one schedule (`test19`'s 19,042: 13.2 / 20.6 s → 9.7 / 9.7 s) · **two receipts at once drew one tag number** (Vendra report 58): a Postgres sequence per prefix, 20 concurrent → 20 numbers, the collision left `409 tag_number_taken` (retryable, new code) · found: handoff 63's CI was red on one pin that a fresh database's index broke |
 | 64 | **What the photo says.** Ruling R11: Cadra's SERVER identifies a photographed item — no model trained or shipped, the phone and the web app call one route, `POST /api/v1/ai/identify`, behind `cadra.ai.identify` (off everywhere) · one adapter, a deterministic fake for every test and Anthropic's Messages API through the pinned SDK; the answer validated against the tenant, a make/model/dimensions it did not read removed and said · the append-only `nrs.ai.suggestion` per call (failed and discarded ones counted against the daily cap), a photo for an unsaved asset HELD 24 h and claimed by the save · the save's `ai_suggestion` records per field accepted / changed / ignored as an `ai_suggestion_applied` event, one history line · *Identify from photo* on Add asset (filled, marked, Save held until settled) and on each photo (Now / Suggested, *Use this*), a Settings page with today's count · an SAP candidate fills nothing (no asset route writes the number) · Test Connection on a Vendra target POSTs a probe to each endpoint: the old `/ping` said 401 for every Vendra target, delivery working or not · found by the live-check dry run: the settings PATCH answered with the values from before its own write |
+| 65 | **The link.** A register asset given its SAP number from the mirror by two people: `nrs.sap.link`, the Register Maker proposes (a batch, `dry_run`), the Register Checker approves or returns, the no-two-gates rule with gates `link_make`/`link_check`; the approval writes `sap_code_source = linked_from_sap_mirror` and **sends nothing to SAP** (proved against a live stub target); undone the same way with a reason; never deleted · the contested list, side by side, one proposed or the group flagged (an event per asset, `sap.duplicate_flag`) · an import that would mark > 5% of the mirror absent is `held` before writing, overridden by `mark_absent=true` (recorded) — tripped, overridden and restored on `nrs19` with a truncated copy of SAP's file · `class_evidence` on the coverage report · *Link to SAP* in the app · the AI key in the server's environment, the database row deleted · the access report on Lagos days · one real reprint delivered to the bench Vendra · `nrs19`: the confident list is 2,445, exactly report 63's; linking it would take Cadra from 0 to 2,445 of SAP's 161,647 · found by the verification pass: a link on top of a master in flight would have given SAP two |
 | 47 | **A role is a job.** `identity:read` and `dashboards:read` each split in two — `access:read` (the access record, the Auditor's) and `operations:read` (fleet/staff bus/FM/security; the sidebar group key `operations` is a different namespace, on purpose) · tag minting and replacement moved to `tagging:write` (BREAKING — a manager no longer prints labels; the unit's scope covers its job) · **the Asset Officer**: Asset User's reads + `assets:write`, implied by Manager, grantable (the named fifth entry handoff 42 demanded), published as `asset_officer` · `SCOPE_GROUPS[assets:write]` → Officer, so Vendra's credential reads as what it does · Staff Bus and Identity (clearance) out of the sidebar (keys retired, routes serve, clearance OWED to NRS — `docs/GO-LIVE.md` §25) · the hardcoded *All systems operational* pill deleted |
 
 ## Backlog — see `docs/GO-LIVE.md` Part II

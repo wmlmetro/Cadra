@@ -1,0 +1,144 @@
+{
+ "office": "DEE8CE",
+ "import": {
+  "state": "done",
+  "created": 52,
+  "rows_read": 52
+ },
+ "setup_seconds": 12.5,
+ "candidates_total": 50,
+ "dry_run": {
+  "total": 50,
+  "done": 50,
+  "refused": 0
+ },
+ "dry_run_seconds": 0.51,
+ "propose": {
+  "total": 50,
+  "done": 50,
+  "refused": 0
+ },
+ "propose_seconds": 0.41,
+ "checker_queue_total": 54,
+ "approve": {
+  "total": 50,
+  "done": 50,
+  "refused": 0
+ },
+ "approve_seconds": 0.68,
+ "after_approve": {
+  "with_number": 50,
+  "code_source_linked": 50,
+  "posting_state": [
+   "none"
+  ],
+  "of": 50
+ },
+ "undo": {
+  "proposal": "unlink",
+  "approved": 1,
+  "asset_number_after": null
+ },
+ "history_lines_asset_0": [
+  "Link to SAP asset 3DEE8CE000 undone (drive65: the label was read off the wrong laptop), proposed by Temitope Oyelaran, approved by Obinna Ezeagu.",
+  "Undoing the link to SAP asset 3DEE8CE000 proposed by Temitope Oyelaran: drive65: the label was read off the wrong laptop",
+  "Linked to SAP asset 3DEE8CE000 (old tag, unique), proposed by Temitope Oyelaran, approved by Obinna Ezeagu.",
+  "Link to SAP asset 3DEE8CE000 proposed (old tag, unique) by Temitope Oyelaran."
+ ],
+ "contested": {
+  "groups": 2,
+  "assets": 4,
+  "by_office": [
+   {
+    "office": "DEE8CE",
+    "groups": 2,
+    "assets": 4,
+    "flagged": 0
+   }
+  ]
+ },
+ "contested_resolved": {
+  "reason": "old tag, unique; chosen from 2 Cadra assets",
+  "approved": 1,
+  "chosen": "2DEE8CE000",
+  "other": null
+ },
+ "contested_flagged": {
+  "sentence": "2 Cadra assets flagged as a likely duplicate of SAP asset 2DEE8CE001. Nothing was merged, retired or deleted.",
+  "flags": [
+   {
+    "sap_asset_number": "2DEE8CE001",
+    "note": "drive65: two chairs carry one old tag",
+    "flagged_by": {
+     "id": 18,
+     "name": "Temitope Oyelaran"
+    },
+    "flagged_at": "2026-10-19T12:01:19"
+   },
+   {
+    "sap_asset_number": "2DEE8CE001",
+    "note": "drive65: two chairs carry one old tag",
+    "flagged_by": {
+     "id": 18,
+     "name": "Temitope Oyelaran"
+    },
+    "flagged_at": "2026-10-19T12:01:19"
+   }
+  ]
+ },
+ "class_evidence": [
+  "Generator: 109 linked; SAP class 3000 for 104, SAP class 2000 for 5. No SAP class configured."
+ ],
+ "assets": [
+  297,
+  298,
+  299,
+  300,
+  301,
+  302,
+  303,
+  304,
+  305,
+  306,
+  307,
+  308,
+  309,
+  310,
+  311,
+  312,
+  313,
+  314,
+  315,
+  316,
+  317,
+  318,
+  319,
+  320,
+  321,
+  322,
+  323,
+  324,
+  325,
+  326,
+  327,
+  328,
+  329,
+  330,
+  331,
+  332,
+  333,
+  334,
+  335,
+  336,
+  337,
+  338,
+  339,
+  340,
+  341,
+  342,
+  343,
+  344,
+  345,
+  346
+ ]
+}

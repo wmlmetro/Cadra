@@ -1778,3 +1778,37 @@ Evidence: `docs/handoffs/64-evidence/`.
 - **Cost**: ~$0.024 a photo on `claude-opus-5-5`; the register $3,880,
   an HQ audit (57,059 HQ-coded records) $1,370 — estimates,
   `64-evidence/cost-of-an-office.md`.
+
+## Handoff 65 — the link
+
+Evidence: `docs/handoffs/65-evidence/`.
+
+- **The link, by two people**: `tests/test_the_link.py` 8 of 8 on `test19f`
+  (the maker's list and its reason, propose with a dry run, the checker's
+  approval writing SAP's number with `linked_from_sap_mirror`, the
+  handoff's history sentence, one person refused both acts, a return with
+  a reason, an undo, a contested group chosen and flagged, the class
+  evidence, the 5% guard held and overridden). In-registry
+  `TestTheLinkSendsNothing` 4 of 4 against a live stub SAP target (no
+  `asset.master.create`; a link waits for a master in flight; a row is
+  never edited or deleted) and `TestSapImport`'s two guard tests (under 5%
+  rewinds and writes over many ticks; over 5% writes nothing).
+- **Drive on `test19f`** (`65-evidence/drive-test19f.json`): 50 proposed by
+  the Register Maker persona and approved by the Register Checker persona
+  (dry run 0.51 s, propose 0.41 s, approve 0.68 s for 50); 50 of 50 carry
+  the number and the source, posting state `none`, 0 outbox rows; one
+  undone, the four history lines; one contested group chosen ("old tag,
+  unique; chosen from 2 Cadra assets"), the other left unlinked; one group
+  flagged, the flag on both assets.
+- **`nrs19`, read-only** (`65-evidence/nrs19-measure.json`): the confident
+  list is **2,445** (report 63: 2,445), computed in 1.2 s; 449 contested
+  records / 959 assets. Linking the 2,445 (in a rolled-back transaction)
+  takes Cadra from 0 to 2,445 of SAP's 161,647 active assets (1.5%).
+- **The 5% guard on `nrs19`** (`65-evidence/nrs19-guard-runs.jsonl`): a
+  truncated copy of SAP's October file (179,999 of 211,699 rows) held —
+  31,700 of 211,699 (15.0%), nothing written; overridden — 31,700 marked
+  absent, confirmed by Administrator; the full file restored 211,699 of
+  211,699.
+- **§0b**: one real reprint on `test19` (unit 106929, GRN
+  `MAT-PRE-2026-00784`): label 78806, the same number, `reprint_count` 1,
+  `WDL-2026-13049` acknowledged by the bench Vendra (HTTP 202) in 2 s.
