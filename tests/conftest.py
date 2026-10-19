@@ -42,6 +42,7 @@ CANONICAL_ERROR_CODES = frozenset({
     "unauthorized", "forbidden", "invalid_request", "validation_failed",
     "not_found", "conflict", "rate_limited", "internal_error",
     "not_implemented", "idempotency_mismatch", "server_misconfigured",
+    "tag_number_taken",
 })
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent

@@ -3,6 +3,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.modules import module as odoo_module
 from odoo.modules.registry import Registry
 import base64
+import hashlib
 import logging
 import re
 
@@ -997,6 +998,45 @@ class NRSAsset(models.Model):
         segments.append(category or domain_codes.get(self.domain, 'AST'))
         return '-'.join(segments) + '-'
 
+    def _tag_sequence(self, prefix, highest):
+        """The Postgres sequence that numbers tags under `prefix`, created
+        the first time the prefix is used and started at `highest`.
+
+        Named by a digest of the prefix (a prefix is `[A-Z0-9-]`, and an
+        identifier must be short and unquoted). Creation takes a
+        transaction-scoped advisory lock on the name, so two first mints of
+        one prefix do not both create it: the second waits, then finds it —
+        the catalog is read fresh, not through the transaction's snapshot.
+        """
+        name = 'cadra_tag_seq_%s' % hashlib.sha1(
+            prefix.encode()).hexdigest()[:20]
+        cr = self.env.cr
+        cr.execute("SELECT to_regclass(%s)", (name,))
+        if not cr.fetchone()[0]:
+            cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (name,))
+            # IF NOT EXISTS as well as the lookup: it checks the catalog at
+            # execution, so a lookup that ran ahead of the other creator's
+            # commit cannot turn into a "relation already exists".
+            cr.execute('CREATE SEQUENCE IF NOT EXISTS "%s" MINVALUE 0 START %d'
+                       % (name, int(highest)))
+        return name
+
+    def _tag_sequence_next(self, sequence, at_least):
+        """The next number from `sequence`, above `at_least`.
+
+        `setval(GREATEST(nextval, at_least + 1))` in one statement: `nextval`
+        alone when the sequence is ahead (every mint through here), lifted
+        past a number issued around it otherwise. The lift is the one place
+        two concurrent mints could still meet — both lifting to the same
+        number, which only happens just after an import wrote numbers above
+        the sequence — and the unique index answers that `tag_number_taken`,
+        which a caller retries (`docs/api/cadra_api_endpoint_reference.md`).
+        """
+        self.env.cr.execute(
+            'SELECT setval(%s, GREATEST(nextval(%s), %s))',
+            (sequence, sequence, int(at_least) + 1))
+        return self.env.cr.fetchone()[0]
+
     def _generate_tag(self, source='auto'):
         """Generate a new unique tag number, e.g. HQ-GF-MR-FF-001."""
         Tag = self.env['nrs.asset.tag.label']
@@ -1014,13 +1054,26 @@ class NRSAsset(models.Model):
         # the walk would have filled it and this does not — no number is ever
         # issued twice either way, which is the rule the loop below enforces.
         # The prefix is `[A-Z0-9-]` only (`_tag_prefix`), so LIKE is safe.
+        #
+        # Since handoff 63b the number comes from a Postgres SEQUENCE per
+        # prefix, not from that max plus one. Two receipts of one class
+        # posted 100 ms apart (Vendra report 58: two chairs, both
+        # `NRS-FURN-018`, `test19` assets 106911 and 106912) each read the
+        # same max — Odoo's REPEATABLE READ snapshot hides the other's
+        # uncommitted, then committed, row — and minted the same number: a
+        # duplicate where no unique index stands, a 409 where report 63's
+        # does. No lock fixes that inside a snapshot taken before the lock;
+        # `nextval` is outside every snapshot and never hands one value to
+        # two transactions. The max is still read: it starts the sequence,
+        # and lifts it past numbers issued without it (an import, a seed).
         Tag.flush_model(['name'])
         self.env.cr.execute(
             "SELECT max(substr(name, %s)::bigint) FROM nrs_asset_tag_label "
             "WHERE name LIKE %s AND substr(name, %s) ~ '^[0-9]+$'",
             (len(prefix) + 1, prefix + '%', len(prefix) + 1))
-        highest = self.env.cr.fetchone()[0]
-        seq = (highest or 0) + 1
+        highest = self.env.cr.fetchone()[0] or 0
+        sequence = self._tag_sequence(prefix, highest)
+        seq = self._tag_sequence_next(sequence, highest)
         tag_number = '%s%03d' % (prefix, seq)
         # Check every tag, not just the active ones: a MINT is a new number,
         # and a number that has ever been printed belongs to the asset it
@@ -1035,7 +1088,7 @@ class NRSAsset(models.Model):
             # capped-count-ok: a sequence number, not a count of
             # anything. `existing` is a limit=1 lookup of the highest
             # tag already issued, which is what it should be.
-            seq += 1
+            seq = self._tag_sequence_next(sequence, seq)
             tag_number = '%s%03d' % (prefix, seq)
         tag = self.env['nrs.asset.tag.label'].create({
             'name':     tag_number,

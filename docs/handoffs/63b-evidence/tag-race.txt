@@ -1,0 +1,23 @@
+# Handoff 63b §3b (amended) — the tag-number race
+
+## test19's duplicate from Vendra report 58 — LISTED, not renumbered (2026-10-19, read-only)
+name | asset_id | asset_code | label create_date (UTC) | source
+NRS-FURN-018 | 106911 | NRS-AST-070778 | 2026-10-19 06:00:07.648351 | auto
+NRS-FURN-018 | 106912 | NRS-AST-070779 | 2026-10-19 06:00:07.74703 | auto
+
+numbers active on more than one asset on test19: 69 of 21,121 active labels (report 63: 68 — this is the 69th)
+
+## tests/test_tag_number_race.py on test19f (index present), the OLD mint (server not yet restarted)
+>       assert not refused, (
+E       AssertionError: 2 of 20 concurrent receipts at one prefix were refused — the first: (409, '{"error": {"code": "conflict", "message": "Unique constraint violation", "request_id": "09b5237161764d25b0a8e8e07b2c8791", "details": {"db_detail": "Key (name)=(NRS-GEN-007) already exists.", "constrai
+E       assert not [(409, '{"error": {"code": "conflict", "message": "Unique constraint violation", "request_id": "09b5237161764d25b0a8e8...y (name)=(NRS-GEN-017) already exists.", "constraint": "nrs_asset_tag_label_active_name_uniq", "http_status": 409}}}')]
+tests/test_tag_number_race.py:52: AssertionError
+>       assert not refused, (
+E       AssertionError: 7 of 20 concurrent receipts at one prefix were refused — the first: (409, '{"error": {"code": "conflict", "message": "Unique constraint violation", "request_id": "1bef998bee4f4876827fe8c9fde18868", "details": {"db_detail": "Key (name)=(NRS-GEN-026) already exists.", "constrai
+E       assert not [(409, '{"error": {"code": "conflict", "message": "Unique constraint violation", "request_id": "1bef998bee4f4876827fe8...me)=(NRS-GEN-029) already exists.", "constraint": "nrs_asset_tag_label_active_name_uniq", "http_status": 409}}}'), ...]
+tests/test_tag_number_race.py:52: AssertionError
+
+## the same test after the restart, the sequence mint
+1 passed in 9.09s
+1 passed in 6.30s
+1 passed in 8.79s

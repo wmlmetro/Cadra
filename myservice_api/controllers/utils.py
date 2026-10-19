@@ -113,6 +113,15 @@ ERR_INTERNAL             = "internal_error"
 ERR_NOT_IMPLEMENTED      = "not_implemented"
 ERR_IDEMPOTENCY_MISMATCH = "idempotency_mismatch"
 ERR_MISCONFIGURED        = "server_misconfigured"
+#: A tag number another transaction issued first (handoff 63b). RETRYABLE:
+#: nothing was written, and the same request sent again draws a new number.
+#: Vendra 59 retries on it; every other 4xx it treats as terminal.
+ERR_TAG_NUMBER_TAKEN     = "tag_number_taken"
+
+#: The partial unique index on active tag numbers (handoff 63,
+#: `nrs.asset.tag.label.ACTIVE_NUMBER_INDEX`). Named here as a string, not
+#: imported: the API maps the database's own constraint name.
+_TAG_NUMBER_INDEX = "nrs_asset_tag_label_active_name_uniq"
 
 
 def refuse_unwritable(rejected, writable, *, hint=None):
@@ -2101,6 +2110,24 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                 ))
             except psycopg2.errors.UniqueViolation as e:
                 request.env.cr.rollback()
+                if e.diag.constraint_name == _TAG_NUMBER_INDEX:
+                    # Since handoff 63b numbers come from a sequence per
+                    # prefix and two mints no longer meet; this is the one
+                    # path left — a number issued AROUND the sequence (an
+                    # import) between this request's read and its write.
+                    # Its own code, because unlike every other 409 the
+                    # answer is to send the same request again.
+                    return _http_response(err(
+                        ERR_TAG_NUMBER_TAKEN,
+                        "The tag number this request drew was issued to "
+                        "another asset a moment earlier. Nothing was "
+                        "written; send the same request again and it draws "
+                        "a new number.",
+                        status=409,
+                        details={"retryable": True,
+                                 "db_detail": (e.diag.message_detail or "").strip() or None,
+                                 "constraint": e.diag.constraint_name},
+                    ))
                 return _http_response(err(
                     ERR_CONFLICT, "Unique constraint violation",
                     status=409,

@@ -38,7 +38,18 @@ calls use plain `curl`.
 `unprocessable` (422), `rate_limited` (429), `internal_error` (500),
 `server_misconfigured` (500, and **503** on
 `POST /integrations/workflow/callback` for a tenant with no WorkSpace
-configuration).
+configuration), `tag_number_taken` (409, since handoff 63b).
+
+**`tag_number_taken` is the one 409 to RETRY.** `POST /api/v1/assets` (and
+every route that mints a tag) draws a location-prefix tag number from a
+Postgres sequence per prefix, so two receipts in flight at once no longer
+draw the same number — Vendra report 58's two `NRS-FURN-018` chairs. The
+one way a draw can still collide is with a number issued AROUND the
+sequence (an import) between the request's read and its write. The answer
+is `409 tag_number_taken`, `details.retryable: true`, `details.constraint`
+naming the index; nothing was written, and the same request sent again
+(the same `X-Idempotency-Key` included — a refusal is not stored for
+replay) draws a new number. Every other 409 means what it said.
 
 **A field a route does not accept is refused — a 400, and nothing is
 written.** Since 21 September 2026. Each of the eleven write routes that
