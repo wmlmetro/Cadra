@@ -72,7 +72,13 @@ The rules, from now on:
    - deviations and questions.
 
    Evidence goes in `NN-evidence/`, not in the report.
-9. **Measure where the time went.** The progress lines carry timestamps,
+9. **Never sit idle waiting on CI.** When everything else is done and CI is
+   still running, push the report marked *CI pending*, with the run's link.
+   Then poll the run every few minutes (`gh api …/actions/runs/<id>`) and
+   amend the report when it lands. If CI fails, fix it, push, and keep
+   polling. **A session that stops to wait loses hours** (report 65: idle
+   13:41–18:49, until the owner pinged).
+10. **Measure where the time went.** The progress lines carry timestamps,
    and the report ends with one line per phase: build, tests, verification
    pass, report.
 
