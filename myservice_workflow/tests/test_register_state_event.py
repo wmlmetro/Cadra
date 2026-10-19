@@ -352,7 +352,11 @@ class TestRegisterStateEvent(gates.GateCrew, CadraTransactionCase):
         rows.action_retry_now()
         self.assertEqual(set(rows.mapped('status')), {'pending'})
         self.assertEqual(rows.mapped('event_id'), ids)
-        self.assertEqual(set(rows.mapped('max_attempts')), {1 + 8})
+        # The re-send's budget is the attempts made plus the TARGET's own —
+        # 32 since handoff 63, ruling 8 (was 8).
+        self.assertEqual(set(rows.mapped('max_attempts')),
+                         {1 + self.vendra.retry_max_attempts})
+        self.assertEqual(self.vendra.retry_max_attempts, 32)
 
     def test_a_dead_letter_says_the_state_stands(self):
         a = self._to('vfm_pending', self._from_vendra())

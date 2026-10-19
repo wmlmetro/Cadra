@@ -353,6 +353,12 @@ _BODY_ROUTES = {
                      "`v1_photos.UPLOAD_FILE_FIELDS`/`UPLOAD_TEXT_FIELDS` by "
                      "`utils.get_multipart`; written by "
                      "`nrs.asset.photo._upload`, never by field name"),
+    ("POST", "/api/v1/sap-assets/imports"):
+        (None, None, "a multipart upload of SAP's export: ONE part `file`, "
+                     "refused outside `v1_sap_mirror.UPLOAD_FILE_FIELDS` by "
+                     "`utils.get_multipart`; its rows are written by "
+                     "`sap_mirror._Writer` from the file's columns, never "
+                     "by a key the caller names"),
     ("POST", "/api/v1/assets/<int:id>/photos/<int:photo_id>/supersede"):
         (None, None, "action: `reason`, recorded on the `photo_superseded` "
                      "event"),
@@ -735,6 +741,9 @@ _MUST_NOT_RESOLVE = {("request.request", "location_id")}
 _SERIALIZERS = {
     # Handoff 61 §5.
     ("v1_photos.py", "serialize_photo"): "nrs.asset.photo",
+    # Handoff 63 §1.
+    ("v1_sap_mirror.py", "serialize_sap"): "nrs.sap.asset",
+    ("v1_sap_mirror.py", "serialize_run"): "nrs.sap.import.run",
     ("v1_assets.py", "_serialize_depreciation"): "nrs.asset",
     ("v1_assets.py", "_serialize_tagging"): "nrs.asset",
     ("v1_assets.py", "_serialize_sap"): "nrs.asset",

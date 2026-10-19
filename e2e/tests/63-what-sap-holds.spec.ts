@@ -83,6 +83,9 @@ open(sys.argv[2], "wb").write(s.build_xlsx(rows))
 
 test.describe("handoff 63 — what SAP holds, in Cadra", () => {
   test.setTimeout(240_000);
+  // Each test signs in as its own person through the real page, so it
+  // starts signed out — not with the suite's stored administrator session.
+  test.use({ storageState: { cookies: [], origins: [] } });
 
   test("the administrator imports an export and reads the coverage in the same session", async ({ page }) => {
     const { file, office } = inventedExport();
