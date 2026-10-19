@@ -252,6 +252,13 @@ class TestReprintSameCode(GateCrew, CadraTransactionCase):
         a, b = self._plain_asset(), self._plain_asset()
         old = a.active_tag_id
         self.env.flush_all()
+        # Since handoff 63 a database with NO such number carries the
+        # unique index that refuses one (`ACTIVE_NUMBER_INDEX`) — CI's
+        # fresh database does; `test19`, with 68, does not. The state this
+        # test is about is the one the index cannot reach, so it is dropped
+        # here, in this test's own transaction, which rolls it back.
+        self.env.cr.execute('DROP INDEX IF EXISTS %s' % self.env[
+            'nrs.asset.tag.label'].ACTIVE_NUMBER_INDEX)
         self.env.cr.execute(
             "UPDATE nrs_asset_tag_label SET name = %s WHERE id = %s",
             (old.name, b.active_tag_id.id))
