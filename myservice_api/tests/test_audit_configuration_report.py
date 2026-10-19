@@ -771,7 +771,9 @@ class TestThePeriodFiltering(ConfigReportCase):
         key = self._key()
         param = self._param(key)
         self._flush_tracking()
-        moment = datetime(2001, 6, 30, 23, 30, 0)
+        # 23:30 LAGOS on the closing date — 22:30 UTC, the form the stamp
+        # is stored in. The period's days are Lagos days (handoff 63b).
+        moment = datetime(2001, 6, 30, 22, 30, 0)
         self._backdate(param, "create_date", moment)
         self._backdate(param, "write_date", moment)
 
@@ -787,7 +789,9 @@ class TestThePeriodFiltering(ConfigReportCase):
         key = self._key()
         param = self._param(key)
         self._flush_tracking()
-        moment = datetime(2001, 7, 1, 0, 30, 0)
+        # 00:30 LAGOS on the day after — 23:30 UTC on the closing date,
+        # which the UTC day this report used until handoff 63b let in.
+        moment = datetime(2001, 6, 30, 23, 30, 0)
         self._backdate(param, "create_date", moment)
         self._backdate(param, "write_date", moment)
 
