@@ -568,5 +568,5 @@ and set it back after — or just `--rebuild-template`.
 **A tenant built the way CI builds one skips what `test19` was given by
 hand:** the handoff-41 accounts (`h41_*`), two employees, the Mailpit mail
 server — 24 of 37 skips on the first `test19f`. The template seeds them
-(`scripts/seed_test_template_fixtures.py`). CI's database does not have
-them, which is why CI skips 39.
+(`scripts/seed_test_template_fixtures.py`), and CI runs the same seed on
+the database it builds — CI skipped 39 of 1,498 before it, 16 after.

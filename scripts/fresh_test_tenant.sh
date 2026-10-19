@@ -96,7 +96,7 @@ fi
 build_template() {
   local t0 modules out creds
   t0=$(now)
-  echo "▶ building template '$TEMPLATE' (about 4 minutes)"
+  echo "▶ building template '$TEMPLATE' (about 2½ minutes)"
   if exists "$TEMPLATE"; then
     psql -c "ALTER DATABASE $TEMPLATE WITH IS_TEMPLATE false ALLOW_CONNECTIONS true" >/dev/null
     kick "$TEMPLATE"
@@ -179,6 +179,14 @@ odoo_sh "rm -rf '$FILESTORE/$tenant' && if [ -d '$FILESTORE/$TEMPLATE' ]; then c
 # reload it on its next request instead of serving the old one's caches.
 psql_db "$tenant" -c "SELECT count(setval(c.relname::regclass, nextval(c.relname::regclass) + 1000))
                       FROM pg_class c WHERE c.relkind = 'S' AND c.relname LIKE 'base\_%\_signaling%'" >/dev/null
+# The template was built by runs on the spare port, so it says
+# `web.base.url = http://localhost:8099`. A report rendered in an in-registry
+# run (wkhtmltopdf) fetches its assets from that URL — the test process's
+# own port, blocked waiting on the render — and hangs (handoff 63b: the
+# register suite stuck 20 min in `TestItReallyRendersAPdf`). Point it at the
+# tenant's host on the live server, as `test19`'s is.
+psql_db "$tenant" -c "UPDATE ir_config_parameter SET value = 'http://$tenant.localhost:8069'
+                      WHERE key = 'web.base.url'" >/dev/null
 for f in creds personas; do
   (umask 077; cp "docs/api/.$f.$TEMPLATE" "docs/api/.$f.$tenant")
 done

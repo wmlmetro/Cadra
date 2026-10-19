@@ -136,13 +136,15 @@ jobs:
           cp "docs/api/.personas.${DB}" docs/api/.personas.localhost
           echo "personas: $(grep -cv '^#' docs/api/.personas.localhost) seeded on '$DB'"
 
-      - name: Seed the fixtures test19 carries — the handoff-41 accounts, two employees
+      - name: Seed the fixtures test19 carries — the handoff-41 accounts, two employees, the Mailpit server row
         run: |
           # The same seed `scripts/fresh_test_tenant.sh` puts in the local
           # template (handoff 63b). Without it the suite SKIPS the tests that
           # need a tagger-only account, a manager whose direct and effective
           # roles differ, or two employees to hand an asset between — 24 of
           # the first fresh tenant's 37 skips, and CI was skipping them too.
+          # It also writes the local Mailpit `ir.mail_server` row; CI has no
+          # Mailpit, so an invitation is refused here exactly as before.
           DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
           docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo bash -c \
             "odoo shell -c /etc/odoo/odoo.conf -d $DB --no-http --http-port=8099 --gevent-port=8098 --log-level=warn <<< \"exec(open('/mnt/extra-addons/scripts/seed_test_template_fixtures.py').read())\"" \
