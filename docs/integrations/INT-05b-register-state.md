@@ -195,8 +195,12 @@ for every outbound event:
 | any other 4xx (400, **401**, 403, 404, 422 …) | **`dead`** on the first attempt | no |
 
 **A 4xx other than 408/425/429 is final.** Use it for "this can never be
-taken" (malformed, or a `grn_reference` you do not hold, as INT-05's
-`TagUnmatchedError` does), never for "not ready yet". **Until Vendra's
+taken" (malformed), never for "not ready yet". **A `grn_reference`
+Vendra does not hold is NOT a 4xx:** Vendra answers `202` and dead-letters
+the event on its own side (Vendra report 57; Cadra report 62 §4.2), so
+Cadra records it `sent` and does not retry. *(Corrected by handoff 64: this
+sentence said such an event was refused with a 4xx, as INT-05's
+`TagUnmatchedError` is.)* **Until Vendra's
 receiver exists, Vendra answers `401 AuthenticationError`** — and it
 will go on answering 401 even once the method exists, **unless Vendra's auth
 hook covers the new path.** Frappe refuses any `Authorization` header that nothing authenticated, with a 401, BEFORE routing (`frappe/auth.py:627-628`); `tag_event` gets through only because Vendra's path-scoped auth hook (`vendra_network.auth.authenticate_cadra_callback`, `hooks.py` `auth_hooks`) covers its exact path. So Vendra's receiver is reachable

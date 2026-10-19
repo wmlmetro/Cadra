@@ -52,6 +52,7 @@ register against SAP's.
 | R8 | Q8: room barcode | Every `generic.location` gets a **`location_code`**, unique per tenant, generated if empty. Its QR and Code 128 carry it verbatim (handoff 55 §3). It is printed on a room label from the station. |
 | R9 | Findings §7.4: furniture needs make and model | The **default `tag_id` schema** becomes description, colour, material and dimensions. **Make and model become optional.** Classes whose schema was customised keep it. A chair with no visible brand can be recorded. |
 | R10 | Findings §3: `/mark-missing`, `/mark-found`, `/verify` on a candidate | **Refused.** A candidate isn't on the register, so it can't be missing from it. The 58 guard (`not_on_the_register`) is extended to these three. |
+| R11 | Handoff 64: where does recognition run? | **Cadra identifies the photo** (owner, 18 October 2026). No model is trained or shipped: an existing general-purpose vision model from an AI provider (Anthropic's Messages API first) is called **by Cadra's server**, never by the phone or the browser. One feature for every client — the web app and the phone call the same route, `POST /api/v1/ai/identify`; the key never leaves the server; the provider changes without touching a client; every suggestion is recorded where the audit trail lives (AI-NFR-05). **Offline:** a photo taken offline is identified when it syncs; until then the person picks the class. **What a photo can do:** the KIND of item (class, description, colour, material, condition) and the VISIBLE text (brand, model, serial plate, an old FIRS tag). It cannot tell which of 80,000 SAP furniture records a chair is — that is 63's matcher, fed with what the photo read. **The AI proposes, a person confirms:** no field is written from a suggestion without a person accepting it. **Data leaves our servers:** photos go to the provider; this joins R7 — NRS's written acceptance names the provider before production photos are sent. The model manifest and download rows of the mobile team's map are no longer needed. |
 
 ## 3 · The audit-capture path (R1), for the handoffs that build it
 
@@ -118,7 +119,10 @@ no vector store is needed at that scale.
 
 *Renumbered by handoff 62 (2026-10-15): Cadra 62 is the register-state
 event to Vendra, which closes the gated receipt loop go-live needs. The SAP
-mirror is now 63 and the audit-capture path 64.*
+mirror is now 63 and the audit-capture path 64.* *Renumbered again by
+handoff 64 (2026-10-19), after R11: 64 is AI identification, 65 the link
+between Cadra's own NRS register and SAP's records (report 63 §6), and the
+audit-capture path 66.*
 
 1. **Cadra 61: the safe pieces and the fixes.**
    - The fixes: R3, R9, R10, and the R2a decision record.
@@ -130,13 +134,22 @@ mirror is now 63 and the audit-capture path 64.*
 2. **Cadra 63: the SAP mirror and the matcher.** The owner-run import from
    the export, the matching route, and the *in SAP, not found* report per
    office.
-3. **Cadra 64: devices, code blocks and the audit-capture path.** Device
+3. **Cadra 64: AI identification, server-side, web first (R11).** One
+   provider adapter (a fake for every test, Anthropic's Messages API for
+   real), `POST /api/v1/ai/identify` behind `cadra.ai.identify` (off
+   everywhere by default) with a daily cap, the append-only
+   `nrs.ai.suggestion` and its per-field accepted / changed / ignored
+   record on save, and *Identify from photo* on the web app's Add asset form
+   and an asset's Photos tab.
+4. **Cadra 65: the link.** Cadra's own NRS register linked to SAP's records
+   (report 63 §6).
+5. **Cadra 66: devices, code blocks and the audit-capture path.** Device
    registration bound to a person, blocks issued by the Asset Controller,
    the ledger (R2, R2a), capture sync, review, and the two exception
    lists.
-4. **The mobile app** is the mobile team's, built against 61, 63 and 64's
-   published contracts. The model, its manifest and download are theirs
-   (findings §4, "mostly outside Cadra").
+6. **The mobile app** is the mobile team's, built against 61, 63, 64 and
+   66's published contracts. There is no model to package or download
+   (R11): the phone calls the same identify route as the web app.
 
 ## 5 · For the owner
 
