@@ -27,8 +27,9 @@ without somebody accepting it. Two records carry that here:
 
 What the person did is a third thing, and it is an `nrs.asset.event`
 (`ai_suggestion_applied`), written by `_apply` in the same transaction as
-the save: per field, accepted, changed (from → to) or ignored. AI-NFR-05's
-audit trail, read by the history as one line.
+the save: per field, accepted, changed (from → to) or ignored — and a field
+the asset already held as suggested is accepted with `already_held` (handoff
+65). AI-NFR-05's audit trail, read by the history as one line.
 """
 import base64
 import hashlib
@@ -120,6 +121,15 @@ def _norm(value):
         return int(value)
     text = str(value).strip()
     return text.casefold() or None
+
+
+def _held(asset, field):
+    """What `asset` holds in `field`, in the shape `written` carries — a
+    many2one as its id."""
+    value = asset[field]
+    if isinstance(value, models.BaseModel):
+        return value.id or None
+    return value
 
 
 class NRSAiPendingPhoto(models.Model):
@@ -410,20 +420,41 @@ class NRSAiSuggestion(models.Model):
                     details={'reason': 'photo_limit',
                              'max_photos': MAX_PHOTOS_PER_ASSET})
 
-    def _outcomes(self, written, ignored=()):
+    def _outcomes(self, written, ignored=(), asset=None):
         """Per proposed field: accepted, changed (from → to) or ignored.
 
         `written` is what the save wrote — `{field: value}` as sent, a
         many2one as its id. A field the person said they ignored is
-        ignored; a field the save did not send is ignored; otherwise the
-        saved value is compared with the proposal, text case-folded."""
+        ignored. A field the save wrote is compared with the proposal, text
+        case-folded: equal is accepted, different is changed.
+
+        A field the save did NOT write and the person did not name is
+        compared with what `asset` holds (handoff 65 §0a.3). The save did not
+        touch it, so what the asset holds now is what it held before: equal
+        to the proposal, the suggestion agreed with the register — accepted,
+        marked `already_held: true`, because nothing was written for it and
+        the record must not say a person typed it in. Different (or no
+        `asset` given), it is ignored, as before. Report 64's nit: the
+        Photos tab shows such a field *Same* and offers no choice, and it was
+        recorded *ignored* — which counted a suggestion the register already
+        bore out as one the person turned down."""
         self.ensure_one()
         ignored = set(ignored or ())
         out = {}
         for field, proposed in self._proposed().items():
-            if field in ignored or field not in written:
+            if field in ignored:
                 out[field] = {'outcome': OUTCOME_IGNORED,
                               'suggested': proposed}
+                continue
+            if field not in written:
+                if asset is not None and field in asset._fields \
+                        and _norm(_held(asset, field)) == _norm(proposed):
+                    out[field] = {'outcome': OUTCOME_ACCEPTED,
+                                  'suggested': proposed,
+                                  'already_held': True}
+                else:
+                    out[field] = {'outcome': OUTCOME_IGNORED,
+                                  'suggested': proposed}
                 continue
             saved = written[field]
             if _norm(saved) == _norm(proposed):
@@ -453,7 +484,7 @@ class NRSAiSuggestion(models.Model):
             # job. Its foreign key on the suggestion goes NULL in the
             # database, which is not a write to the append-only row.
             pending.sudo().unlink()
-        outcomes = self._outcomes(written, ignored)
+        outcomes = self._outcomes(written, ignored, asset=asset)
         counts = {k: 0 for k in (OUTCOME_ACCEPTED, OUTCOME_CHANGED,
                                  OUTCOME_IGNORED)}
         for item in outcomes.values():

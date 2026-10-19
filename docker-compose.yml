@@ -70,8 +70,13 @@ services:
       CADRA_EMAIL_RELAY_URL: ${CADRA_EMAIL_RELAY_URL:-}
       CADRA_EMAIL_RELAY_SECRET: ${CADRA_EMAIL_RELAY_SECRET:-}
       CADRA_TURNSTILE_SECRET: ${CADRA_TURNSTILE_SECRET:-}
-      # Handoff 64: the provider key for Identify from photo — the owner's.
-      # Empty leaves whatever a tenant holds alone (bootstrap is one-way).
+      # Handoff 65: the provider key for Identify from photo — the owner's,
+      # read by the SERVER from this variable on every call and kept in no
+      # database. One key per server; each tenant's own switch decides
+      # whether it is used. Empty: no tenant can identify (503, in words).
+      # `scripts/set_ai_key.sh` writes it into `.env`; recreate the odoo
+      # container for a change to take effect. The 19 and prod overlays
+      # inherit it (compose merges `environment` maps).
       CADRA_AI_API_KEY: ${CADRA_AI_API_KEY:-}
     volumes:
       - ./:/mnt/extra-addons:ro

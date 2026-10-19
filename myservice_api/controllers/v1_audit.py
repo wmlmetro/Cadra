@@ -65,14 +65,19 @@ _PERIOD_QUERY_PARAMS = (
     {"name": "from", "required": True,
      "schema": {"type": "string", "format": "date"},
      "description": "REQUIRED. First day of the period, INCLUSIVE "
-                    "(YYYY-MM-DD)."},
+                    "(YYYY-MM-DD). A LAGOS day: it opens at Lagos midnight, "
+                    "23:00 UTC the day before. Both reports that take this "
+                    "period bound Lagos days — configuration since handoff "
+                    "63b, access since 65 — as every other date the register "
+                    "publishes is."},
     {"name": "to", "required": True,
      "schema": {"type": "string", "format": "date"},
      "description": ("REQUIRED. Last day of the period, INCLUSIVE — the "
                      "whole of that day. An auditor asks for a quarter by "
                      "naming its first and last day, and an exclusive upper "
                      "bound would silently lose everything that happened on "
-                     "31 March.")},
+                     "31 March. A LAGOS day, to its last microsecond "
+                     "(22:59:59.999999 UTC).")},
 )
 
 

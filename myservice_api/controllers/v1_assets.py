@@ -524,7 +524,21 @@ def _serialize_sap(a):
         # stays in `asset_number` and this names both numbers, the maker and
         # the checker; `reconciliation_state` is `exception`. Null otherwise.
         "discrepancy": a._sap_discrepancy(),
+        # Handoff 65 §2: this asset is one of a group that all point at ONE
+        # SAP record, flagged by the Register Maker as a likely duplicate —
+        # a record for NRS, nothing merged. The latest flag, or null.
+        "duplicate_flag": _duplicate_flag(a),
     }
+
+
+def _duplicate_flag(a):
+    event = a._sap_duplicate_flags().get(a.id)
+    if not event:
+        return None
+    return {"sap_asset_number": event.to_value or None,
+            "note": event.notes or None,
+            "flagged_by": event.actor_name or None,
+            "flagged_at": _naive_iso(event.occurred_at)}
 
 
 def _naive_iso(v):
@@ -1744,7 +1758,16 @@ class CadraAssetsV1(http.Controller):
                      "required": ["name"],
                      "properties": {
                          "name": {"type": "string"},
-                         "legacy_asset_code": {"type": "string", "nullable": True},
+                         "legacy_asset_code": {
+                             "type": "string", "nullable": True,
+                             "description": "The OLD FIRS TAG — SAP's "
+                                            "Inventory number (`old_tag` on "
+                                            "a mirror record). The one field "
+                                            "the SAP matcher, the coverage "
+                                            "report's confident count, the "
+                                            "SAP link (handoff 65) and the "
+                                            "audit capture (handoff 66) "
+                                            "read."},
                          "serial_number": {"type": "string", "nullable": True},
                          "make": {"type": "string", "nullable": True},
                          "model_name": {"type": "string", "nullable": True},

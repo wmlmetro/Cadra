@@ -353,6 +353,27 @@ _BODY_ROUTES = {
                      "`v1_photos.UPLOAD_FILE_FIELDS`/`UPLOAD_TEXT_FIELDS` by "
                      "`utils.get_multipart`; written by "
                      "`nrs.asset.photo._upload`, never by field name"),
+    # Handoff 65. The link's acts name ids, a note or a reason — never a
+    # field of a model; each body is refused outside its route's own set
+    # (`v1_sap_links._body`) and written by `nrs.sap.link`'s acts.
+    ("POST", "/api/v1/sap-links/propose"):
+        (None, None, "`asset_ids`, `note`, `dry_run`: a batch of single "
+                     "proposals, written by `nrs.asset._sap_link_propose`"),
+    ("POST", "/api/v1/sap-links/approve"):
+        (None, None, "`link_ids`, `dry_run`: decisions, written by "
+                     "`nrs.sap.link._decide`"),
+    ("POST", "/api/v1/sap-links/return"):
+        (None, None, "`link_ids`, `reason`, `dry_run`: decisions, written "
+                     "by `nrs.sap.link._decide`"),
+    ("POST", "/api/v1/assets/<int:id>/sap-link/undo"):
+        (None, None, "`reason`: a proposal to undo, written by "
+                     "`nrs.asset._sap_unlink_propose`"),
+    ("POST", "/api/v1/sap-links/contested/<int:sap_id>/propose"):
+        (None, None, "`asset_id`, `note`: the maker's choice, written by "
+                     "`nrs.asset._sap_link_propose`"),
+    ("POST", "/api/v1/sap-links/contested/<int:sap_id>/flag"):
+        (None, None, "`note`: a duplicate flag, written as an "
+                     "`nrs.asset.event` on each asset of the group"),
     ("POST", "/api/v1/sap-assets/imports"):
         (None, None, "a multipart upload of SAP's export: ONE part `file`, "
                      "refused outside `v1_sap_mirror.UPLOAD_FILE_FIELDS` by "
@@ -758,6 +779,7 @@ _SERIALIZERS = {
     # Handoff 63 §1.
     ("v1_sap_mirror.py", "serialize_sap"): "nrs.sap.asset",
     ("v1_sap_mirror.py", "serialize_run"): "nrs.sap.import.run",
+    ("v1_sap_links.py", "serialize_link"): "nrs.sap.link",
     ("v1_assets.py", "_serialize_depreciation"): "nrs.asset",
     ("v1_assets.py", "_serialize_tagging"): "nrs.asset",
     ("v1_assets.py", "_serialize_sap"): "nrs.asset",

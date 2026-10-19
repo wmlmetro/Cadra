@@ -3,9 +3,11 @@
  *
  * The tenant's switch `cadra.ai.identify` (off by default everywhere), who
  * the photo is sent to, the model, the timeout, the daily cap with TODAY's
- * count, and whether the owner has placed a provider key — never the key
- * itself, which no route returns and none accepts. Every change is a row in
- * Configuration changes.
+ * count, and whether the SERVER holds a provider key — never the key itself,
+ * which no route returns and none accepts. Since handoff 65 the key lives in
+ * the server's environment (`CADRA_AI_API_KEY`), not in any database, so
+ * there is nothing on this page to type it into: it is one key per server,
+ * set by the owner. Every change is a row in Configuration changes.
  *
  * `settings:write` for the changes, as the server's PATCH is; `settings:read`
  * sees the page read-only.
@@ -32,6 +34,7 @@ export interface AiIdentifySettings {
   efforts: string[];
   key_placed: boolean;
   key_command: string;
+  key_variable: string;
   database_class: string | null;
   today: { day: string; calls: number; remaining: number };
   notice: string;
@@ -143,11 +146,14 @@ export default function AiIdentifySettingsPage() {
           <section className="bg-card border border-border rounded-2xl p-5 space-y-3">
             <h2 className="text-[13px] font-bold flex items-center gap-1.5"><KeyRound size={14} /> Provider key</h2>
             <p className="text-[12px] text-foreground" data-testid="ai-settings-key">
-              {s.key_placed ? "A key is placed on this tenant." : "No key is placed on this tenant."}
+              {s.key_placed ? "This server holds a provider key." : "This server holds no provider key."}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              The key is the owner's. It is never shown or typed here; the owner places it with{" "}
-              <code className="font-mono">{s.key_command}</code>.
+              The key is the owner's and is set on the server, not here: it is{" "}
+              <code className="font-mono">{s.key_variable}</code> in the server's environment, one key for every
+              tenant on the server, kept in no database. It is never shown or typed on this page. Locally the owner
+              sets it with <code className="font-mono">{s.key_command}</code>; on the cluster it is a key of the{" "}
+              <code className="font-mono">cadra-odoo</code> secret.
             </p>
           </section>
 

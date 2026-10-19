@@ -43,6 +43,22 @@ EVENT_PHOTO_SUPERSEDED = 'photo_superseded'
 # row itself is append-only, so what happened to it can only be a record of
 # its own.
 EVENT_AI_SUGGESTION_APPLIED = 'ai_suggestion_applied'
+# Handoff 65 §1. One act on an asset's link to its SAP record — proposed,
+# approved, returned, and the same three for undoing it — written by
+# `nrs.sap.link` and by nothing else. `gate` is `link_make` or `link_check`
+# for the act that is a gate (a proposal, an approval) and NULL for a return,
+# exactly as `gate_fired` leaves a return's gate empty; the no-two-gates rule
+# reads it back, so one person cannot propose and approve one link.
+# `gate_action` says which act; `to_value` (and `from_value` on an undo) the
+# SAP asset number; `reason` the matcher's reason or the person's; `notes`
+# the JSON of who proposed and who decided.
+EVENT_SAP_LINK = 'sap_link'
+# Handoff 65 §2. A group of Cadra assets that all point at ONE SAP record,
+# flagged by the Register Maker as a likely duplicate, with a note: a record
+# for NRS, written on every asset of the group. Nothing is merged, retired or
+# deleted — this row is the whole of the act. `to_value` is the SAP asset
+# number the group points at, `notes` the maker's note.
+EVENT_SAP_DUPLICATE_FLAGGED = 'sap_duplicate_flagged'
 
 # The symbologies a scanner can claim a value was read in — the
 # BarcodeDetector-style names the app's camera passes up with every decode
@@ -146,6 +162,11 @@ _PAYLOAD_OF_TYPE = {
     # of the per-field outcomes, the way `gate_fired` carries its evidence.
     EVENT_AI_SUGGESTION_APPLIED: frozenset(
         {'ai_suggestion_id', 'photo_id', 'notes'}),
+    # Handoff 65 §1.
+    EVENT_SAP_LINK: frozenset(
+        {'from_value', 'to_value', 'reason', 'notes', 'gate', 'gate_action'}),
+    # Handoff 65 §2.
+    EVENT_SAP_DUPLICATE_FLAGGED: frozenset({'to_value', 'notes'}),
 }
 
 # Which fields each field-carrying type may name. A reference change naming a
@@ -161,7 +182,7 @@ _FIELDS_OF_TYPE = {
 # `nrs.asset.append.only.mixin._resolve_source`.
 _CONTEXT_SOURCES = (
     'api_verify', 'api_condemn', 'api_mark_missing', 'api_mark_found',
-    'api_write', 'api_affix', 'api_gate', 'api_photo',
+    'api_write', 'api_affix', 'api_gate', 'api_photo', 'api_sap_link',
     'action', 'transfer', 'approval', 'direct')
 
 
@@ -249,6 +270,8 @@ class NRSAssetEvent(models.Model):
         (EVENT_GATE_FIRED, 'Receipt gate fired'),
         (EVENT_PHOTO_SUPERSEDED, 'Photo superseded'),
         (EVENT_AI_SUGGESTION_APPLIED, 'Details suggested from a photo'),
+        (EVENT_SAP_LINK, 'SAP link'),
+        (EVENT_SAP_DUPLICATE_FLAGGED, 'Flagged as a likely duplicate'),
     ], string='Event', required=True, index=True)
 
     occurred_at = fields.Datetime(
@@ -308,6 +331,7 @@ class NRSAssetEvent(models.Model):
         ('api_affix', 'API — tag-affix confirmation'),
         ('api_gate', 'API — receipt gate'),
         ('api_photo', 'API — photo superseded'),
+        ('api_sap_link', 'API — SAP link'),
         ('action', 'A button on the asset (verify, condemn, mark missing '
                    'or found)'),
         ('transfer', 'Asset transfer completion'),
@@ -334,8 +358,11 @@ class NRSAssetEvent(models.Model):
             "An asset event cannot be created directly. One is written only "
             "as a side effect of the asset actually being verified, changing "
             "status, having a reference or its warranty changed, having "
-            "an affix confirmation refused, having a photo superseded, or "
-            "being saved with details suggested from a photo, so that the record says what happened rather than what "
+            "an affix confirmation refused, having a photo superseded, "
+            "being saved with details suggested from a photo, having its "
+            "link to SAP's record proposed, decided or undone, or being "
+            "flagged as a likely duplicate, so that the record says what "
+            "happened rather than what "
             "somebody typed."
         )
 

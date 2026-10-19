@@ -63,7 +63,7 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.fields import Domain
 
-from .asset_event import EVENT_GATE_FIRED
+from .asset_event import EVENT_GATE_FIRED, EVENT_SAP_LINK
 
 _logger = logging.getLogger(__name__)
 
@@ -125,6 +125,12 @@ GATE_TAG_REQUEST = 'tag_request'
 GATE_TAGGING = 'tagging'
 GATE_MAKE = 'make'
 GATE_CHECK = 'check'
+# Handoff 65 §1: the link of a register asset to its SAP record. Not receipt
+# gates — a link never moves `register_state` — but the same rule: whoever
+# proposed a change to an asset's link may not decide it. One pair for both
+# directions, so the maker who proposed a link may propose undoing it.
+GATE_LINK_MAKE = 'link_make'
+GATE_LINK_CHECK = 'link_check'
 
 # "You <done> on 7 Oct; a different person must <todo>."
 _GATE_DONE = {
@@ -135,6 +141,8 @@ _GATE_DONE = {
     GATE_TAGGING: 'tagged this unit',
     GATE_MAKE: 'submitted this unit for registration',
     GATE_CHECK: "approved this unit's registration",
+    GATE_LINK_MAKE: "proposed a change to this unit's SAP link",
+    GATE_LINK_CHECK: "decided on this unit's SAP link",
 }
 _GATE_TODO = {
     GATE_RECEIPT: 'submit it',
@@ -144,6 +152,8 @@ _GATE_TODO = {
     GATE_TAGGING: 'tag it',
     GATE_MAKE: 'submit it for registration',
     GATE_CHECK: 'approve its registration',
+    GATE_LINK_MAKE: 'propose a change to its SAP link',
+    GATE_LINK_CHECK: 'decide on its SAP link',
 }
 
 # The scopes, spelled here as literals because `myservice_api` (which owns
@@ -643,11 +653,20 @@ class NRSAssetGates(models.Model):
             gate = GATE_VERIFY if S_VFM_VERIFY in held else GATE_APPROVE
         return gate
 
+    def _segregation_events(self):
+        """Every act on this unit that fired a gate: the receipt gates and,
+        since handoff 65, the SAP link's two (`sap_link` events)."""
+        self.ensure_one()
+        return self.env['nrs.asset.event'].sudo().search(
+            [('asset_id', '=', self.id),
+             ('event_type', 'in', (EVENT_GATE_FIRED, EVENT_SAP_LINK)),
+             ('gate', '!=', False)], order='occurred_at, id')
+
     def _two_gates_refusal(self, gate, user=None):
         """The sentence refusing `user` gate `gate` here, or None."""
         self.ensure_one()
         user = user or self.env.user
-        for event in self._gate_events():
+        for event in self._segregation_events():
             if event.actor_id.id == user.id and event.gate \
                     and event.gate != gate:
                 return (_(

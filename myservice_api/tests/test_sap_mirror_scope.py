@@ -73,9 +73,13 @@ class TestSapMirrorScope(CadraHttpCase):
             'Authorization': 'Bearer %s' % self._token(name)})
 
     def _upload(self, name, data):
+        # `mark_absent` (handoff 65 §3): an invented file over the tenant's
+        # mirror would trip the 5% guard, which `tests/test_the_link.py`
+        # tests; this file is about who may import.
         return self.url_open(
             '/api/v1/sap-assets/imports',
             files={'file': ('export.xlsx', data)},
+            data={'mark_absent': 'true'},
             headers={'Authorization': 'Bearer %s' % self._token(name)})
 
     def test_the_scope_table_gives_the_mirror_to_the_four_and_nobody_else(self):

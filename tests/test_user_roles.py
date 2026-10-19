@@ -27,7 +27,8 @@ import uuid
 
 import pytest
 
-from .conftest import assert_envelope_ok, assert_envelope_err, assert_fields_refused
+from .conftest import (assert_envelope_ok, assert_envelope_err,
+                       assert_fields_refused, lagos_today)
 
 ROLES = "/api/v1/roles"
 USERS = "/api/v1/users"
@@ -104,8 +105,10 @@ def _restore(client, user_id, keys):
 def _access_events(client, login):
     """Every membership event for `login` from yesterday to today, walking
     the report's cursor — it pages by ACCOUNT, so the row can be on any
-    page."""
-    today = datetime.date.today()
+    page. LAGOS days, as the report bounds them since handoff 65: on CI's
+    UTC clock `date.today()` is yesterday in Lagos from 23:00 to 24:00, and
+    a grant made a moment ago would fall after `to`."""
+    today = lagos_today()
     params = {"from": (today - datetime.timedelta(days=1)).isoformat(),
               "to": today.isoformat(), "limit": 100}
     events, cursor = [], None

@@ -85,6 +85,9 @@ from odoo.addons.myservice_api.models.audit_access import (
     ACCESS_EVENT_MODIFIED,
     _STRUCTURAL_LOGINS,
 )
+from odoo.addons.myservice_api.models.audit_configuration import (
+    lagos_days_in_utc,
+)
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 #: Wide enough to hold anything a test dates deliberately. Tests that are
@@ -1263,10 +1266,16 @@ class TestThePeriodBounds(AccessReportCase):
     midnight on the closing date is the quietest possible way for a report to
     be wrong: it is right for most of the rows, and the ones it loses are the
     ones nobody counted.
+
+    Every moment below is the UTC instant the stamp is STORED as, and the
+    days it is judged against are LAGOS days (handoff 65,
+    `TestThePeriodIsALagosDay`): 23:30 Lagos is 22:30 UTC.
     """
 
-    #: Late enough on the closing day that a naive midnight bound loses it.
-    LATE = datetime(2021, 6, 30, 23, 30, 0)
+    #: Late enough on the closing day that a naive midnight bound loses it —
+    #: 23:30 LAGOS on 30 June. Until handoff 65 this was 23:30 UTC, which is
+    #: 00:30 Lagos on 1 July and now, correctly, outside the period.
+    LATE = datetime(2021, 6, 30, 22, 30, 0)
 
     def _user_at(self, moment):
         """An account whose create and write stamps both sit at `moment`.
@@ -1292,7 +1301,9 @@ class TestThePeriodBounds(AccessReportCase):
             "on the last day and loses them silently.")
 
     def test_an_event_on_the_opening_day_is_included(self):
-        user = self._user_at(datetime(2021, 6, 1, 0, 0, 1))
+        # 00:00:01 LAGOS on 1 June — 23:00:01 UTC on 31 May, which the UTC
+        # day this report used until handoff 65 left out.
+        user = self._user_at(datetime(2021, 5, 31, 23, 0, 1))
         report = self._report(date(2021, 6, 1), date(2021, 6, 30))
         self.assertEqual(
             [e["event"] for e in self._events_for(report, user)],
@@ -1302,12 +1313,130 @@ class TestThePeriodBounds(AccessReportCase):
     def test_an_event_the_next_day_is_excluded(self):
         """The bound has to bite in the other direction too, or "inclusive of
         the whole closing day" is indistinguishable from "no upper bound"."""
-        user = self._user_at(datetime(2021, 7, 1, 0, 30, 0))
+        # 00:30 LAGOS on 1 July — 23:30 UTC on the closing date, which the
+        # UTC day this report used until handoff 65 let in.
+        user = self._user_at(datetime(2021, 6, 30, 23, 30, 0))
         report = self._report(date(2021, 6, 1), date(2021, 6, 30))
         self.assertEqual(
             self._events_for(report, user), [],
             "an account created after midnight on the day AFTER the closing "
             "date is inside the period, so the upper bound is not bounding")
+
+
+# ═════════════════════════════════════════════════════════════════════
+@tagged("post_install", "-at_install")
+class TestThePeriodIsALagosDay(AccessReportCase):
+    """A day in this report is a LAGOS day (handoff 65), as it has been on
+    the configuration report since 63b and as every other date the register
+    publishes is. It was a UTC day: from 00:00 to 01:00 Lagos a grant made a
+    minute ago fell on yesterday's UTC date and was missing from today's
+    report — and an auditor asking "who was given what on the 19th" was
+    shown the hour from 01:00 on the 19th to 01:00 on the 20th.
+
+    Both halves of the report are period-filtered and both are pinned: the
+    account stamps (`create_date`/`write_date`) and the forward record's
+    `changed_at`. The stamps come from Postgres (`cr.now()`), which no frozen
+    clock in Python reaches, so each row is PLACED at the instant in SQL
+    instead; the only clock this report compares is the stored stamp against
+    the day's two edges. The same helper as 63b's — `lagos_days_in_utc` —
+    so the two reports cannot disagree on where a day starts.
+    """
+
+    # 00:30 Lagos on 11 May 2031 is 23:30 UTC on the 10th. Days far from
+    # any run's real clock: a fixture account is GRANTED its groups at the
+    # real now, so a period containing today would see that grant too (the
+    # first draft used 18–19 October 2026 and failed on the 19th).
+    HALF_PAST_MIDNIGHT_LAGOS = datetime(2031, 5, 10, 23, 30)
+    THE_19TH = date(2031, 5, 11)
+    THE_18TH = date(2031, 5, 10)
+
+    def _created_at(self, moment):
+        """An account whose create and write stamps both sit at `moment`, so
+        the two-second rule writes no `account_modified` and the test is
+        about the period's edges alone."""
+        user = self._user()
+        self._flush_tracking()
+        self._backdate(user, "create_date", moment)
+        self._backdate(user, "write_date", moment)
+        return user
+
+    def _granted_at(self, moment):
+        """A REAL grant (the record refuses a hand-written row), then its
+        `changed_at` moved in raw SQL — the record is append-only and its
+        `write` raises unconditionally, so SQL is the only way to place a
+        row at an instant (CLAUDE.md: a fixture that needs a row in the past
+        uses raw SQL and says so). The TransactionCase rolls it back."""
+        user = self._user()
+        self._flush_tracking()
+        group = self._grant(user)
+        rows = self.env["myservice.api.access.change"].sudo().search([
+            ("user_id", "=", user.id), ("group_id", "=", group.id),
+            ("event", "=", ACCESS_EVENT_GRANTED)])
+        self.assertEqual(
+            len(rows), 1,
+            "the grant wrote %d record rows, not one; the placement below "
+            "would be moving the wrong thing" % len(rows))
+        self.env.flush_all()
+        self.env.cr.execute(
+            "UPDATE myservice_api_access_change SET changed_at = %s "
+            "WHERE id = %s", (moment, rows.id))
+        self.env.invalidate_all()
+        return user, group.full_name or group.name
+
+    def _grants(self, report, user, label):
+        return [e for e in self._events_for(report, user)
+                if e["event"] == ACCESS_EVENT_GRANTED and e["group"] == label]
+
+    def test_an_account_created_at_half_past_midnight_is_in_that_lagos_day(
+            self):
+        user = self._created_at(self.HALF_PAST_MIDNIGHT_LAGOS)
+        self.assertEqual(
+            [e["event"] for e in self._events_for(
+                self._report(self.THE_19TH, self.THE_19TH), user)],
+            [ACCESS_EVENT_CREATED],
+            "an account created at 00:30 Lagos on the 19th is missing from "
+            "the report for the 19th — the period is being read as a UTC day")
+        self.assertEqual(
+            self._events_for(
+                self._report(self.THE_18TH, self.THE_18TH), user), [],
+            "an account created at 00:30 Lagos on the 19th is reported on "
+            "the 18th, its UTC date")
+
+    def test_a_recorded_grant_at_half_past_midnight_is_in_that_lagos_day(
+            self):
+        """The half of the report that answers §13.4's question — and the
+        count beside it, which a summary-only reader trusts."""
+        user, label = self._granted_at(self.HALF_PAST_MIDNIGHT_LAGOS)
+        the_19th = self._report(self.THE_19TH, self.THE_19TH)
+        self.assertEqual(
+            len(self._grants(the_19th, user, label)), 1,
+            "a grant recorded at 00:30 Lagos on the 19th is missing from the "
+            "report for the 19th — `changed_at` is being bounded by UTC days")
+        self.assertGreaterEqual(
+            the_19th["summary"]["group_changes_in_period"], 1)
+        self.assertEqual(
+            self._grants(self._report(self.THE_18TH, self.THE_18TH),
+                         user, label), [],
+            "a grant recorded at 00:30 Lagos on the 19th is reported on the "
+            "18th, its UTC date")
+
+    def test_the_edges_are_lagos_midnight_and_its_last_microsecond(self):
+        start, end = lagos_days_in_utc(self.THE_19TH, self.THE_19TH)
+        self.assertEqual(start, datetime(2031, 5, 10, 23, 0))
+        self.assertEqual(end, datetime(2031, 5, 11, 22, 59, 59, 999999))
+        first = self._created_at(start)
+        last = self._created_at(end)
+        before = self._created_at(start - timedelta(microseconds=1))
+        after = self._created_at(end + timedelta(microseconds=1))
+        report = self._report(self.THE_19TH, self.THE_19TH)
+        self.assertTrue(self._events_for(report, first),
+                        "Lagos midnight itself is outside the day it opens")
+        self.assertTrue(self._events_for(report, last),
+                        "the day's last microsecond is outside it")
+        self.assertEqual(self._events_for(report, before), [],
+                         "the instant before Lagos midnight is inside the day")
+        self.assertEqual(self._events_for(report, after), [],
+                         "the instant after the day's last is inside it")
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -1386,9 +1515,9 @@ class TestTheStatementIsNotTranslated(AccessReportCase):
         failing, or worse, being "fixed" by loosening it.
         """
         report = self._report()
-        start = fields.Datetime.to_datetime(WIDE_FROM)
-        end = fields.Datetime.to_datetime(WIDE_TO).replace(
-            hour=23, minute=59, second=59, microsecond=999999)
+        # The report's own edges, Lagos days since handoff 65 — computed by
+        # the same helper, so this compares like with like.
+        start, end = lagos_days_in_utc(WIDE_FROM, WIDE_TO)
         expected = self.Users._access_change_coverage(
             report["events"], report["fidelity"], start=start, end=end,
             group_changes=report["summary"]["group_changes_in_period"])

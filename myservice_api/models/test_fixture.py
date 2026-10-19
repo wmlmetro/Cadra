@@ -332,3 +332,11 @@ class NRSSapAsset(models.Model):
     63) — stamped by the importer from its run, never by a caller."""
     _name = 'nrs.sap.asset'
     _inherit = ['nrs.sap.asset', 'cadra.test.fixture.mixin']
+
+
+class NRSSapLink(models.Model):
+    """A SAP link a test proposed says so (handoff 65). Like the change
+    request it is never deleted, so a fixture's proposal on a real tenant is
+    permanent and must be identifiable as one."""
+    _name = 'nrs.sap.link'
+    _inherit = ['nrs.sap.link', 'cadra.test.fixture.mixin']

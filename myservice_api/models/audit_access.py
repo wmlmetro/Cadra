@@ -60,6 +60,10 @@ from .access_change import (
     ACCOUNT_STATE_EVENTS,
     SYSTEM_ACTOR,
 )
+# The configuration report's helper, not a second one: two reports that
+# disagree on where a day starts would put one change on two different dates
+# depending on which screen the auditor opened.
+from .audit_configuration import lagos_days_in_utc
 
 
 #: How much of the requested period this report can speak for, as one value a
@@ -539,7 +543,8 @@ class ResUsersAccessReport(models.Model):
 
     @api.model
     def access_change_report(self, date_from, date_to):
-        """Access events in `[date_from, date_to]`, both bounds inclusive.
+        """Access events in `[date_from, date_to]`, both bounds inclusive,
+        both LAGOS days (`lagos_days_in_utc`).
 
         Returns `{'events', 'roster', 'summary', 'fidelity'}`. Reads only;
         `test_audit_access_report.py` fingerprints the tables to prove it.
@@ -548,16 +553,17 @@ class ResUsersAccessReport(models.Model):
         users = self.sudo().with_context(active_test=False).search(
             self._access_report_domain(), order='id')
 
-        # Inclusive of the whole closing day: a period given as dates must
-        # not silently exclude everything that happened on its last one.
-        start = fields.Datetime.to_datetime(date_from)
-        # `microsecond=999999` is not fussiness. Without it the closing
-        # instant is 23:59:59.000000 and everything in the last second of a
-        # period documented as "inclusive of the whole closing day" falls
-        # outside it — a one-second hole at the top of every period, on a
-        # report whose whole value is that its bounds are what they say.
-        end = fields.Datetime.to_datetime(date_to).replace(
-            hour=23, minute=59, second=59, microsecond=999999)
+        # LAGOS days, inclusive of the whole closing day, in naive UTC — the
+        # form `create_date`, `write_date` and `changed_at` are stored in.
+        # Until handoff 65 these were UTC days, the hole 63b closed on the
+        # configuration report: from 00:00 to 01:00 Lagos a grant made a
+        # minute ago fell on yesterday's UTC date and was missing from
+        # today's report, on a register whose every other published date is
+        # a Lagos day. The closing instant is still the last MICROSECOND of
+        # the day (`time.max`), not 23:59:59.000000 — without it everything
+        # in the last second of a period documented as "inclusive of the
+        # whole closing day" falls outside it.
+        start, end = lagos_days_in_utc(date_from, date_to)
 
         groups_field = fidelity['groups_field']
         # ONE search, not one per user. This ran a `myservice.api.client`

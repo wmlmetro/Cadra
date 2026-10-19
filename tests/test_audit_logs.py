@@ -50,7 +50,7 @@ import pytest
 
 from . import gates
 from .conftest import (assert_envelope_ok, assert_envelope_err,
-                       assert_fields_refused)
+                       assert_fields_refused, lagos_today)
 
 ACCESS = "/api/v1/reports/access-changes"
 CONFIG = "/api/v1/reports/configuration-changes"
@@ -126,7 +126,11 @@ _APPROVER_SPELLINGS = ("disposal_approved_by", "disposal_approved_date",
 
 
 def _today():
-    return datetime.date.today()
+    # The LAGOS day, not the machine's: both reports here bound Lagos days
+    # (configuration since 63b, access since 65), and so does a disposal's
+    # date. CI's clock is UTC, where `date.today()` is yesterday in Lagos
+    # from 23:00 to 24:00 and a row made a moment ago falls outside it.
+    return lagos_today()
 
 
 def _iso(d):

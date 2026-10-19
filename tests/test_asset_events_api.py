@@ -68,12 +68,14 @@ _EVENT_RECORD = "nrs.asset.event"
 # `gate_fired` is handoff 57's — a receipt gate (kept by 58).
 # `details_suggested` since handoff 64 (additive): a save that used details
 # suggested from a photo, before `photo_added` in the stored order.
+# `sap_link` and `sap_duplicate_flagged` since handoff 65 (additive): a
+# link to SAP's record by two people, and a duplicate flagged for NRS.
 # `photo_superseded` and `photo_added` since handoff 61 (additive): a photo
 # is its own append-only row, and superseding one is an event.
 _RECORDED_TYPES = ["verified", "verification_date_set", "status_changed",
                    "provenance_changed", "warranty_changed", "affix_refused",
                    "gate_fired", "photo_superseded", "details_suggested",
-                   "photo_added"]
+                   "sap_link", "sap_duplicate_flagged", "photo_added"]
 
 _HIERARCHY_FIELDS = ("building_id", "floor_id", "room_id")
 
@@ -1559,8 +1561,11 @@ def test_an_event_this_suite_wrote_says_so(client, test_location,
     # `details_suggested` needs identification switched on and a save that
     # used a suggestion; `tests/test_what_the_photo_says.py` writes it and
     # asserts its label there.
+    # `sap_link` and `sap_duplicate_flagged` need a SAP mirror record the
+    # asset matches; `tests/test_the_link.py` writes and asserts them.
     expected = [t for t in _RECORDED_TYPES
-                if t not in ("photo_added", "details_suggested")]
+                if t not in ("photo_added", "details_suggested", "sap_link",
+                             "sap_duplicate_flagged")]
     if not gates.receipt_gated(client):
         expected = [t for t in expected if t != "gate_fired"]
     added = [e for e in _history(client, asset["id"])["events"]

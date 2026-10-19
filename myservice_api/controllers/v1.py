@@ -2162,7 +2162,8 @@ class MyserviceApiV1(http.Controller):
                             "code_source": {
                                 "type": "string", "nullable": True,
                                 "enum": ["integration", "import", "manual",
-                                         "confirmed"],
+                                         "confirmed",
+                                         "linked_from_sap_mirror"],
                                 "description": (
                                     "How the SAP asset number got onto this "
                                     "record. `integration` means SAP "
@@ -2177,7 +2178,25 @@ class MyserviceApiV1(http.Controller):
                                     "(handoff 58): a number the Register "
                                     "Maker entered that SAP's INT-06 answer "
                                     "then returned unchanged — also written "
-                                    "only by the integration."),
+                                    "only by the integration. "
+                                    "`linked_from_sap_mirror` (handoff 65): "
+                                    "read from SAP's own export by a "
+                                    "Register Maker and approved by a "
+                                    "Register Checker on Link to SAP — "
+                                    "written only by that approval."),
+                            },
+                            "duplicate_flag": {
+                                "type": "object", "nullable": True,
+                                "description": (
+                                    "Handoff 65: this asset is one of a "
+                                    "group of Cadra assets that all point "
+                                    "at ONE SAP record, flagged by the "
+                                    "Register Maker as a likely duplicate "
+                                    "— a record for NRS; nothing merged, "
+                                    "retired or deleted. The latest flag: "
+                                    "`sap_asset_number`, `note`, "
+                                    "`flagged_by`, `flagged_at`. Null when "
+                                    "never flagged."),
                             },
                             "posting_state": {
                                 "type": "string",

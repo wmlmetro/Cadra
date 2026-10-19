@@ -13,8 +13,13 @@ What the HTTP suite (`tests/test_what_the_photo_says.py`) cannot see:
    enum, three alternatives, a repeated class: discarded; a make, a model or
    dimensions the provider did not read: removed and SAID;
 4. **the outcomes** — accepted (case-folded), changed (from → to), ignored
-   (dismissed or not sent), and a held photo claimed by the save;
-5. **the arithmetic** — image tokens and cost at the published prices.
+   (dismissed, or not sent and not what the asset holds), a field the asset
+   ALREADY holds as suggested accepted with `already_held` (handoff 65), and
+   a held photo claimed by the save;
+5. **the arithmetic** — image tokens and cost at the published prices;
+6. **the daily cap's day is Lagos's** (handoff 65) — a frozen clock either
+   side of Lagos midnight, which is 23:00 UTC, so a cap counted by the UTC
+   day would fail it.
 
 Run with:
     odoo -d test19f -u myservice_api --test-enable \\
@@ -23,14 +28,17 @@ Run with:
 """
 import io
 import json
+from datetime import date, datetime
 
 from PIL import Image
 
 from odoo.exceptions import UserError
 from odoo.tests import tagged
+from odoo.tests.common import freeze_time
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 from odoo.addons.myservice_asset_register.models import ai_suggestion as S
 from odoo.addons.myservice_api.controllers import ai_provider as ai
+from odoo.addons.myservice_api.controllers import v1_ai
 
 SUGGESTION = "nrs.ai.suggestion"
 _GUARD_METHODS = ("create", "write", "unlink", "_resolve_source")
@@ -298,6 +306,65 @@ class TestAiSuggestion(CadraTransactionCase):
             row._check_applicable(None)
         self.assertEqual(raised.exception.details["reason"], "photo_expired")
 
+    def test_a_field_the_asset_already_holds_is_accepted_not_ignored(self):
+        """Report 64's nit (handoff 65 §0a.3). The Photos tab shows a field
+        the asset already holds as suggested as *Same*, with no button, and
+        the save does not send it. It was recorded *ignored* — a suggestion
+        the register bore out, counted as one the person turned down. It is
+        `accepted`, marked `already_held`, because nothing was written for
+        it. A field the asset holds DIFFERENTLY and the save did not send is
+        still ignored, and one the person named is ignored whatever the
+        asset holds."""
+        row = self._suggestion(self._published(material="LEATHER"))
+        asset = self.env["nrs.asset"].create({
+            "name": "AI probe already holds", "category_id": self.chair.id,
+            "colour": "Black ", "material": "FABRIC"})
+        # The Photos tab's save: the name chosen, nothing else sent; the
+        # category and colour shown Same (left out of `ignored`), the
+        # material shown different and not chosen (named), the condition
+        # (`good`, the asset's default) shown Same.
+        asset.write({"name": "HIGH BACK EXECUTIVE SWIVEL CHAIR"})
+        out = row._outcomes(
+            {"name": "HIGH BACK EXECUTIVE SWIVEL CHAIR"},
+            ignored=("material",), asset=asset)
+        self.assertEqual(out["name"], {"outcome": "accepted",
+                                       "suggested": "HIGH BACK EXECUTIVE "
+                                                    "SWIVEL CHAIR"})
+        for field in ("category_id", "colour", "condition"):
+            with self.subTest(field=field):
+                self.assertEqual(out[field]["outcome"], "accepted")
+                self.assertIs(out[field]["already_held"], True)
+        self.assertEqual(out["material"], {"outcome": "ignored",
+                                           "suggested": "LEATHER"})
+        # Named as ignored, though the asset holds it: the person's word.
+        named = row._outcomes({}, ignored=("colour",), asset=asset)
+        self.assertEqual(named["colour"]["outcome"], "ignored")
+        # Not sent, and the asset holds something else: ignored, as before.
+        asset.write({"colour": "RED"})
+        self.assertEqual(row._outcomes({}, asset=asset)["colour"],
+                         {"outcome": "ignored", "suggested": "BLACK"})
+        # Without an asset to read, nothing can be said to be held.
+        self.assertEqual(row._outcomes({})["category_id"]["outcome"],
+                         "ignored")
+
+    def test_the_save_records_an_already_held_field_on_the_event(self):
+        """Through `_apply`, the one writer of the event: the counts carry
+        the held field as accepted and the event's notes say it was held."""
+        row = self._suggestion(self._published())
+        asset = self.env["nrs.asset"].create({
+            "name": "AI probe held on save", "category_id": self.chair.id,
+            "colour": "BLACK"})
+        row._check_applicable(None)
+        event, outcomes, counts = row._apply(
+            asset, {"material": "LEATHER"}, ignored=("name",))
+        # category, colour, condition held; material written as suggested;
+        # name named ignored.
+        self.assertEqual(counts, {"accepted": 4, "changed": 0, "ignored": 1})
+        notes = json.loads(event.notes)
+        self.assertEqual(notes["counts"], counts)
+        self.assertIs(notes["fields"]["colour"]["already_held"], True)
+        self.assertNotIn("already_held", notes["fields"]["material"])
+
     # ── 5 · the arithmetic ───────────────────────────────────────────
 
     def test_image_tokens_and_cost(self):
@@ -311,3 +378,50 @@ class TestAiSuggestion(CadraTransactionCase):
             "cache_read_tokens": 1_000_000}), 0.22)
         self.assertIsNone(ai.cost_usd("an-unpriced-model", {
             "input_tokens": 5}))
+
+    # ── 6 · the daily cap's day ──────────────────────────────────────
+
+    def test_the_daily_cap_turns_over_at_lagos_midnight(self):
+        """The cap counts calls by the LAGOS day (handoff 65 §0a.3; report
+        64 left it unpinned). Lagos is UTC+1 all year, so its midnight is
+        23:00 UTC — and a call at 23:30 UTC belongs to the NEXT Lagos day.
+
+        Two calls an hour apart, 22:30 and 23:30 UTC on 10 May 2031: one UTC
+        day, two Lagos days. Counted by the UTC day the cap would see both
+        at once (asserted below, so this test is not true of either rule);
+        counted by the Lagos day, each day holds one. A year no fixture
+        reaches, so nothing else on the tenant is in either day."""
+        self.env["ir.config_parameter"].sudo().set_param(
+            ai.PARAM_DAILY_CAP, "1")
+        with freeze_time("2031-05-10 22:30:00"):          # 23:30 in Lagos
+            self.assertEqual(S.lagos_today(), date(2031, 5, 10))
+            first = self._suggestion(self._published())
+            self.assertEqual(self.Suggestion._calls_today(), 1)
+            block = v1_ai._settings_block(self.env)
+            self.assertEqual(block["today"],
+                             {"day": "2031-05-10", "calls": 1,
+                              "remaining": 0})
+        with freeze_time("2031-05-10 22:59:59"):          # 23:59:59 in Lagos
+            self.assertEqual(v1_ai._settings_block(self.env)["today"]
+                             ["remaining"], 0, "the day ended early")
+        with freeze_time("2031-05-10 23:00:00"):          # midnight in Lagos
+            self.assertEqual(S.lagos_today(), date(2031, 5, 11))
+            self.assertEqual(self.Suggestion._calls_today(), 0)
+            self.assertEqual(v1_ai._settings_block(self.env)["today"],
+                             {"day": "2031-05-11", "calls": 0,
+                              "remaining": 1})
+        with freeze_time("2031-05-10 23:30:00"):          # 00:30 in Lagos
+            second = self._suggestion(self._published())
+            self.assertEqual(self.Suggestion._calls_today(), 1)
+            self.assertEqual(v1_ai._settings_block(self.env)["today"]
+                             ["remaining"], 0)
+        self.assertEqual(
+            (first.requested_at, second.requested_at),
+            (datetime(2031, 5, 10, 22, 30), datetime(2031, 5, 10, 23, 30)))
+        # What a UTC-day count would have said at 23:30 UTC: both calls,
+        # one day — the cap already spent twice over. The Lagos count above
+        # is the only one that says 1.
+        self.env.cr.execute(
+            "SELECT count(*) FROM nrs_ai_suggestion "
+            "WHERE requested_at >= '2031-05-10' AND requested_at < '2031-05-11'")
+        self.assertEqual(self.env.cr.fetchone()[0], 2)

@@ -33,12 +33,30 @@ calls use plain `curl`.
 { "error": { "code": "...", "message": "...", "request_id": "...", "details": {...} } }
 ```
 
-**Error codes.** `invalid_request` (400), `unauthorized` (401),
-`forbidden` (403), `not_found` (404), `conflict` (409),
-`unprocessable` (422), `rate_limited` (429), `internal_error` (500),
-`server_misconfigured` (500, and **503** on
-`POST /integrations/workflow/callback` for a tenant with no WorkSpace
-configuration), `tag_number_taken` (409, since handoff 63b).
+**Error codes.** Exactly the twelve `ERR_*` codes
+`myservice_api/controllers/utils.py` defines — an `error.code` outside this
+list is a defect, not a code to branch on:
+
+| Code | Status | When |
+|---|---|---|
+| `invalid_request` | 400 | the REQUEST is wrong: a body field the route does not accept, an unreadable filter, date or cursor |
+| `validation_failed` | 400 | the request is well-formed and a RECORD refused it: a model rule, a constraint, a gate's checklist |
+| `unauthorized` | 401 | no token, or one the server will not accept |
+| `forbidden` | 403 | the token lacks the scope the route requires; the refusal names it |
+| `not_found` | 404 | no such record |
+| `conflict` | 409 | the record's state does not allow it now (a pending request, a gate already fired, a duplicate) |
+| `tag_number_taken` | 409 | since handoff 63b — the one 409 to RETRY (below) |
+| `rate_limited` | 429 | a cap reached — today, the daily identification cap on `POST /ai/identify` |
+| `internal_error` | 500; 502/503 where a service Cadra calls failed (the Turnstile check, the AI provider) | unhandled or upstream; quote the `request_id` |
+| `server_misconfigured` | 500, and **503** where the deployment must act: `POST /integrations/workflow/callback` on a tenant with no WorkSpace configuration, a tenant whose database is behind its code (`GET /meta/readiness`), an AI provider not ready | the tenant, not the caller, is wrong |
+| `not_implemented` | — | defined and in the canonical set; **no route answers it today** |
+| `idempotency_mismatch` | — | defined and in the canonical set; **no route answers it today** — a reused `X-Idempotency-Key` with a different body replays the ORIGINAL response (see `POST /assets`) |
+
+*Until handoff 65 this paragraph also listed `unprocessable` (422). No route
+has ever answered it and `utils.py` has never defined it; the one section
+that claimed it (the same-location move) was corrected in handoff 28. It is
+removed, and the three codes the paragraph had left out —
+`validation_failed`, `not_implemented`, `idempotency_mismatch` — are added.*
 
 **`tag_number_taken` is the one 409 to RETRY.** `POST /api/v1/assets` (and
 every route that mints a tag) draws a location-prefix tag number from a
@@ -506,6 +524,26 @@ Idempotent via `X-Idempotency-Key` header — same key → same record.
 > allocated at creation, so it has never answered "is there a label on this
 > asset". Use `data.tagging.is_tagged` for that and `data.tagging.tag_number`
 > for the number.
+
+> **`legacy_asset_code` is the OLD FIRS TAG** (ruling 5, handoff 65) — the
+> number on the label the asset carried before Cadra, which SAP's asset
+> master holds as its **Inventory number** (`old_tag` on a mirror record,
+> §16). Writable on `POST` and `PATCH`, published as `data.legacy_asset_code`,
+> searched by `?q=`. **It is the one field every SAP reconciliation reads**,
+> so put the old tag here and nowhere else — not in `serial_number`, not in
+> `record_reference`, not in `notes`:
+>
+> - the SAP matcher — `GET /sap-assets/match` takes it as `old_tag` (send the
+>   asset's `legacy_asset_code`), and the coverage report's confident count
+>   (`reconcilable_today`, §16.4) reads it off every asset with no SAP number;
+> - handoff 65's SAP link, whose confident matches are an asset's
+>   `legacy_asset_code` carried by exactly one active, unlinked SAP record;
+> - handoff 66's audit capture.
+>
+> Compared trimmed and upper-cased, `\` read as `/` — the matcher's own
+> normalisation. Not unique on either side: SAP shares 12,061 Inventory
+> numbers in the October export, which is why a shared one is never a
+> confident match.
 
 ### Request
 
@@ -5199,6 +5237,15 @@ Cadra asset whose `sap_asset_number` (stripped, upper-cased — handoff 59's
 rule; sub-numbers compared with leading zeros dropped, the company code when
 the asset carries one) matches a record is LINKED to it. A receipt candidate
 whose maker typed the number counts.
+
+**The old FIRS tag is `legacy_asset_code`, and only that** (ruling 5,
+handoff 65). A mirror record's `old_tag` is SAP's *Inventory number* — the
+FIRS label the asset carried before Cadra — and the Cadra side of every
+comparison with it is the asset's `legacy_asset_code` (§3.4): the matcher
+(`GET /sap-assets/match`'s `old_tag`, and the confident count in
+`reconcilable_today`, §16.4), handoff 65's SAP link, and handoff 66's audit
+capture all read that one field. An old tag typed anywhere else on the asset
+is invisible to all of them.
 
 ### 16.1 POST `/api/v1/sap-assets/imports` — import SAP's export
 

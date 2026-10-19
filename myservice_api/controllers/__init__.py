@@ -36,3 +36,6 @@ from . import backoffice
 from . import v1_sap_mirror
 # Handoff 64 — Identify from photo (R11).
 from . import v1_ai
+# Handoff 65 — the link: a register asset given its SAP number from the
+# mirror by two people, the contested list and the duplicate flag.
+from . import v1_sap_links

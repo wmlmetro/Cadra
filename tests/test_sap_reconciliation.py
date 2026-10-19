@@ -465,8 +465,11 @@ def test_the_openapi_document_describes_the_sap_block(client):
     # `confirmed` since handoff 58 (P4): entered by the Register Maker and
     # then confirmed by SAP's INT-06 answer — the model's selection, in its
     # order (rule 4: the published enum follows the model).
+    # `linked_from_sap_mirror` since handoff 65 (additive): two people
+    # linked it from SAP's own export.
     assert sap["properties"]["code_source"]["enum"] == \
-        ["integration", "import", "manual", "confirmed"]
+        ["integration", "import", "manual", "confirmed",
+         "linked_from_sap_mirror"]
     assert sap["properties"]["posting_state"]["enum"] == \
         ["none", "queued", "posted", "failed"]
 

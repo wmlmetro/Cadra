@@ -134,7 +134,11 @@ class TestSapExportReader(CadraTransactionCase):
 
 class _ImportMixin:
 
-    def _run(self, rows, *, cpu_budget=None, user=None, **kw):
+    def _run(self, rows, *, cpu_budget=None, user=None, mark_absent=True,
+             **kw):
+        """`mark_absent` (handoff 65 §3): these tests import small invented
+        files over whatever mirror the tenant holds, so they say "Yes, mark
+        them absent" unless the guard is what they test."""
         raw = shapes.build_xlsx(rows, **kw)
         export = reader.Export(io.BytesIO(raw))
         header, prefix, start = export.header()
@@ -144,7 +148,8 @@ class _ImportMixin:
             'file_data': base64.b64encode(raw),
             'uploaded_by': (user or self.env.user).id,
             'header_map': json.dumps(reader.header_map(header)),
-            'sheet_prefix': prefix.decode('utf-8'), 'resume_offset': start})
+            'sheet_prefix': prefix.decode('utf-8'), 'resume_offset': start,
+            'absent_confirmed': mark_absent})
         return run._run_to_end(cpu_budget=cpu_budget)
 
     def _rec(self, number):
