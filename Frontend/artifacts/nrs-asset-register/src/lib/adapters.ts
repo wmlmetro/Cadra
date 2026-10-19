@@ -190,6 +190,13 @@ export interface ApiAsset {
     posting_state: string | null;
     reconciliation_state: string | null;
     synced_at: string | null;
+    /** Handoff 65 §2: the latest "likely duplicate" flag, or null. */
+    duplicate_flag?: {
+      sap_asset_number: string | null;
+      note: string | null;
+      flagged_by: { id: number | null; name: string | null } | null;
+      flagged_at: string | null;
+    } | null;
     [key: string]: unknown;
   } | null;
 }
@@ -442,6 +449,13 @@ export function apiAssetToAsset(a: ApiAsset & ApiAssetExtras): Asset {
     reviewFlags: deriveReviewFlags(a),
     sapReconciliationState: str(a.sap?.reconciliation_state),
     sapAssetNumber: str(a.sap?.asset_number),
+    sapCodeSource: str(a.sap?.code_source),
+    sapDuplicateFlag: a.sap?.duplicate_flag ? {
+      sapAssetNumber: str(a.sap.duplicate_flag.sap_asset_number),
+      note:           str(a.sap.duplicate_flag.note),
+      flaggedBy:      str(a.sap.duplicate_flag.flagged_by?.name),
+      flaggedAt:      str(a.sap.duplicate_flag.flagged_at),
+    } : undefined,
     parentAssetId:   a.parent_asset?.id ?? undefined,
     parentAssetName: a.parent_asset?.name,
     childCount: a.child_count || undefined,

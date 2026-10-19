@@ -238,6 +238,20 @@ class NRSSapLink(models.Model):
                 'link never replaces a number.', code=asset.asset_code,
                 number=asset.sap_asset_number), 'invalid_state',
                 {'sap_asset_number': asset.sap_asset_number})
+        asset._refuse_posting_in_flight()
+        if self.reason_code == 'old_tag_unique' \
+                and 'chosen from' not in (self.reason or ''):
+            # Proposed as uncontested; another Cadra asset may have come to
+            # point at the same record since (verification pass, finding 9).
+            rivals = asset._rivals_by_old_tag(rec)
+            if rivals:
+                raise GateRefused(_(
+                    'SAP asset %(number)s is now also pointed at by '
+                    '%(n)d other Cadra asset(s); return this proposal and '
+                    'decide it on the contested list.',
+                    number=rec.asset_number, n=len(rivals)), 'invalid_state',
+                    {'contested': True, 'sap_record_id': rec.id,
+                     'asset_ids': rivals})
         if not (rec.sap_active and rec.in_latest_export):
             raise GateRefused(_(
                 'SAP asset %s is no longer active in the latest export of '
@@ -269,6 +283,37 @@ class NRSAssetSapLink(models.Model):
 
     sap_link_ids = fields.One2many('nrs.sap.link', 'asset_id',
                                    string='SAP Links', readonly=True)
+
+    def _refuse_posting_in_flight(self):
+        """A gates-off affix on an asset with no number queues INT-06's
+        `asset.master.create` (`myservice_workflow`). Linking SAP's own
+        number on top of a posting in flight would send SAP a second master
+        for an asset it already holds (verification pass, finding 2) — so a
+        link waits until that posting is decided: refused, in words."""
+        self.ensure_one()
+        if self.sap_posting_state in ('queued', 'posted'):
+            raise GateRefused(_(
+                '%(code)s already has an asset master posting to SAP '
+                '(%(state)s); linking it to an existing SAP record now would '
+                'give SAP two masters for one asset. Wait for SAP\'s answer '
+                'and reconcile that instead.', code=self.asset_code,
+                state=self.sap_posting_state), 'invalid_state',
+                {'sap_posting_state': self.sap_posting_state})
+
+    def _rivals_by_old_tag(self, rec):
+        """Other register assets with no SAP number whose old tag,
+        normalised as `sap_mirror.norm_tag` does, is the record's."""
+        self.ensure_one()
+        if not rec.old_tag_norm:
+            return []
+        self.env.flush_all()
+        self.env.cr.execute(
+            "SELECT id FROM nrs_asset WHERE id <> %s "
+            "AND register_state = 'registered' "
+            "AND coalesce(btrim(sap_asset_number), '') = '' "
+            "AND regexp_replace(upper(replace(legacy_asset_code, E'\\\\', "
+            "'/')), '\\s+', '', 'g') = %s", (self.id, rec.old_tag_norm))
+        return [r[0] for r in self.env.cr.fetchall()]
 
     def _open_sap_link(self):
         self.ensure_one()
@@ -307,6 +352,7 @@ class NRSAssetSapLink(models.Model):
         self.ensure_one()
         Sap = self.env['nrs.sap.asset'].sudo()
         self._assert_may_make_link(scopes)
+        self._refuse_posting_in_flight()
         targets = targets if targets is not None else Sap._confident_targets()
         hit = targets['target'].get(self.id)
         if (self.sap_asset_number or '').strip():

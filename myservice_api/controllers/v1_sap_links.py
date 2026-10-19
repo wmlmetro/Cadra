@@ -48,6 +48,7 @@ from odoo.addons.myservice_asset_register.models.sap_link import (
     LINK_STATES,
 )
 
+from .query_params import BadFilter, parse_bool, parse_enum, parse_int
 from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
@@ -206,32 +207,11 @@ def _text_param(qs, name):
     return raw.strip() if isinstance(raw, str) and raw.strip() else None
 
 
-def _offset(qs):
-    raw = qs.get("offset", 0)
-    try:
-        value = int(raw)
-    except (TypeError, ValueError):
-        value = -1
-    return value
-
-
-def _page_limit(qs, default=100):
-    raw = qs.get("limit", default)
-    try:
-        value = int(raw)
-    except (TypeError, ValueError):
-        value = 0
-    return value
-
-
-def _paging_error(offset, limit):
-    if offset < 0:
-        return err(ERR_INVALID_REQUEST, "`offset` must be a whole number, 0 "
-                   "or more.", details={"field": "offset"})
-    if not 1 <= limit <= PAGE_MAX:
-        return err(ERR_INVALID_REQUEST, "`limit` must be between 1 and %d."
-                   % PAGE_MAX, details={"field": "limit", "max": PAGE_MAX})
-    return None
+def _paging(qs, default):
+    """`(offset, limit)` through the door (`query_params`), or BadFilter."""
+    offset = parse_int("offset", qs.get("offset"), minimum=0)
+    limit = parse_int("limit", qs.get("limit"), minimum=1, maximum=PAGE_MAX)
+    return (offset or 0), (limit or default)
 
 
 def _body(allowed):
@@ -352,17 +332,13 @@ class CadraSapLinksV1(http.Controller):
                      {"name": "limit"}, {"name": "offset"}])
     def link_candidates(self, **kwargs):
         qs = get_params()
-        status = _text_param(qs, "status") or "open"
-        if status not in STATUSES:
-            return err(ERR_INVALID_REQUEST, "`status` is one of %s."
-                       % ", ".join(STATUSES),
-                       details={"field": "status",
-                                "allowed_values": list(STATUSES)})
+        try:
+            status = parse_enum("status", qs.get("status"), STATUSES) \
+                or "open"
+            offset, limit = _paging(qs, 100)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         office, klass = _text_param(qs, "office"), _text_param(qs, "class")
-        offset, limit = _offset(qs), _page_limit(qs)
-        error = _paging_error(offset, limit)
-        if error:
-            return error
         Sap = request.env["nrs.sap.asset"].sudo()
         targets = Sap._confident_targets()
         pairs = [(aid, sid, basis)
@@ -471,28 +447,20 @@ class CadraSapLinksV1(http.Controller):
                      *PAGINATION_QUERY_PARAMS])
     def list_links(self, **kwargs):
         qs = get_params()
-        state = _text_param(qs, "state") or "proposed"
-        states = [k for k, _l in LINK_STATES]
-        if state not in states + ["all"]:
-            return err(ERR_INVALID_REQUEST, "`state` is one of %s or all."
-                       % ", ".join(states),
-                       details={"field": "state",
-                                "allowed_values": states + ["all"]})
+        try:
+            state = parse_enum("state", qs.get("state"),
+                               [k for k, _l in LINK_STATES] + ["all"]) \
+                or "proposed"
+            kind = parse_enum("kind", qs.get("kind"),
+                              [k for k, _l in LINK_KINDS])
+            asset_id = parse_int("asset_id", qs.get("asset_id"))
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         domain = [] if state == "all" else [("state", "=", state)]
-        kind = _text_param(qs, "kind")
         if kind:
-            kinds = [k for k, _l in LINK_KINDS]
-            if kind not in kinds:
-                return err(ERR_INVALID_REQUEST, "`kind` is one of %s."
-                           % ", ".join(kinds),
-                           details={"field": "kind", "allowed_values": kinds})
             domain.append(("kind", "=", kind))
-        if qs.get("asset_id") is not None:
-            try:
-                domain.append(("asset_id", "=", int(qs["asset_id"])))
-            except (TypeError, ValueError):
-                return err(ERR_INVALID_REQUEST, "`asset_id` must be an id.",
-                           details={"field": "asset_id"})
+        if asset_id is not None:
+            domain.append(("asset_id", "=", asset_id))
         page, next_cursor, total = paginate(
             request.env["nrs.sap.link"].sudo(), domain,
             limit=parse_limit(qs), cursor=qs.get("cursor"),
@@ -592,15 +560,12 @@ class CadraSapLinksV1(http.Controller):
                                {"name": "limit"}, {"name": "offset"}])
     def contested(self, **kwargs):
         qs = get_params()
+        try:
+            flagged_q = parse_bool("flagged", qs.get("flagged"))
+            offset, limit = _paging(qs, 50)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
         office = _text_param(qs, "office")
-        flagged_q = _text_param(qs, "flagged")
-        if flagged_q not in (None, "true", "false"):
-            return err(ERR_INVALID_REQUEST, "`flagged` is true or false.",
-                       details={"field": "flagged"})
-        offset, limit = _offset(qs), _page_limit(qs, 50)
-        error = _paging_error(offset, limit)
-        if error:
-            return error
         Sap = request.env["nrs.sap.asset"].sudo()
         targets = Sap._confident_targets()
         groups = {sid: aids for sid, aids in targets["claims"].items()
@@ -627,7 +592,7 @@ class CadraSapLinksV1(http.Controller):
             stats["flagged"] += int(flagged)
             if office and rec.office_code != office.upper():
                 continue
-            if flagged_q and (flagged_q == "true") != flagged:
+            if flagged_q is not None and flagged_q != flagged:
                 continue
             rows.append((rec, aids, flagged))
         rows.sort(key=lambda r: (r[0].office_code or "~", r[0].asset_number))

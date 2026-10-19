@@ -268,7 +268,8 @@ def serialize_run(run):
         "started_at": _iso(run.started_at),
         "finished_at": _iso(run.finished_at),
         "duration_seconds": (round(run.duration_seconds, 1)
-                             if run.state in ("done", "failed") else None),
+                             if run.state in ("done", "failed", "held")
+                             else None),
         "cpu_seconds": round(run.cpu_seconds or 0, 1),
         "ticks": run.ticks,
         "peak_memory_mb": round(run.peak_rss_mb or 0),

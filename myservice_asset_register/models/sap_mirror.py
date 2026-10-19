@@ -911,7 +911,14 @@ class NRSSapImportRun(models.Model):
                             'resume_offset': start})
             if not self.data_offset:
                 self.write({'data_offset': self.resume_offset})
-                self._choose_phase()
+                if self.rows_read:
+                    # A run already writing when handoff 65 was installed
+                    # (verification pass, finding 3): counting the REST of
+                    # its file would call what it has already written
+                    # absent. It finishes as it began.
+                    self.write({'phase': 'write'})
+                else:
+                    self._choose_phase()
             colmap = json.loads(self.header_map)
             prefix = self.sheet_prefix.encode('utf-8')
             strings = export.shared_strings()
@@ -1051,6 +1058,10 @@ class NRSSapImportRun(models.Model):
         self.write(vals)
 
     def _fail(self, message):
+        # The counting pass's scratch rows, committed tick by tick, go with
+        # the run (verification pass, finding 4).
+        self.env.cr.execute('DELETE FROM %s WHERE run_id = %%s' % _SEEN_TABLE,
+                            [self.id])
         self.write({'state': 'failed', 'message': message,
                     'finished_at': fields.Datetime.now()})
         self._drop_upload()

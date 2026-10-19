@@ -223,6 +223,16 @@ INVENTORY = {
     ("v1_users", "active"): ("bool", ""),
     ("v1_users", "is_api_client"): ("bool", ""),
 
+    # ── v1_sap_links.py — handoff 65, the link ────────────────────────
+    ("v1_sap_links", "status"): ("enum", ""),
+    ("v1_sap_links", "state"): ("enum", ""),
+    ("v1_sap_links", "kind"): ("enum", ""),
+    ("v1_sap_links", "flagged"): ("bool", ""),
+    ("v1_sap_links", "asset_id"): ("int", ""),
+    ("v1_sap_links", "offset"): ("int", ""),
+    ("v1_sap_links", "limit"): ("int", ""),
+    ("v1_sap_links", "office"): ("text", "SAP's office code, as `v1_sap_mirror`'s `office`: the set is whatever SAP's export carries"),
+    ("v1_sap_links", "class"): ("text", "a SAP asset class as SAP writes it, as `v1_sap_mirror`'s `class`"),
     # ── v1_sap_mirror.py — handoff 63, the SAP mirror ─────────────────
     ("v1_sap_mirror", "active"): ("bool", ""),
     ("v1_sap_mirror", "in_latest_export"): ("bool", ""),

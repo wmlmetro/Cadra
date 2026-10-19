@@ -1637,6 +1637,15 @@ def test_the_history_says_from_when_each_kind_of_event_is_recorded(
                 entry["statement"]
             assert "message log" not in entry["statement"], entry["statement"]
             continue
+        if entry["event"] in ("sap_link", "sap_duplicate_flagged") \
+                and not entry["recording_began_at"]:
+            # Handoff 65: written only by `tests/test_the_link.py`, which
+            # runs after this file; on a fresh tenant, "not yet" in words.
+            assert entry["statement"].startswith(
+                "None has been recorded on this system yet"), \
+                entry["statement"]
+            assert "message log" not in entry["statement"], entry["statement"]
+            continue
         assert entry["recording_began_at"], (
             "this suite has just written a `%s` on this tenant, so recording "
             "has begun" % entry["event"])

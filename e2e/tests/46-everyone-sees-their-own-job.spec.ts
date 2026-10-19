@@ -58,6 +58,9 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   // Handoff 57 — the candidates a received unit becomes when receipts are gated.
   { path: "/candidates", probes: [G("/candidates?limit=1")] },
   { path: "/approvals", probes: [G("/approvals?limit=1")] },
+  // Handoff 65 — Link to SAP: the three lists the page reads, all
+  // `sap_mirror:read`.
+  { path: "/sap-links", probes: [G("/sap-links/candidates?limit=1"), G("/sap-links?limit=1"), G("/sap-links/contested?limit=1")] },
   { path: "/assets/new", probes: [W("POST", "/assets")] },
   { path: "/locations", probes: [G("/locations?limit=1")] },
   { path: "/locations/new", probes: [W("POST", "/locations")] },

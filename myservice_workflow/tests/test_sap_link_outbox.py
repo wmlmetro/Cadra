@@ -120,3 +120,25 @@ class TestTheLinkSendsNothing(CadraTransactionCase):
         with self.assertRaises(ValidationError):
             asset.sudo().write({'sap_asset_number': '30000065003',
                                 'sap_code_source': 'linked_from_sap_mirror'})
+
+    def test_a_link_waits_for_a_master_already_in_flight(self):
+        """Verification pass, finding 2: an affix on an asset with no number
+        queues a master; linking SAP's number on top would send SAP a second
+        one. Refused, in words, at the proposal."""
+        tag = 'FIRS/L65/0004'
+        self._record('30000065004', tag)
+        asset = self.env['nrs.asset'].create({
+            'name': 'Affixed first', 'category_id': self.category.id,
+            'legacy_asset_code': tag})
+        label = asset.active_tag_id
+        label._mark_affixed(label.name)
+        self.assertEqual(asset.sap_posting_state, 'queued')
+        from odoo.addons.myservice_asset_register.models.asset_gates import (
+            GateRefused)
+        with self.assertRaises(GateRefused) as caught:
+            asset.with_user(self.maker)._sap_link_propose(
+                scopes=['register:make'])
+        self.assertEqual(caught.exception.kind, 'invalid_state')
+        self.assertIn('two masters', str(caught.exception.args[0]))
+        self.assertFalse(self.env['nrs.sap.link'].sudo().search(
+            [('asset_id', '=', asset.id)]))

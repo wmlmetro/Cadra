@@ -81,6 +81,29 @@ def _asset_with_tag(client, tag):
         client, name=f"pytest-link {tag}", legacy_asset_code=tag)
 
 
+def _legacy_shaped(client, tags):
+    """Register assets with NO SAP number — what a link is for.
+
+    With the receipt gates on, every unit reaches the register through the
+    Register Maker's `register`, which requires a SAP code: a gated asset
+    is never a link candidate, and the maker and checker personas who
+    walked it are barred from its link by the no-two-gates rule (CI found
+    both, gates-on leg of 9a8a2f5). The register NRS holds today is legacy —
+    created ON the register, no number — so these are made with the switch
+    OFF, and the tenant's own value is put back. A link is not a receipt:
+    nothing about it reads the switch."""
+    was = gates.receipt_gated(client)
+    if was:
+        assert_envelope_ok(client.patch("/api/v1/settings/receipt-gate",
+                                        json={"enabled": False}))
+    try:
+        return {k: _asset_with_tag(client, t) for k, t in tags.items()}
+    finally:
+        if was:
+            assert_envelope_ok(client.patch("/api/v1/settings/receipt-gate",
+                                            json={"enabled": True}))
+
+
 @pytest.fixture(scope="module")
 def world(client):
     """Four register assets and the invented SAP records they point at:
@@ -90,13 +113,11 @@ def world(client):
     office = f"L{u}"
     tags = {k: f"FIRS/{office}/{i:04d}"
             for i, k in enumerate(("a", "b", "c"), 1)}
-    assets = {"a": _asset_with_tag(client, tags["a"]),
-              "b": _asset_with_tag(client, tags["b"]),
-              "c1": _asset_with_tag(client, tags["c"]),
-              # The same tag typed with a backslash and lower case: the
-              # matcher's normalisation makes it the same old tag.
-              "c2": _asset_with_tag(client, tags["c"].lower().replace(
-                  "/", "\\"))}
+    assets = _legacy_shaped(client, {
+        "a": tags["a"], "b": tags["b"], "c1": tags["c"],
+        # The same tag typed with a backslash and lower case: the matcher's
+        # normalisation makes it the same old tag.
+        "c2": tags["c"].lower().replace("/", "\\")})
     numbers = {k: f"3L{u}{i:03d}" for i, k in enumerate(("a", "b", "c"), 1)}
     run = _import(client, [
         shapes.record(numbers["a"], cls="3000", tag=tags["a"],

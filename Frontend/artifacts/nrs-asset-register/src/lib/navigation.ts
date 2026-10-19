@@ -11,7 +11,7 @@ import {
   Users, ScanBarcode, Upload, RefreshCw,
   Wrench, Tag, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
   Hourglass, ShieldCheck, History, PanelLeft,
-  FileCog, Trash2, Camera, Download, Inbox, UserX, Database, Scale,
+  FileCog, Trash2, Camera, Download, Inbox, UserX, Database, Scale, Link2,
   type LucideIcon,
   Sparkles,
 } from "lucide-react";
@@ -95,6 +95,12 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     // on — the server applies the no-two-gates rule — so a number here is
     // work they can do, not work they can see.
     { key: "candidates",              name: "Candidates",              path: "/candidates",           icon: Inbox, badge: "candidates", scope: "candidates:read" },
+    // A register asset given its SAP number from SAP's export, by a Register
+    // Maker and a Register Checker (handoff 65). `sap_mirror:read`, as the
+    // server's lists are: the Asset Controller, the maker and checker, the
+    // Auditor. Proposing and deciding take `register:make` / `register:check`
+    // on the page itself.
+    { key: "sap_links",               name: "Link to SAP",             path: "/sap-links",            icon: Link2,           scope: "sap_mirror:read" },
     { key: "new_asset",               name: "+ New Asset",             path: "/assets/new",           icon: BookOpen,        scope: "assets:write" },
   ]},
   { key: "operations", label: "Operations", items: [

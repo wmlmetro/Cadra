@@ -537,7 +537,10 @@ def _duplicate_flag(a):
         return None
     return {"sap_asset_number": event.to_value or None,
             "note": event.notes or None,
-            "flagged_by": event.actor_name or None,
+            # `{id, name}`, the shape `GET /sap-links/contested` publishes
+            # for the same flag (verification pass, finding 6).
+            "flagged_by": {"id": event.actor_id.id or None,
+                           "name": event.actor_name or None},
             "flagged_at": _naive_iso(event.occurred_at)}
 
 

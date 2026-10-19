@@ -64,6 +64,8 @@ PUBLISHED_ITEMS = {
     "sap_coverage", "sap_asset_master",
     # Identify from photo (handoff 64), under Settings.
     "ai_identify",
+    # Link to SAP (handoff 65), after Candidates.
+    "sap_links",
 }
 
 _KEY = re.compile(r"^[a-z][a-z0-9_]*$")
