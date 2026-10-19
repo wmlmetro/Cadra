@@ -6,3 +6,4 @@ from . import test_register_state_event
 from . import test_retry_budget
 from . import test_connection_probe
 from . import test_sap_link_outbox
+from . import test_audit_capture_outbox

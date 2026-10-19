@@ -573,6 +573,31 @@ imports an invented file over the tenant's mirror sends `mark_absent=true`
 (4) **a duplicate flag is an `nrs.asset.event`** (`sap_duplicate_flagged`),
 not a model — nothing is merged.
 
+### Since handoff 66 an audit capture is its own path, and every code is in a ledger
+
+`myservice_asset_register/models/audit_capture.py`, routes
+`v1_audit_capture.py`. A capture is one of three outcomes — on the register
+(a verification in place), in SAP (a new asset at `registered` with SAP's
+number, the phone's code, `sap_code_source = audit_from_sap_mirror`, NO
+master queued), in neither (an exception for the Asset Controller) — and is
+accepted by a reviewer who is never the capturer. Four things you will hit:
+(1) **every new asset writes a row in `nrs.asset.code`** (`nrs.asset.create`
+→ `_for_assets`), active if registered, `in_review` for a candidate, made
+active in `_gate_move`; the row holds its asset `set null`, so it pins
+nothing; (2) **a capture needs a device bound to the caller in
+`X-Cadra-Device`** and, for b and c, a code from that device's block whose
+scanned label equals it — an HTTP test gets one from the Asset Controller
+persona (`tests/test_the_audit.py`'s `world`); the personas
+`audit_capturer` and `audit_reviewer` exist since 66 (a template made
+before needs `--rebuild-template`); (3) **an audit acceptance moves an asset
+under the exemption `audit`** and writes condition, verification, photos and
+possibly a reprint under the same code as the capturer/reviewer — not
+through any asset route; (4) **don't name a model method `_register`,
+`_open` or `_close`** — `_register` is a class attribute of Odoo's
+`BaseModel` (a bool), and calling it raises *'bool' object is not
+callable*; the audit models use `_register_device`, `_open_campaign`,
+`_close_campaign`.
+
 ### A move and a handover need a second person, and the gate is on the model
 
 Since handoff 35, changing `location_id` or `custodian_id` on `nrs.asset`
@@ -748,6 +773,7 @@ done
 | 63b | **The faster loop.** CI proves both switch states on every push, in parallel, in the time one took (`gates: [off, on]`, ~13 min) · `scripts/fresh_test_tenant.sh`: `test19f` from a template in ~5 s, the fixtures `test19` carries seeded into it and into CI (CI's skips 39 → 16) — the full suite 9 min gates off / 15 min on, against `test19`'s 14 m 42 s / 24 m 36 s · xdist measured unsafe (`-n 4`: 30 failed; shared state), not adopted · the configuration-change report's day a Lagos day (BEHAVIOUR CHANGE) · a category save restates its class once, from one schedule (`test19`'s 19,042: 13.2 / 20.6 s → 9.7 / 9.7 s) · **two receipts at once drew one tag number** (Vendra report 58): a Postgres sequence per prefix, 20 concurrent → 20 numbers, the collision left `409 tag_number_taken` (retryable, new code) · found: handoff 63's CI was red on one pin that a fresh database's index broke |
 | 64 | **What the photo says.** Ruling R11: Cadra's SERVER identifies a photographed item — no model trained or shipped, the phone and the web app call one route, `POST /api/v1/ai/identify`, behind `cadra.ai.identify` (off everywhere) · one adapter, a deterministic fake for every test and Anthropic's Messages API through the pinned SDK; the answer validated against the tenant, a make/model/dimensions it did not read removed and said · the append-only `nrs.ai.suggestion` per call (failed and discarded ones counted against the daily cap), a photo for an unsaved asset HELD 24 h and claimed by the save · the save's `ai_suggestion` records per field accepted / changed / ignored as an `ai_suggestion_applied` event, one history line · *Identify from photo* on Add asset (filled, marked, Save held until settled) and on each photo (Now / Suggested, *Use this*), a Settings page with today's count · an SAP candidate fills nothing (no asset route writes the number) · Test Connection on a Vendra target POSTs a probe to each endpoint: the old `/ping` said 401 for every Vendra target, delivery working or not · found by the live-check dry run: the settings PATCH answered with the values from before its own write |
 | 65 | **The link.** A register asset given its SAP number from the mirror by two people: `nrs.sap.link`, the Register Maker proposes (a batch, `dry_run`), the Register Checker approves or returns, the no-two-gates rule with gates `link_make`/`link_check`; the approval writes `sap_code_source = linked_from_sap_mirror` and **sends nothing to SAP** (proved against a live stub target); undone the same way with a reason; never deleted · the contested list, side by side, one proposed or the group flagged (an event per asset, `sap.duplicate_flag`) · an import that would mark > 5% of the mirror absent is `held` before writing, overridden by `mark_absent=true` (recorded) — tripped, overridden and restored on `nrs19` with a truncated copy of SAP's file · `class_evidence` on the coverage report · *Link to SAP* in the app · the AI key in the server's environment, the database row deleted · the access report on Lagos days · one real reprint delivered to the bench Vendra · `nrs19`: the confident list is 2,445, exactly report 63's; linking it would take Cadra from 0 to 2,445 of SAP's 161,647 · found by the verification pass: a link on top of a master in flight would have given SAP two |
+| 66 | **The audit in the room.** Devices bound to one person (`X-Cadra-Device`, not a credential); the asset-code ledger `nrs.asset.code` — every code, backfilled (`test19` 23,405 of 23,405, `nrs19` 11,960 of 11,960) and written by every create; blocks of ≤ 500 codes drawn from the asset-code sequence under a lock, returned with the unused voided; campaigns over locations and SAP office codes, closed only when every capture is reviewed, keeping the two lists (*found, not in SAP*; *in SAP, not found*, no-office records a count); `POST /audit/captures` idempotent on a stored `capture_id`, five working days back, every refusal in words, duplicates held; review: a verified in place (moved under exemption `audit`, reprint under the same code on acceptance), b registered from SAP's record with the phone's code and NO master (proved against a live stub), c an exception registered through maker and checker or voided; capturer × reviewer the ninth exclusion; `/ai/identify` opened to `audit:capture`; `GET /ai/config`; the Audit screens and the web capture; the mobile map every row *exists* or *not needed* · §0: the flag read once per page, the serial-basis contested re-check, and report 65's CHANGELOG duplication found not to exist |
 | 47 | **A role is a job.** `identity:read` and `dashboards:read` each split in two — `access:read` (the access record, the Auditor's) and `operations:read` (fleet/staff bus/FM/security; the sidebar group key `operations` is a different namespace, on purpose) · tag minting and replacement moved to `tagging:write` (BREAKING — a manager no longer prints labels; the unit's scope covers its job) · **the Asset Officer**: Asset User's reads + `assets:write`, implied by Manager, grantable (the named fifth entry handoff 42 demanded), published as `asset_officer` · `SCOPE_GROUPS[assets:write]` → Officer, so Vendra's credential reads as what it does · Staff Bus and Identity (clearance) out of the sidebar (keys retired, routes serve, clearance OWED to NRS — `docs/GO-LIVE.md` §25) · the hardcoded *All systems operational* pill deleted |
 
 ## Backlog — see `docs/GO-LIVE.md` Part II

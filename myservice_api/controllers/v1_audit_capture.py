@@ -110,7 +110,9 @@ LABEL_LAYOUT = {
     ],
     "text_line": "the code, printed under the symbol, so a person can type "
                  "it when no scanner reads it",
-    "sizes_mm": {"small": [38, 25], "medium": [50, 30], "large": [70, 40]},
+    # Width × height, as Cadra's own label paper formats are
+    # (`myservice_asset_register/data/asset_tag_report.xml`).
+    "sizes_mm": {"small": [50, 25], "medium": [50, 30], "large": [100, 60]},
 }
 
 
@@ -406,6 +408,25 @@ class CadraAuditCaptureV1(http.Controller):
         result, error = _guard(lambda: device._deactivate())
         return error or _device_out(result)
 
+    @cadra_route("/api/v1/audit/people", method="GET",
+                 summary="Who may be named on an audit: the active people "
+                         "holding the capturer and the reviewer roles",
+                 scopes=[SCOPE_AUDIT_MANAGE])
+    def people(self, **kwargs):
+        """The Asset Controller binds a device to a capturer and names a
+        campaign's team; `GET /users` is the administrator's, so this is the
+        one list of candidates the controller can read. Two roles, nothing
+        else about anybody."""
+        out = {}
+        for key, xmlid in (
+                ("capturers", "myservice_asset_register.group_audit_capturer"),
+                ("reviewers", "myservice_asset_register.group_audit_reviewer")):
+            group = request.env.ref(xmlid, raise_if_not_found=False)
+            members = group.sudo().all_user_ids if group else _env("res.users")
+            out[key] = [{"id": u.id, "name": u.name, "login": u.login}
+                        for u in members.filtered("active").sorted("name")]
+        return out
+
     # ── code blocks and the ledger ────────────────────────────────────
 
     @cadra_route("/api/v1/audit/blocks", method="GET",
@@ -493,7 +514,7 @@ class CadraAuditCaptureV1(http.Controller):
                          "type": "string", "enum": [s for s, _l in
                                                     CODE_STATES]}},
                      {"name": "block_id", "schema": {"type": "integer"}},
-                 ] + list(PAGINATION_QUERY_PARAMS))
+                     *PAGINATION_QUERY_PARAMS])
     def codes(self, **kwargs):
         try:
             state = parse_enum("state", kwargs.get("state"),
@@ -701,7 +722,7 @@ class CadraAuditCaptureV1(http.Controller):
                      {"name": "kind", "schema": {"type": "string",
                                                  "enum": list(SLICE_KINDS)}},
                      {"name": "updated_since", "schema": {"type": "string"}},
-                 ] + list(PAGINATION_QUERY_PARAMS))
+                     *PAGINATION_QUERY_PARAMS])
     def campaign_slice(self, id, **kwargs):
         try:
             location_id = parse_int("location_id", kwargs.get("location_id"),
@@ -895,7 +916,7 @@ class CadraAuditCaptureV1(http.Controller):
                          "enum": [s for s, _l in EXCEPTION_STATES]}},
                      {"name": "duplicates", "schema": {"type": "boolean"}},
                      {"name": "mine", "schema": {"type": "boolean"}},
-                 ] + list(PAGINATION_QUERY_PARAMS))
+                     *PAGINATION_QUERY_PARAMS])
     def captures(self, **kwargs):
         try:
             campaign_id = parse_int("campaign_id", kwargs.get("campaign_id"),
@@ -1060,8 +1081,10 @@ class CadraAuditCaptureV1(http.Controller):
                     line["outcome"] = "would_do"
                     line["asset_id"] = None
         done = sum(1 for l in out if l["outcome"] in ("done", "would_do"))
-        return {"action": "accept", "dry_run": dry_run, "total": len(out),
-                "done": done, "refused": len(out) - done, "results": out}
+        # capped-count-ok: the lines of THIS batch, one per capture named.
+        total = len(out)
+        return {"action": "accept", "dry_run": dry_run, "total": total,
+                "done": done, "refused": total - done, "results": out}
 
     # ── the exceptions (outcome c) ────────────────────────────────────
 

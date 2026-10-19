@@ -223,6 +223,19 @@ INVENTORY = {
     ("v1_users", "active"): ("bool", ""),
     ("v1_users", "is_api_client"): ("bool", ""),
 
+    # ── v1_audit_capture.py — handoff 66, the audit in the room ───────
+    ("v1_audit_capture", "mine"): ("bool", ""),
+    ("v1_audit_capture", "device_id"): ("int", ""),
+    ("v1_audit_capture", "state"): ("enum", ""),
+    ("v1_audit_capture", "block_id"): ("int", ""),
+    ("v1_audit_capture", "code"): ("text", "an asset code, matched exactly: the set is every code the ledger holds"),
+    ("v1_audit_capture", "campaign_id"): ("int", ""),
+    ("v1_audit_capture", "location_id"): ("int", ""),
+    ("v1_audit_capture", "outcome"): ("enum", ""),
+    ("v1_audit_capture", "exception_state"): ("enum", ""),
+    ("v1_audit_capture", "duplicates"): ("bool", ""),
+    ("v1_audit_capture", "kind"): ("enum", ""),
+    ("v1_audit_capture", "updated_since"): ("date", "the sync rule of handoff 61 §6, read by `v1_assets._parse_updated_since`, refused 400 when unreadable"),
     # ── v1_sap_links.py — handoff 65, the link ────────────────────────
     ("v1_sap_links", "status"): ("enum", ""),
     ("v1_sap_links", "state"): ("enum", ""),

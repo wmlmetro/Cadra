@@ -3655,13 +3655,40 @@ A token without `dashboards:read` calling `/api/v1/dashboard/kpis` gets:
 This is the difference between **401 unauthorized** (token absent or
 invalid) and **403 forbidden** (token valid but missing a required scope).
 
-## All 19 scopes
+## All 32 scopes
 
 `assets:read`, `assets:write`, `export:read`, `locations:read`,
 `locations:write`, `requests:read`, `requests:write`, `approvals:write`,
 `dashboards:read`, `operations:read`, `integrations:write`,
 `ingestion:write`, `webhooks:admin`, `identity:read`, `access:read`,
-`tagging:write`, `settings:write`, `settings:read`, `admin`.
+`tagging:write`, `settings:write`, `settings:read`, `admin`,
+`candidates:read`, `vfm:verify`, `vfm:approve`, `tagging:request`,
+`register:make`, `register:check`, `settings:classes`, `evidence:read`,
+`sap_mirror:read`, `audit:read`, `audit:capture`, `audit:review`,
+`audit:manage`.
+
+The list is `ALL_SCOPES` in `myservice_api/controllers/utils.py`. The nine
+between `candidates:read` and `sap_mirror:read` are the receipt gates'
+(handoffs 57–60, §14), IAD's evidence (handoff 61) and SAP's mirror (handoff
+63, §16).
+
+**The four audit scopes** (handoff 66, §19), each to the one role whose job
+it is:
+
+- **`audit:read`** — campaigns with their progress, captures, devices,
+  blocks, the code ledger, a room's slice and the two closing lists. Held by
+  the Audit Capturer, the Audit Reviewer, the Asset Controller and the
+  Auditor (it ends `:read`, so the Auditor stays read-only).
+- **`audit:capture`** — sync a capture and its photos from a device bound
+  to the caller. The Audit Capturer. Also opens `POST /ai/identify` and
+  `GET /ai/config` (either this or `assets:write`).
+- **`audit:review`** — accept or return a capture somebody else made. The
+  Audit Reviewer.
+- **`audit:manage`** — devices, code blocks, campaigns, and the
+  found-not-in-SAP exceptions. The Asset Controller.
+
+The capturer and the reviewer each also hold `sap_mirror:read` (the match
+made in the room, and the judging of it), and both imply Asset User.
 
 **`export:read`** was split out of `assets:read` by handoff 50 (BREAKING):
 it gates exactly the two bulk-export routes (§3.9), because reading a page
@@ -4250,7 +4277,7 @@ a deleted parameter's old value to twenty-four writing tests.
 
 # Endpoint index (grouped by area, alphabetical inside groups)
 
-Every first-party route under `/api/v1` — 141 of them as of handoff 60 (133 at handoff 58, 115 at handoff 52); the
+Every first-party route under `/api/v1` — 198 of them as of handoff 66 (169 at handoff 65, 141 at handoff 60, 133 at handoff 58, 115 at handoff 52); the
 first-party routes OUTSIDE `/api/v1` are `docs/api/EXTERNAL-SURFACES.md`'s.
 This table is held to the code by `tests/test_endpoint_reference.py` (handoff
 52 §6b), which re-derives the route census from every
@@ -4267,9 +4294,14 @@ INLINE rather than declaring it — `GET /assets/export.csv` (`export:read`),
 handoff 60, `GET /assets/<id>/evidence/<attachment_id>` (`candidates:read`
 and, since handoff 61, `evidence:read`); since handoff 61 also
 `GET /locations/<id>/label` (`locations:read`) and
-`GET /assets/<id>/photos/<photo_id>` (`assets:read`) — so their
+`GET /assets/<id>/photos/<photo_id>` (`assets:read`); since handoff 66
+`GET /audit/campaigns/<id>/lists.csv` and `GET /audit/photos/<id>`
+(`audit:read`) — so their
 cells are stated here by hand, as is `PATCH /asset-categories/<id>`, whose
-either-or scope the route checks itself (handoff 58); the guard compares method and path, not
+either-or scope the route checks itself (handoff 58), and, since handoff 66,
+`POST /ai/identify` and `GET /ai/config`, which declare no scope and refuse
+`403` in the body unless the caller holds `assets:write` or
+`audit:capture` (a route's declared scopes are all-of); the guard compares method and path, not
 scope. `GET /settings/sidebar` requires a signed-in caller and no scope, by
 design (handoff 48).
 
@@ -4322,9 +4354,10 @@ design (handoff 48).
 | 40c | GET    | `/api/v1/assets/<id>/photos/<photo_id>` | `assets:read`, checked inline — the bytes, not the envelope (handoff 61) |
 | 40d | POST   | `/api/v1/assets/<id>/photos/<photo_id>/supersede` | `assets:write` (handoff 61: a `reason`; the photo is kept) |
 | 40e | GET    | `/api/v1/assets/<id>/sap-record` | `sap_mirror:read` (handoff 63: the SAP mirror record this asset is linked to, or why not — §16) |
-| 40f | POST   | `/api/v1/ai/identify` | `assets:write`, behind `cadra.ai.identify` (handoff 64: multipart — `photo_id`, or `file` + `source`; the suggestion from a photo, written to no asset — §17) |
+| 40f | POST   | `/api/v1/ai/identify` | `assets:write` **or** `audit:capture` since handoff 66, checked in the route; behind `cadra.ai.identify` (handoff 64: multipart — `photo_id`, or `file` + `source`; the suggestion from a photo, written to no asset — §17) |
 | 40g | GET    | `/api/v1/settings/ai-identify` | `settings:read` (handoff 64: switch, provider, model, timeout, daily cap and today's count; `key_placed`, never the key — §17) |
 | 40h | PATCH  | `/api/v1/settings/ai-identify` | `settings:write` (handoff 64: everything above except the key, which is the owner's — §17) |
+| 40i | GET    | `/api/v1/ai/config` | `audit:capture` **or** `assets:write`, checked in the route (handoff 66: the AI switch, model and calls left today, the label layout and the capture limits, for a phone going offline — §19.9) |
 | 41 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
 | 42 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
 | 43 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
@@ -4444,6 +4477,34 @@ design (handoff 48).
 | 155 | GET    | `/api/v1/sap-links/contested` | `sap_mirror:read` (handoff 65: SAP records two or more Cadra assets point at — §18.5) |
 | 156 | POST   | `/api/v1/sap-links/contested/<sap_id>/propose` | `register:make` (handoff 65: the maker chooses one asset of a group — §18.5) |
 | 157 | POST   | `/api/v1/sap-links/contested/<sap_id>/flag` | `register:make` (handoff 65: flag a group as a likely duplicate, with a note — §18.5) |
+| 158 | GET    | `/api/v1/audit/devices` | `audit:read` (handoff 66: devices and whom each is bound to; `?mine=true` — §19.2) |
+| 159 | POST   | `/api/v1/audit/devices` | `audit:manage` (handoff 66: register a device, optionally bound to a person; answers its `device_code` — §19.2) |
+| 160 | POST   | `/api/v1/audit/devices/<id>/bind` | `audit:manage` (handoff 66: rebind to a person, or `null` for nobody — §19.2) |
+| 161 | POST   | `/api/v1/audit/devices/<id>/deactivate` | `audit:manage` (handoff 66: refused while a block is open — §19.2) |
+| 161a | GET    | `/api/v1/audit/people` | `audit:manage` (handoff 66: the active holders of the capturer and reviewer roles, to bind a device or name a team — §19.2) |
+| 162 | GET    | `/api/v1/audit/blocks` | `audit:read` (handoff 66: blocks, `?device_id=`, `?state=` — §19.3) |
+| 163 | POST   | `/api/v1/audit/blocks` | `audit:manage` (handoff 66: issue 1–500 codes to a device and its bound person — §19.3) |
+| 164 | GET    | `/api/v1/audit/blocks/<id>` | `audit:read` (handoff 66: one block and every code in it — §19.3) |
+| 165 | POST   | `/api/v1/audit/blocks/<id>/return` | `audit:manage` (handoff 66: unused codes voided, never reissued — §19.3) |
+| 166 | GET    | `/api/v1/audit/codes` | `audit:read` (handoff 66: the asset-code ledger, paged — §19.3) |
+| 167 | GET    | `/api/v1/audit/campaigns` | `audit:read` (handoff 66: campaigns with progress, `?state=` — §19.4) |
+| 168 | POST   | `/api/v1/audit/campaigns` | `audit:manage` (handoff 66: open a campaign — scope, capturers, reviewers, dates — §19.4) |
+| 169 | GET    | `/api/v1/audit/campaigns/<id>` | `audit:read` (handoff 66: one campaign, with its rooms — §19.4) |
+| 170 | PATCH  | `/api/v1/audit/campaigns/<id>` | `audit:manage` (handoff 66: name, team or end date of an open campaign — §19.4) |
+| 171 | POST   | `/api/v1/audit/campaigns/<id>/close` | `audit:manage` (handoff 66: refused while a capture waits; keeps the two lists as they stood — §19.8) |
+| 172 | GET    | `/api/v1/audit/campaigns/<id>/lists` | `audit:read` (handoff 66: found not in SAP, and in SAP not found, per office — §19.8) |
+| 173 | GET    | `/api/v1/audit/campaigns/<id>/lists.csv` | `audit:read`, checked inline — a CSV file, not the envelope; `?list=` required (handoff 66 — §19.8) |
+| 174 | GET    | `/api/v1/audit/campaigns/<id>/slice` | `audit:read` (handoff 66: a room's Cadra assets or its office's SAP records, for an offline phone — §19.4) |
+| 175 | POST   | `/api/v1/audit/photos` | `audit:capture` (handoff 66: multipart `file`, `source`; one photo for a capture — §19.5) |
+| 176 | GET    | `/api/v1/audit/photos/<id>` | `audit:read`, checked inline — the bytes, not the envelope (handoff 66 — §19.5) |
+| 177 | POST   | `/api/v1/audit/captures` | `audit:capture` + the `X-Cadra-Device` header (handoff 66: one capture, idempotent on its `capture_id` — §19.6) |
+| 178 | GET    | `/api/v1/audit/captures` | `audit:read` (handoff 66: by campaign, room, state, outcome, `duplicates`, `mine` — §19.6) |
+| 179 | GET    | `/api/v1/audit/captures/<capture_id>` | `audit:read` (handoff 66: one capture by its UUID — the phone confirming a sync — §19.6) |
+| 180 | POST   | `/api/v1/audit/captures/<capture_id>/accept` | `audit:review` (handoff 66: never the capturer — §19.7) |
+| 181 | POST   | `/api/v1/audit/captures/<capture_id>/return` | `audit:review` (handoff 66: a `reason`; the code is kept for the re-capture — §19.7) |
+| 182 | POST   | `/api/v1/audit/captures/accept` | `audit:review` (handoff 66: a batch — `capture_ids`, or a room's waiting captures; `dry_run` — §19.7) |
+| 183 | POST   | `/api/v1/audit/captures/<capture_id>/register-new` | `audit:manage` (handoff 66: a found-not-in-SAP exception sent to the Register Maker — §19.8) |
+| 184 | POST   | `/api/v1/audit/captures/<capture_id>/void` | `audit:manage` (handoff 66: a found-not-in-SAP exception voided with a `reason`, and its code — §19.8) |
 
 
 ## 11.8 GET `/api/v1/settings` and PATCH `/api/v1/settings/receipt-gate` — are receipts gated? (handoff 57, kept by 58)
@@ -4500,9 +4561,14 @@ restated. One entry per group that grants API scopes, in table order.
 `implies` lists the OTHER roles in this vocabulary a holder of this one
 also holds. A role whose group is not installed on the tenant is still
 listed, with `installed: false`. `grantable` (handoff 42) says whether §12.4
-may grant or remove it: `true` for exactly `asset_user`, `asset_manager`,
-`tag_issuing_unit` and `auditor`, `false` for `system` and every other
-group — read off the same constant the model refuses on.
+may grant or remove it: `true` for exactly `asset_user`, `asset_officer`
+(handoff 47), `asset_manager`, `tag_issuing_unit`, `auditor`, the five
+receipt-gate roles `iad_vfm_officer`, `iad_vfm_approver`,
+`asset_controller`, `register_maker`, `register_checker` (handoff 57), and
+the audit team's `audit_capturer` and `audit_reviewer` (handoff 66);
+`false` for `system` and every other group — read off the same constant the
+model refuses on (`API_GRANTABLE_XMLIDS`, `myservice_api/models/access_guard.py`).
+`audit_capturer` and `audit_reviewer` cannot be held by one person (§15).
 
 ## 12.2 GET `/api/v1/users` — who has what
 
@@ -5199,7 +5265,8 @@ Some roles may not be held by one person. The table, seeded with Addendum
 A's defaults (the Asset Officer — Store — with any IAD role, the Asset
 Controller, the Tag-Issuing Unit, the Register Maker or the Register
 Checker; the Register Maker with the Register Checker; the IAD officer with
-the IAD approver), is enforced when a role is GRANTED, on the model, by
+the IAD approver; since handoff 66, the Audit Capturer with the Audit
+Reviewer), is enforced when a role is GRANTED, on the model, by
 every writer: `POST /users/<id>/roles` and `POST /users` refuse `403
 forbidden`, preview included:
 
@@ -5407,7 +5474,16 @@ confirms: no route here writes anything on an asset.** Off on every tenant
 until an administrator switches it on (`cadra.ai.identify`), and only after
 NRS has accepted in writing that photos go to the provider (R7).
 
-### 17.1 POST `/api/v1/ai/identify` — `assets:write`
+### 17.1 POST `/api/v1/ai/identify` — `assets:write` or `audit:capture`
+
+**Since handoff 66** the audit capturer identifies too — the phone and the
+web capture call this one route (R11) — so either scope opens it. The route
+declares no scope (declared scopes are all-of) and checks in its body: a
+caller holding neither is `403 forbidden`, *"Identifying from a photo needs
+`assets:write` or `audit:capture`."*, `details.required_scopes_any`. A
+capture links the answer by its `suggestion_id` (§19.6, `ai_suggestion_id`);
+`photo_id` names a photo on an ASSET, not an audit photo (§19.5), so a
+capture's photo is identified by sending its `file`.
 
 **multipart/form-data.** Exactly one of:
 
@@ -5562,7 +5638,13 @@ confident match, a contested record (`details.contested`, decided on
 `POST /api/v1/sap-links/approve {"link_ids": [..], "dry_run": false}` and
 `POST /api/v1/sap-links/return {"link_ids": [..], "reason": ".."}` — the
 reason is required to return. An approval re-checks that the asset still
-has no number and the record is still active and unlinked.
+has no number and the record is still active and unlinked. **An
+uncontested proposal is re-checked for rivals too**: if another Cadra asset
+has come to point at the same record since it was proposed — by the same
+old tag (handoff 65) or, since handoff 66, the same serial for a
+serial-basis proposal (`reason_code: serial_unique`) — the approval is
+refused `409 conflict`, `details.contested: true`, and the record is
+decided on §18.5.
 
 ### 18.4 POST `/api/v1/assets/<id>/sap-link/undo`
 
@@ -5582,3 +5664,336 @@ unlinked — or `POST /api/v1/sap-links/contested/<sap_id>/flag {"note":
 ".."}` — the group flagged as a likely duplicate, an event on each asset,
 `sap.duplicate_flag` on every asset of it. **Nothing is merged, retired or
 deleted.** A group flagged once is refused a second flag (409).
+
+## 19 · The audit in the room (handoff 66; rulings R1, R2, R2a, R4)
+
+An audit team walks a room. For each item a phone (or the web capture)
+records a **capture** — offline if need be, synced later — and **every
+capture ends as exactly one of three outcomes**, each needing two people:
+the capturer, and a reviewer who accepts it. The capturer can never review
+their own capture.
+
+| `outcome` | The item is… | Accepted, it becomes… |
+|---|---|---|
+| `on_register` (a) | already on Cadra's register — found by its Cadra label, its old FIRS tag (`legacy_asset_code`) or a pick from the room's list | a **verification in place**: the room and condition written, a verification recorded, the photos copied to the asset. A missing or unreadable label is **reprinted under the asset's existing code**, the reviewer's acceptance being the approval (R3). No new code. |
+| `in_sap` (b) | in SAP's register (`nrs.sap.asset`, §16), not in Cadra's | a **new register asset** with SAP's number, sub-number, company code and capitalisation date, and the code the phone printed (R2). It enters at `register_state = registered` — the receipt gates do not apply (R1) — with `sap.code_source = "audit_from_sap_mirror"`. **No asset master is queued**: SAP already holds it. |
+| `in_neither` (c) | in neither register | a ***found, not in SAP*** **exception** for the Asset Controller (§19.8). Its code stays `in_review`; nothing is registered automatically. |
+
+Each accepted a and b — and a c registered as new — writes one append-only
+`nrs.asset.event` of type `audit_capture` on the asset (source `api_audit`,
+`to_value` the outcome, `reason` the sentence, `notes` the capture,
+campaign, capturer and reviewer as JSON). **Nothing an audit outcome does is
+sent to SAP.**
+
+Every refusal below is in words, and nothing is written. The statuses are
+the receipt gates' (§14.4): `400 validation_failed`, `403 forbidden`, and
+`409 conflict` with the kind in `details.reason` (`invalid_state`,
+`not_on_the_register`, `segregation_of_duties`). A body key a route does not
+read is `400 invalid_request` with `details.rejected_fields` and
+`details.writable`.
+
+### 19.1 Who does what
+
+| Role (key on `/roles`) | Scopes it adds | Its job |
+|---|---|---|
+| Asset Controller (`asset_controller`) | `audit:read`, `audit:manage` | devices, code blocks, campaigns, closing, the exceptions |
+| Audit Capturer (`audit_capturer`) | `audit:read`, `audit:capture`, `sap_mirror:read` | captures items, from a device bound to them, with codes from their block |
+| Audit Reviewer (`audit_reviewer`) | `audit:read`, `audit:review`, `sap_mirror:read` | accepts or returns captures somebody else made |
+| Auditor (`auditor`) | `audit:read` | reads campaigns, captures and the two lists |
+
+The capturer and reviewer roles both imply Asset User, are grantable on
+`POST /users/<id>/roles` (§12.4), and **cannot be held by one person** (role
+exclusion, §15). A campaign names its own capturers and reviewers as well;
+one person may not be both in one campaign, and the role alone is not
+enough — a capturer must be on the campaign's list, a reviewer on its
+reviewers.
+
+### 19.2 Devices — R4: a device is not a credential
+
+The person signs in with `POST /auth/login` as themselves. The phone names
+itself in the **`X-Cadra-Device`** header with its `device_code`, and the
+capture is refused unless that device is active and bound to the caller.
+
+- `POST /api/v1/audit/devices` (`audit:manage`) — `{"name": "Phone 3",
+  "user_id": 42}` (`user_id` optional). `201` with the device, including its
+  generated `device_code` (`DEV-` and eight hex characters). Get that code
+  onto the phone once; Cadra does not print it.
+- `POST /api/v1/audit/devices/<id>/bind` — `{"user_id": 42}`, or `null`
+  for nobody. One person at a time. Refused `409` while the device carries
+  an open block issued to someone else: return the block first.
+- `POST /api/v1/audit/devices/<id>/deactivate` — refused `409` while a
+  block is open.
+- `GET /api/v1/audit/devices` (`audit:read`), `?mine=true` for the devices
+  bound to the caller.
+- `GET /api/v1/audit/people` (`audit:manage`) — whom the Asset Controller
+  may bind a device to or name on a team: `{"capturers": [{id, name,
+  login}], "reviewers": [...]}`, the ACTIVE holders of each role, sorted by
+  name. `GET /users` is the administrator's; this is the Controller's one
+  list of people.
+
+A device: `{id, name, device_code, bound_to: {id, name}, bound_at,
+bound_by, active, registered_by, registered_at, open_block_id}`.
+
+The header's refusals on `POST /audit/captures`: missing or unknown code
+`400`; a deactivated device, or one bound to somebody else, `403`
+(*"Device Phone 3 is bound to A. Person, not to you. The Asset Controller
+rebinds a device."*).
+
+### 19.3 Code blocks and the ledger — R2, R2a
+
+`nrs.asset.code` is the ledger: **one answer to "which codes exist"**. Every
+existing asset's code was backfilled `active` by the 19.0.1.34.0 migration
+(`source: backfill`), every new asset's code writes a row (`source:
+asset`), and every code issued in a block is one (`source: block`). States:
+`reserved` → `in_review` → `active` | `void`. **A code is never reissued.**
+
+- `POST /api/v1/audit/blocks` (`audit:manage`) — `{"device_id": 7,
+  "size": 200}`, 1 to 500. Codes are drawn from the asset-code sequence
+  itself (`ir.sequence` `nrs.asset`) under a lock, so no asset created any
+  other way can be given one; a number already on an asset or in the ledger
+  is skipped. Each code is reserved to the device AND the person it is
+  bound to. Refused `409` for a deactivated or unbound device. `201` with
+  the block and every code.
+- `POST /api/v1/audit/blocks/<id>/return` — `{"reason": ".."}` optional.
+  Every code still `reserved` is **voided**, never returned to a pool; a
+  code `in_review` stays in review. Answers the block with `voided_now`.
+  A second return is `409`.
+- `GET /api/v1/audit/blocks` (`?device_id=`, `?state=issued|returned`),
+  `GET /api/v1/audit/blocks/<id>` (with `codes`), and `GET
+  /api/v1/audit/codes` (`?code=`, `?state=`, `?block_id=`, cursor-paged).
+
+A block: `{id, name (BLK-000012), device, issued_to, size, state,
+first_code, last_code, issued_by, issued_at, returned_by, returned_at,
+return_reason, codes_by_state}`. A code: `{code, state, source, block_id,
+device_id, reserved_to, reserved_at, used_at, activated_at, voided_at,
+voided_by, void_reason, asset_id, capture_id}`.
+
+How a block code moves: a capture of outcome b or c that uses it →
+`in_review`; b accepted → `active`; the capture returned → back to
+`reserved` for the re-capture; c voided → `void`; c registered as new →
+`active` when it reaches the register. An asset's own code: `active` when
+created on the register, `in_review` while a receipt candidate, `active` at
+registration, `void` if IAD rejects the receipt.
+
+### 19.4 Campaigns, and a room's slice for an offline phone
+
+- `POST /api/v1/audit/campaigns` (`audit:manage`) — `{"name": "HQ floor
+  10", "scope": [{"location_id": 120, "office_code": "ABJ"}],
+  "capturer_ids": [41], "reviewer_ids": [43], "date_start": "2026-10-20",
+  "date_end": "2026-10-31"}`. Each scope line names a location (a building
+  or room, covering everything under it), the SAP office code its records
+  carry, or both. A campaign with no location lines covers every room.
+- `PATCH /api/v1/audit/campaigns/<id>` — `name`, `capturer_ids`,
+  `reviewer_ids`, `date_end`; refused `409` once closed.
+- `GET /api/v1/audit/campaigns` (`?state=open|closed`), `GET
+  /api/v1/audit/campaigns/<id>` (adds `rooms`: captured and waiting per
+  room). Each campaign carries `progress`: `captured`,
+  `waiting_for_review`, `accepted`, `returned`, `reviewed`,
+  `duplicates_held`, `exceptions`, `exceptions_open`.
+
+**`GET /api/v1/audit/campaigns/<id>/slice?location_id=<room>`**
+(`audit:read`) is what an offline phone caches for a room:
+
+- `kind=assets` (default) — the Cadra assets in the room and under it:
+  `id`, `asset_code`, `name`, `asset_tag`, `legacy_asset_code`,
+  `serial_number`, `category`, `condition`, `state`, `sap_asset_number`,
+  `location_id`, `updated_at`. Receipt candidates are not included.
+- `kind=sap_records` — the active SAP records in the latest export for the
+  room's office (the nearest scope line above the room that names one, or
+  the campaign's only office): `id`, `asset_number`, `sub_number`, `class`,
+  `description`, `old_tag`, `serial_number`, `capitalized_on`,
+  `linked_asset_id`, `updated_at`. A room with no office gets no records,
+  said in `note`.
+
+Cursor-paged with `limit`/`cursor`, and `?updated_since=` with the same
+sync rule as `GET /assets` (handoff 61). A room outside the campaign is
+`409`.
+
+### 19.5 Photos — POST `/api/v1/audit/photos` (`audit:capture`)
+
+**multipart/form-data**: `file` (required), `source` (`mobile` default, or
+`web`). The photo rules of `POST /assets/<id>/photos`: JPEG or PNG judged by
+the bytes, at most 300 KB (`413`), wrong type `415`. A capture's photo is
+held before any asset exists and is never expired. **The same bytes synced
+twice by the same person answer the photo already kept**, with
+`already_synced: true`. `201`: `{id, url, mimetype, size, width, height,
+sha256}`. `GET /api/v1/audit/photos/<id>` (`audit:read`) is the bytes, with
+`ETag` = the SHA-256 and `Cache-Control: private, immutable`. On acceptance
+the photos are copied onto the asset's photos; an asset already holding 12
+keeps fewer, and the capture says how many in `photos_copied`.
+
+### 19.6 POST `/api/v1/audit/captures` (`audit:capture`, `X-Cadra-Device`)
+
+**Idempotent on the capture's own `capture_id`** — a UUID the phone gives
+the capture when it is taken, stored unique. It is not the 24-hour
+`X-Idempotency-Key` cache: a capture synced twice, on any day, is one
+capture. The second sync answers the stored capture with `replayed: true`;
+a `capture_id` another person synced is `403`.
+
+```json
+{"capture_id": "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+ "campaign_id": 3, "location_id": 812, "outcome": "in_sap",
+ "sap_record_id": 90211, "code": "NRS-AST-021340",
+ "scanned_label": "NRS-AST-021340",
+ "photo_ids": [55, 56], "ai_suggestion_id": 412,
+ "captured_at": "2026-10-20T09:14:03+01:00",
+ "fields": {"name": "HIGH BACK EXECUTIVE SWIVEL CHAIR", "category_id": 12,
+            "condition": "good", "colour": "BLACK",
+            "legacy_asset_code": "FIRS/ABJ/0412"}}
+```
+
+- **Always:** `capture_id`, `campaign_id`, `location_id` (the room, from its
+  scanned room code), `outcome`, `photo_ids` (at least one, each synced by
+  the caller), `captured_at`, and `fields` — the values the person
+  confirmed, only `name`, `category_id`, `condition`, `make`, `model_name`,
+  `serial_number`, `colour`, `material`, `dimensions`, `legacy_asset_code`,
+  `notes`. `fields.condition` is required: `new`, `good`, `fair` or `poor`.
+  `ai_suggestion_id` (optional) links a `POST /ai/identify` answer the
+  caller asked for — AI-NFR-05's trail.
+- **`on_register`:** `asset_id`, and `label` — `present` (default),
+  `missing` or `unreadable`. No `code`, `scanned_label` or `sap_record_id`:
+  the asset keeps its code.
+- **`in_sap`:** `sap_record_id`, plus `code` and `scanned_label`.
+- **`in_neither`:** `code` and `scanned_label`, and `fields.name`; no
+  `asset_id`, no `sap_record_id`.
+- **b and c** also need `fields.category_id`, of a class that is not
+  `record_only` (an audit capture is of an item a label is fixed to). The
+  `scanned_label` — what the scanner read off the label fixed to the item —
+  **must equal `code`**: the affix check, made in the room.
+
+**`captured_at`** may be up to **five working days** back (Monday to
+Friday, Lagos days, today not counted; `details.earliest` names the first
+day accepted) and never in the future beyond five minutes of clock skew.
+
+**Refused:** a closed campaign `409`; the caller not a capturer on it
+`403`; a room outside it `409`; a code not reserved to this device and this
+person `403`; a code already used `409` (`details.code_state`); a scanned
+label that is not the code `400`; an asset that is a receipt candidate
+`409 not_on_the_register`, or disposed `409`; a SAP record retired or not in
+the latest export `409`, or already on Cadra's register `409` naming the
+asset (*"capture it as found on the register"*).
+
+**A duplicate is held, not refused.** A second capture in the campaign of
+the same Cadra asset, the same SAP record, or the same old tag
+(`fields.legacy_asset_code`, normalised) is created `201` with
+`duplicate_of` (the first capture's id) and `duplicate_basis`
+(`cadra_asset`, `sap_record`, `old_tag`), so the reviewer sees both.
+
+**`201`**, the capture: `capture_id`, `id`, `campaign`, `location`
+(`id`, `name`, `location_code`), `outcome`, `state` (`pending_review`,
+`accepted`, `returned`), `asset`, `sap_record`, `code`, `scanned_label`,
+`label`, `name`, `category`, `condition`, `fields` (as sent), `photos`
+(each with its `url`), `ai_suggestion` (`id`, `result`, `suggested`),
+`captured_at`, `received_at`, `captured_by`, `device`, `duplicate_of`,
+`duplicate_basis`, `reviewed_by`, `reviewed_at`, `return_reason`,
+`result_asset` (`id`, `asset_code`, `register_state`), `reprint_label_id`,
+`photos_copied`, `exception_state` (`open`, `registered`, `voided`),
+`exception_resolved_by`, `exception_resolved_at`, `exception_void_reason`,
+and `replayed`.
+
+**`GET /api/v1/audit/captures/<capture_id>`** (`audit:read`) — the phone
+confirming a sync, and reading the review's result. **`GET
+/api/v1/audit/captures`** — `?campaign_id=`, `?location_id=`, `?state=`,
+`?outcome=`, `?exception_state=`, `?duplicates=true|false`, `?mine=true`,
+cursor-paged.
+
+### 19.7 Review — `audit:review`
+
+- **`POST /api/v1/audit/captures/<capture_id>/accept`** (no body). Refused:
+  the capturer reviewing their own `409 segregation_of_duties` with
+  `details.earlier`; not a reviewer on the campaign `403`; already reviewed
+  or the campaign closed `409`; another capture of the same Cadra asset or
+  SAP record already accepted in the campaign `409`
+  (`details.duplicate_of`: return this one).
+  - **a:** the asset moves to the capture's room when it was recorded
+    elsewhere — no move request, because the capturer and the reviewer are
+    already two people (approval exemption `audit`; the movement row says
+    `approval` and names the audit) — its condition is written, a
+    verification is recorded as the capturer's, and the photos are copied.
+    With `label: missing|unreadable`, the asset's label is **reprinted under
+    the same code**, the old print voided `lost` or `damaged`
+    (`reprint_label_id`). The reprint still has to be printed — recorded on
+    `POST /tags/printed` — and confirmed on `POST /assets/<id>/tag-affixed`,
+    both `tagging:write`.
+  - **b:** the asset is created on the register (above), its label recorded
+    as affixed from the capture's scan, dated `captured_at`; the code goes
+    `active`. The asset carries SAP's number, so the affix queues no INT-06
+    master.
+  - **c:** `exception_state: open`; the code stays `in_review`.
+- **`POST /api/v1/audit/captures/<capture_id>/return`** — `{"reason":
+  ".."}`, required. The capture is `returned`, and a code it used goes back
+  to `reserved` to the same device and person, for the re-capture. **The
+  re-capture is a new capture with a new `capture_id`**: re-sending the
+  returned one's id answers the returned capture.
+- **`POST /api/v1/audit/captures/accept`** — a batch (60's rules: N single
+  acts, each in its own savepoint, a refused one rolling back nothing):
+  `{"capture_ids": [..]}` (1 to 100, distinct), or a room —
+  `{"campaign_id": 3, "location_id": 812}` — whose waiting captures are
+  accepted, up to 100, **held duplicates left for one-by-one review**;
+  `dry_run`. `200`: `{action, dry_run, total, done, refused, results}`, each
+  result `{capture_id, outcome (done | would_do | refused), status, code,
+  message, details, asset_id}`.
+
+### 19.8 The exceptions, closing, and the two lists — `audit:manage`
+
+- **`POST /api/v1/audit/captures/<capture_id>/register-new`** (no body) — an
+  open found-not-in-SAP exception becomes an asset at `register_state =
+  tagged`, its asset code and label the capture's code (already on the
+  item), waiting on the Register Maker: the normal maker and checker gates
+  follow (§14), and INT-06's master at the checker's approval, because SAP
+  does not hold it. `exception_state: registered`.
+- **`POST /api/v1/audit/captures/<capture_id>/void`** — `{"reason":
+  ".."}`, required. `exception_state: voided`, and **its code is voided**:
+  the label printed for it is accounted for.
+
+Both refuse `409` a capture that is not an open exception.
+
+**`POST /api/v1/audit/campaigns/<id>/close`** — refused `409` while any
+capture waits for review (`details.waiting_for_review`). Closed, the
+campaign answers with `lists`, kept as they stood.
+
+**`GET /api/v1/audit/campaigns/<id>/lists`** (`audit:read`) — while open,
+as of now (`as_of: "now"`); once closed, as at closing (`as_of:
+"closing"`):
+
+- `found_not_in_sap` — accepted outcome-c captures: `office_code`,
+  `capture_id`, `code`, `name`, `category`, `location`, `location_id`,
+  `captured_by`, `captured_at`, `exception_state`;
+- `in_sap_not_found` — the active SAP records of the latest export whose
+  office is in the campaign, that no accepted capture matched and no Cadra
+  asset links to: `office_code`, `sap_record_id`, `asset_number`,
+  `sub_number`, `asset_class`, `description`, `old_tag`, `capitalized_on`;
+- `by_office` — both counts per office; `offices`;
+- `sap_records_with_no_office` and `no_office_note` — SAP records with no
+  office are a COUNT, never "not found": without SAP's location extract
+  they cannot be placed in any room.
+
+**`GET /api/v1/audit/campaigns/<id>/lists.csv?list=found_not_in_sap|in_sap_not_found`**
+— one list as a CSV file (`campaign-<id>-found-not-in-sap.csv`), for the
+auditors who take it away. `?list=` is required.
+
+### 19.9 GET `/api/v1/ai/config` — the phone's one read before going offline
+
+`audit:capture` or `assets:write`, checked in the route (`403` with
+`details.required_scopes_any` otherwise).
+
+```json
+{"ai_identify": {"enabled": true, "provider": "anthropic", "model": "claude-opus-5-5",
+                 "daily_cap": 500, "calls_today": 37, "remaining_today": 463,
+                 "route": "/api/v1/ai/identify"},
+ "label": {"content": "the asset code, verbatim — nothing added, nothing removed",
+           "symbologies": [{"format": "qr_code", "sizes": ["small", "medium", "large"], "first": true},
+                           {"format": "code_128", "sizes": ["large"], "first": false, "note": "…"}],
+           "text_line": "the code, printed under the symbol, …",
+           "sizes_mm": {"small": […], "medium": […], "large": […]}},
+ "capture": {"earliest_captured_on": "2026-10-13", "max_working_days_back": 5,
+             "device_header": "X-Cadra-Device", "max_block_size": 500,
+             "confirmed_fields": ["name", "category_id", "condition", "make", "model_name",
+                                  "serial_number", "colour", "material", "dimensions",
+                                  "legacy_asset_code", "notes"],
+             "outcomes": ["on_register", "in_sap", "in_neither"]}}
+```
+
+The label layout is data so the phone never guesses: **QR first, the code
+verbatim, no Code 128 below `large`** (handoffs 54 and 61: a camera read the
+small and medium Code 128 0 of 24).

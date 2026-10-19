@@ -261,7 +261,8 @@ class TestGatesKept(GateCrew, CadraTransactionCase):
 
     def test_every_seeded_exclusion_refuses_the_grant(self):
         seeded = self.env['nrs.role.exclusion'].search([])
-        self.assertEqual(len(seeded), 8, 'the addendum defaults')
+        # 8 addendum defaults, and handoff 66's capturer × reviewer.
+        self.assertEqual(len(seeded), 9, 'the addendum defaults + 66')
         for i, exclusion in enumerate(seeded):
             user = self._person('k58-x%d' % i, )
             user.sudo().write({'group_ids': [(4, exclusion.group_a.id)]})

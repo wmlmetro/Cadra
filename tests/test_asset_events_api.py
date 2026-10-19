@@ -70,12 +70,15 @@ _EVENT_RECORD = "nrs.asset.event"
 # suggested from a photo, before `photo_added` in the stored order.
 # `sap_link` and `sap_duplicate_flagged` since handoff 65 (additive): a
 # link to SAP's record by two people, and a duplicate flagged for NRS.
+# `audit_capture` since handoff 66 (additive): an audit capture accepted
+# by a second person.
 # `photo_superseded` and `photo_added` since handoff 61 (additive): a photo
 # is its own append-only row, and superseding one is an event.
 _RECORDED_TYPES = ["verified", "verification_date_set", "status_changed",
                    "provenance_changed", "warranty_changed", "affix_refused",
                    "gate_fired", "photo_superseded", "details_suggested",
-                   "sap_link", "sap_duplicate_flagged", "photo_added"]
+                   "sap_link", "sap_duplicate_flagged", "audit_capture",
+                   "photo_added"]
 
 _HIERARCHY_FIELDS = ("building_id", "floor_id", "room_id")
 
@@ -1563,9 +1566,11 @@ def test_an_event_this_suite_wrote_says_so(client, test_location,
     # asserts its label there.
     # `sap_link` and `sap_duplicate_flagged` need a SAP mirror record the
     # asset matches; `tests/test_the_link.py` writes and asserts them.
+    # `audit_capture` needs a campaign and two people;
+    # `tests/test_the_audit.py` writes and asserts it.
     expected = [t for t in _RECORDED_TYPES
                 if t not in ("photo_added", "details_suggested", "sap_link",
-                             "sap_duplicate_flagged")]
+                             "sap_duplicate_flagged", "audit_capture")]
     if not gates.receipt_gated(client):
         expected = [t for t in expected if t != "gate_fired"]
     added = [e for e in _history(client, asset["id"])["events"]
@@ -1637,7 +1642,8 @@ def test_the_history_says_from_when_each_kind_of_event_is_recorded(
                 entry["statement"]
             assert "message log" not in entry["statement"], entry["statement"]
             continue
-        if entry["event"] in ("sap_link", "sap_duplicate_flagged") \
+        if entry["event"] in ("sap_link", "sap_duplicate_flagged",
+                              "audit_capture") \
                 and not entry["recording_began_at"]:
             # Handoff 65: written only by `tests/test_the_link.py`, which
             # runs after this file; on a fresh tenant, "not yet" in words.
