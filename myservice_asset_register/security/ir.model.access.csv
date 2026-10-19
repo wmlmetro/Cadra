@@ -46,3 +46,10 @@ access_nrs_ai_suggestion_employee,nrs.ai.suggestion employee,model_nrs_ai_sugges
 access_nrs_ai_suggestion_manager,nrs.ai.suggestion manager,model_nrs_ai_suggestion,myservice_asset_register.group_asset_manager,1,0,0,0
 access_nrs_ai_pending_photo_manager,nrs.ai.pending.photo manager,model_nrs_ai_pending_photo,myservice_asset_register.group_asset_manager,1,0,0,0
 access_nrs_sap_link_system,nrs.sap.link system,model_nrs_sap_link,base.group_system,1,0,0,0
+access_nrs_audit_device_system,nrs.audit.device system,model_nrs_audit_device,base.group_system,1,0,0,0
+access_nrs_asset_code_system,nrs.asset.code system,model_nrs_asset_code,base.group_system,1,0,0,0
+access_nrs_audit_code_block_system,nrs.audit.code.block system,model_nrs_audit_code_block,base.group_system,1,0,0,0
+access_nrs_audit_campaign_system,nrs.audit.campaign system,model_nrs_audit_campaign,base.group_system,1,0,0,0
+access_nrs_audit_campaign_scope_system,nrs.audit.campaign.scope system,model_nrs_audit_campaign_scope,base.group_system,1,0,0,0
+access_nrs_audit_photo_system,nrs.audit.photo system,model_nrs_audit_photo,base.group_system,1,0,0,0
+access_nrs_audit_capture_system,nrs.audit.capture system,model_nrs_audit_capture,base.group_system,1,0,0,0

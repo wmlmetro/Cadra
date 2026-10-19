@@ -39,3 +39,6 @@ from . import v1_ai
 # Handoff 65 — the link: a register asset given its SAP number from the
 # mirror by two people, the contested list and the duplicate flag.
 from . import v1_sap_links
+# Handoff 66 — the audit in the room: devices, code blocks, campaigns,
+# captures, review and the two closing lists; `GET /ai/config`.
+from . import v1_audit_capture

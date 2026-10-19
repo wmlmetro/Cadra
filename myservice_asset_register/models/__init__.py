@@ -44,3 +44,7 @@ from . import sap_mirror
 # people, and the duplicate flag. After the mirror (its matcher and link
 # join) and the gates (the no-two-gates rule it reuses).
 from . import sap_link
+# Handoff 66 — devices, the code ledger, blocks, campaigns and captures. Last:
+# it extends `nrs.asset.create` and `_gate_move` (the gates) and the label's
+# `_may_decide` (the tag model).
+from . import audit_capture

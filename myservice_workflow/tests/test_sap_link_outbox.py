@@ -142,3 +142,121 @@ class TestTheLinkSendsNothing(CadraTransactionCase):
         self.assertIn('two masters', str(caught.exception.args[0]))
         self.assertFalse(self.env['nrs.sap.link'].sudo().search(
             [('asset_id', '=', asset.id)]))
+
+
+@tagged('post_install', '-at_install')
+class TestTheLinkRechecksAndFlags(TestTheLinkSendsNothing):
+    """Handoff 66: two of report 65's left items.
+
+    * A `serial_unique` proposal is re-checked for rivals at approval, the
+      twin of the `old_tag_unique` re-check (verification pass, finding 9).
+    * The serializer's duplicate flag is read once per page, not once per
+      asset — and a flag written after a page was read still shows.
+
+    Inherits the outbox class's setUp (category, maker, checker, the stub
+    target) and its `_record` helper.
+    """
+
+    def _serial_record(self, number, serial):
+        return self.env['nrs.sap.asset'].sudo().with_context(
+            cadra_sap_mirror_import=True).create({
+                'sap_key': '%s|0' % number, 'company_code': 'NRS1',
+                'asset_number': number, 'asset_number_norm': number,
+                'sub_number_norm': '0', 'asset_class': '3000',
+                'description': 'LAPTOP', 'serial_number': serial,
+                'serial_norm': serial, 'serial_kind': 'real'})
+
+    def test_a_serial_proposal_is_refused_once_a_rival_appears(self):
+        from odoo.addons.myservice_asset_register.models.asset_gates import (
+            GateRefused)
+        serial = 'SN66-RIVAL-%d' % self.category.id
+        rec = self._serial_record('30000066001', serial)
+        asset = self.env['nrs.asset'].create({
+            'name': 'Serial-linked laptop', 'category_id': self.category.id,
+            'serial_number': serial.lower()})
+        link = asset.with_user(self.maker)._sap_link_propose(
+            scopes=['register:make'])
+        self.assertEqual(link.sap_record_id, rec)
+        self.assertEqual(link.reason_code, 'serial_unique')
+        self.assertEqual(asset._rivals_by_serial(rec), [])
+        # A second Cadra asset arrives carrying the same serial, spelled
+        # differently (case and spacing), before the checker decides.
+        rival = self.env['nrs.asset'].create({
+            'name': 'Second laptop, same serial',
+            'category_id': self.category.id,
+            'serial_number': '  %s ' % serial})
+        self.assertEqual(asset._rivals_by_serial(rec), [rival.id])
+        with self.assertRaises(GateRefused) as caught:
+            link.with_user(self.checker)._decide(
+                True, scopes=['register:check'])
+        exc = caught.exception
+        self.assertEqual(exc.kind, 'invalid_state')
+        self.assertIn('1 other Cadra asset', str(exc.args[0]))
+        self.assertTrue(exc.details['contested'])
+        self.assertEqual(exc.details['asset_ids'], [rival.id])
+        self.assertFalse(asset.sap_asset_number, 'nothing was written')
+
+    def test_a_rival_whose_tag_is_in_sap_is_not_a_serial_rival(self):
+        """The matcher tries a serial only when no active record carries
+        the asset's old tag; such an asset points elsewhere."""
+        serial = 'SN66-TAGGED-%d' % self.category.id
+        rec = self._serial_record('30000066002', serial)
+        asset = self.env['nrs.asset'].create({
+            'name': 'Serial laptop', 'category_id': self.category.id,
+            'serial_number': serial})
+        tag = 'FIRS/L66/0001'
+        self._record('30000066003', tag)
+        self.env['nrs.asset'].create({
+            'name': 'Tagged laptop, same serial',
+            'category_id': self.category.id, 'serial_number': serial,
+            'legacy_asset_code': tag})
+        self.assertEqual(asset._rivals_by_serial(rec), [])
+
+    def _flagged_page(self, n):
+        Event = self.env['nrs.asset.event']
+        from odoo.addons.myservice_asset_register.models.asset_event import (
+            EVENT_SAP_DUPLICATE_FLAGGED)
+        assets = self.env['nrs.asset'].create([
+            {'name': 'Flag page %d' % i, 'category_id': self.category.id}
+            for i in range(n)])
+        for a in assets[::2]:
+            Event._record(a, EVENT_SAP_DUPLICATE_FLAGGED,
+                          to_value='300000660%02d' % a.id, notes='seen')
+        self.env.flush_all()
+        self.env.invalidate_all()
+        return self.env['nrs.asset'].browse(assets.ids)
+
+    def _read_flags(self, page):
+        before = self.env.cr.sql_log_count
+        got = {a.id: (a._sap_duplicate_flag().to_value or None,
+                      a._sap_duplicate_flag().notes or None)
+               for a in page}
+        return got, self.env.cr.sql_log_count - before
+
+    def test_the_flag_is_read_once_per_page(self):
+        small, q_small = self._read_flags(self._flagged_page(2))
+        large, q_large = self._read_flags(self._flagged_page(12))
+        self.assertEqual(q_small, q_large,
+                         'one query per page, whatever its size')
+        # Same answer as the per-asset reading it replaces.
+        page = self.env['nrs.asset'].browse(list(large))
+        each = {a.id: a._sap_duplicate_flags().get(a.id) for a in page}
+        self.assertEqual(large, {
+            aid: ((ev.to_value or None, ev.notes or None) if ev
+                  else (None, None)) for aid, ev in each.items()})
+        self.assertEqual(sum(1 for v in large.values() if v[0]), 6)
+
+    def test_a_flag_written_after_a_page_was_read_shows(self):
+        tag = 'FIRS/L66/0002'
+        rec = self._record('30000066004', tag)
+        assets = self.env['nrs.asset'].create([
+            {'name': 'Contested %d' % i, 'category_id': self.category.id,
+             'legacy_asset_code': tag} for i in range(2)])
+        page = self.env['nrs.asset'].browse(assets.ids)
+        self.assertFalse(any(a._sap_duplicate_flag() for a in page))
+        self.env['nrs.asset']._sap_flag_duplicate(
+            rec, 'two laptops, one SAP record', scopes=['register:make'],
+            targets={'claims': {rec.id: assets.ids}})
+        self.assertEqual(
+            [a._sap_duplicate_flag().to_value for a in page],
+            ['30000066004'] * 2)

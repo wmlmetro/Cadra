@@ -99,6 +99,10 @@ IAD_VFM_APPROVER = "myservice_asset_register.group_iad_vfm_approver"
 ASSET_CONTROLLER = "myservice_asset_register.group_asset_controller"
 REGISTER_MAKER = "myservice_asset_register.group_register_maker"
 REGISTER_CHECKER = "myservice_asset_register.group_register_checker"
+# Handoff 66 — the audit team: one captures in the room, a different one
+# reviews. Exclusive by `nrs.role.exclusion`.
+AUDIT_CAPTURER = "myservice_asset_register.group_audit_capturer"
+AUDIT_REVIEWER = "myservice_asset_register.group_audit_reviewer"
 
 #: (key, name, job title, groups). One per role this system has, plus the two
 #: combinations the demo needs: the tagger a person actually is (Asset User +
@@ -132,6 +136,10 @@ PERSONAS = (
      (REGISTER_MAKER,)),
     ("register_checker", "Obinna Ezeagu", "Register Checker",
      (REGISTER_CHECKER,)),
+    # Handoff 66. Both names checked at zero employees and zero contacts on
+    # all nine local databases on 19 October 2026.
+    ("audit_capturer", "Ebiere Tamuno", "Audit Capturer", (AUDIT_CAPTURER,)),
+    ("audit_reviewer", "Garba Wuyep", "Audit Reviewer", (AUDIT_REVIEWER,)),
 )
 
 

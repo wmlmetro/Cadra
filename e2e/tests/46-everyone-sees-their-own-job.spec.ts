@@ -132,6 +132,8 @@ const LANDING: Record<string, string> = {
   // Handoff 57: every gate role implies Asset User, so each opens the register.
   iad_officer: "/assets", iad_approver: "/assets", asset_controller: "/assets",
   register_maker: "/assets", register_checker: "/assets",
+  // Handoff 66: the audit team implies Asset User too.
+  audit_capturer: "/assets", audit_reviewer: "/assets",
 };
 
 type Persona = { key: string; login: string; password: string };

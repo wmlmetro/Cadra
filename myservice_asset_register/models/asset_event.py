@@ -59,6 +59,12 @@ EVENT_SAP_LINK = 'sap_link'
 # deleted — this row is the whole of the act. `to_value` is the SAP asset
 # number the group points at, `notes` the maker's note.
 EVENT_SAP_DUPLICATE_FLAGGED = 'sap_duplicate_flagged'
+# Handoff 66 — an audit capture accepted by a reviewer (`nrs.audit.capture`):
+# found in place (outcome a), registered from SAP's record (b), or a found-
+# not-in-SAP exception registered as new (c). `to_value` is the outcome,
+# `reason` the sentence saying why the receipt gates did not apply, `notes`
+# the JSON of the capture, campaign, capturer and reviewer.
+EVENT_AUDIT_CAPTURE = 'audit_capture'
 
 # The symbologies a scanner can claim a value was read in — the
 # BarcodeDetector-style names the app's camera passes up with every decode
@@ -167,6 +173,8 @@ _PAYLOAD_OF_TYPE = {
         {'from_value', 'to_value', 'reason', 'notes', 'gate', 'gate_action'}),
     # Handoff 65 §2.
     EVENT_SAP_DUPLICATE_FLAGGED: frozenset({'to_value', 'notes'}),
+    # Handoff 66.
+    EVENT_AUDIT_CAPTURE: frozenset({'to_value', 'reason', 'notes'}),
 }
 
 # Which fields each field-carrying type may name. A reference change naming a
@@ -183,6 +191,7 @@ _FIELDS_OF_TYPE = {
 _CONTEXT_SOURCES = (
     'api_verify', 'api_condemn', 'api_mark_missing', 'api_mark_found',
     'api_write', 'api_affix', 'api_gate', 'api_photo', 'api_sap_link',
+    'api_audit',
     'action', 'transfer', 'approval', 'direct')
 
 
@@ -272,6 +281,7 @@ class NRSAssetEvent(models.Model):
         (EVENT_AI_SUGGESTION_APPLIED, 'Details suggested from a photo'),
         (EVENT_SAP_LINK, 'SAP link'),
         (EVENT_SAP_DUPLICATE_FLAGGED, 'Flagged as a likely duplicate'),
+        (EVENT_AUDIT_CAPTURE, 'Audit capture accepted'),
     ], string='Event', required=True, index=True)
 
     occurred_at = fields.Datetime(
@@ -332,6 +342,7 @@ class NRSAssetEvent(models.Model):
         ('api_gate', 'API — receipt gate'),
         ('api_photo', 'API — photo superseded'),
         ('api_sap_link', 'API — SAP link'),
+        ('api_audit', 'API — audit capture review'),
         ('action', 'A button on the asset (verify, condemn, mark missing '
                    'or found)'),
         ('transfer', 'Asset transfer completion'),

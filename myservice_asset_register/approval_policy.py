@@ -116,6 +116,14 @@ EXEMPT_REASONS = (
     # the caller declares this only when `approved_by` is set, and an
     # unapproved completion meets the gate like any other write.
     'transfer',
+    # `nrs.audit.capture.action_accept` (handoff 66), outcome a: an audit
+    # team found a register asset in a room other than the one recorded.
+    # Two people have already agreed — the capturer who stood in the room
+    # and the reviewer who accepted the capture, never the same person (the
+    # model refuses it, and `nrs.role.exclusion` refuses granting both
+    # roles) — so the acceptance IS the second person. Declared only there,
+    # after that check.
+    'audit',
     # An automated test declaring, per call, that it is writing a fixture.
     # Per CALL and never globally: `database_class.py` explains at length why
     # a bypass flag becomes the way everybody runs by the end of the month.

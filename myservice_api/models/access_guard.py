@@ -126,6 +126,10 @@ API_GRANTABLE_XMLIDS = (
     'myservice_asset_register.group_asset_controller',
     'myservice_asset_register.group_register_maker',
     'myservice_asset_register.group_register_checker',
+    # Handoff 66: the audit team, granted on the Users screen like the gate
+    # roles, for the same reason.
+    'myservice_asset_register.group_audit_capturer',
+    'myservice_asset_register.group_audit_reviewer',
 )
 
 
