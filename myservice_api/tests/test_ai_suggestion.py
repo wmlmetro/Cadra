@@ -257,6 +257,47 @@ class TestAiSuggestion(CadraTransactionCase):
             row._check_applicable(None)
         self.assertEqual(raised.exception.details["reason"], "photo_expired")
 
+    def test_the_provider_gets_no_gps_and_the_stored_photo_is_untouched(self):
+        """§1 sends no locations: a camera JPEG's EXIF (where a phone keeps
+        its GPS position) is stripped from what goes to the provider — at
+        the byte level, the picture not re-encoded."""
+        img = Image.new("RGB", (32, 24), (90, 10, 10))
+        exif = Image.Exif()
+        exif[0x010F] = "PhoneMaker"             # Make
+        exif[0x8825] = {2: (6.0, 27.0, 0.0)}    # GPSInfo: latitude
+        out = io.BytesIO()
+        img.save(out, "JPEG", exif=exif.tobytes())
+        data = out.getvalue()
+        self.assertIn(b"Exif", data)
+        sent = ai.strip_metadata(data, "image/jpeg")
+        self.assertNotIn(b"Exif", sent)
+        self.assertNotIn(b"PhoneMaker", sent)
+        self.assertEqual(Image.open(io.BytesIO(sent)).size, (32, 24))
+        self.assertEqual(sent[-2:], b"\xff\xd9")
+        png = io.BytesIO()
+        from PIL import PngImagePlugin
+        info = PngImagePlugin.PngInfo()
+        info.add_text("Location", "6.45N 3.39E")
+        Image.new("RGB", (8, 8)).save(png, "PNG", pnginfo=info)
+        sent = ai.strip_metadata(png.getvalue(), "image/png")
+        self.assertNotIn(b"Location", sent)
+        self.assertEqual(Image.open(io.BytesIO(sent)).size, (8, 8))
+
+    def test_only_the_asker_and_only_within_the_hold(self):
+        row = self._suggestion(self._published())
+        other = self.env["res.users"].create(
+            {"name": "AI probe other", "login": "ai-probe-other@example.com"})
+        with self.assertRaises(S.SuggestionRefused) as raised:
+            row._check_applicable(None, actor=other)
+        self.assertEqual(raised.exception.details["reason"], "not_yours")
+        self.env.cr.execute(
+            "UPDATE nrs_ai_pending_photo SET expires_at = now() - "
+            "interval '1 minute' WHERE id = %s", (row.pending_photo_id.id,))
+        self.env.invalidate_all()
+        with self.assertRaises(S.SuggestionRefused) as raised:
+            row._check_applicable(None)
+        self.assertEqual(raised.exception.details["reason"], "photo_expired")
+
     # ── 5 · the arithmetic ───────────────────────────────────────────
 
     def test_image_tokens_and_cost(self):

@@ -488,6 +488,14 @@ class CadraAiV1(http.Controller):
                                 "daily_cap": s["daily_cap"], "calls": calls,
                                 "day": lagos_today().isoformat()})
 
+        # Every refusal BEFORE the photo is held: `err()` rolls nothing back.
+        rows, examples = ai.catalogue(env)
+        categories = {r["id"]: r for r in rows}
+        if not categories:
+            return err(ERR_MISCONFIGURED,
+                       "This register has no asset classes to choose from.",
+                       status=503, details={"reason": "no_classes"})
+
         pending = None
         if upload:
             try:
@@ -497,14 +505,8 @@ class CadraAiV1(http.Controller):
             except PhotoRefused as e:
                 return _photo_refusal(e, upload)
 
-        rows, examples = ai.catalogue(env)
-        categories = {r["id"]: r for r in rows}
-        if not categories:
-            return err(ERR_MISCONFIGURED,
-                       "This register has no asset classes to choose from.",
-                       status=503, details={"reason": "no_classes"})
         req = ai.IdentifyRequest(
-            image=data, mimetype=mimetype, width=width, height=height,
+            image=ai.strip_metadata(data, mimetype), mimetype=mimetype, width=width, height=height,
             system=ai.build_system(rows, examples),
             schema=ai.answer_schema(list(categories)),
             instruction=ai.INSTRUCTION, model=s["model"],

@@ -561,6 +561,14 @@ class AnthropicProvider(Provider):
             raise ProviderError(
                 "The provider could not be reached from this server.") \
                 from None
+        # Last: the SDK's base error — a response it could not validate, a
+        # credential problem, anything not named above. Without it one of
+        # those escaped as a bare 500, and the rollback took the call's
+        # record with it (verification pass).
+        except anthropic.AnthropicError:
+            raise ProviderError(
+                "The provider answered in a way Cadra could not read.") \
+                from None
         latency = int((time.monotonic() - started) * 1000)
         u = msg.usage
         usage = {
@@ -577,6 +585,42 @@ class AnthropicProvider(Provider):
         except ValueError:
             data = None
         return ProviderAnswer(data, msg.model, latency, usage)
+
+
+def strip_metadata(data, mimetype):
+    """The photo's bytes without its metadata, for the PROVIDER only.
+
+    A phone's JPEG carries EXIF — the GPS position among it — and §1 sends
+    no locations. The web app's canvas redraw drops it; a phone or an API
+    client uploading the camera's file does not, so it is stripped here, at
+    the byte level and without re-encoding: a JPEG loses its APP1–APP15 and
+    COM segments, a PNG its text, time and EXIF chunks. The STORED photo is
+    untouched — it is kept as it was sent (handoff 61)."""
+    if mimetype == "image/jpeg" and data[:2] == b"\xff\xd8":
+        out, i, n = bytearray(b"\xff\xd8"), 2, len(data)
+        while i + 4 <= n and data[i] == 0xFF:
+            marker = data[i + 1]
+            if marker == 0xDA:          # start of scan: the rest is image
+                out += data[i:]
+                return bytes(out)
+            length = int.from_bytes(data[i + 2:i + 4], "big")
+            segment = data[i:i + 2 + length]
+            if not (0xE1 <= marker <= 0xEF or marker == 0xFE):
+                out += segment
+            i += 2 + length
+        return data                     # not a shape we parse: unchanged
+    if mimetype == "image/png" and data[:8] == b"\x89PNG\r\n\x1a\n":
+        drop = {b"tEXt", b"iTXt", b"zTXt", b"eXIf", b"tIME"}
+        out, i, n = bytearray(data[:8]), 8, len(data)
+        while i + 12 <= n:
+            length = int.from_bytes(data[i:i + 4], "big")
+            kind = data[i + 4:i + 8]
+            chunk = data[i:i + 12 + length]
+            if kind not in drop:
+                out += chunk
+            i += 12 + length
+        return bytes(out)
+    return data
 
 
 def provider_for(name, api_key):

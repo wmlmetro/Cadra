@@ -236,5 +236,21 @@ test.describe.serial("64 — what the photo says", () => {
     await page.goto(appPath("/assets/new"));
     await expect(page.getByTestId("input-name")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("ai-form-panel")).toHaveCount(0);
+    // …nor the Photos tab: an asset with a photo shows no Identify.
+    const asset = await api.post("/api/v1/assets", {
+      name: markedName("AI switched-off asset"), category_id: await api.firstCategoryId(),
+    });
+    recordCreated({ kind: "asset", id: asset.id, name: asset.name });
+    const token = await personaToken("storekeeper");
+    const up = await page.request.post(`${ORIGIN}/api/v1/assets/${asset.id}/photos`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      multipart: { file: { name: "desk-09.png", mimeType: "image/png", buffer: png(80, 60, 9) }, source: "web" },
+    });
+    expect(up.status()).toBe(201);
+    const photo = (await up.json()).data;
+    await page.goto(appPath(`/assets/${asset.id}`));
+    await page.getByTestId("tab-photos").click();
+    await expect(page.getByTestId(`asset-picture-photo-${photo.id}`)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId(`asset-photo-identify-${photo.id}`)).toHaveCount(0);
   });
 });

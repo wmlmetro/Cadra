@@ -1889,7 +1889,7 @@ class CadraAssetsV1(http.Controller):
             from odoo.addons.myservice_asset_register.models.ai_suggestion \
                 import SuggestionRefused
             try:
-                suggestion._check_applicable(None)
+                suggestion._check_applicable(None, actor=request.env.user)
             except SuggestionRefused as e:
                 return _suggestion_refusal(e)
         # An asset created already assigned to somebody opens its chain of
@@ -1976,7 +1976,7 @@ class CadraAssetsV1(http.Controller):
             from odoo.addons.myservice_asset_register.models.ai_suggestion \
                 import SuggestionRefused
             try:
-                suggestion._check_applicable(rec)
+                suggestion._check_applicable(rec, actor=request.env.user)
             except SuggestionRefused as e:
                 return _suggestion_refusal(e)
 

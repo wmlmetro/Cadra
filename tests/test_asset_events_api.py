@@ -1556,7 +1556,11 @@ def test_an_event_this_suite_wrote_says_so(client, test_location,
     # same label, which is the point of this test.
     # `photo_added` rests on the photo's own append-only row, not on an
     # event, so it is asserted beside them below.
-    expected = [t for t in _RECORDED_TYPES if t != "photo_added"]
+    # `details_suggested` needs identification switched on and a save that
+    # used a suggestion; `tests/test_what_the_photo_says.py` writes it and
+    # asserts its label there.
+    expected = [t for t in _RECORDED_TYPES
+                if t not in ("photo_added", "details_suggested")]
     if not gates.receipt_gated(client):
         expected = [t for t in expected if t != "gate_fired"]
     added = [e for e in _history(client, asset["id"])["events"]
@@ -1615,6 +1619,16 @@ def test_the_history_says_from_when_each_kind_of_event_is_recorded(
             # it must be said in words, not as an earlier record to look for.
             # It passed on test19 only because spec 57 had fired gates there.
             assert entry["statement"].startswith("No receipt gate has fired"), \
+                entry["statement"]
+            assert "message log" not in entry["statement"], entry["statement"]
+            continue
+        if entry["event"] == "details_suggested" \
+                and not entry["recording_began_at"]:
+            # Handoff 64: written only by a save that used a suggestion
+            # (`test_what_the_photo_says.py`); on a tenant where none has,
+            # "not yet" in words, never a log to look for.
+            assert entry["statement"].startswith(
+                "No asset has been saved with details suggested"), \
                 entry["statement"]
             assert "message log" not in entry["statement"], entry["statement"]
             continue

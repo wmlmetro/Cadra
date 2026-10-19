@@ -391,6 +391,8 @@ def test_a_save_records_four_accepted_and_one_changed(client, ai_on):
     assert lines[0]["summary"] == (
         "Details suggested from a photo; 4 accepted, 1 changed.")
     assert lines[0]["detail"]["ai_suggestion_id"] == s["suggestion_id"]
+    # The suite's credential is a test credential: the row says so.
+    assert lines[0]["source"] == "test"
     assert lines[0]["detail"]["counts"]["changed"] == 1
 
     # A suggestion is applied once.
@@ -457,6 +459,18 @@ def test_a_suggestion_cannot_be_saved_onto_another_asset(client, ai_on):
     assert body["error"]["details"]["reason"] == "other_asset"
     assert assert_envelope_ok(client.get(
         f"/api/v1/assets/{two['id']}"))["data"]["colour"] == before
+
+
+def test_only_the_person_who_asked_saves_the_suggestion(client, ai_on):
+    s = assert_envelope_ok(_identify(client, data=png(seed=13),
+                                     filename="chair-08.png"), 201)["data"]
+    token = gates._token(client, "storekeeper")
+    body = gates.receipt_body(client, name=f"pytest-ai-other-{_u()}",
+                              ai_suggestion={"id": s["suggestion_id"]})
+    r = requests.post(client.base + "/api/v1/assets", json=body, timeout=60,
+                      headers={"Authorization": f"Bearer {token}"})
+    got = assert_envelope_err(r, 403, "forbidden")
+    assert got["error"]["details"]["reason"] == "not_yours"
 
 
 def test_a_bad_ai_suggestion_block_writes_nothing(client, ai_on):

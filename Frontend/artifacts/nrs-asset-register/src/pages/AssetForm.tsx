@@ -492,8 +492,24 @@ export default function AssetForm({ mode }: Props) {
     setDismissed(prev => new Set(prev).add(f));
     settle(f);
   };
+  // Every field still holding what the photo proposed goes back to what it
+  // replaced — accepted ones too: the save that follows names no suggestion,
+  // so a proposed value left in the form would reach the asset with no
+  // record that it came from a photo (verification pass). A field the
+  // person typed over is theirs and stays.
   const discardSuggestion = () => {
-    for (const f of unsettled) dismissSuggested(f);
+    if (suggestion) {
+      const proposed = proposedValues(suggestion);
+      setForm(s => {
+        const next = { ...s } as Record<string, unknown>;
+        for (const [f, v] of Object.entries(proposed)) {
+          if (String(next[f] ?? "") === String(v)) {
+            next[f] = replaced[f as keyof FormShape] ?? (blank as Record<string, unknown>)[f];
+          }
+        }
+        return next as FormShape;
+      });
+    }
     setSuggestion(null);
     setUnsettled(new Set());
     setDismissed(new Set());

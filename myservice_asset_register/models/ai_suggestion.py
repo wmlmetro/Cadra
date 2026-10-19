@@ -305,12 +305,6 @@ class NRSAiSuggestion(models.Model):
             "WHERE requested_at >= %s AND requested_at < %s", (start, end))
         return self.env.cr.fetchone()[0]
 
-    @api.model
-    def _lock_the_day(self):
-        """Serialise the cap check and the call's row, per tenant: two calls
-        at the 500th must not both pass. Transaction-scoped."""
-        self.env.cr.execute("SELECT pg_advisory_xact_lock(64001, 0)")
-
     # ── what was proposed ─────────────────────────────────────────────
 
     def _suggestion(self):
@@ -341,11 +335,25 @@ class NRSAiSuggestion(models.Model):
 
     # ── the save ──────────────────────────────────────────────────────
 
-    def _check_applicable(self, asset=None):
+    def _check_applicable(self, asset=None, actor=None):
         """Refuse BEFORE the save writes anything (CLAUDE.md: a refusal
         happens before anything is written). `asset` is the asset being
-        saved, or None for a create."""
+        saved, or None for a create.
+
+        Only the person who asked for the suggestion saves it: the record
+        says who confirmed what the AI proposed, and a second person
+        claiming somebody else's held photo onto their asset would make that
+        two people under one name (verification pass)."""
         self.ensure_one()
+        user = actor if actor is not None else self.env.user
+        if self.actor_id and self.actor_id != user:
+            raise SuggestionRefused(
+                _("Suggestion %(id)s was asked for by %(who)s; only they can "
+                  "save it. Identify the photo again as yourself. Nothing "
+                  "was written.", id=self.id,
+                  who=self.actor_name or self.actor_id.display_name),
+                status=403, code='forbidden',
+                details={'reason': 'not_yours', 'ai_suggestion_id': self.id})
         if self.result != 'ok':
             raise SuggestionRefused(
                 _("Suggestion %(id)s has nothing to apply: the photo was not "
@@ -377,7 +385,11 @@ class NRSAiSuggestion(models.Model):
                   or self.photo_id.asset_id.id),
                 details={'reason': 'other_asset', 'ai_suggestion_id': self.id,
                          'asset_id': self.photo_id.asset_id.id})
-        if not self.photo_id and not self.pending_photo_id:
+        pending = self.pending_photo_id
+        if pending and pending.expires_at < fields.Datetime.now():
+            # Past its 24 hours, waiting only for the hourly cron.
+            pending = False
+        if not self.photo_id and not pending:
             raise SuggestionRefused(
                 _("The photo suggestion %(id)s was made from has expired "
                   "(a photo waits %(hours)d hours for an asset to claim it). "

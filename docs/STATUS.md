@@ -1752,3 +1752,29 @@ Evidence: `docs/handoffs/63b-evidence/`.
   receipts → 20 numbers (3 runs; the old code refused 2 and 7 of 20);
   `409 tag_number_taken` for the collision left. `test19`: 69 numbers
   active on two assets, the 69th Vendra's `NRS-FURN-018`, listed.
+
+## Handoff 64 — what the photo says
+
+Evidence: `docs/handoffs/64-evidence/`.
+
+- **Identify from photo, on the server (R11)**: `POST /api/v1/ai/identify`
+  behind `cadra.ai.identify`, off on every tenant. On the stand-in
+  provider: `tests/test_what_the_photo_says.py` 21 of 21 on `test19f` —
+  every field, the SAP candidates for a reader and the count for the Store
+  Officer, each refusal, a malformed answer discarded and counted, the cap,
+  4 accepted / 1 changed and its history line, an unsaved suggestion
+  leaving nothing. In-registry `TestAiSuggestion` 12 of 12 (the guard, what
+  the prompt carries, the validator, the outcomes, the arithmetic).
+- **The web app**: spec 64, 4 of 4 on `test19f` — Add asset filled and
+  marked, Save held until each suggestion is settled, 4 accepted / 1 changed
+  read back; Cancel writes nothing; the Photos tab's Now / Suggested with
+  *Use this*; switched off, no button.
+- **Test Connection** on `test19`'s real Vendra target: the old GET `/ping`
+  `HTTP 401 AuthenticationError`; the probe *Tag events: reachable, token
+  accepted. Register-state events: reachable, token accepted.* In-registry
+  `TestConnectionProbe` 5 of 5.
+- **The live check** (`scripts/ai_live_check.py`): dry-run on the stand-in
+  only; the real numbers are the owner's (GO-LIVE §33.3).
+- **Cost**: ~$0.024 a photo on `claude-opus-5-5`; the register $3,880,
+  an HQ audit (57,059 HQ-coded records) $1,370 — estimates,
+  `64-evidence/cost-of-an-office.md`.

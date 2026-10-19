@@ -875,6 +875,19 @@ class NRSAssetHistory(models.Model):
                     "superseded photo is recorded so that nobody can edit or "
                     "delete it. There is no earlier record to look for: "
                     "photos did not exist before then." % _when(began))
+            elif stored == "ai_suggestion_applied":
+                # Identification arrived with its record (handoff 64): a
+                # suggestion from a photo was never recorded any other way.
+                statement = (
+                    "No asset has been saved with details suggested from a "
+                    "photo on this system yet. Every such save is recorded, "
+                    "field by field, so that nobody can edit or delete it."
+                    if not began else
+                    "From %s, when the first one was saved here, every save "
+                    "that used details suggested from a photo is recorded so "
+                    "that nobody can edit or delete it. There is no earlier "
+                    "record to look for: identification did not exist before "
+                    "then." % _when(began))
             elif not began:
                 statement = (
                     "No record of this kind has been written on this system "

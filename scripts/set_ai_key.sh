@@ -25,6 +25,11 @@ if [[ -z "$DB" ]]; then
   echo "usage: scripts/set_ai_key.sh <db> [--clear]" >&2
   exit 2
 fi
+# A database name, and nothing a shell could read as anything else.
+if [[ ! "$DB" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ ]]; then
+  echo "Not a database name: $DB" >&2
+  exit 2
+fi
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.19.yml)
@@ -45,11 +50,12 @@ else
   fi
 fi
 
-# The key travels on stdin (first line), never as an argument.
-printf '%s\n' "$KEY" | "${COMPOSE[@]}" exec -T odoo sh -c '
+# The key travels on stdin (first line), never as an argument; the database
+# name as a positional argument, never spliced into the script.
+printf '%s\n' "$KEY" | "${COMPOSE[@]}" exec -T -e PYTHONWARNINGS=ignore odoo sh -c '
 read -r KEY
 export CADRA_AI_KEY_IN="$KEY"
-odoo shell -c /etc/odoo/odoo.conf -d "'"$DB"'" --no-http --log-level=warn <<PY 2>/dev/null
+odoo shell -c /etc/odoo/odoo.conf -d "$1" --no-http --log-level=error <<PY
 import os
 key = os.environ.pop("CADRA_AI_KEY_IN", "")
 icp = env["ir.config_parameter"].sudo()
@@ -61,4 +67,4 @@ else:
     print("AI provider key removed from " + env.cr.dbname + ".")
 env.cr.commit()
 PY
-'
+' sh "$DB"
