@@ -1,0 +1,31 @@
+# Handoff 63b — CI runs on chore/the-faster-loop
+
+## Before: run 39183282828 (handoff 63's PR), one job, gates off
+bootstrap-and-test 01:00:04 → 01:12:50 (12 m 46 s): bootstrap 2 m 15 s, pytest 1459 passed 39 skipped in 136 s, modules 0 failed 1 error of 1264 tests
+
+## Run 39206898048 (326e6c4): matrix, both legs FAILED on one module pin of the old UTC day
+cadra.receipt.gated = false on 'odoo'
+2026-10-19 06:06:27,480 160 ERROR odoo odoo.tests.result: 1 failed, 0 error(s) of 1267 tests when loading database 'odoo' 
+[36;1m  echo "FAIL: $CREDS was not written by bootstrap"[0m
+2026-10-19 06:04:19,584 160 ERROR odoo odoo.addons.myservice_api.tests.test_audit_configuration_report: FAIL: TestThePeriodFiltering.test_a_write_at_2330_on_the_closing_day_is_included
+cadra.receipt.gated = true on 'odoo'
+2026-10-19 06:07:55,773 227 ERROR odoo odoo.tests.result: 1 failed, 0 error(s) of 1267 tests when loading database 'odoo' 
+[36;1m  echo "FAIL: $CREDS was not written by bootstrap"[0m
+2026-10-19 06:05:51,221 227 ERROR odoo odoo.addons.myservice_api.tests.test_audit_configuration_report: FAIL: TestThePeriodFiltering.test_a_write_at_2330_on_the_closing_day_is_included
+
+## Run 39209513059 (2cb6a04): matrix, both legs GREEN — https://github.com/wmlmetro/Cadra/actions/runs/39209513059
+cadra.receipt.gated = false on 'odoo'
+2026-10-19 06:35:08,529 191 INFO odoo odoo.tests.result: 0 failed, 0 error(s) of 1267 tests when loading database 'odoo' 
+cadra.receipt.gated = true on 'odoo'
+2026-10-19 06:35:01,733 235 INFO odoo odoo.tests.result: 0 failed, 0 error(s) of 1267 tests when loading database 'odoo' 
+prod-compose-lint	2026-10-19T06:22:17Z	2026-10-19T06:22:34Z
+image-addons-complete	2026-10-19T06:22:18Z	2026-10-19T06:22:30Z
+bootstrap-and-test (gates off)	2026-10-19T06:22:17Z	2026-10-19T06:35:12Z
+bootstrap-and-test (gates on)	2026-10-19T06:22:17Z	2026-10-19T06:35:08Z
+commit-messages	2026-10-19T06:22:17Z	2026-10-19T06:22:26Z
+
+## pytest lines (the grep above missed them)
+cadra.receipt.gated = false on 'odoo' [run ci_117911599639.log] :: ================= 1459 passed, 39 skipped in 134.01s (0:02:14) =================
+cadra.receipt.gated = true on 'odoo' [run ci_117911599745.log] :: ================= 1459 passed, 39 skipped in 229.26s (0:03:49) =================
+cadra.receipt.gated = false on 'odoo' [run ci2_117919550452.log] :: ================= 1482 passed, 16 skipped in 145.46s (0:02:25) =================
+cadra.receipt.gated = true on 'odoo' [run ci2_117919550454.log] :: ================= 1482 passed, 16 skipped in 218.45s (0:03:38) =================

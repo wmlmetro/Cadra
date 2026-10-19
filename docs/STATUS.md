@@ -1727,3 +1727,28 @@ Evidence: `docs/handoffs/63-REPORT.md` and `docs/handoffs/63-evidence/`.
   the mobile map's last four rows placed.
 - **Not yet**: deployed; the mirror loaded on `staging` (owner, §32.1);
   SAP's location extract (§32.2).
+
+## Handoff 63b — the faster loop
+
+Evidence: `docs/handoffs/63b-evidence/`.
+
+- **CI, both switch states** (`.github/workflows/ci.yml`, matrix
+  `gates: [off, on]`): run 39209513059 — gates off 1,482 passed, 16
+  skipped in 2 m 25 s, modules 0 failed of 1,267; gates on 1,482 passed, 16
+  skipped in 3 m 38 s, modules 0 failed of 1,267; each leg 12 m 55 s, in
+  parallel. CI also seeds the fixtures `test19` carries (skips 39 → 16).
+- **A fresh test tenant** (`scripts/fresh_test_tenant.sh test19f`):
+  template built in 145–153 s, restored in 4–8 s; `test19f` 52 MB and 0
+  assets against `test19`'s 332 MB and 23,024. Full pytest: gates off 9 m
+  06 s (1,488 passed, 10 skipped), gates on 15 m 05 s (the same) — on
+  `test19` 14 m 42 s (1,491/7) and 24 m 36 s.
+- **xdist**: not adopted — `-n 4` 30 failed, 2 errors (shared state).
+- **The configuration-change report's day** is a Lagos day; four HTTP
+  tests ask for the Lagos date; three in-registry tests at 00:30 Lagos.
+- **A category policy save** on `test19`'s 19,042: 22.2 s → 12.8 s
+  in-process; HTTP 13.2 / 20.6 s → 9.7 / 9.7 s; the propagation test 29.8 s
+  → 19.8 s (its timeout is 30 s).
+- **Tag numbers under concurrency**: a sequence per prefix; 20 concurrent
+  receipts → 20 numbers (3 runs; the old code refused 2 and 7 of 20);
+  `409 tag_number_taken` for the collision left. `test19`: 69 numbers
+  active on two assets, the 69th Vendra's `NRS-FURN-018`, listed.

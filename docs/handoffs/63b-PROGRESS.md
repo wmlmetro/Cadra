@@ -1,0 +1,18 @@
+# Handoff 63b — progress
+
+Plan (weights sum to 100): Step 0 5 · §1 gates-on CI job 15 · §2 measure +
+fresh tenant script + restore + pytest on it 30 · §3a xdist 15 · §3b
+category save 5 · §3c the Lagos day 10 · final suite + verification pass +
+docs + report 20. Time budget: 2½ h (start 06:46 WAT).
+
+- 06:46 Progress: 0% — plan printed. Found: CLAUDE.md's *Speed* and *Progress* sections already committed by report 63 (`b0de011`), nothing to commit; handoff 63's CI is red on one module test (`test_a_number_already_active_on_a_second_asset_is_not_reprinted`, 1 error of 1264), fix carried as this branch's first commit.
+- 06:47 Progress: 5% — Step 0 done (1 of 7). `test19` measured: 23,024 assets, 332 MB, largest class Generator 20,680, gates were ON (turned OFF for the before-run). Before-run started 06:46 (gates off).
+- 06:48 Progress: 20% — §1 written (2 of 7): the bootstrap-and-test job is a matrix `gates: [off, on]`, the switch row written after the personas. Durations come from the branch's first CI run.
+- 06:52 Progress: 30% — §3c written ahead of §2 while the before-run holds the registry (3 of 7): the configuration-change report's period is two Lagos days; four HTTP tests ask for the Lagos date, not the machine's; three in-registry tests place a write at 00:30 Lagos.
+- 06:53 Progress: 35% — §1 and §3c committed and pushed (`6aa22ad`, `326e6c4`); CI's two legs running on the branch. Next: §2's template, after the before-run frees the registry.
+- 07:03 Progress: 40% — before-run done: test19 gates off 1,491 passed, 7 skipped of 1,498 in 14 m 42 s. Category save on test19 (class 1, 19,138 assets) over HTTP: save 13.2 s, restore 20.6 s — the test 29.8 s, at its 30 s timeout: 63 halved it, not fixed. test19 handed back gates-ON at 07:03 to the Vendra Builder (asked by its session). Next: the template.
+- 07:06 Progress: 50% — template built in 153 s (0 ERROR/CRITICAL), test19f restored in 4.7 s: 0 assets, 52 MB, marked test, 11 personas. Started: full pytest on test19f, serial, gates off.
+- 07:16 Progress: 55% — test19f serial gates off: 1,461 passed, 37 skipped of 1,498 in 7 m 52 s (test19: 14 m 42 s). 24 of the 37 skips are fixtures test19 has (h41 accounts, two employees, Mailpit row) — adding them to the template; rebuilding.
+- 07:20 Progress: 65% — §2 built (4 of 7): template with fixtures 145 s, restore 5.7 s. CI's first run: pytest green in both legs (off 2 m 14 s, on 3 m 49 s), 1 module failure each — a pin of the old UTC day, renamed to Lagos instants, 21 of 21 green on test19f. Next: §3a xdist.
+- 07:37 Progress: 75% — §3a done (5 of 7): xdist NOT adopted. test19f serial with fixtures 1,488 passed, 10 skipped of 1,498 in 9 m 06 s; -n 4 30 failed, 2 errors, 1,456 passed in 6 m 03 s — shared state (a tag-number mint race refused 409 by 63's index ×10, whole-register counts, the tenant-wide gates switch flipped by one test under another). Stopped there as the handoff says. Next: §3b profile on test19 once the Vendra Builder is done.
+- 07:59 Progress: 75% — §3b category save done: the route's second recompute removed, value and end date from one schedule (summary_at, pinned equal over 38,400 policies); test19 class 1 in-process 22.2 → 12.8 s, HTTP save 13.2 → 9.7 s, restore 20.6 → 9.7 s, the test 29.8 → 19.8 s. Gates-on local on test19f: 1,488 passed, 10 skipped of 1,498 in 15 m 05 s. The Architect amended the handoff at 07:27 (3 h budget, new §3b the tag race) — plan now: tag race 12 · checks+docs+report 13. Next: the tag race.

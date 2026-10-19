@@ -2539,6 +2539,12 @@ the index when the filter lists none, and says in its log how many stand in
 the way when it does not. Nothing is resolved automatically. Run the
 cluster's tenants' counts after the deploy (the upgrade log prints them).
 
+**69 on `test19` since 2026-10-19 07:00 Lagos** (handoff 63b): the 69th is
+`NRS-FURN-018` on assets 106911 and 106912 — two chairs of one Vendra
+receipt minted 99 ms apart by the race §32.9 closes. Listed
+(`docs/handoffs/63b-evidence/tag-race.txt`), not renumbered; resolved the
+way above like the other 68.
+
 ### 32.5 · A category policy save — `[landed, keep it that way]`
 
 Measured on `test19`'s class of 18,008 before the change: 162,072 ORM writes
@@ -2590,3 +2596,18 @@ that place a write at 00:30 Lagos and at both edges of the day. **Still a
 UTC day:** `GET /reports/access-changes` (`audit_access.py`, the same
 `to_datetime(...).replace(hour=23 …)` shape) — named in report 63b, not
 changed.
+
+### 32.9 · Two receipts at once drew one tag number — `[landed 63b, keep it that way]`
+
+Vendra report 58: two INT-03 calls 100 ms apart, one number. The
+location-prefix generator read `max(number) + 1` through each request's
+REPEATABLE READ snapshot; no lock fixes that inside a snapshot taken before
+the lock. The number now comes from a Postgres sequence per prefix
+(`nrs.asset._tag_sequence`, created on first use under an advisory lock,
+started at the highest number already issued). 20 concurrent receipts at
+one prefix get 20 numbers, in each of three runs; on the old code 2 and 7 of
+20 were refused 409. The collision left — against a number issued around
+the sequence — answers `409 tag_number_taken`, `details.retryable: true`,
+which Vendra 59 retries. **Keep it:** a new path that mints a tag number
+draws it from `_tag_sequence_next`, never from a max.
+
