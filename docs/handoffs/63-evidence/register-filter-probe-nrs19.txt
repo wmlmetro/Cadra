@@ -1,0 +1,14 @@
+tenant nrs19
+route                                                before         after          verdict
+GET /assets (total_estimate)                         11959          11959          unchanged — the mirror is not the register
+GET /assets?category_id=1                            1              1              unchanged — the mirror is not the register
+GET /reports/asset-register?as_of=today              11959          11959          unchanged — the mirror is not the register
+GET /dashboard/kpis assets.total                     11959          11959          unchanged — the mirror is not the register
+GET /barcode/kpis total_assets                       11959          11959          unchanged — the mirror is not the register
+GET /assets/export data.total                        11959          11959          unchanged — the mirror is not the register
+GET /assets/export.csv X-Cadra-Truncated             None           None           unchanged — the mirror is not the register
+GET /asset-categories asset_count (category 1)       1              1              unchanged — the mirror is not the register
+GET /reports/depreciation totals.asset_count         11959          11959          unchanged — the mirror is not the register
+GET /assets?register_state=any                       11959          11959          unchanged — the mirror is not the register
+GET /candidates                                      0              0              unchanged — the mirror is not the register
+GET /sap-assets (total_estimate) — the witness       0              211699         moved: the import landed

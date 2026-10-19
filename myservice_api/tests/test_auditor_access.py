@@ -109,6 +109,9 @@ EXPECTED_AUDITOR_SCOPES = frozenset({
     # Handoff 61, ruling 1 on report 60: IAD's evidence — the Auditor is one
     # of its five readers. docs/DECISIONS.md, 2026-10-15.
     "evidence:read",
+    # Handoff 63 §1: SAP's asset master as Cadra holds it, and how much of
+    # it Cadra holds. docs/DECISIONS.md, 2026-10-18.
+    "sap_mirror:read",
 })
 
 AUDITOR_GROUP_XMLID = "myservice_api.group_auditor"

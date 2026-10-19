@@ -1,0 +1,3 @@
+largest office, furniture, active: 2712 rows in 2 page(s), 1601465 bytes over the wire (1.5 MB), 1481700 bytes of records alone, 1.0 s
+no office (untagged), furniture, active: 18910 rows in 10 page(s), 10848812 bytes over the wire (10.3 MB), 10014489 bytes of records alone, 2.9 s
+check: the database counts 2712 active furniture records in that office, 18910 with no office

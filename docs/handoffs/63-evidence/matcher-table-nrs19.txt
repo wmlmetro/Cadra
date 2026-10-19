@@ -1,0 +1,18 @@
+SAP mirror on nrs19: 211699 records
+class 2000 done in 177 s
+class 4000 done in 208 s
+
+active records                                                 | 80370 | 24978
+has an old tag                                                 | 65660 of 80370 (81.7%) | 20736 of 24978 (83.0%)
+tag unique among active records (matcher: old_tag_unique)      | 52604 of 65660 tagged (80.1%) — 65.5% of active | 14923 of 20736 tagged (72.0%) — 59.7% of active
+tag follows FIRS/<office>/…                                    | 61460 of 65660 (93.6%) | 19062 of 20736 (91.9%)
+a shared tag made unique by the office                         | 0 of 7570 shared tags | 0 of 3622 shared tags
+shared tag: candidates by tag + description (tied_at_top)      | mean 8.50, median 1.0, max 200; one left for 9408 of 13056 (72.1%) | mean 14.89, median 1, max 160; one left for 3505 of 5813 (60.3%)
+shared tag: candidates by office + description, tag ignored    | mean 100.64, median 48.0, max 600 | mean 61.30, median 24.0, max 475
+no tag: candidates by description and class, nationwide        | 14710 records: mean 3211.15, median 775.0, max 38716 | 4242 records: mean 283.26, median 118.0, max 2333
+ends on one record by tag (+ description)                      | 62012 of 80370 (77.2%) | 18428 of 24978 (73.8%)
+first result's reason (tagged records)                         | {'old_tag_unique': 52604, 'old_tag_shared_description': 13056} | {'old_tag_unique': 14923, 'old_tag_shared_description': 5813}
+
+§6: 11957 Cadra assets on the register with no SAP number; the matcher ranks 3031 first by old_tag_unique and 373 by serial_unique (3404), onto 2894 SAP records; 959 of them share their SAP record with another Cadra asset; 2445 uncontested.
+coverage report says: {'assets_without_sap_number': 11957, 'with_an_old_tag': 7694, 'by_unique_old_tag': 3031, 'by_unique_serial': 373, 'total': 3404, 'sap_records': 2894, 'contested_sap_records': 449, 'contested_assets': 959, 'uncontested': 2445}
+total 219 s

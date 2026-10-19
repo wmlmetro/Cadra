@@ -269,6 +269,35 @@
         </field>
     </record>
 
+    <!-- ── Search ── Handoff 63, ruling 2: the numbers active on two assets
+         (report 61 §1 counted 84), listed for a person to resolve. Nothing
+         resolves them automatically; once a database lists none, upgrading
+         myservice_asset_register there creates the unique index. -->
+    <record id="view_nrs_asset_tag_search" model="ir.ui.view">
+        <field name="name">nrs.asset.tag.label.search</field>
+        <field name="model">nrs.asset.tag.label</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="asset_id"/>
+                <filter name="active" string="Active"
+                        domain="[('state', '=', 'active')]"/>
+                <filter name="pending" string="Replacement Pending"
+                        domain="[('state', '=', 'pending')]"/>
+                <filter name="scrapped" string="Scrapped"
+                        domain="[('state', '=', 'scrapped')]"/>
+                <separator/>
+                <filter name="active_on_two_assets"
+                        string="Tags active on two assets"
+                        domain="[('active_number_shared', '=', True)]"/>
+                <group>
+                    <filter name="group_by_name" string="Tag Number"
+                            context="{'group_by': 'name'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <!-- ── Actions ── -->
     <record id="action_nrs_asset_tags" model="ir.actions.act_window">
         <field name="name">Asset Tags</field>

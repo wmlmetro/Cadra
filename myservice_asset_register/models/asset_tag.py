@@ -12,6 +12,9 @@ from .asset_event import EVENT_AFFIX_REFUSED
 
 _logger = logging.getLogger(__name__)
 
+#: Databases whose blocked unique index has been reported this process.
+_INDEX_BLOCKED_REPORTED = set()
+
 #: The register's day is a Lagos day (handoff 37) — the container's clock is
 #: UTC, so a void at 23:30 UTC belongs to the next day in Lagos.
 _LAGOS = pytz.timezone('Africa/Lagos')
@@ -172,6 +175,99 @@ class NRSAssetTag(models.Model):
         """`replacement_reason`'s values: a print is voided for the reason
         its replacement was asked for."""
         return self._fields['replacement_reason'].selection
+
+    # ── One number, one active label — measured, then enforced ────────
+    #
+    # `_check_unique_active` below has always promised it, and the data
+    # does not keep the promise: report 61 §1 counted 84 numbers active on
+    # two assets (68 `test19`, 15 `jaizbankplc`, 1 `nrs19`), cause not
+    # established (the Jaiz seed's SQL re-brand of tag prefixes, concurrent
+    # mints). A Python constraint sees only the ORM; the PARTIAL UNIQUE
+    # INDEX below is what holds against everything else — but it cannot be
+    # created on a table that already breaks it, and which of two assets is
+    # the real holder of a number is a data question for a person, not
+    # this code (handoff 63, ruling 2: nothing is cleaned automatically).
+    #
+    # So: the back office lists them (Asset Tags → *Tags active on two
+    # assets*, the search below), and `init` creates the index on every
+    # upgrade of this module where the count reads ZERO, and says in the
+    # upgrade log, per database, how many stand in its way where it does
+    # not. The owner turns it on by resolving the listed labels and
+    # upgrading `myservice_asset_register` on that database.
+    ACTIVE_NUMBER_INDEX = 'nrs_asset_tag_label_active_name_uniq'
+
+    active_number_shared = fields.Boolean(
+        'Active on Two Assets', compute='_compute_active_number_shared',
+        search='_search_active_number_shared',
+        help='This label is active and the same number is active on '
+             'another label too — another asset\'s in every case measured '
+             '(84 of 84 numbers, report 61). Exactly the labels that keep '
+             'the unique index from being created. Which asset really '
+             'holds the number is for a person to decide; nothing resolves '
+             'it automatically.')
+
+    @api.model
+    def _shared_active_number_ids(self):
+        self.env.flush_all()
+        self.env.cr.execute("""
+            SELECT t.id FROM nrs_asset_tag_label t
+             WHERE t.state = 'active' AND EXISTS (
+                   SELECT 1 FROM nrs_asset_tag_label o
+                    WHERE o.state = 'active' AND o.name = t.name
+                      AND o.id <> t.id)""")
+        return [r[0] for r in self.env.cr.fetchall()]
+
+    def _compute_active_number_shared(self):
+        shared = set(self._shared_active_number_ids()) if self else set()
+        for r in self:
+            r.active_number_shared = r.id in shared
+
+    def _search_active_number_shared(self, operator, value):
+        if operator not in ('=', '!=') or not isinstance(value, bool):
+            raise UserError(_('Search "Active on Two Assets" with = or != '
+                              'and true or false.'))
+        positive = (operator == '=') == value
+        return [('id', 'in' if positive else 'not in',
+                 self._shared_active_number_ids())]
+
+    @api.model
+    def _active_number_duplicates(self):
+        """`(numbers, labels)` active on more than one label."""
+        self.env.cr.execute("""
+            SELECT count(*), coalesce(sum(n), 0) FROM (
+                SELECT count(*) AS n FROM nrs_asset_tag_label
+                 WHERE state = 'active' GROUP BY name HAVING count(*) > 1) d""")
+        numbers, labels = self.env.cr.fetchone()
+        return numbers, labels
+
+    def init(self):
+        super().init()
+        cr = self.env.cr
+        cr.execute("SELECT 1 FROM pg_indexes WHERE indexname = %s",
+                   [self.ACTIVE_NUMBER_INDEX])
+        if cr.fetchone():
+            return
+        numbers, labels = self._active_number_duplicates()
+        if numbers:
+            # `init` runs once per module the upgrade loads that extends this
+            # model; say it once per database and process.
+            if cr.dbname in _INDEX_BLOCKED_REPORTED:
+                return
+            _INDEX_BLOCKED_REPORTED.add(cr.dbname)
+            _logger.warning(
+                'Tag numbers on %s: %d number(s) are active on more than one '
+                'label (%d labels), so the unique index %s that holds one '
+                'active label per number is NOT created. Resolve them in the '
+                'back office (Asset Tags → filter "Tags active on two '
+                'assets"), then upgrade myservice_asset_register on this '
+                'database to create it.', cr.dbname, numbers, labels,
+                self.ACTIVE_NUMBER_INDEX)
+            return
+        cr.execute("CREATE UNIQUE INDEX %s ON nrs_asset_tag_label (name) "
+                   "WHERE state = 'active'" % self.ACTIVE_NUMBER_INDEX)
+        _logger.info('Tag numbers on %s: 0 numbers active on two labels; '
+                     'created the unique index %s.', cr.dbname,
+                     self.ACTIVE_NUMBER_INDEX)
 
     @api.constrains('name')
     def _check_unique_active(self):

@@ -352,7 +352,11 @@ class TestRegisterStateEvent(gates.GateCrew, CadraTransactionCase):
         rows.action_retry_now()
         self.assertEqual(set(rows.mapped('status')), {'pending'})
         self.assertEqual(rows.mapped('event_id'), ids)
-        self.assertEqual(set(rows.mapped('max_attempts')), {1 + 8})
+        # The re-send's budget is the attempts made plus the TARGET's own —
+        # 32 since handoff 63, ruling 8 (was 8).
+        self.assertEqual(set(rows.mapped('max_attempts')),
+                         {1 + self.vendra.retry_max_attempts})
+        self.assertEqual(self.vendra.retry_max_attempts, 32)
 
     def test_a_dead_letter_says_the_state_stands(self):
         a = self._to('vfm_pending', self._from_vendra())
@@ -371,8 +375,10 @@ class TestRegisterStateEvent(gates.GateCrew, CadraTransactionCase):
 @tagged('post_install', '-at_install')
 class TestADayWithoutVendra(gates.GateCrew, CadraTransactionCase):
     """Report 62 §5: Vendra down for a day, measured against the real retry
-    ladder — the real drain, the real backoff, the target's default policy
-    (8 attempts, 60 s doubling to a 3,600 s cap) — on a simulated clock.
+    ladder — the real drain, the real backoff, the target's default policy —
+    on a simulated clock. Since handoff 63 (ruling 8) the default is 32
+    attempts, 60 s doubling to a 3,600 s cap: 26 h 3 min of trying, where
+    report 62 measured the old 8 (2 h 3 min) dead-lettering a whole day.
 
     Seventy units a day (handoff 60) at seven events each is 490 events,
     raised evenly over a working day, 08:00–17:00 Lagos. Vendra is down
@@ -394,10 +400,10 @@ class TestADayWithoutVendra(gates.GateCrew, CadraTransactionCase):
             'rest_endpoint_event': '/tag', 'rest_endpoint_register_state': '/rs',
             'rest_auth_type': 'bearer', 'rest_api_key': 'k',
             'event_enabled': True})
-        # Default policy, as every target is created.
+        # Default policy, as every target is created (handoff 63).
         self.assertEqual((self.vendra.retry_max_attempts,
                           self.vendra.retry_base_seconds,
-                          self.vendra.retry_cap_seconds), (8, 60, 3600))
+                          self.vendra.retry_cap_seconds), (32, 60, 3600))
         self.unit = self.env['nrs.asset'].sudo().create({
             'name': 'Outage probe', 'category_id': self.category.id,
             'serial_number': 'SN-62-OUT-%s' % uuid.uuid4().hex[:8],
@@ -405,13 +411,17 @@ class TestADayWithoutVendra(gates.GateCrew, CadraTransactionCase):
             'import_source': 'vendra', 'grn_reference': 'MAT-PRE-62-OUT',
             'register_state': 'captured'})
 
-    def _run(self, start, down, up, horizon):
+    #: 32 attempts: waits of 1, 2, 4, 8, 16 and 32 minutes, then 25 hours.
+    BUDGET_SECONDS = 3780 + 25 * 3600
+
+    def _run(self, start, down, up, horizon, events=None):
         """Raise the day's events from `start`, drain until `horizon`.
         Returns the rows and, per row id, the simulated instant it was
         raised (`create_date` is the database's own clock, not this one)."""
+        events = events or self.DAY_EVENTS
         clock = [start]
-        step = timedelta(hours=9) / self.DAY_EVENTS
-        pending = [start + step * i for i in range(self.DAY_EVENTS)]
+        step = timedelta(hours=9) / events
+        pending = [start + step * i for i in range(events)]
         raised = {}
 
         class Receiver:
@@ -460,46 +470,60 @@ class TestADayWithoutVendra(gates.GateCrew, CadraTransactionCase):
 
     def test_down_for_the_whole_working_day(self):
         """Down 07:00 Lagos to 07:00 the next day: the whole day's events
-        are raised while it is down, the last of them 14 hours before it
-        returns. Every one is dead-lettered; none arrives late."""
+        are raised while it is down, the first of them 23 hours before it
+        returns. Report 62 measured every one dead-lettered under the old
+        eight attempts; under 32 none is — every one arrives, the latest
+        within the hour cap of Vendra's return."""
         down, up = self._utc(16, (7, 0)), self._utc(17, (7, 0))
         rows, raised = self._run(start=self._utc(16, (8, 0)), down=down,
-                                 up=up, horizon=self._utc(18, (7, 0)))
+                                 up=up, horizon=self._utc(18, (12, 0)))
         statuses = {s: len(rows.filtered(lambda r: r.status == s))
                     for s in set(rows.mapped('status'))}
-        _logger.info('62 §5 down 07:00-07:00: %s of %d', statuses, len(rows))
+        delays = [(r.sent_at - up).total_seconds() for r in rows]
+        _logger.info('63 ruling 8, down 07:00-07:00: %s of %d, latest %d s '
+                     'after Vendra returned', statuses, len(rows),
+                     max(delays))
         self.assertEqual(len(rows), self.DAY_EVENTS)
-        self.assertEqual(statuses, {'dead': self.DAY_EVENTS})
-        self.assertEqual(set(rows.mapped('attempts')), {8})
+        self.assertEqual(statuses, {'sent': self.DAY_EVENTS})
+        self.assertTrue(all(0 <= d <= 3600 for d in delays))
+
+    def test_down_longer_than_the_budget(self):
+        """Down for two days: every event raised on the first day is
+        dead-lettered after exactly 32 attempts spanning 26 h 3 min — the
+        budget ends, it does not stretch. (49 events, not 490: the ladder
+        is per event, and the span is the claim.)"""
+        rows, raised = self._run(start=self._utc(16, (8, 0)),
+                                 down=self._utc(16, (7, 0)),
+                                 up=self._utc(18, (12, 0)),
+                                 horizon=self._utc(18, (12, 0)), events=49)
+        self.assertEqual(set(rows.mapped('status')), {'dead'})
+        self.assertEqual(set(rows.mapped('attempts')), {32})
         spans = {(r.last_attempt_at - raised[r.id]).total_seconds()
                  for r in rows}
-        self.assertEqual(spans, {7380.0},
-                         'eight attempts span 2 h 3 min: 0, 1, 3, 7, 15, 31, '
-                         '63 and 123 minutes after the event')
+        self.assertEqual(spans, {float(self.BUDGET_SECONDS)},
+                         '32 attempts span 26 h 3 min: waits of 1, 2, 4, 8, '
+                         '16 and 32 minutes, then 25 of an hour')
 
     def test_back_at_noon(self):
         """Down overnight, back at 12:00 Lagos; the morning's events raised
-        while it was down. Raised more than 2 h 3 min before noon: dead.
-        Raised after that: delivered late, within the hour cap of noon.
-        Raised after noon: on time."""
+        while it was down. Under the old eight attempts (report 62) the
+        events raised more than 2 h 3 min before noon died; under 32 none
+        does: raised before noon, delivered within the hour cap of it;
+        raised after, on time."""
         up = self._utc(17, (12, 0))
         rows, raised = self._run(start=self._utc(17, (8, 0)),
                                  down=self._utc(16, (17, 0)), up=up,
                                  horizon=self._utc(18, (12, 0)))
-        cut = up - timedelta(seconds=7380)
         dead = rows.filtered(lambda r: r.status == 'dead')
         late = rows.filtered(lambda r: r.status == 'sent'
                              and raised[r.id] < up)
         on_time = rows.filtered(lambda r: r.status == 'sent'
                                 and raised[r.id] >= up)
         delays = [(r.sent_at - up).total_seconds() for r in late]
-        _logger.info('62 §5 back at noon: %d dead, %d late (latest %d s '
-                     'after noon), %d on time, of %d', len(dead), len(late),
+        _logger.info('63 ruling 8, back at noon: %d dead, %d late (latest %d '
+                     's after noon), %d on time, of %d', len(dead), len(late),
                      max(delays or [0]), len(on_time), len(rows))
-        self.assertEqual(len(dead) + len(late) + len(on_time),
-                         self.DAY_EVENTS)
-        self.assertEqual(set(dead.ids), {i for i, t in raised.items()
-                                         if t < cut})
+        self.assertFalse(dead)
+        self.assertEqual(len(late) + len(on_time), self.DAY_EVENTS)
         self.assertTrue(late)
         self.assertLessEqual(max(delays), 3600)
-        self.assertTrue(all(raised[r.id] >= cut for r in late))

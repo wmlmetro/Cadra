@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Register & PM Schedules',
-    'version': '19.0.1.30.0',
+    'version': '19.0.1.31.0',
     'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
@@ -38,6 +38,8 @@
         'data/asset_cron.xml',
         # The placeholder-serial list a gated receipt refuses (handoff 59 §3).
         'data/serial_placeholders.xml',
+        # Handoff 63 §1: the SAP mirror's import, read in ticks by a cron.
+        'data/sap_mirror_cron.xml',
     ],
     'assets': {
         'web.assets_backend': [

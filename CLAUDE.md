@@ -10,6 +10,77 @@ Guidance for Claude Code and any developer working in this repository. It holds 
 - **`docs/integrations/INT-10-audit-access.md`** — the audit and value-for-money read-access contract, and which clauses Cadra has closed.
 - **Canonical spec** — the PRD and NRS specification under `docs/` (`Cadra_Platform_PRD_v0.4.docx`, `Cadra_at_NRS_Specification_v0.1.docx`). When README and spec disagree, the spec wins.
 
+## Speed: a handoff is hours, not days (owner's rule, 18 October 2026)
+
+Measured from reports 59 to 62:
+
+- a handoff takes **2½ to 7½ hours** of wall clock, and 59 took most of
+  three days;
+- the full pytest suite takes **12 to 20 minutes** gates off and **19 to
+  44 minutes** gates on, run locally at least twice per handoff, plus the
+  module suites, the browser suite in both states and a serial fan-out;
+- `test19` keeps growing (16,445 assets in one class), so every run gets
+  slower;
+- reports run to 600–840 lines;
+- **CI already runs the full pytest suite and the in-registry module suites
+  on a fresh database on every push.**
+
+The rules, from now on:
+
+1. **Step 0 states a time budget.** The target is **under 3 hours**. If
+   the plan won't fit, say so at Step 0 and propose where to split; don't
+   discover it at hour six.
+2. **While building, run only the tests for what you touched:** the test
+   files for the routes, models and screens you changed.
+3. **Once, at the end: one full local pytest run**, in the switch state
+   the change matters to:
+   - gates **on** if gate, candidate or receipt code changed;
+   - otherwise **off**.
+4. **CI is the full proof for everything else.** Push the branch. CI runs
+   the full pytest suite and the module suites on a fresh database. Cite
+   the CI run (link and result) in the report instead of rerunning them
+   locally. Run module suites locally only for modules you changed.
+5. **The browser suite:** run only the specs for screens you changed, in
+   one switch state. Run the full browser suite only when shared layout,
+   routing or the top bar changed.
+6. **Run long things in parallel, in the background.** Start the final
+   suite, then the verification pass (read-only, over the diff) at the
+   same time, then write the report while both run. After the pass's
+   fixes, rerun the **affected** tests and let CI rerun the rest.
+7. **Fan-out:** upgrade `test19` and `nrs19` (and any tenant the handoff
+   names) during the work. The other local tenants get a single script
+   run at the end, not one upgrade at a time.
+8. **The report is at most ~200 lines:**
+   - *Needs the owner*;
+   - *In plain words*;
+   - what was built;
+   - the numbers that prove it;
+   - deviations and questions.
+
+   Evidence goes in `NN-evidence/`, not in the report.
+9. **Measure where the time went.** The progress lines carry timestamps,
+   and the report ends with one line per phase: build, tests, verification
+   pass, report.
+
+## Progress you report while you work (owner's rule, 18 October 2026)
+
+The owner tracks every handoff by a percentage, so give one throughout:
+
+1. **At Step 0, print the plan.** List the handoff's work as numbered
+   steps, each with a weight, the weights summing to 100. Verification
+   and the report are steps too. For example: *§1 15 · §2 25 · §3 10 ·
+   suites 20 · drives 15 · report 15*.
+2. **After every step, print one line:**
+   `Progress: 40% — §2 done (3 of 7). Next: §3, the room labels.`
+3. **Before anything long** (a full suite, a fan-out, an upgrade), print
+   that it has started and roughly how long it takes. Print again when it
+   ends.
+4. **Keep `docs/handoffs/NN-PROGRESS.md` current.** Same lines, newest
+   last, so the owner can open it at any time. Commit it with the report.
+5. **Blocked?** Print `Blocked at 55%: <what is needed, from whom>` and
+   stop there. A blocked handoff never shows a higher number.
+6. **100% means the report is pushed**, nothing less. Never round up.
+
 ## Working model — two Claude roles
 
 This project is run by **two cooperating Claude sessions**, the same way its sibling `vendra_network` is:
@@ -99,7 +170,7 @@ Cadra is one of three systems in the NRS integration programme, defined by *"End
   ```
   **Run it against `test19`, not `jaizbankplc`.** `jaizbankplc` is a replica of a live client's register and the suite wrote into it for 154 sessions — 88% of its assets are `pytest-*` fixtures. `test19` carries a full credential pair (`docs/api/.creds.test19`) and its client is flagged `is_test_credential`, which the guard also requires: a credential that does not say it is a test credential writes records nobody can identify as fixtures afterwards.
 
-  The venv is `tests/.venv` (Python 3.13) — the repo's own Python, not the container's. `docs/api/smoke_test.py` is the 30-second liveness check. **The skip count is a function of the tenant, not a constant** — on `test19` it was **10** from handoff 44 to 45: 2 Turnstile, 3 partition-data-absent, 1 no `workflow.config`, 1 no SAP asset number, 1 documented `is_tagged`, 1 because `POST /api/v1/assets` always mints a tag so *the serial of an UNTAGGED asset* is proved in-registry (handoff 38), and — until handoff 46 — 1 because `test_user_lifecycle.py`'s *other credential's user* refusal needs a second API credential and `test19` had only the suite's own (handoff 43). **Since handoff 46 it is 9**: the demo-persona seed's inert credential (`cadra_demo_personas`) is a second credential, so that test runs (refusals only, nothing written). **Two skips that WERE there are gone, and come back on any tenant whose credential is root**: the administrators-may-withdraw skip (handoff 35) and the credential-already-holds-`system` skip (handoff 43) — both exist because the suite's credential held `base.group_system`, and handoff 44 removed it on `test19` (`scripts/strip_credential_system_group.py`); on `cadra19`/`nrs19` it is still held until the owner runs that script. History: 9 until handoff 27 (whose Playwright spec gave the `is_verified` partition test its data — the tenant changed, not the suite), 12 from handoff 43 to 44. No admin-scope skips, because that tenant's credential holds `admin`. `docs/ENVIRONMENT-FACTS.md` carries the older breakdown. Check the categories, not the count.
+  The venv is `tests/.venv` (Python 3.13) — the repo's own Python, not the container's. `docs/api/smoke_test.py` is the 30-second liveness check. **The skip count is a function of the tenant, not a constant** — on `test19` it was **10** from handoff 44 to 45: 2 Turnstile, 3 partition-data-absent, 1 no `workflow.config`, 1 no SAP asset number, 1 documented `is_tagged`, 1 because `POST /api/v1/assets` always mints a tag so *the serial of an UNTAGGED asset* is proved in-registry (handoff 38), and — until handoff 46 — 1 because `test_user_lifecycle.py`'s *other credential's user* refusal needs a second API credential and `test19` had only the suite's own (handoff 43). **Since handoff 46 it is 9**: the demo-persona seed's inert credential (`cadra_demo_personas`) is a second credential, so that test runs (refusals only, nothing written). **At handoff 63 it was 7**, both switch states: 2 Turnstile, 2 partition-data-absent (`closed`, `is_staff_bus`), 1 no `workflow.config`, 1 `is_tagged`'s `null`, 1 the untagged serial — the `is_verified` partition and the SAP-asset-number skips have data on `test19` now. **Two skips that WERE there are gone, and come back on any tenant whose credential is root**: the administrators-may-withdraw skip (handoff 35) and the credential-already-holds-`system` skip (handoff 43) — both exist because the suite's credential held `base.group_system`, and handoff 44 removed it on `test19` (`scripts/strip_credential_system_group.py`); on `cadra19`/`nrs19` it is still held until the owner runs that script. History: 9 until handoff 27 (whose Playwright spec gave the `is_verified` partition test its data — the tenant changed, not the suite), 12 from handoff 43 to 44. No admin-scope skips, because that tenant's credential holds `admin`. `docs/ENVIRONMENT-FACTS.md` carries the older breakdown. Check the categories, not the count.
 - **The browser suite is NOT behind the test-database guard, and its default target is a client's replica.** `e2e/config.ts` falls back to `http://jaizbankplc.localhost:8069`. Name the tenant every time, and rebuild the served bundle first — a plain `npm run build` breaks `/app/`:
   ```
   (cd Frontend/artifacts/nrs-asset-register && BASE_PATH=/app/ npm run build)
@@ -406,6 +477,29 @@ not assert it equals "now". (3) **To walk a unit from outside the suites,
 use `scripts/walk_units.py`** (local `test19` only, as the personas, through
 `tests/gates.py`, which now imports without pytest) — never `odoo shell`.
 
+### Since handoff 63 the SAP mirror is a table beside the register, never in it
+
+`nrs.sap.asset` holds SAP's asset master (211,699 records on `nrs19`). **It is
+not `nrs.asset`**: no search, count, report or export of assets may read it,
+and `GET /sap-assets*` and `/reports/sap-coverage` are the only routes that
+do. Four things you will hit:
+(1) **its rows are written by SQL** (`sap_mirror._Writer`, batched
+`execute_values`) and the ORM refuses `create`/`write` without
+`cadra_sap_mirror_import` and `unlink` always — a test that needs records
+IMPORTS an invented file (`myservice_asset_register/tests/sap_export_shapes.py`,
+the one generator, loaded by path from pytest and spec 63);
+(2) **the import is a cron in ticks** (`nrs.sap.import.run._tick`): an
+in-registry test calls `run._run_to_end(cpu_budget=…)`; under the test
+runner `_commit` does not commit (`odoo.modules.module.current_test` — Odoo
+19 has no `registry.in_test_mode()`);
+(3) **the link to the register is computed** (`_LINK_COND`): a pool query
+uses `LINKED_EXISTS` (an index probe per row), a whole-table one
+`LINKED_CTE` (`MATERIALIZED`, driven from the assets) — the plain join was
+planned as a hash of the whole mirror, 370 ms a call;
+(4) **an import marks every record not in its file `in_latest_export =
+False`**, so on `test19` the suites' invented imports leave the rest of the
+mirror marked absent — count your own records, never the table's.
+
 ### A move and a handover need a second person, and the gate is on the model
 
 Since handoff 35, changing `location_id` or `custodian_id` on `nrs.asset`
@@ -577,6 +671,7 @@ done
 | 60 | **Seventy a day.** Report 59 §7's three jams relieved, the gates' rules untouched · `POST /candidates/gates/{verify,approve,register,approve-registration}` — a batch is N single fires, each in its own savepoint with its own events and the single route's sentence, one refused unit rolling back nothing, `dry_run` by rollback (a SAP code duplicated inside a paste refused on its line) · verify: one receipt's checklist and evidence, stored ONCE and linked from each event, mixed GRNs refused whole · the approver sees the evidence (`GET /assets/<id>/evidence`) · `waiting_on_me` = the act's scope AND not barred by the no-two-gates rule, behind a per-person sidebar badge; oldest first on a stored `register_state_since` · the station clears and focuses the scan box, *Labels to fix* into the batch print; the asset code hidden on the tagging rows · the maker's paste and session carry, the checker's columns (`gates.registration`) · Vendra holds `candidates:read`; a new asset carries its class's mode with the gates off; `test19` got its INT-05 target · ruling 7: `reference` → `record_reference` (BREAKING) — and `test19`'s 23 fixture values lost to a rename added after the version had already run there · spec 60 drives 20 units of one GRN as the personas and counts the clicks |
 | 61 | **The same code, and the photo.** The first of three AI-addendum handoffs, only what holds whichever way 62–63 go · a replacement REPRINTS under the same number (R3) — one row per print, the old voided with date and reason, `reprint_count`; the gated location-prefix replacement (findings §5.6) gone; a reprint refused at affix until its print is recorded, and the app records its prints (`POST /tags/printed`, a deviation: the app had recorded 1 print of 3,069) · IAD's evidence behind `evidence:read` (IAD, maker, checker, Auditor), one guard, the count for everybody else — Vendra included · *Submit selected* and *Request tagging for selected* · `GET /asset-categories` 3 s → 0.3 s · a candidate verified, missing, found or restated by nobody (R10) · the default `tag_id` schema without make and model (R9) · photos: append-only, the first multipart route inside the envelope, 300 KB (AI-NFR-07), 12 standing, superseded with a reason · `?updated_since=` and how to page a sync · `location_code` on every location on 8 tenants (4,869, 0 collisions), room labels, a room scan answers *this is a room* · the mobile team's endpoint map · hosting a known deviation, no region in the repo · found: a category policy PATCH and the depreciation-mode switch now take ~28 s and ~14 s on `test19` (16,445 assets in one class), at the suites' timeouts |
 | 62 | **The state, told.** Vendra report 56 §4's message built as designed: `asset.register_state.changed` raised in `_gate_move` (the only writer of the state — searched, not assumed) for every move of a unit Vendra sent (`import_source = vendra` + GRN), down INT-05's road (same target, credential, outbox, ladder, dead letter) to its own *Register-State Endpoint* · **one event per act**, the state the act left: 7 for a labelled unit, 5 for `record_only`, N for a batch of N, none for a refused unit, a dry run, a unit not Vendra's, or a unit received with the gates off · Vendra's table and no person · **`state_since` strictly increasing** — without it an in-registry walk lands all seven in one second · measured on `test19`: 24 events of exactly 24 expected across 12 units; Vendra answers **401** until its receiver exists AND its path-scoped auth hook covers it (Frappe refuses an unauthenticated `Authorization` header before routing), so the endpoint is set only after Vendra 57 — said by the verification pass, against my first reading · **a day without Vendra on the real ladder**: 2 h 3 min then dead — a working day's 490 events, 490 dead; dead letters now retried by the selection · `scripts/walk_units.py`, `test19` only, as the personas, through the suites' own walker · the evaluation's SAP mirror and audit capture renumbered 63 and 64 |
+| 63 | **What SAP holds, in Cadra.** SAP's asset master as `nrs.sap.asset`, a read-only reference table that is NOT the register — the eleven register routes measured unchanged with 211,699 records loaded · imported from SAP's own `.XLSX` on *Settings → SAP asset master* by a system administrator (`settings:write` + `admin`), the header checked at upload (a missing column refused naming it), the rest read by a cron in ticks of ≤ 25 s of CPU with a streaming parser resumable at a row boundary — the October file in 100 s on `nrs19`, the reference doc's counts exactly, a re-import all `unchanged`; missing records marked, never deleted; placeholders aside; the office from the old tag; the file not kept · `sap_mirror:read` (Controller, Maker, Checker, Auditor) · the link COMPUTED, not stored · the matcher, five reasons, linked records excluded and counted; 61 §12's table reprinted from it · `GET /reports/sap-coverage`: Cadra holds 0 of 161,647; 2,445 of 11,957 linkable today (3,404 ranked first, 959 contested) · §0: tags active on two assets listed + an index that creates itself at zero; a category save one write (was 162,072); the retry budget 32 attempts, not the ruling's 30 (24 h 3 min) · found: a worker running the working tree served the new model before its schema existed and broke another session's tenant; a `compose up` of the proxy recreated Odoo without the db filter |
 | 47 | **A role is a job.** `identity:read` and `dashboards:read` each split in two — `access:read` (the access record, the Auditor's) and `operations:read` (fleet/staff bus/FM/security; the sidebar group key `operations` is a different namespace, on purpose) · tag minting and replacement moved to `tagging:write` (BREAKING — a manager no longer prints labels; the unit's scope covers its job) · **the Asset Officer**: Asset User's reads + `assets:write`, implied by Manager, grantable (the named fifth entry handoff 42 demanded), published as `asset_officer` · `SCOPE_GROUPS[assets:write]` → Officer, so Vendra's credential reads as what it does · Staff Bus and Identity (clearance) out of the sidebar (keys retired, routes serve, clearance OWED to NRS — `docs/GO-LIVE.md` §25) · the hardcoded *All systems operational* pill deleted |
 
 ## Backlog — see `docs/GO-LIVE.md` Part II

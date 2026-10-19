@@ -299,3 +299,18 @@ class NRSAssetPhoto(models.Model):
     """
     _name = 'nrs.asset.photo'
     _inherit = ['nrs.asset.photo', 'cadra.test.fixture.mixin']
+
+
+class NRSSapImportRun(models.Model):
+    """An import of SAP's export run by a test credential says so (handoff
+    63). Its rows inherit the run's label: the importer writes them with SQL
+    and stamps `is_test_fixture` from the run (`sap_mirror._Writer`)."""
+    _name = 'nrs.sap.import.run'
+    _inherit = ['nrs.sap.import.run', 'cadra.test.fixture.mixin']
+
+
+class NRSSapAsset(models.Model):
+    """A mirror record imported by a test credential's run says so (handoff
+    63) — stamped by the importer from its run, never by a caller."""
+    _name = 'nrs.sap.asset'
+    _inherit = ['nrs.sap.asset', 'cadra.test.fixture.mixin']

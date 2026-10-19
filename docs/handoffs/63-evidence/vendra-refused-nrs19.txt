@@ -1,0 +1,10 @@
+vendra credential on nrs19, scopes: assets:read assets:write locations:read candidates:read
+  GET /api/v1/sap-assets                         → 403 Missing required scope(s): sap_mirror:read
+  GET /api/v1/sap-assets/match?description=chair → 403 Missing required scope(s): sap_mirror:read
+  GET /api/v1/reports/sap-coverage               → 403 Missing required scope(s): sap_mirror:read
+  GET /api/v1/sap-assets/imports                 → 403 Missing required scope(s): sap_mirror:read
+tagging credential on nrs19, scopes: tagging:write
+  GET /api/v1/sap-assets                         → 403 Missing required scope(s): sap_mirror:read
+  GET /api/v1/sap-assets/match?description=chair → 403 Missing required scope(s): sap_mirror:read
+  GET /api/v1/reports/sap-coverage               → 403 Missing required scope(s): sap_mirror:read
+  GET /api/v1/sap-assets/imports                 → 403 Missing required scope(s): sap_mirror:read

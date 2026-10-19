@@ -60,6 +60,8 @@ PUBLISHED_ITEMS = {
     "candidates", "receipt_gate",
     # The role-exclusion table (handoff 58 §5), under Settings.
     "role_exclusions",
+    # The SAP mirror (handoff 63): its coverage report and its import.
+    "sap_coverage", "sap_asset_master",
 }
 
 _KEY = re.compile(r"^[a-z][a-z0-9_]*$")

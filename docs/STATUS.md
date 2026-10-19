@@ -1695,3 +1695,35 @@ Evidence: `docs/handoffs/62-REPORT.md` and `docs/handoffs/62-evidence/`.
   only, through the suites' own walker.
 - **Not yet**: deployed; the Register-State Endpoint set on any tenant but
   `test19` — owner, after Vendra 57.
+
+## Handoff 63 — what SAP holds, in Cadra
+
+Evidence: `docs/handoffs/63-REPORT.md` and `docs/handoffs/63-evidence/`.
+
+- **The SAP mirror** (`nrs.sap.asset`): SAP's asset master as a read-only
+  reference table, not the register. Imported from SAP's own `.XLSX` on
+  *Settings → SAP asset master* by a system administrator; read in the
+  background in passes of ≤ 25 s of CPU with a streaming parser; upsert on
+  (asset number, sub-number); missing records marked, never deleted;
+  placeholders stored aside; the office from the old tag; the file not
+  kept. October export on `nrs19`: 211,699 records in 100 s, the reference
+  doc's counts exactly; a second run all unchanged; a header removed
+  refused naming it.
+- **`sap_mirror:read`** — Asset Controller, Register Maker and Checker,
+  Auditor (and `admin`); not Asset Users, the Store Officer or Vendra.
+- **The matcher** (`GET /sap-assets/match`): up to five active, unlinked
+  records, each with its reason; report 61 §12's table reprinted from it on
+  `nrs19` (77.2% / 73.8% end on one record by tag). Old-tag lookups ~1 ms.
+- **The slice** (`GET /sap-assets?office=&class=&updated_since=`): the
+  largest office's active furniture is 2,712 rows, 1.5 MB.
+- **The coverage report** (`GET /reports/sap-coverage`, *Reports → SAP
+  Coverage*): on `nrs19`, Cadra holds 0 of SAP's 161,647 active assets;
+  2,445 of its 11,957 assets with no SAP number could be linked with
+  confidence today (3,404 ranked first, 959 contested).
+- **§0**: tag numbers active on two assets counted per tenant and listed in
+  the back office, the unique index on the five tenants with none; a
+  category policy save one write per category (was 162,072 on 18,008
+  assets); the retry budget 32 attempts (26 h 3 min), migrated per tenant;
+  the mobile map's last four rows placed.
+- **Not yet**: deployed; the mirror loaded on `staging` (owner, §32.1);
+  SAP's location extract (§32.2).

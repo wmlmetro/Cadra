@@ -115,6 +115,12 @@ export const SCOPE = {
    *  the Register Maker and Checker, and the Auditor. A caller without it
    *  is told how many items there are and nothing more. */
   evidenceRead: "evidence:read",
+  /** SAP's asset master as Cadra holds it — the SAP mirror, its imports,
+   *  the matcher and the coverage report (handoff 63). The Asset
+   *  Controller, the Register Maker and Checker, the Auditor; not Asset
+   *  Users, not Vendra. Importing a new export is `settings:write` held by a
+   *  system administrator (`admin`). */
+  sapMirrorRead: "sap_mirror:read",
   /** The employee import and the SAP employee sync. */
   integrationsWrite: "integrations:write",
   /** INT-03 — Vendra's receipt hand-off. No SPA page gates on it; it is

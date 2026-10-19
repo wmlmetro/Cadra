@@ -222,6 +222,16 @@ INVENTORY = {
     ("v1_users", "role_direct"): ("enum", ""),
     ("v1_users", "active"): ("bool", ""),
     ("v1_users", "is_api_client"): ("bool", ""),
+
+    # ── v1_sap_mirror.py — handoff 63, the SAP mirror ─────────────────
+    ("v1_sap_mirror", "active"): ("bool", ""),
+    ("v1_sap_mirror", "in_latest_export"): ("bool", ""),
+    ("v1_sap_mirror", "updated_since"): ("date", "_parse_updated_since, imported from v1_assets — 400 for unparseable"),
+    ("v1_sap_mirror", "office"): ("text", "an office code inside a FIRS/<office>/… old tag, or `none`; the set is whatever SAP's export carries (901 on nrs19's October import), not a closed list Cadra owns"),
+    ("v1_sap_mirror", "class"): ("text", "a SAP asset class as SAP writes it; the set is SAP's, compared exactly, and a class that matches nothing is an honest empty page"),
+    ("v1_sap_mirror", "old_tag"): ("text", "an old FIRS tag read off an item, matched exactly after normalising"),
+    ("v1_sap_mirror", "description"): ("text", "what the item is, in words; matched whole-word"),
+    ("v1_sap_mirror", "serial"): ("text", "a serial read off an item; a placeholder is said to be one, in `notes`"),
 }
 
 #: Pagination is shared by every list route and validated once, in

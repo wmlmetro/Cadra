@@ -71,6 +71,8 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/reports/location-coverage", probes: [G("/dashboard/kpis"), G("/locations?limit=1")] },
   { path: "/reports/tag-adoption", probes: [G("/barcode/kpis")] },
   { path: "/reports/depreciation", probes: [G("/reports/depreciation")] },
+  // Handoff 63 §3: the SAP mirror's readers.
+  { path: "/reports/sap-coverage", probes: [G("/reports/sap-coverage")] },
   // Handoff 58: the Asset Categories item declares `settings:classes` (Asset
   // Manager AND Asset Controller hold it — the Controller decides how a class
   // is identified), and the one write both may make is the either-or-gated
@@ -84,6 +86,10 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/settings/sidebar", probes: [W("PATCH", "/settings/sidebar")] },
   // Handoff 57. `settings:write`; the probe body is refused 400 to a holder.
   { path: "/settings/receipt-gate", probes: [W("PATCH", "/settings/receipt-gate")] },
+  // Handoff 63 §1. `admin`: the import takes `settings:write` held by a
+  // system administrator; the JSON probe body is refused 400 (not
+  // multipart) to the administrator and 403 to everybody else.
+  { path: "/settings/sap-asset-master", probes: [W("POST", "/sap-assets/imports")] },
   { path: "/admin/access-changes", probes: [G("/reports/access-changes?from=2026-10-01&to=2026-10-03&limit=1")] },
   // The auditor's own screens (handoff 49).
   { path: "/admin/configuration-changes", probes: [G("/reports/configuration-changes?from=2026-10-01&to=2026-10-03&limit=1")] },

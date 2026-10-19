@@ -82,7 +82,7 @@ import { ConfirmUserActionDialog, CreatePersonDialog } from "@/components/admin/
 import { ScopeRefusal } from "@/components/ScopeRefusal";
 
 // ─── SCOPES IN PLAIN WORDS ────────────────────────────────────────────────────
-/** The twenty-six scopes `myservice_api/controllers/utils.py` knows, in words
+/** The twenty-seven scopes `myservice_api/controllers/utils.py` knows, in words
  *  a person can read. An unknown scope prints as-is rather than being hidden
  *  — a scope this map has not heard of is still something the account can
  *  do. */
@@ -113,6 +113,7 @@ export const SCOPE_WORDS: Record<string, string> = {
   "register:make":      "Submit a tagged unit to the register, with its SAP code and cost",
   "register:check":     "Approve a submitted unit onto the register",
   "evidence:read":      "Open Internal Audit's evidence on a received unit",
+  "sap_mirror:read":    "Read SAP's asset master as Cadra holds it, and how much of it Cadra holds",
   "admin":              "Everything — system administrator",
 };
 

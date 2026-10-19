@@ -2458,7 +2458,7 @@ question is the same question for room labels.
 
 ## 31 · Handoff 62 — the state, told, 2026-10-15
 
-### 31.1 · How long Cadra keeps trying Vendra — `[open]`, for the Architect
+### 31.1 · How long Cadra keeps trying Vendra — `[landed, keep it that way]` (ruled in handoff 63, ruling 8; built in 63 — §32.6)
 
 `asset.register_state.changed` rides INT-05's ladder: 8 attempts over
 2 h 3 min, then a dead letter. Measured (report 62 §5): a 24-hour Vendra
@@ -2481,3 +2481,101 @@ whether a day's outage should need a person.
    `/api/method/vendra_network.api.cadra.register_state_event`. Setting it
    before step 2 dead-letters every move on its first attempt (Vendra
    answers `401` for a path its auth hook does not cover).
+
+## 32 · Handoff 63 — what SAP holds, in Cadra, 2026-10-18
+
+### 32.1 · Load the SAP mirror on `staging` — `[open]`, owner, after the deploy (§32.7)
+
+Settings → *SAP asset master*, signed in as a system administrator; upload
+SAP's October export (`NRS Asset (1).XLSX`) as SAP produced it. Measured on
+`nrs19`: 75 MB uploaded in 5 s, read in 100 s in 3 passes, 211,699 records
+created, 0 refused; the counts match `docs/reference/sap-asset-master-2026-10.md`
+(161,647 active, every class row). The file is not kept. Uploading the same
+file again changes nothing. The Builder cannot do this: the cluster's
+sign-in is behind Turnstile, and the file is NRS's register.
+
+### 32.2 · SAP's location extract (ANLZ) — `[open]`, owner, ask SAP's team
+
+The export carries no cost centre or location. The mirror takes each
+record's office from its old FIRS tag; **37,831 of the 161,647 active
+records have no office** (`nrs19`, October import) — every untagged one and
+the tagged ones not shaped `FIRS/<office>/…`. A per-office slice for an
+offline phone cannot contain them. When SAP's location extract arrives, a
+later import fills the office (`office_source = 'location_extract'`, never
+overwritten by an asset export); the field and the rule are in place, the
+importer for that file is not built.
+
+### 32.3 · The first reconciliation, for the owner's conversation with NRS — `[open]`, NRS
+
+From `GET /reports/sap-coverage` on `nrs19` (the NRS data Cadra holds, with
+SAP's October export loaded):
+
+- **Cadra holds 0 of SAP's 161,647 active assets (0.0%).** 2 of `nrs19`'s
+  11,959 assets carry a SAP asset number; both are in the category whose
+  SAP class is `3100`, which is not a SAP class (report 59), and neither
+  number is in SAP's export.
+- **Of the 11,957 Cadra assets with no SAP number, the matcher ranks 3,404
+  first** by a unique old tag (3,031 — the asset's legacy asset code) or a
+  unique serial (373), onto 2,894 SAP records. **959 of them point at a SAP
+  record another Cadra asset also points at** (449 records): Cadra holds
+  those items twice, or one of each pair is the wrong asset. **2,445 could
+  be linked with confidence today**, before any audit team goes into a
+  room.
+- 11,888 of the 11,959 are in categories with no SAP asset class (report
+  59's proposal is NRS's to confirm), so the by-class table puts them under
+  "no SAP class".
+
+### 32.4 · Tag numbers active on two assets — `[open]`, owner
+
+Per tenant, counted by the upgrade itself: `test19` 68 (136 labels),
+`jaizbankplc` 15 (30), `nrs19` 1 (2); 0 on `cadra19`, `gtb19`, `nrs`,
+`lasg`, `gtb`, where the unique index
+`nrs_asset_tag_label_active_name_uniq` now exists. **To turn it on** for a
+tenant that has some: back office → *Asset Register → Asset Tags*, filter
+*Tags active on two assets*; decide which asset holds each number and
+replace the other's label (the station's *Replace tag*, two people); then
+upgrade `myservice_asset_register` on that database — the upgrade creates
+the index when the filter lists none, and says in its log how many stand in
+the way when it does not. Nothing is resolved automatically. Run the
+cluster's tenants' counts after the deploy (the upgrade log prints them).
+
+### 32.5 · A category policy save — `[landed, keep it that way]`
+
+Measured on `test19`'s class of 18,008 before the change: 162,072 ORM writes
+(nine per asset) over 208 queries, 68 s. One write per category and the
+derived figures by batched SQL now: the same save of 18,197 assets 7.1 s,
+and a recompute that changes nothing writes 0 of 20,284 assets (report 63
+§0).
+
+### 32.6 · The delivery retry budget covers a day — `[landed, keep it that way]`
+
+32 attempts (26 h 3 min) by default; the ruling's 30 is 24 h 3 min at this
+ladder. Migration per tenant: `test19` 1 of 1 target moved, `jaizbankplc` 1
+of 1, `nrs19` 1 of 2 (the SAP mock) with the Vendra target, customised to a
+300 s cap, left alone and listed; no targets on the other five. Measured on
+the real drain: a whole day's outage delivers all 490 events, the last
+within 1 h of Vendra's return. **The cluster's targets are moved by the same
+migration in §32.7; a customised one is listed in the upgrade log.**
+
+### 32.7 · Deploy — `[open]`, owner
+
+1. Merge the PR; `deploy-dev`.
+2. `upgrade-19` with `target_dbs=staging,gtb,jaizbankplc,lasg`,
+   `upgrade_modules=myservice_asset_register,myservice_api,myservice_workflow,myservice_asset_depreciation`,
+   `scale_down=true`. Two new tables (`nrs_sap_asset`,
+   `nrs_sap_import_run`) and their columns: a tenant running the code
+   without them answers `503 server_misconfigured` on the new routes.
+3. `https://<tenant>/api/v1/meta/readiness` → `"ready": true` on each.
+4. The upgrade log has, per tenant, the tag-number line (§32.4) and the
+   retry-budget line (§32.6).
+5. Then §32.1 on `staging`. The ingress already takes 200 MB.
+
+### 32.8 · The configuration-change report's day is a UTC day — `[open]`, for the Architect
+
+`GET /reports/configuration-changes?from=D&to=D` bounds D in UTC
+(`ir.config_parameter.configuration_change_report`). The register's day is a
+Lagos day everywhere else (handoff 37). From 00:00 to 01:00 Lagos, a setting
+changed NOW is not in that day's report — it is in the previous one. Found by
+handoff 63's gates-on run, which crossed midnight: the four tests that read
+"today's" report failed in that hour and passed after it. A published
+report's period is API surface; changing it is a ruling, not a fix.
