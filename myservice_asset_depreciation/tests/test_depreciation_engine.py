@@ -43,7 +43,9 @@ class TestSummaryAtIsTheTwoCalls(BaseCase):
             try:
                 expected = (engine.value_at(as_of, **policy)
                             + (engine.schedule_end_date(**policy),))
-            except Exception as refused:  # the same refusal, then
+            # catch-all: reported — whatever the two old calls refuse,
+            # summary_at must refuse with the same type, asserted below.
+            except Exception as refused:
                 with self.assertRaises(type(refused), msg=repr(policy)):
                     engine.summary_at(as_of, **policy)
             else:
