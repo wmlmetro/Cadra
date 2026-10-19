@@ -21,3 +21,8 @@ tests/test_tag_number_race.py:52: AssertionError
 1 passed in 9.09s
 1 passed in 6.30s
 1 passed in 8.79s
+
+## after the verification pass's fix (setval only to lift), restarted, 3 runs
+1 passed in 9.60s
+1 passed in 9.03s
+1 passed in 5.47s

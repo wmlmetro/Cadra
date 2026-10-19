@@ -1024,17 +1024,22 @@ class NRSAsset(models.Model):
     def _tag_sequence_next(self, sequence, at_least):
         """The next number from `sequence`, above `at_least`.
 
-        `setval(GREATEST(nextval, at_least + 1))` in one statement: `nextval`
-        alone when the sequence is ahead (every mint through here), lifted
-        past a number issued around it otherwise. The lift is the one place
-        two concurrent mints could still meet — both lifting to the same
-        number, which only happens just after an import wrote numbers above
-        the sequence — and the unique index answers that `tag_number_taken`,
-        which a caller retries (`docs/api/cadra_api_endpoint_reference.md`).
+        `nextval` alone when the sequence is ahead — every mint through
+        here — and `setval` ONLY to lift it past a number issued around it.
+        Never `setval` on the ordinary path: a `setval(n)` landing after
+        another request's `nextval` gave it `n + 1` winds the sequence back,
+        and the next draw is `n + 1` again (the verification pass's finding
+        on the first draft, which always called it). The lift is the one
+        place two concurrent mints could still meet — both lifting to the
+        same number, just after an import wrote numbers above the sequence
+        — and the unique index answers that `tag_number_taken`, which a
+        caller retries (`docs/api/cadra_api_endpoint_reference.md`).
         """
+        floor = int(at_least) + 1
         self.env.cr.execute(
-            'SELECT setval(%s, GREATEST(nextval(%s), %s))',
-            (sequence, sequence, int(at_least) + 1))
+            'SELECT CASE WHEN d.n >= %s THEN d.n ELSE setval(%s, %s) END '
+            '  FROM (SELECT nextval(%s) AS n) d',
+            (floor, sequence, floor, sequence))
         return self.env.cr.fetchone()[0]
 
     def _generate_tag(self, source='auto'):
