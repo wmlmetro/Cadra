@@ -359,6 +359,18 @@ _BODY_ROUTES = {
                      "`utils.get_multipart`; its rows are written by "
                      "`sap_mirror._Writer` from the file's columns, never "
                      "by a key the caller names"),
+    # Handoff 64 §2. The photo to identify, by id or as a multipart file.
+    ("POST", "/api/v1/ai/identify"):
+        (None, None, "a multipart request to identify a photo: parts "
+                     "`photo_id`, or `file` + `source`, refused outside "
+                     "`v1_ai.IDENTIFY_FILE_FIELDS`/`IDENTIFY_TEXT_FIELDS` by "
+                     "`utils.get_multipart`; the suggestion row is written "
+                     "by `nrs.ai.suggestion._record` from the provider's "
+                     "answer, never by a key the caller names"),
+    ("PATCH", "/api/v1/settings/ai-identify"):
+        (None, None,
+         "writes the `cadra.ai.*` `ir.config_parameter` rows "
+         "(`v1_ai.SETTINGS_KEYS`), not a field of a record"),
     ("POST", "/api/v1/assets/<int:id>/photos/<int:photo_id>/supersede"):
         (None, None, "action: `reason`, recorded on the `photo_superseded` "
                      "event"),
@@ -741,6 +753,8 @@ _MUST_NOT_RESOLVE = {("request.request", "location_id")}
 _SERIALIZERS = {
     # Handoff 61 §5.
     ("v1_photos.py", "serialize_photo"): "nrs.asset.photo",
+    # Handoff 64 §2.
+    ("v1_ai.py", "serialize_suggestion"): "nrs.ai.suggestion",
     # Handoff 63 §1.
     ("v1_sap_mirror.py", "serialize_sap"): "nrs.sap.asset",
     ("v1_sap_mirror.py", "serialize_run"): "nrs.sap.import.run",

@@ -1361,6 +1361,59 @@ def _filter_writable(body):
     return vals, rejected
 
 
+#: The one key a save takes that is not a field of the asset (handoff 64
+#: §2): `{"id": <suggestion_id>, "ignored": [field, ...]}`, naming the
+#: suggestion from a photo the person worked from. Taken off the body
+#: BEFORE `_filter_writable`, so it is neither refused nor written to the
+#: asset — it decides what the save RECORDS, never what it writes.
+AI_SUGGESTION_KEY = "ai_suggestion"
+
+
+def _ai_suggestion_of(body):
+    """`(suggestion, ignored, error)` for a save's `ai_suggestion` block.
+
+    Pops the key from `body`. `ignored` is the fields the person dismissed;
+    a proposed field the save does not send is ignored too. Every refusal
+    here happens before anything is written."""
+    if not isinstance(body, dict) or AI_SUGGESTION_KEY not in body:
+        return None, (), None
+    from odoo.addons.myservice_asset_register.models.ai_suggestion import (
+        SUGGESTED_FIELDS)
+    raw = body.pop(AI_SUGGESTION_KEY)
+    shape = ("`ai_suggestion` must be {\"id\": <suggestion_id>, "
+             "\"ignored\": [field, ...]}. Nothing was written.")
+    if not isinstance(raw, dict) or set(raw) - {"id", "ignored"} \
+            or isinstance(raw.get("id"), bool) \
+            or not isinstance(raw.get("id"), int):
+        return None, (), err(ERR_VALIDATION_FAILED, shape,
+                             details={"field": AI_SUGGESTION_KEY})
+    ignored = raw.get("ignored") or []
+    if not isinstance(ignored, list) or any(
+            f not in SUGGESTED_FIELDS for f in ignored):
+        return None, (), err(
+            ERR_VALIDATION_FAILED,
+            "`ai_suggestion.ignored` lists fields a suggestion proposes: "
+            "%s. Nothing was written." % ", ".join(SUGGESTED_FIELDS),
+            details={"field": "ai_suggestion.ignored",
+                     "allowed_values": list(SUGGESTED_FIELDS)})
+    rec = request.env["nrs.ai.suggestion"].sudo().browse(raw["id"]).exists()
+    if not rec:
+        return None, (), err(ERR_NOT_FOUND,
+                             "No suggestion %d. Nothing was written."
+                             % raw["id"], status=404)
+    return rec, tuple(ignored), None
+
+
+def _suggestion_refusal(e):
+    return err(e.code, str(e.args[0]) if e.args else str(e),
+               status=e.status, details=e.details)
+
+
+def _applied(event, outcomes, counts, suggestion):
+    return {"id": suggestion.id, "event_id": event.id, "counts": counts,
+            "fields": outcomes}
+
+
 def _last_event_id(rec):
     """The newest `nrs.asset.event` id on the asset NOW, or 0. Taken BEFORE
     an action, so `_event_written` can tell the row the action wrote from
@@ -1824,11 +1877,21 @@ class CadraAssetsV1(http.Controller):
                  })
     def create_asset(self, **kwargs):
         body = get_params()
+        suggestion, ignored, error = _ai_suggestion_of(body)
+        if error:
+            return error
         vals, rejected = _filter_writable(body)
         if rejected:
             return refuse_unwritable(rejected, _WRITABLE_FIELDS)
         if not vals.get("name"):
             return err(ERR_INVALID_REQUEST, "`name` is required")
+        if suggestion:
+            from odoo.addons.myservice_asset_register.models.ai_suggestion \
+                import SuggestionRefused
+            try:
+                suggestion._check_applicable(None)
+            except SuggestionRefused as e:
+                return _suggestion_refusal(e)
         # An asset created already assigned to somebody opens its chain of
         # custody. `nrs.asset.create` records the link; this says where it
         # came from, so the row does not read as an anonymous direct write.
@@ -1847,6 +1910,12 @@ class CadraAssetsV1(http.Controller):
             cadra_custody_source="api_write",
             cadra_movement_source="api_write",
             cadra_event_source="api_write").create(vals)
+        if suggestion:
+            data = serialize_asset(rec)
+            data[AI_SUGGESTION_KEY] = _applied(
+                *suggestion._apply(rec, vals, ignored,
+                                   actor=request.env.user), suggestion)
+            return data
         return serialize_asset(rec)
 
     # ── Patch: PATCH /api/v1/assets/<id> ───────────────────────────
@@ -1892,6 +1961,9 @@ class CadraAssetsV1(http.Controller):
         if error:
             return error
         body = get_params()
+        suggestion, ignored, error = _ai_suggestion_of(body)
+        if error:
+            return error
         vals, rejected = _filter_writable(body)
         # BEFORE the write, and whatever else the body holds. Until handoff 31
         # a PATCH whose EVERY field was refused passed the check below, wrote
@@ -1900,6 +1972,13 @@ class CadraAssetsV1(http.Controller):
             return refuse_unwritable(rejected, _WRITABLE_FIELDS)
         if not vals:
             return err(ERR_INVALID_REQUEST, "Empty patch — no writable fields supplied")
+        if suggestion:
+            from odoo.addons.myservice_asset_register.models.ai_suggestion \
+                import SuggestionRefused
+            try:
+                suggestion._check_applicable(rec)
+            except SuggestionRefused as e:
+                return _suggestion_refusal(e)
 
         # ── Nobody moves an asset alone (handoff 35) ─────────────────
         #
@@ -1985,6 +2064,12 @@ class CadraAssetsV1(http.Controller):
             rec.with_context(cadra_custody_source="api_write",
                              cadra_movement_source="api_write",
                              cadra_event_source="api_write").write(vals)
+        if suggestion:
+            data = serialize_asset(rec)
+            data[AI_SUGGESTION_KEY] = _applied(
+                *suggestion._apply(rec, vals, ignored,
+                                   actor=request.env.user), suggestion)
+            return data
         return serialize_asset(rec)
 
     # ── Move action: POST /api/v1/assets/<id>/move ─────────────────

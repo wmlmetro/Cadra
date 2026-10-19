@@ -823,12 +823,22 @@ class CadraConfigV1(http.Controller):
                      "properties": {
                          "receipt_gated": {"type": "boolean"},
                          "receipt_gate": _RECEIPT_GATE_SCHEMA,
+                         # Handoff 64: whether *Identify from photo* is
+                         # drawn, and the sentence that names who the photo
+                         # goes to. Off: no screen shows the button.
+                         "ai_identify": {"type": "object", "properties": {
+                             "enabled": {"type": "boolean"},
+                             "provider": {"type": "string"},
+                             "provider_label": {"type": "string"},
+                             "notice": {"type": "string"}}},
                      },
                  })
     def get_settings(self, **kwargs):
+        from .v1_ai import ai_switch_block
         return {
             "receipt_gated": request.env["nrs.asset"].sudo()._receipt_gated(),
             "receipt_gate": _receipt_gate_block(request.env),
+            "ai_identify": ai_switch_block(request.env),
         }
 
     @cadra_route("/api/v1/settings/receipt-gate", method="PATCH",

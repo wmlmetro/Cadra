@@ -34,3 +34,5 @@ from . import backoffice
 # Handoff 63 — the SAP mirror: SAP's asset master, read-only; its import, the
 # matcher and the coverage report.
 from . import v1_sap_mirror
+# Handoff 64 — Identify from photo (R11).
+from . import v1_ai

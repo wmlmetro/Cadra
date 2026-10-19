@@ -35,6 +35,14 @@ EVENT_GATE_FIRED = 'gate_fired'
 # `nrs.asset.photo.action_supersede` and by nothing else; the photo list
 # derives "superseded" from it.
 EVENT_PHOTO_SUPERSEDED = 'photo_superseded'
+# Handoff 64 §2. A save that used a suggestion from a photo (R11): what the
+# person did with each field the AI proposed — accepted, changed (from →
+# to) or ignored — as JSON in `notes`, the suggestion it came from in
+# `ai_suggestion_id`, and the photo in `photo_id`. AI-NFR-05's audit trail.
+# Written by `nrs.ai.suggestion._apply` and by nothing else; the suggestion
+# row itself is append-only, so what happened to it can only be a record of
+# its own.
+EVENT_AI_SUGGESTION_APPLIED = 'ai_suggestion_applied'
 
 # The symbologies a scanner can claim a value was read in — the
 # BarcodeDetector-style names the app's camera passes up with every decode
@@ -134,6 +142,10 @@ _PAYLOAD_OF_TYPE = {
     # one writer, `nrs.asset.photo.action_supersede`. No `from_value` /
     # `to_value`: nothing about the photo changes, which is the point.
     EVENT_PHOTO_SUPERSEDED: frozenset({'photo_id', 'reason'}),
+    # Handoff 64 §2. No `reason`: a save carries none. `notes` is the JSON
+    # of the per-field outcomes, the way `gate_fired` carries its evidence.
+    EVENT_AI_SUGGESTION_APPLIED: frozenset(
+        {'ai_suggestion_id', 'photo_id', 'notes'}),
 }
 
 # Which fields each field-carrying type may name. A reference change naming a
@@ -236,6 +248,7 @@ class NRSAssetEvent(models.Model):
         (EVENT_AFFIX_REFUSED, 'Affix confirmation refused'),
         (EVENT_GATE_FIRED, 'Receipt gate fired'),
         (EVENT_PHOTO_SUPERSEDED, 'Photo superseded'),
+        (EVENT_AI_SUGGESTION_APPLIED, 'Details suggested from a photo'),
     ], string='Event', required=True, index=True)
 
     occurred_at = fields.Datetime(
@@ -280,6 +293,12 @@ class NRSAssetEvent(models.Model):
     photo_id = fields.Many2one(
         'nrs.asset.photo', string='Photo', index=True, ondelete='restrict')
 
+    # Carried only by `ai_suggestion_applied` (handoff 64). `restrict`, for
+    # `photo_id`'s reason: the suggestion is append-only too.
+    ai_suggestion_id = fields.Many2one(
+        'nrs.ai.suggestion', string='AI Suggestion', index=True,
+        ondelete='restrict')
+
     source = fields.Selection([
         ('api_verify', 'API — verify'),
         ('api_condemn', 'API — condemn'),
@@ -315,8 +334,8 @@ class NRSAssetEvent(models.Model):
             "An asset event cannot be created directly. One is written only "
             "as a side effect of the asset actually being verified, changing "
             "status, having a reference or its warranty changed, having "
-            "an affix confirmation refused, or having a photo superseded, "
-            "so that the record says what happened rather than what "
+            "an affix confirmation refused, having a photo superseded, or "
+            "being saved with details suggested from a photo, so that the record says what happened rather than what "
             "somebody typed."
         )
 
