@@ -4434,7 +4434,16 @@ design (handoff 48).
 | 145 | GET    | `/api/v1/sap-assets` | `sap_mirror:read` (handoff 63: a page of the mirror by `office`, `class`, `updated_since`, `active`, `in_latest_export` — §16.2) |
 | 146 | GET    | `/api/v1/sap-assets/match` | `sap_mirror:read` (handoff 63: up to five active, unlinked records, each with its reason — §16.3) |
 | 147 | GET    | `/api/v1/sap-assets/<id>` | `sap_mirror:read` (handoff 63: one record, with its linked asset) |
-| 148 | GET    | `/api/v1/reports/sap-coverage` | `sap_mirror:read` (handoff 63: how much of SAP's register Cadra holds — §16.4) |
+| 148 | GET    | `/api/v1/reports/sap-coverage` | `sap_mirror:read` (handoff 63: how much of SAP's register Cadra holds — §16.4; `class_evidence` since 65) |
+| 149 | GET    | `/api/v1/sap-links/candidates` | `sap_mirror:read` (handoff 65: register assets that point at one SAP record with confidence — §18.1) |
+| 150 | POST   | `/api/v1/sap-links/propose` | `register:make` (handoff 65: a batch of proposals, `dry_run` — §18.2) |
+| 151 | GET    | `/api/v1/sap-links` | `sap_mirror:read` (handoff 65: the proposals; default `state=proposed`, the checker's queue — §18.3) |
+| 152 | POST   | `/api/v1/sap-links/approve` | `register:check` (handoff 65: the number written; nothing sent to SAP — §18.3) |
+| 153 | POST   | `/api/v1/sap-links/return` | `register:check` (handoff 65: back to the maker, with a reason — §18.3) |
+| 154 | POST   | `/api/v1/assets/<id>/sap-link/undo` | `register:make` (handoff 65: propose undoing a link, with a reason — §18.4) |
+| 155 | GET    | `/api/v1/sap-links/contested` | `sap_mirror:read` (handoff 65: SAP records two or more Cadra assets point at — §18.5) |
+| 156 | POST   | `/api/v1/sap-links/contested/<sap_id>/propose` | `register:make` (handoff 65: the maker chooses one asset of a group — §18.5) |
+| 157 | POST   | `/api/v1/sap-links/contested/<sap_id>/flag` | `register:make` (handoff 65: flag a group as a likely duplicate, with a note — §18.5) |
 
 
 ## 11.8 GET `/api/v1/settings` and PATCH `/api/v1/settings/receipt-gate` — are receipts gated? (handoff 57, kept by 58)
@@ -5264,7 +5273,7 @@ background job in passes of at most 25 s of CPU. `202` with the run:
 ```
 
 Poll `GET /api/v1/sap-assets/imports/<id>` until `state` is `done` or
-`failed`. On `nrs19` the October file read in **100 s** (3 passes, 75 s of
+`failed` (or `held`, below). On `nrs19` the October file read in **100 s** (3 passes, 75 s of
 CPU); the same file again read **211,699 unchanged**.
 
 * **Columns are found by header name.** Required: `Company Code`, `Asset`,
@@ -5298,6 +5307,18 @@ CPU); the same file again read **211,699 unchanged**.
 | 403 | `forbidden` | no `settings:write`; or `settings:write` without `admin` — *"Importing SAP's asset master is the System Administrator's act…"* |
 | 409 | `conflict` | another run is queued or running — one at a time (`details.run_id`) |
 | 413 | `validation_failed` | over 150 MB (in words, `details.max_bytes`); a body over 200 MB is refused by the proxy, not by Cadra |
+
+**The 5% guard (handoff 65 §3).** A run against a mirror that already
+holds records first COUNTS, writing nothing, how many records in the latest
+export the new file does not carry (`absent_guard.phase = "count"`). If that
+is more than 5% of them, the run stops as `state: "held"` before writing
+anything — `message` says how many and that a truncated or wrong file is the
+likely cause, `absent_guard.would_mark_absent` of
+`absent_guard.mirror_records_before` is the count, and the file is not kept.
+If the file is right, upload it again with a second text part
+`mark_absent=true` ("Yes, mark them absent"): the count is skipped and the
+run records `absent_guard.confirmed` and `confirmed_by`. The counting pass
+reads the file once more, so a guarded re-import takes about twice as long.
 
 ### 16.2 GET `/api/v1/sap-assets` — the slice
 
@@ -5362,6 +5383,13 @@ another Cadra asset also points at counted apart (`contested_*`,
 `uncontested`). **Every count's meaning is in `definitions`**, sent with
 the report; `sentence` says the result in words, and says so when the
 mirror is empty.
+
+**`class_evidence` (handoff 65 §4)**: per Cadra category, its register
+assets whose SAP number names a mirror record and the SAP classes those
+records carry — `{category, configured_class, linked, via_link,
+sap_classes: [{class, assets}], agrees, sentence}`, e.g. *"IT Equipment:
+2353 linked; SAP class 3000 for 2241, …"*. Evidence for NRS's decision on
+the class mapping; the report never writes a category's SAP class.
 
 ### 16.5 GET `/api/v1/sap-assets/<id>` and GET `/api/v1/assets/<id>/sap-record`
 
@@ -5483,3 +5511,72 @@ key is never set or returned over the API**: the owner places it with
 refused while the provider cannot answer (no key; the stand-in off a `test`
 database). `GET /api/v1/settings` (`assets:read`) carries `ai_identify`
 (`enabled`, `provider`, `provider_label`, `notice`) for every screen.
+
+## 18 · The link — a register asset given its SAP number, by two people (handoff 65)
+
+A LINK writes a mirror record's SAP asset number onto a Cadra asset ON the
+register: `sap.asset_number` (and the sub-number and company code), with
+`sap.code_source = "linked_from_sap_mirror"`. It is maker-checker — the
+Register Maker proposes, the Register Checker approves or returns — and one
+person may not do both on one asset: the no-two-gates rule, gates `link_make`
+and `link_check`, refused `409 conflict` with `details.reason =
+"segregation_of_duties"` naming the earlier act. **Nothing is sent to SAP**:
+the master already exists there, so no `asset.master.create` is queued.
+Undoing a link is the same two acts with a reason. A proposal is never
+deleted; a decided one is frozen. The gate switch changes nothing here.
+
+Every asset's history carries one `sap_link` event per act (*"Linked to SAP
+asset 30000065001 (old tag, unique), proposed by A, approved by B."*) beside
+the `provenance_changed` row the number's change writes, and
+`sap_duplicate_flagged` for §18.5's flag.
+
+### 18.1 GET `/api/v1/sap-links/candidates`
+
+The confident, uncontested matches: register assets with no SAP number
+whose old tag (`legacy_asset_code`, normalised) is carried by exactly one
+active, unlinked SAP record — or, when no active record carries the tag, a
+unique real serial — and that no other Cadra asset points at. The same
+answer as the coverage report's `reconcilable_today.uncontested`.
+`?office=` (SAP's office code), `?class=` (SAP's class), `?status=open`
+(default; not yet proposed) `|proposed|all`, `?limit=` (≤ 500) and
+`?offset=`. Answers `{status, total, offset, limit, by_office, items,
+sentence}`; each item `{asset, sap, reason_code, reason, link}`.
+
+### 18.2 POST `/api/v1/sap-links/propose`
+
+`{"asset_ids": [..], "note": "..", "dry_run": false}` — at most 100. N
+single proposals, each in its own savepoint; the answer `{action, dry_run,
+total, done, refused, results}` gives each asset's `outcome` (`done`,
+`would_do`, `refused`) with the status, code and sentence it would have had
+alone. Refused: not on the register, already carrying a SAP number, no
+confident match, a contested record (`details.contested`, decided on
+§18.5), an open proposal on the asset or the record, the no-two-gates rule.
+
+### 18.3 GET `/api/v1/sap-links`, POST `/approve`, POST `/return`
+
+`GET` lists proposals (`?state=proposed` by default, `approved`,
+`returned`, `all`; `?kind=link|unlink`; `?asset_id=`), each with
+`can_decide` and, when the rule bars the caller, `refusal` verbatim.
+`POST /api/v1/sap-links/approve {"link_ids": [..], "dry_run": false}` and
+`POST /api/v1/sap-links/return {"link_ids": [..], "reason": ".."}` — the
+reason is required to return. An approval re-checks that the asset still
+has no number and the record is still active and unlinked.
+
+### 18.4 POST `/api/v1/assets/<id>/sap-link/undo`
+
+`{"reason": ".."}` — a proposal of `kind: "unlink"` for an asset whose
+number was linked here; the checker decides it on §18.3. On approval the
+number, sub-number, company code and code source are cleared.
+
+### 18.5 The contested list — GET `/api/v1/sap-links/contested`
+
+Each SAP record two or more Cadra assets point at, the assets side by side
+(code, name, location, custodian, created, old tag, serial, `matched_by`,
+`photos {count, latest[]}`, `duplicate_flag`), `by_office` counts (`groups`,
+`assets`, `flagged`), `?office=`, `?flagged=true|false`. The maker may:
+`POST /api/v1/sap-links/contested/<sap_id>/propose {"asset_id": .., "note":
+..}` — one of the group, then §18.3's checker step; the others are left
+unlinked — or `POST /api/v1/sap-links/contested/<sap_id>/flag {"note":
+".."}` — the group flagged as a likely duplicate, an event on each asset,
+`sap.duplicate_flag` on every asset of it. **Nothing is merged, retired or
+deleted.** A group flagged once is refused a second flag (409).

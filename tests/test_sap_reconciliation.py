@@ -37,6 +37,8 @@ SAP_KEYS = (
     "reconciliation_state", "synced_at",
     # Handoff 58, P4: the maker's and SAP's numbers when they disagree.
     "discrepancy",
+    # Handoff 65 §2: one of a group flagged as a likely duplicate.
+    "duplicate_flag",
 )
 
 RECONCILIATION_STATES = ["not_tagged", "pending", "reconciled", "exception"]
