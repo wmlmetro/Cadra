@@ -754,7 +754,7 @@ class TestAssetHistoryRecordedEvents(AssetHistoryCase):
             ["verified", "verification_date_set", "status_changed",
              "provenance_changed", "warranty_changed", "affix_refused",
              "gate_fired", "photo_superseded", "details_suggested",
-             "photo_added"],
+             "sap_link", "sap_duplicate_flagged", "photo_added"],
             "by the name the EVENT is published under, not the stored type")
         for kind in kinds:
             self.assertEqual(

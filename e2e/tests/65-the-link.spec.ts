@@ -5,7 +5,7 @@ import path from "node:path";
 import { request as pwRequest } from "@playwright/test";
 import { test, expect, type Page } from "../fixtures/test";
 import { ORIGIN, appPath } from "../config";
-import { personaToken } from "../fixtures/gates";
+import { personaToken, receiptGated } from "../fixtures/gates";
 
 /**
  * Handoff 65 — the link, in the browser, as the two people whose job it is,
@@ -123,9 +123,21 @@ test.describe("handoff 65 — the link", () => {
     const u = Math.random().toString(36).slice(2, 8).toUpperCase();
     const office = `K${u}`;
     const tags = [`FIRS/${office}/0001`, `FIRS/${office}/0002`];
+    // A link is for a register asset with NO SAP number — what NRS's legacy
+    // register holds. With the receipt gates on, a new asset is a candidate
+    // and reaches the register only with a SAP code, so the two are made
+    // with the switch OFF and the tenant's own value is put back (the same
+    // as `tests/test_the_link.py::_legacy_shaped`; spec 65 first ran gates
+    // off and failed on `test19`, gates on).
     const assets = [];
-    for (const [i, tag] of tags.entries()) {
-      assets.push(await api.createAsset(`e2e65 link ${u} ${i + 1}`, { legacy_asset_code: tag }));
+    const gated = await receiptGated(api);
+    if (gated) await api.patch("/api/v1/settings/receipt-gate", { enabled: false });
+    try {
+      for (const [i, tag] of tags.entries()) {
+        assets.push(await api.createAsset(`e2e65 link ${u} ${i + 1}`, { legacy_asset_code: tag }));
+      }
+    } finally {
+      if (gated) await api.patch("/api/v1/settings/receipt-gate", { enabled: true });
     }
     const ids: number[] = assets.map((a) => Number(a.id));
     const { file, numbers } = inventedExport(u, office);
