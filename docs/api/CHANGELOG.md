@@ -33,6 +33,46 @@ live at was never the point.
 
 ---
 
+## 2026-10-19 — handoff 63b: the faster loop · no module version change (Python only; a tag sequence is created per prefix on first use)
+
+**ADDITIVE — a new error code, `409 tag_number_taken`, and the one 409 to
+retry.** A location-prefix tag number (`NRS-FURN-018`) was the highest
+number under its prefix plus one, read through each request's snapshot, so
+two receipts of one class in flight at once drew the SAME number — Vendra
+report 58's two chairs, 100 ms apart. Where report 63's unique index stands
+the second was refused `409 conflict` and Vendra dead-lettered the unit;
+where it does not, both were minted. **Numbers now come from a Postgres
+sequence per prefix**: concurrent receipts draw different numbers (20 at
+once, 20 numbers, `tests/test_tag_number_race.py`; on the old code 2 and 7
+of 20 were refused). The one collision left — with a number issued around
+the sequence, by an import, between a request's read and its write —
+answers `409 tag_number_taken` with `details.retryable: true`; nothing is
+written and the same request sent again draws a new number. Every other
+unique violation still answers `409 conflict`. Numbers are not reused and
+not renumbered; a prefix's sequence starts at its highest number the first
+time it is used.
+
+**PERFORMANCE — `PATCH /api/v1/asset-categories/<id>` with a policy field**
+restates the class once, not twice, and each asset's schedule once, not
+twice: `test19`'s class of 19,042 from 13.2 s / 20.6 s to 9.7 s / 9.7 s.
+`assets_recomputed` and every figure are unchanged.
+
+**BEHAVIOUR CHANGE — `GET /api/v1/reports/configuration-changes`: a day in
+the period is a LAGOS day.** `from` and `to` were bounded as UTC days, so
+from 00:00 to 01:00 Lagos a parameter written a minute ago fell on the
+previous UTC date and was missing from "today's" report — on a register
+whose every other published date (the snapshot's `as_of`, a disposal's
+date, the warranty's `status_as_of`) is a Lagos day. The period is now
+Lagos midnight of `from` to the last microsecond of `to` in Lagos, both
+inclusive (`audit_configuration.lagos_days_in_utc`). A caller that already
+named Lagos dates gets the day it asked for; one that named UTC dates sees
+its window move one hour earlier. Nothing else in the payload changed —
+`period.date_from`/`date_to` echo the dates sent, as before.
+`GET /api/v1/reports/access-changes` still bounds UTC days; it is named in
+report 63b for the Architect, not changed here.
+
+---
+
 ## 2026-10-18 — handoff 63: what SAP holds, in Cadra · `myservice_api` 19.0.3.34.0, `myservice_asset_register` 19.0.1.31.0, `myservice_workflow` 19.0.3.4.0
 
 **Additive**, plus two behaviour changes a consumer can observe (marked).

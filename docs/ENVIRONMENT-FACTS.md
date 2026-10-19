@@ -547,3 +547,26 @@ a hand-loaded table needs the same.
 75 MB export with nginx's own HTML 413 before Odoo saw it. It is 200m, the
 cluster ingress's figure. It is a bind-mounted single file: recreate the
 proxy after editing it (and see above about the db filter when you do).
+
+### A database copied with `CREATE DATABASE … TEMPLATE` has no filestore (handoff 63b)
+
+`scripts/fresh_test_tenant.sh` restores `test19f` from `cadra_test_template`
+in about 5 s. Postgres copies the rows; Odoo's files live outside it, at
+`/var/lib/odoo/.local/share/Odoo/filestore/<db>` in the `odoo` container
+(`config.filestore(db)` — the directory is hidden, so `ls /var/lib/odoo`
+shows nothing). Without copying that directory too, the first asset-bundle
+request answers 500 and the login page goes blank (the handoff-45 fact
+above); the script copies it.
+
+**The template is invisible to Odoo on purpose:** it is marked
+`IS_TEMPLATE true ALLOW_CONNECTIONS false`, and Odoo's database list is
+`not datistemplate and datallowconn`, so the scheduler never opens a cursor
+on it and `CREATE DATABASE … TEMPLATE` never finds it busy. To look inside
+it, `ALTER DATABASE cadra_test_template WITH ALLOW_CONNECTIONS true` first
+and set it back after — or just `--rebuild-template`.
+
+**A tenant built the way CI builds one skips what `test19` was given by
+hand:** the handoff-41 accounts (`h41_*`), two employees, the Mailpit mail
+server — 24 of 37 skips on the first `test19f`. The template seeds them
+(`scripts/seed_test_template_fixtures.py`), and CI runs the same seed on
+the database it builds — CI skipped 39 of 1,498 before it, 16 after.

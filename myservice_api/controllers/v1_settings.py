@@ -413,8 +413,13 @@ class CadraConfigV1(http.Controller):
                 ("category_id", "=", cat.id),
                 ("use_category_policy", "=", True),
             ])
+            # The sync WRITES the policy fields, which are depreciation
+            # inputs, so `nrs.asset.write` (the depreciation module's) has
+            # restated these assets by the time it returns. A second
+            # `_apply_depreciation()` here walked all 19,042 of `test19`'s
+            # class again and changed none of them: 5.5 s of a 22 s save
+            # (handoff 63b, `63b-evidence/category-save-profile.txt`).
             assets._sync_policy_from_category()
-            assets._apply_depreciation()
 
         data = _serialize_category(cat)
         data["assets_recomputed"] = len(assets)

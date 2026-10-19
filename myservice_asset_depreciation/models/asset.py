@@ -223,7 +223,9 @@ class NRSAsset(models.Model):
                        STATE_ERP_MANAGED, False)
             else:
                 policy = r._depreciation_policy()
-                accumulated, book_value, state = engine.value_at(
+                # One schedule for both answers (`engine.summary_at`,
+                # handoff 63b), not one for the value and one for the end.
+                accumulated, book_value, state, end_date = engine.summary_at(
                     as_of, **policy)
                 # As the columns will hold them: money rounded to the
                 # currency (what a Monetary write stored), no end date
@@ -236,7 +238,7 @@ class NRSAsset(models.Model):
                     lambda v: round(v, 2))
                 new = (rnd(accumulated or 0.0), rnd(book_value or 0.0),
                        state or False,
-                       engine.schedule_end_date(**policy) or False)
+                       end_date or False)
             old = (r.accumulated_depreciation or 0.0,
                    r.current_book_value or 0.0,
                    r.depreciation_state or False,

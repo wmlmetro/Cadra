@@ -14,7 +14,7 @@ import uuid
 import pytest
 
 from . import gates
-from .conftest import assert_envelope_err, assert_envelope_ok
+from .conftest import assert_envelope_err, assert_envelope_ok, lagos_today
 
 SETTINGS_GATE = "/api/v1/settings/receipt-gate"
 
@@ -314,8 +314,8 @@ def test_the_asset_controller_changes_a_mode_and_nothing_else(
     assert r.status_code == 403, r.text[:300]
     report = assert_envelope_ok(client.get(
         "/api/v1/reports/configuration-changes",
-        params={"from": time.strftime("%Y-%m-%d"),
-                "to": time.strftime("%Y-%m-%d"), "limit": 500}))["data"]
+        params={"from": str(lagos_today()),
+                "to": str(lagos_today()), "limit": 500}))["data"]
     key = f"cadra.class_identification.{furniture['id']}"
     rows = [x for x in report["parameters"] if x["key"] == key]
     assert rows, f"{key} is on the configuration record"
@@ -406,8 +406,8 @@ def test_an_exclusion_switched_off_lets_the_grant_through_and_is_recorded(
             json={"roles": ["register_maker", "register_checker"]}))
         report = assert_envelope_ok(client.get(
             "/api/v1/reports/configuration-changes",
-            params={"from": time.strftime("%Y-%m-%d"),
-                    "to": time.strftime("%Y-%m-%d"),
+            params={"from": str(lagos_today()),
+                    "to": str(lagos_today()),
                     "limit": 500}))["data"]
         mine = [r for r in report["parameters"]
                 if r["key"] == f"cadra.role_exclusion.{x['id']}"]

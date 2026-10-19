@@ -19,7 +19,7 @@ Function-scoped:
   - capture        : helper that writes (request, response) pairs to docs/api/test-responses/
 
 Hooks:
-  - pytest_runtest_makereport  : record each test's outcome for the report
+  - pytest_runtest_logreport   : record each test's outcome for the report
   - pytest_terminal_summary    : generate docs/api/test-report.md at session end
 """
 import datetime
@@ -42,6 +42,7 @@ CANONICAL_ERROR_CODES = frozenset({
     "unauthorized", "forbidden", "invalid_request", "validation_failed",
     "not_found", "conflict", "rate_limited", "internal_error",
     "not_implemented", "idempotency_mismatch", "server_misconfigured",
+    "tag_number_taken",
 })
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -854,20 +855,21 @@ def pytest_sessionstart(session):
             p.unlink(missing_ok=True)
 
 
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_logreport(report):
     """Collect per-test outcome + endpoint metadata into _test_results.
 
-    Uses hookwrapper to read pytest's resolved outcome — that way xfail
-    tests are correctly classified as 'xfailed' (not 'failed')."""
-    out = yield
-    report = out.get_result()
+    `logreport`, not `makereport`: under `pytest -n` (xdist) `makereport`
+    runs in the WORKERS and the session summary in the CONTROLLER, so the
+    report file was written from an empty list. `logreport` sees every
+    worker's report in the controller, and runs in-process without xdist.
+    xfail is read from `wasxfail`, as before, so an expected failure is
+    'xfailed', not 'failed'."""
     if report.when != "call":
         return
 
     # Pull endpoint metadata captured via user_properties
     endpoint_meta = None
-    for k, v in item.user_properties:
+    for k, v in report.user_properties:
         if k == "cadra_endpoint":
             endpoint_meta = v
             break
@@ -882,12 +884,14 @@ def pytest_runtest_makereport(item, call):
     else:
         outcome = "failed"
 
+    crash = getattr(report.longrepr, "reprcrash", None)
     _test_results.append({
-        "nodeid": item.nodeid,
+        "nodeid": report.nodeid,
         "outcome": outcome,
-        "duration": call.stop - call.start,
+        "duration": report.duration,
         "endpoint": endpoint_meta,
-        "error": str(call.excinfo.value)[:300] if call.excinfo else None,
+        "error": (crash.message[:300] if crash
+                  else str(report.longrepr)[:300] if report.failed else None),
         "xfail_reason": getattr(report, "wasxfail", None) or None,
     })
 
@@ -1060,6 +1064,17 @@ def receipt_switch(client, admin_scope):
         yield _set
     finally:
         _set(was)
+
+
+def lagos_today():
+    """Today's date IN LAGOS — UTC+1, fixed; Nigeria keeps no summer time.
+
+    Not `time.strftime`, which is the date of whatever machine runs the
+    suite: Lagos on the bench, UTC in CI. Every day the register publishes
+    is a Lagos day, so a test asking for "today's" rows asks for this one.
+    """
+    return (datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(hours=1)).date()
 
 
 def assert_envelope_ok(response, expected_status=200):

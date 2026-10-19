@@ -2539,6 +2539,12 @@ the index when the filter lists none, and says in its log how many stand in
 the way when it does not. Nothing is resolved automatically. Run the
 cluster's tenants' counts after the deploy (the upgrade log prints them).
 
+**69 on `test19` since 2026-10-19 07:00 Lagos** (handoff 63b): the 69th is
+`NRS-FURN-018` on assets 106911 and 106912 — two chairs of one Vendra
+receipt minted 99 ms apart by the race §32.9 closes. Listed
+(`docs/handoffs/63b-evidence/tag-race.txt`), not renumbered; resolved the
+way above like the other 68.
+
 ### 32.5 · A category policy save — `[landed, keep it that way]`
 
 Measured on `test19`'s class of 18,008 before the change: 162,072 ORM writes
@@ -2570,7 +2576,7 @@ migration in §32.7; a customised one is listed in the upgrade log.**
    retry-budget line (§32.6).
 5. Then §32.1 on `staging`. The ingress already takes 200 MB.
 
-### 32.8 · The configuration-change report's day is a UTC day — `[open]`, for the Architect
+### 32.8 · The configuration-change report's day is a UTC day — `[landed 63b, keep it that way]`
 
 `GET /reports/configuration-changes?from=D&to=D` bounds D in UTC
 (`ir.config_parameter.configuration_change_report`). The register's day is a
@@ -2579,3 +2585,29 @@ changed NOW is not in that day's report — it is in the previous one. Found by
 handoff 63's gates-on run, which crossed midnight: the four tests that read
 "today's" report failed in that hour and passed after it. A published
 report's period is API surface; changing it is a ruling, not a fix.
+
+**Ruled by handoff 63b and landed:** the period is two Lagos days
+(`audit_configuration.lagos_days_in_utc`), announced as a behaviour change
+in `docs/api/CHANGELOG.md`. The four tests ask for the Lagos date
+(`tests/conftest.py::lagos_today`), not the date of the machine running the
+suite — which in CI is UTC and would have moved the failing hour to
+23:00–24:00 UTC rather than removed it. Proved by three in-registry tests
+that place a write at 00:30 Lagos and at both edges of the day. **Still a
+UTC day:** `GET /reports/access-changes` (`audit_access.py`, the same
+`to_datetime(...).replace(hour=23 …)` shape) — named in report 63b, not
+changed.
+
+### 32.9 · Two receipts at once drew one tag number — `[landed 63b, keep it that way]`
+
+Vendra report 58: two INT-03 calls 100 ms apart, one number. The
+location-prefix generator read `max(number) + 1` through each request's
+REPEATABLE READ snapshot; no lock fixes that inside a snapshot taken before
+the lock. The number now comes from a Postgres sequence per prefix
+(`nrs.asset._tag_sequence`, created on first use under an advisory lock,
+started at the highest number already issued). 20 concurrent receipts at
+one prefix get 20 numbers, in each of three runs; on the old code 2 and 7 of
+20 were refused 409. The collision left — against a number issued around
+the sequence — answers `409 tag_number_taken`, `details.retryable: true`,
+which Vendra 59 retries. **Keep it:** a new path that mints a tag number
+draws it from `_tag_sequence_next`, never from a max.
+

@@ -278,6 +278,11 @@ def value_at(as_of, *, cost, start_date, life_months, method, salvage=0.0,
         disposal_date=disposal_date,
         switch_to_straight_line=switch_to_straight_line, proration=proration,
     )
+    return _value_from(schedule, as_of, cost, disposal_date)
+
+
+def _value_from(schedule, as_of, cost, disposal_date):
+    """`value_at`'s answer read off a schedule already built."""
     if not schedule:
         return 0.0, cost, STATE_NOT_STARTED
 
@@ -299,3 +304,24 @@ def schedule_end_date(**kwargs):
     """Month-end of the final period, or None if there is no schedule."""
     schedule = build_schedule(**kwargs)
     return schedule[-1].period_end if schedule else None
+
+
+def summary_at(as_of, **kwargs):
+    """`value_at(as_of, **kwargs) + (schedule_end_date(**kwargs),)`, from ONE
+    schedule rather than two.
+
+    Handoff 63b. Restating a class after a category policy save called both
+    for every asset, so every schedule was built twice: 76,168 builds and
+    about 7 s of a 22 s save on `test19`'s class of 19,042. Same arguments,
+    same answers — `build_schedule` rounds the cost itself, so the schedule
+    `value_at` builds is the one `schedule_end_date` builds
+    (`test_depreciation_engine` pins the two forms equal).
+    """
+    method = kwargs.get('method')
+    if method == METHOD_ERP_MANAGED or method not in COMPUTED_METHODS:
+        # No schedule to share: both answers come from the early returns.
+        return value_at(as_of, **kwargs) + (schedule_end_date(**kwargs),)
+    schedule = build_schedule(**kwargs)
+    cost = round(float(kwargs.get('cost') or 0.0), 2)
+    return (_value_from(schedule, as_of, cost, kwargs.get('disposal_date'))
+            + (schedule[-1].period_end if schedule else None,))

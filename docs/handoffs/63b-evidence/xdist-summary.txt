@@ -1,0 +1,2 @@
+serial [] exit=0 wall=547s restore=restored in 4.8 s :: 1488 passed, 10 skipped in 546.42s (0:09:06)
+n4a [-n 4] exit=1 wall=364s restore=restored in 5.1 s :: 30 failed, 1456 passed, 10 skipped, 2 errors in 363.97s (0:06:03)
