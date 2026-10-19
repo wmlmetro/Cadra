@@ -1812,3 +1812,35 @@ Evidence: `docs/handoffs/65-evidence/`.
 - **§0b**: one real reprint on `test19` (unit 106929, GRN
   `MAT-PRE-2026-00784`): label 78806, the same number, `reprint_count` 1,
   `WDL-2026-13049` acknowledged by the bench Vendra (HTTP 202) in 2 s.
+
+## Handoff 66 — the audit in the room
+
+Evidence: `docs/handoffs/66-evidence/`.
+
+- **The three outcomes, the refusals, the block and the closing lists**:
+  `tests/test_the_audit.py` 11 of 11 on `test19f`, gates off; with
+  `tests/test_asset_events_api.py`, 96 of 96 gates on. A register asset
+  found in the other room is moved, its condition written, verified by the
+  capturer, its photo copied, its missing label reprinted under the same
+  code; an item matched to an invented SAP record becomes a register asset
+  with SAP's number, the phone's code and `audit_from_sap_mirror`; a
+  found-not-in-SAP item is an exception, registered as new through the
+  maker and checker (Section 12 checked, its identity completed) or voided
+  with its code. Every refusal in words; a duplicate held and returned (its
+  code voided); a capture synced twice is one, upper-case id included; the
+  block returned voids the one unused code; the campaign refuses to close
+  while one capture waits and closes with both lists and the CSV.
+- **No master for an item registered from SAP's record**: in-registry
+  `TestTheAuditSendsNothing` 4 of 4 against a live stub SAP target (the
+  control: the same target queues a master for a plain affix).
+- **The ledger**: every existing code recorded by migration —
+  `docs/handoffs/66-evidence/fanout.txt`, eight tenants and `test19f`, each
+  ledger equal to its asset count (`test19` 23,405; `nrs19` 11,960;
+  `jaizbankplc` 4,164).
+- **A refused or previewed grant left the role behind**: Odoo's group cache
+  kept the groups a rolled-back savepoint wrote, so the person's next logins
+  carried the refused role's scopes (4 of 4 before the fix, 0 of 4 after —
+  `66-evidence/stale-group-cache.txt`); pinned by
+  `test_a_refused_or_previewed_grant_leaves_no_role_behind`.
+- **The screens**: Audit campaigns, review, capture, exceptions, devices and
+  codes; browser specs 46, 65 and 66 17 of 17 on `test19f`.
