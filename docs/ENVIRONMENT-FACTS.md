@@ -570,3 +570,19 @@ hand:** the handoff-41 accounts (`h41_*`), two employees, the Mailpit mail
 server — 24 of 37 skips on the first `test19f`. The template seeds them
 (`scripts/seed_test_template_fixtures.py`), and CI runs the same seed on
 the database it builds — CI skipped 39 of 1,498 before it, 16 after.
+
+## The real-PDF render tests hang on this Mac (handoff 65)
+
+`myservice_asset_register.tests.test_print_funnel.TestItReallyRendersAPdf`
+and `myservice_barcode_station`'s `test_the_url_really_produces_a_pdf` call
+the real wkhtmltopdf, which fetches the report's CSS back from the test
+server on `--http-port=8099`. Under `--workers=0` that server is the very
+process waiting for wkhtmltopdf, and on this machine the fetch never
+returns: the run sits at the test indefinitely (12+ minutes measured), with
+`odoo.service.server: Request timed out` in the log. CI's runners get past
+it. To run CI's whole in-registry command here, kill the stuck
+`wkhtmltopdf` (`docker compose … exec -T odoo pkill wkhtmltopdf`) and read
+those two tests' errors as this machine's, or leave `/myservice_asset_register`
+and `/myservice_barcode_station`'s PDF classes to CI. GitHub's log view of
+that CI step is also truncated near the same point, on `dev` too, so a
+failure later in the step is invisible there: reproduce locally.

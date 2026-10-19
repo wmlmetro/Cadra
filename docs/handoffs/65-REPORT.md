@@ -15,8 +15,8 @@ instruction file). Module versions: `myservice_asset_register` 19.0.1.33.0
    `CADRA_AI_API_KEY` in the cluster's `cadra-odoo` secret (the Deployment
    reads it, optional) and roll the Odoo Deployment; locally run
    `scripts/set_ai_key.sh` (no database argument) and recreate `odoo`. The
-   upgrade deletes any key stored the old way — none was, on the 3 local
-   tenants upgraded so far.
+   upgrade deletes any key stored the old way — none was, on 9 of 9 local
+   databases (the eight tenants and `test19f`).
 4. **The model choice:** run `scripts/ai_live_check.py --models
    claude-opus-5-5,claude-sonnet-5-5,claude-haiku-5-5` once over your photo
    folder and pick the cheapest model that is right often enough. Opus stays
@@ -117,7 +117,7 @@ by the bench Vendra, HTTP 202, two seconds after the affix.
 | In-registry | link + outbox + guard 0 failed of 12; AI + audit + import 0 failed of 28 |
 | Browser (`test19`, gates on) | specs 46, 48, 63: 19 of 19; spec 65 failed gates-on (its fixture made candidates), fixed and 1 of 1 — 20 of 20. Specs 63 + 65 4 of 4 on `test19f` (gates off) |
 | Final local pytest (fresh `test19f`, gates ON) | **1,519 passed, 1 failed, 10 skipped of 1,530** in 30 m 0 s; the one failure a 30 s read timeout while the browser specs shared the server — alone, 1 of 1 in 24 s |
-| CI | CI_LINE |
+| CI | run 39297610266 on `c753840`: **green, both switch states** — pytest 1,514 passed, 16 skipped of 1,530 each; in-registry step passed (its result line is beyond GitHub's truncated log view). Earlier: 39246000399 red (2 / 8 failed of 1,530), 39248755063 pytest green, in-registry red (the history pin) |
 
 ## §7 — the question
 
@@ -209,4 +209,21 @@ measured on `nrs19` (`65-evidence/nrs19-measure.json`):
 
 ## Time
 
-PHASES
+Started 12:07 WAT. Budget stated at Step 0: ~5½ h, over the 3 h target,
+with §2 + §4 named as the split. The split was not needed.
+
+- **Build** (§0–§4 and the app, three subagents in parallel), 12:07–13:01:
+  about 55 min.
+- **Tests** while building, plus the final run (30 min, gates on) and the
+  browser specs (22 min, run alongside), 12:20–13:36.
+- **Verification pass**, 12:39–12:55, run alongside CI; its fixes until
+  13:01.
+- **CI's hidden failure**, 13:15–13:41 and again 18:49–19:05.
+  - The in-registry step's log view stops early in both this branch's run
+    and `dev`'s, so I reproduced the run locally.
+  - Locally, two real-PDF render tests deadlock wkhtmltopdf against the
+    single-threaded test server. That is a fact about this machine, not the
+    code (to be added to ENVIRONMENT-FACTS).
+- **The session was idle from 13:41 to 18:49** and resumed on the owner's
+  ping. Wall clock to the push overstates the work by about 5 hours.
+- **Report**, written alongside the runs, ~20 min.
