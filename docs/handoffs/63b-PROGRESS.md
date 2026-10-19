@@ -19,3 +19,4 @@ docs + report 20. Time budget: 2½ h (start 06:46 WAT).
 - 08:08 Progress: 88% — the tag race (6 of 8): a Postgres sequence per prefix; 20 concurrent receipts → 20 numbers ×3 (old code: 2 and 7 of 20 refused 409); 409 tag_number_taken for the collision left; test19's NRS-FURN-018 listed. Docs written. Pushed; CI running. Started: verification pass (read-only) beside the register module's in-registry run.
 - 08:36 Progress: 92% — verification pass done, its defect fixed (setval only to lift; race 3/3), myservice_asset_register 0 failed of 503 on test19f. Started: the final full pytest, gates off, fresh test19f (~9 min).
 - 08:53 Progress: 97% — final local run 1,489 passed, 10 skipped of 1,499 in 9 m 42 s (gates off, fresh test19f); CI on HEAD ee98fbe green both legs (1,483/16 of 1,499; modules 0 of 1,268). Report written. Next: push, PR, dev.
+- 08:53 Progress: 100% — report pushed (6c0612a), PR #123 open; blocked only on the owner's merge and deploy.
