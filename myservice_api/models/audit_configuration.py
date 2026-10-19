@@ -40,8 +40,11 @@ can be compared without either revealing what they hold.
 It never writes; `myservice_api/tests/test_audit_configuration_report.py`
 fingerprints the tables to prove it.
 """
+import datetime
 import hashlib
 import re
+
+import pytz
 
 from odoo import api, fields, models
 
@@ -114,6 +117,23 @@ _SECRET_CAMEL_RE = re.compile(
 _OPAQUE_KEYS = frozenset({'database.uuid'})
 
 _REDACTED = '[redacted]'
+
+_LAGOS = pytz.timezone('Africa/Lagos')
+
+
+def lagos_days_in_utc(date_from, date_to):
+    """`[date_from, date_to]` as LAGOS days, inclusive, in naive UTC — the
+    form `create_date`/`write_date` are stored in. Until handoff 63b the
+    period was two UTC days: from 00:00 to 01:00 Lagos a change made a
+    minute ago fell on yesterday's UTC date and was not in today's report,
+    on a register whose every other published date is a Lagos day."""
+    def edge(day, at):
+        local = _LAGOS.localize(datetime.datetime.combine(
+            fields.Date.to_date(day), at))
+        return local.astimezone(pytz.utc).replace(tzinfo=None)
+    # `time.max` is 23:59:59.999999 — see the `microsecond=999999` line in
+    # `audit_access.py`: the last second of a closing day is in the period.
+    return edge(date_from, datetime.time.min), edge(date_to, datetime.time.max)
 
 
 class IrConfigParameterAuditReport(models.Model):
@@ -291,15 +311,13 @@ class IrConfigParameterAuditReport(models.Model):
 
     @api.model
     def configuration_change_report(self, date_from, date_to):
-        """Parameters created or written in `[date_from, date_to]`, inclusive.
+        """Parameters created or written in `[date_from, date_to]`, inclusive,
+        both LAGOS days (`lagos_days_in_utc`).
 
         Returns `{'rows', 'summary', 'fidelity'}`.
         """
         fidelity = self.configuration_change_fidelity()
-        start = fields.Datetime.to_datetime(date_from)
-        # `microsecond=999999` — see the same line in `audit_access.py`.
-        end = fields.Datetime.to_datetime(date_to).replace(
-            hour=23, minute=59, second=59, microsecond=999999)
+        start, end = lagos_days_in_utc(date_from, date_to)
 
         params = self.sudo().search([], order='key')
         rows = []

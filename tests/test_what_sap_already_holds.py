@@ -30,7 +30,7 @@ import uuid
 import pytest
 
 from . import gates
-from .conftest import assert_envelope_err, assert_envelope_ok
+from .conftest import assert_envelope_err, assert_envelope_ok, lagos_today
 
 SETTINGS_GATE = "/api/v1/settings/receipt-gate"
 PLACEHOLDERS = "/api/v1/settings/serial-placeholders"
@@ -113,7 +113,7 @@ def _fire(client, persona, asset_id, action, body=None):
 
 def _register_body(asset, code):
     return {"sap_asset_code": code, "cost": 25000.0, "cost_centre": "CC-59",
-            "capitalisation_date": time.strftime("%Y-%m-%d"),
+            "capitalisation_date": str(lagos_today()),
             "asset_class": asset["category"]["id"]}
 
 
@@ -158,8 +158,8 @@ def test_the_asset_controller_sets_the_class_and_the_store_officer_cannot(
         assert again["sap_asset_class"] == "4000"
         report = assert_envelope_ok(client.get(
             "/api/v1/reports/configuration-changes",
-            params={"from": time.strftime("%Y-%m-%d"),
-                    "to": time.strftime("%Y-%m-%d"), "limit": 500}))["data"]
+            params={"from": str(lagos_today()),
+                    "to": str(lagos_today()), "limit": 500}))["data"]
         key = f"cadra.class_sap_asset_class.{row['id']}"
         rows = [x for x in report["parameters"] if x["key"] == key]
         assert rows, f"{key} is on the configuration record"
@@ -403,8 +403,8 @@ def test_the_placeholder_list_is_read_edited_and_recorded(client, admin_scope):
         assert "TO BE CONFIRMED" in after["exact"]
         report = assert_envelope_ok(client.get(
             "/api/v1/reports/configuration-changes",
-            params={"from": time.strftime("%Y-%m-%d"),
-                    "to": time.strftime("%Y-%m-%d"), "limit": 500}))["data"]
+            params={"from": str(lagos_today()),
+                    "to": str(lagos_today()), "limit": 500}))["data"]
         rows = [x for x in report["parameters"]
                 if x["key"] == "cadra.serial_placeholders"]
         assert rows and "TO BE CONFIRMED" in rows[0]["current_value"]

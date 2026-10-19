@@ -33,6 +33,24 @@ live at was never the point.
 
 ---
 
+## 2026-10-19 — handoff 63b: the faster loop · no module version change (Python only)
+
+**BEHAVIOUR CHANGE — `GET /api/v1/reports/configuration-changes`: a day in
+the period is a LAGOS day.** `from` and `to` were bounded as UTC days, so
+from 00:00 to 01:00 Lagos a parameter written a minute ago fell on the
+previous UTC date and was missing from "today's" report — on a register
+whose every other published date (the snapshot's `as_of`, a disposal's
+date, the warranty's `status_as_of`) is a Lagos day. The period is now
+Lagos midnight of `from` to the last microsecond of `to` in Lagos, both
+inclusive (`audit_configuration.lagos_days_in_utc`). A caller that already
+named Lagos dates gets the day it asked for; one that named UTC dates sees
+its window move one hour earlier. Nothing else in the payload changed —
+`period.date_from`/`date_to` echo the dates sent, as before.
+`GET /api/v1/reports/access-changes` still bounds UTC days; it is named in
+report 63b for the Architect, not changed here.
+
+---
+
 ## 2026-10-18 — handoff 63: what SAP holds, in Cadra · `myservice_api` 19.0.3.34.0, `myservice_asset_register` 19.0.1.31.0, `myservice_workflow` 19.0.3.4.0
 
 **Additive**, plus two behaviour changes a consumer can observe (marked).

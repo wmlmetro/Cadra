@@ -2570,7 +2570,7 @@ migration in §32.7; a customised one is listed in the upgrade log.**
    retry-budget line (§32.6).
 5. Then §32.1 on `staging`. The ingress already takes 200 MB.
 
-### 32.8 · The configuration-change report's day is a UTC day — `[open]`, for the Architect
+### 32.8 · The configuration-change report's day is a UTC day — `[landed 63b, keep it that way]`
 
 `GET /reports/configuration-changes?from=D&to=D` bounds D in UTC
 (`ir.config_parameter.configuration_change_report`). The register's day is a
@@ -2579,3 +2579,14 @@ changed NOW is not in that day's report — it is in the previous one. Found by
 handoff 63's gates-on run, which crossed midnight: the four tests that read
 "today's" report failed in that hour and passed after it. A published
 report's period is API surface; changing it is a ruling, not a fix.
+
+**Ruled by handoff 63b and landed:** the period is two Lagos days
+(`audit_configuration.lagos_days_in_utc`), announced as a behaviour change
+in `docs/api/CHANGELOG.md`. The four tests ask for the Lagos date
+(`tests/conftest.py::lagos_today`), not the date of the machine running the
+suite — which in CI is UTC and would have moved the failing hour to
+23:00–24:00 UTC rather than removed it. Proved by three in-registry tests
+that place a write at 00:30 Lagos and at both edges of the day. **Still a
+UTC day:** `GET /reports/access-changes` (`audit_access.py`, the same
+`to_datetime(...).replace(hour=23 …)` shape) — named in report 63b, not
+changed.

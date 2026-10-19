@@ -1062,6 +1062,17 @@ def receipt_switch(client, admin_scope):
         _set(was)
 
 
+def lagos_today():
+    """Today's date IN LAGOS — UTC+1, fixed; Nigeria keeps no summer time.
+
+    Not `time.strftime`, which is the date of whatever machine runs the
+    suite: Lagos on the bench, UTC in CI. Every day the register publishes
+    is a Lagos day, so a test asking for "today's" rows asks for this one.
+    """
+    return (datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(hours=1)).date()
+
+
 def assert_envelope_ok(response, expected_status=200):
     """Assert response is the PRD success envelope at the given status."""
     assert response.status_code == expected_status, (

@@ -62,6 +62,7 @@ from odoo.addons.myservice_api.models.audit_configuration import (
     CONFIG_SAME_TRANSACTION_SECONDS,
     _OPAQUE_KEYS,
     _REDACTED,
+    lagos_days_in_utc,
 )
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
@@ -815,3 +816,60 @@ class TestThePeriodFiltering(ConfigReportCase):
         self.assertIsNotNone(
             row, "the row is absent from the period of its last write")
         self.assertIs(row["changed_after_create"], True)
+
+
+# ═════════════════════════════════════════════════════════════════════
+@tagged("post_install", "-at_install")
+class TestThePeriodIsALagosDay(ConfigReportCase):
+    """A day in this report is a LAGOS day (handoff 63b), as every other
+    date the register publishes is. It was a UTC day: from 00:00 to 01:00
+    Lagos a change made a minute ago fell on yesterday's UTC date, so it
+    was missing from today's report — four HTTP tests failed whenever the
+    suite ran in that hour (report 63).
+
+    The stamps come from Postgres (`cr.now()`), which no frozen clock in
+    Python reaches, so the write is PLACED at the instant instead: the only
+    clock this report compares is the stored stamp against the day's two
+    edges."""
+
+    # 00:30 Lagos on 19 October 2026 is 23:30 UTC on the 18th.
+    HALF_PAST_MIDNIGHT_LAGOS = datetime(2026, 10, 18, 23, 30)
+
+    def _written_at(self, moment):
+        key = self._key()
+        param = self._param(key)
+        self._flush_tracking()
+        for column in ("create_date", "write_date"):
+            self._backdate(param, column, moment)
+        return key
+
+    def test_a_change_at_half_past_midnight_is_in_that_lagos_day(self):
+        key = self._written_at(self.HALF_PAST_MIDNIGHT_LAGOS)
+        today = date(2026, 10, 19)
+        self.assertIsNotNone(
+            self._row_for(self._report(today, today), key),
+            "a change made at 00:30 Lagos on the 19th is missing from the "
+            "report for the 19th — the period is being read as a UTC day")
+
+    def test_it_is_not_in_the_utc_day_it_was_stamped_on(self):
+        key = self._written_at(self.HALF_PAST_MIDNIGHT_LAGOS)
+        yesterday = date(2026, 10, 18)
+        self.assertIsNone(
+            self._row_for(self._report(yesterday, yesterday), key),
+            "a change made at 00:30 Lagos on the 19th is reported on the "
+            "18th, its UTC date")
+
+    def test_the_edges_are_lagos_midnight_and_its_last_microsecond(self):
+        day = date(2026, 10, 19)
+        start, end = lagos_days_in_utc(day, day)
+        self.assertEqual(start, datetime(2026, 10, 18, 23, 0))
+        self.assertEqual(end, datetime(2026, 10, 19, 22, 59, 59, 999999))
+        first = self._written_at(start)
+        last = self._written_at(end)
+        before = self._written_at(start - timedelta(microseconds=1))
+        after = self._written_at(end + timedelta(microseconds=1))
+        report = self._report(day, day)
+        self.assertIsNotNone(self._row_for(report, first))
+        self.assertIsNotNone(self._row_for(report, last))
+        self.assertIsNone(self._row_for(report, before))
+        self.assertIsNone(self._row_for(report, after))
