@@ -4656,6 +4656,13 @@ def _created_models(path):
         if isinstance(receiver, ast.Call) and isinstance(receiver.func, ast.Name) \
                 and receiver.func.id == "super":
             continue
+        # Handoff 64: `client.beta.messages.create(...)` is the Anthropic
+        # SDK's HTTP call to the provider (`ai_provider.AnthropicProvider`),
+        # not an ORM create — no record is written by it. Exactly that
+        # shape, a receiver that IS a `.messages` attribute, and nothing
+        # wider: an Odoo model is never reached as `<x>.messages`.
+        if isinstance(receiver, ast.Attribute) and receiver.attr == "messages":
+            continue
         model = _env_subscript_model(receiver, consts)
         if model is None:
             inner = _strip_chain(receiver)

@@ -131,6 +131,28 @@ def ensure_turnstile_secret():
         _say("Turnstile secret set from CADRA_TURNSTILE_SECRET")
 
 
+def ensure_ai_key():
+    """Mirror CADRA_AI_API_KEY into `myservice_api.ai_api_key` (handoff 64).
+
+    The provider key for *Identify from photo* — the owner's secret, on the
+    Turnstile secret's road and one-way for its reason: an empty variable
+    leaves whatever is stored alone, so a Job that loses the variable cannot
+    silently switch identification off a tenant. Never printed; the
+    configuration-change report redacts it by name. The switch
+    `cadra.ai.identify` is NOT touched: placing a key turns nothing on.
+    """
+    param = env["ir.config_parameter"].sudo()
+    current = param.get_param("myservice_api.ai_api_key", "")
+    from_env = os.environ.get("CADRA_AI_API_KEY", "").strip()
+    if not from_env:
+        _say("CADRA_AI_API_KEY is empty — leaving the AI provider key as-is")
+    elif current == from_env:
+        _say("AI provider key already matches CADRA_AI_API_KEY (no change)")
+    else:
+        param.set_param("myservice_api.ai_api_key", from_env)
+        _say("AI provider key set from CADRA_AI_API_KEY (= ***)")
+
+
 # ─── step 2: admin groups ───────────────────────────────────────────
 
 REQUIRED_ADMIN_GROUPS = [
@@ -956,6 +978,7 @@ def main():
         ensure_database_class()
         jwt_secret = ensure_jwt_secret()
         ensure_turnstile_secret()
+        ensure_ai_key()
         ensure_admin_groups()
         client_id, raw_secret = ensure_test_client()
         tag_client_id, tag_raw_secret = ensure_tagging_client()

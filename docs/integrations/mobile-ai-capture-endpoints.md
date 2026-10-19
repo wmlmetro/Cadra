@@ -453,3 +453,57 @@ records were passed over because they are already on Cadra's register
 (*3 more already on Cadra's register*). A placeholder serial (`XXXX`, `0`)
 is never matched, and the answer says so. Offline, run the same rules over
 the cached slice; the order and the reasons are the ones above.
+
+
+## 8 · Added in release 64: Cadra identifies the photo (R11)
+
+There is no model to train, package or download. The phone sends the photo
+to Cadra, Cadra's server asks a vision model, and the answer comes back as
+suggestions a person confirms — the same route the web app calls. Full
+contract: `docs/api/cadra_api_endpoint_reference.md` §17.
+
+### 8.1 `POST /api/v1/ai/identify` — `assets:write`
+
+**multipart/form-data**, exactly one of:
+
+- `photo_id` — a photo already on an asset (§5.1); or
+- `file` + `source=mobile` — a photo for an item not yet registered. Cadra
+  holds it 24 hours; the save that registers the item claims it as the
+  asset's first photo.
+
+Send `X-Idempotency-Key`: a re-send after a dropped connection gets the same
+answer and is not counted twice. **Offline:** queue the photo and identify it
+when the phone syncs; until then the person picks the class themselves. They
+confirm the suggestion anyway, so nothing depends on the AI being reachable.
+
+The answer: `suggestion_id`; `category` (one of the tenant's classes, its
+`confidence`, up to two `alternatives`); `attributes` (`name` in SAP's style,
+`colour`, `material`, `make` and `model_name` only if legible, `dimensions`
+only if a label states them); `condition` (the published enum —
+*unserviceable* is `poor` with the note `unserviceable`); `text_read` (each
+string with `looks_like`: `brand`, `model`, `serial_like`, `firs_tag_like`,
+`other`); `sap_candidates` (up to five with their ranking reason for a caller
+holding `sap_mirror:read`, otherwise the count); `notes`; `notice`.
+
+Refused in words, nothing identified: `403` switched off on the tenant;
+`429` the day's cap used (*"fill the details by hand"*); `503` the provider
+timed out or failed, `502` its answer failed the schema (*"The photo could
+not be identified just now; fill the details by hand."*); the photo's own
+`413`/`415`/`400`.
+
+### 8.2 Saving what the person confirmed
+
+`POST /api/v1/assets` (or `PATCH /api/v1/assets/<id>`) with the fields the
+person kept or typed, plus `ai_suggestion: {"id": <suggestion_id>, "ignored":
+[fields the person dismissed]}`. Cadra records per field accepted, changed
+(from → to) or ignored — AI-NFR-05's audit trail — and the history shows it
+in one line. A field is never written from a suggestion the save did not
+send. An SAP candidate fills nothing: the SAP number is set at registration
+by the Register Maker, or by SAP.
+
+### 8.3 Whether to draw the button
+
+`GET /api/v1/settings` → `ai_identify.enabled`. Off — the default on every
+tenant — draw nothing. `ai_identify.notice` is the sentence to show once:
+*"Photograph the item, not people. The photo is sent to <provider> to read
+it."*

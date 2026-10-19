@@ -301,6 +301,24 @@ class NRSAssetPhoto(models.Model):
     _inherit = ['nrs.asset.photo', 'cadra.test.fixture.mixin']
 
 
+class NRSAiSuggestion(models.Model):
+    """A suggestion a test credential asked for says so (handoff 64 §2).
+
+    Append-only, like the photo it is about: a row the suite writes on a
+    tenant is permanent there, so it carries the label rather than a
+    `source` anybody could claim."""
+    _name = 'nrs.ai.suggestion'
+    _inherit = ['nrs.ai.suggestion', 'cadra.test.fixture.mixin']
+
+
+class NRSAiPendingPhoto(models.Model):
+    """A photo held for an asset that does not exist yet, sent by a test
+    credential, says so (handoff 64 §2) — for the hours before it is
+    claimed or purged."""
+    _name = 'nrs.ai.pending.photo'
+    _inherit = ['nrs.ai.pending.photo', 'cadra.test.fixture.mixin']
+
+
 class NRSSapImportRun(models.Model):
     """An import of SAP's export run by a test credential says so (handoff
     63). Its rows inherit the run's label: the importer writes them with SQL

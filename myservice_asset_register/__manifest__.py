@@ -1,6 +1,6 @@
 {
     'name': 'NRS Asset Register & PM Schedules',
-    'version': '19.0.1.31.0',
+    'version': '19.0.1.32.0',
     'summary': 'Fixed asset register, condition tracking, tagging, transfers, PM auto-scheduling',
     'category': 'Facilities',
     'author': 'WestMetro Limited',
@@ -40,6 +40,7 @@
         'data/serial_placeholders.xml',
         # Handoff 63 §1: the SAP mirror's import, read in ticks by a cron.
         'data/sap_mirror_cron.xml',
+        'data/ai_suggestion_cron.xml',
     ],
     'assets': {
         'web.assets_backend': [

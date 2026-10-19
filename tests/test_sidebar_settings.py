@@ -103,7 +103,8 @@ def test_the_payload_says_it_is_not_a_permission(client, capture):
     # 33 since handoff 58: Role exclusions (Settings, §5).
     # 35 since handoff 63: SAP Coverage (Reports) and SAP asset master
     # (Settings).
-    assert len(keys) == len(set(keys)) == 35, keys
+    # 36 since handoff 64: Identify from photo (Settings).
+    assert len(keys) == len(set(keys)) == 36, keys
     assert len(data["groups"]) == 10
     hidden = [it["key"] for g in data["groups"] for it in g["items"]
               if not it["shown"]]

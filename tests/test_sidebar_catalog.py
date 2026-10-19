@@ -62,6 +62,8 @@ PUBLISHED_ITEMS = {
     "role_exclusions",
     # The SAP mirror (handoff 63): its coverage report and its import.
     "sap_coverage", "sap_asset_master",
+    # Identify from photo (handoff 64), under Settings.
+    "ai_identify",
 }
 
 _KEY = re.compile(r"^[a-z][a-z0-9_]*$")

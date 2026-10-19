@@ -35,6 +35,7 @@ Lives in `myservice_api`, not `myservice_asset_register`, for the reason
 `asset_custody.py` next door sets out: it reads `workflow.dispatch.log` and
 `request.request`, which the lower module does not depend on.
 """
+import json
 from datetime import datetime, time, timedelta
 
 from odoo import api, fields, models
@@ -210,6 +211,10 @@ _EVENT_TITLES = {
     # one is an event, never an edit.
     "photo_added": "Photo added",
     "photo_superseded": "Photo superseded",
+    # Handoff 64 §2. A save that used a suggestion from a photo (R11): what
+    # the person did with each proposed field. After `photo_added`, because
+    # the save that claims a pending photo writes both in the same second.
+    "details_suggested": "Details suggested from a photo",
     "details_changed": "Details changed",
     "integration_event": "Event for an external system",
     "maintenance_request": "Maintenance request raised",
@@ -703,6 +708,29 @@ class NRSAssetHistory(models.Model):
                     photo_id=photo.id or None, reason=ev.reason or None,
                     url=("/api/v1/assets/%d/photos/%d" % (self.id, photo.id))
                     if photo else None)
+            elif etype == "ai_suggestion_applied":
+                # Handoff 64 §2 — AI-NFR-05's audit trail in one line: the
+                # suggestion a person worked from and what they did with
+                # each field it proposed. The row is written by the save.
+                published = "details_suggested"
+                try:
+                    applied = json.loads(ev.notes or "{}")
+                except ValueError:
+                    applied = {}
+                counts = applied.get("counts") or {}
+                parts = ["%d %s" % (counts[k], k)
+                         for k in ("accepted", "changed", "ignored")
+                         if counts.get(k)]
+                summary = "Details suggested from a photo; %s." % (
+                    ", ".join(parts) if parts else "nothing was proposed")
+                photo = ev.photo_id
+                detail.update(
+                    ai_suggestion_id=ev.ai_suggestion_id.id or None,
+                    photo_id=photo.id or None,
+                    counts=counts, fields=applied.get("fields") or {},
+                    provider=applied.get("provider"),
+                    model=applied.get("model"),
+                    prompt_version=applied.get("prompt_version"))
             else:
                 # A reference or a warranty field: the same shape, a field
                 # with a before and an after. The warranty fields carry no
@@ -784,6 +812,8 @@ class NRSAssetHistory(models.Model):
              "registration)"),
             ("photo_superseded", "photo_superseded",
              "a photo superseded"),
+            ("ai_suggestion_applied", "details_suggested",
+             "a save that used details suggested from a photo"),
         )
         out = []
         for stored, published, what in kinds:
@@ -845,6 +875,19 @@ class NRSAssetHistory(models.Model):
                     "superseded photo is recorded so that nobody can edit or "
                     "delete it. There is no earlier record to look for: "
                     "photos did not exist before then." % _when(began))
+            elif stored == "ai_suggestion_applied":
+                # Identification arrived with its record (handoff 64): a
+                # suggestion from a photo was never recorded any other way.
+                statement = (
+                    "No asset has been saved with details suggested from a "
+                    "photo on this system yet. Every such save is recorded, "
+                    "field by field, so that nobody can edit or delete it."
+                    if not began else
+                    "From %s, when the first one was saved here, every save "
+                    "that used details suggested from a photo is recorded so "
+                    "that nobody can edit or delete it. There is no earlier "
+                    "record to look for: identification did not exist before "
+                    "then." % _when(began))
             elif not began:
                 statement = (
                     "No record of this kind has been written on this system "

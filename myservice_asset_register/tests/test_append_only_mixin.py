@@ -249,6 +249,10 @@ _NOT_ASSET_KEYED = {
     # `_upload` with real image bytes, which the asset-shaped loops here
     # cannot supply; held to the same properties in its own file.
     "nrs.asset.photo": "myservice_api/tests/test_asset_photos.py",
+    # Handoff 64 §2: keyed on a PHOTO (or a held photo), never on an asset,
+    # and written only by `_record` after a provider call. Its guard is
+    # proved in its own file.
+    "nrs.ai.suggestion": "myservice_api/tests/test_ai_suggestion.py",
 }
 
 

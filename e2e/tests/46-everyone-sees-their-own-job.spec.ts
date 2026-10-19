@@ -86,6 +86,8 @@ const ITEMS: { path: string; probes: Probe[] }[] = [
   { path: "/settings/sidebar", probes: [W("PATCH", "/settings/sidebar")] },
   // Handoff 57. `settings:write`; the probe body is refused 400 to a holder.
   { path: "/settings/receipt-gate", probes: [W("PATCH", "/settings/receipt-gate")] },
+  // Handoff 64. `settings:write`; the probe body is refused 400 to a holder.
+  { path: "/settings/ai-identify", probes: [W("PATCH", "/settings/ai-identify")] },
   // Handoff 63 §1. `admin`: the import takes `settings:write` held by a
   // system administrator; the JSON probe body is refused 400 (not
   // multipart) to the administrator and 403 to everybody else.

@@ -26,6 +26,7 @@ import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { formatIsoDateTime } from "@/lib/utils";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import { openGateEvidenceFile } from "@/lib/gateEvidence";
+import { PhotoIdentifyPanel, useAiSwitch } from "@/components/IdentifyFromPhoto";
 import {
   assetPhotosKey, fetchAssetPhotos, fetchPictureObjectUrl, preparePhotoForUpload,
   supersedeAssetPhoto, uploadAssetPhoto,
@@ -135,7 +136,10 @@ function PictureCard({ assetId, picture, canWrite }: {
   const image = isImage(picture);
   const { url, error } = useObjectUrl(picture, image);
   const [superseding, setSuperseding] = useState(false);
+  const [identifying, setIdentifying] = useState(false);
   const [openError, setOpenError] = useState<CadraApiError | null>(null);
+  // Handoff 64: drawn only when the tenant has identification switched on.
+  const ai = useAiSwitch();
   const isPhoto = picture.kind === "photo";
   const superseded = picture.superseded;
   const who = picture.uploaded_by?.name || picture.uploaded_by_name || "somebody unrecorded";
@@ -224,6 +228,19 @@ function PictureCard({ assetId, picture, canWrite }: {
         )}
         {superseding && (
           <SupersedeForm assetId={assetId} photo={picture} onDone={() => setSuperseding(false)} />
+        )}
+        {isPhoto && canWrite && ai && !superseded && !identifying && (
+          <button
+            type="button"
+            onClick={() => setIdentifying(true)}
+            className="mt-1 ml-3 text-[11px] underline text-foreground"
+            data-testid={`asset-photo-identify-${picture.id}`}
+          >
+            Identify…
+          </button>
+        )}
+        {identifying && (
+          <PhotoIdentifyPanel assetId={assetId} photoId={picture.id} onClose={() => setIdentifying(false)} />
         )}
       </div>
     </li>

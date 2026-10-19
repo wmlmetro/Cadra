@@ -13,6 +13,7 @@ import {
   Hourglass, ShieldCheck, History, PanelLeft,
   FileCog, Trash2, Camera, Download, Inbox, UserX, Database, Scale,
   type LucideIcon,
+  Sparkles,
 } from "lucide-react";
 
 export interface NavItem {
@@ -144,6 +145,9 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     // (handoff 57, `cadra.receipt.gated`). `settings:write`, as the
     // server's PATCH is.
     { key: "receipt_gate",            name: "Receipt gates",           path: "/settings/receipt-gate", icon: ShieldCheck,       scope: "settings:write" },
+    // Identify from photo (handoff 64): the switch, the provider, the daily
+    // cap and today's count. `settings:write`, as the server's PATCH is.
+    { key: "ai_identify",             name: "Identify from photo",     path: "/settings/ai-identify",  icon: Sparkles,          scope: "settings:write" },
     // Which two roles one person may not hold together (handoff 58 §5).
     // `settings:write`, as the server's writes and its conflicting-grants
     // read are; `settings:read` alone can open the page and see the table.

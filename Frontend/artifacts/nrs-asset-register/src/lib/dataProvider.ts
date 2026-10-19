@@ -406,6 +406,11 @@ export interface AssetWriteBody {
   last_verified_date?: string | null;
   verification_notes?: string | null;
   notes?: string | null;
+  // Handoff 64: the suggestion from a photo this save worked from, and the
+  // fields the person dismissed. It decides what the save RECORDS (per field
+  // accepted / changed / ignored), never what it writes; the server takes it
+  // off the body before the allow-list.
+  ai_suggestion?: { id: number; ignored?: string[] };
 }
 
 export async function createAsset(body: AssetWriteBody): Promise<Asset> {

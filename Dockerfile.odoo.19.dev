@@ -10,4 +10,10 @@ FROM odoo:19.0
 
 USER root
 RUN pip3 install --no-cache-dir --break-system-packages html2text openpyxl
+# Handoff 64 — the Anthropic SDK for *Identify from photo* (R11). Two of its
+# dependencies are Debian-owned in the base image and cannot be uninstalled
+# by pip, so newer copies are installed beside them first.
+RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed \
+        idna "typing_extensions>=4.12" \
+ && pip3 install --no-cache-dir --break-system-packages anthropic==1.14.0
 USER odoo

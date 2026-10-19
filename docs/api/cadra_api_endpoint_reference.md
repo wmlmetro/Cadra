@@ -4284,6 +4284,9 @@ design (handoff 48).
 | 40c | GET    | `/api/v1/assets/<id>/photos/<photo_id>` | `assets:read`, checked inline — the bytes, not the envelope (handoff 61) |
 | 40d | POST   | `/api/v1/assets/<id>/photos/<photo_id>/supersede` | `assets:write` (handoff 61: a `reason`; the photo is kept) |
 | 40e | GET    | `/api/v1/assets/<id>/sap-record` | `sap_mirror:read` (handoff 63: the SAP mirror record this asset is linked to, or why not — §16) |
+| 40f | POST   | `/api/v1/ai/identify` | `assets:write`, behind `cadra.ai.identify` (handoff 64: multipart — `photo_id`, or `file` + `source`; the suggestion from a photo, written to no asset — §17) |
+| 40g | GET    | `/api/v1/settings/ai-identify` | `settings:read` (handoff 64: switch, provider, model, timeout, daily cap and today's count; `key_placed`, never the key — §17) |
+| 40h | PATCH  | `/api/v1/settings/ai-identify` | `settings:write` (handoff 64: everything above except the key, which is the owner's — §17) |
 | 41 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
 | 42 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
 | 43 | POST   | `/api/v1/assets/<id>/move` | `assets:write` |
@@ -5318,3 +5321,118 @@ mirror is empty.
 One record with its `linked_asset`; and, the other way round, the record an
 asset is linked to — `{asset_id, sap_asset_number, linked, sentence,
 sap_asset}`, the sentence saying why when it is not linked.
+
+## 17 · Identify from photo (handoff 64, ruling R11)
+
+Cadra's SERVER asks an existing vision model what a photographed item is
+(Anthropic's Messages API; a deterministic stand-in, `fake`, on databases
+marked `test`). No model is trained or shipped; the phone and the web app
+call the same route and never the provider. **The AI proposes, a person
+confirms: no route here writes anything on an asset.** Off on every tenant
+until an administrator switches it on (`cadra.ai.identify`), and only after
+NRS has accepted in writing that photos go to the provider (R7).
+
+### 17.1 POST `/api/v1/ai/identify` — `assets:write`
+
+**multipart/form-data.** Exactly one of:
+
+| Part | |
+|---|---|
+| `photo_id` | a photo already on an asset (`POST /assets/<id>/photos`) |
+| `file` + `source` (`web`/`mobile`) | a photo for an asset not saved yet — checked by the photo's own rules (JPEG/PNG from the bytes, ≤ 300 KB) and HELD for 24 hours until a save claims it |
+
+`X-Idempotency-Key` is honoured: a re-send gets the same answer and the
+provider is not asked twice. **201:**
+
+```json
+{"suggestion_id": 412, "prompt_version": "64.1", "provider": "anthropic",
+ "provider_label": "Anthropic (Claude)", "model": "claude-opus-5-5",
+ "latency_ms": 4210,
+ "photo": {"kind": "pending", "id": 77, "expires_at": "2026-10-20 10:02:11"},
+ "category": {"id": 12, "name": "Office Chairs", "identification_mode": "tag_id",
+              "sap_asset_class": "2000", "confidence": 0.86,
+              "alternatives": [{"id": 14, "name": "Office Furniture", "confidence": 0.08,
+                                "identification_mode": "tag_id", "sap_asset_class": "2000"}]},
+ "attributes": {"name": "HIGH BACK EXECUTIVE SWIVEL CHAIR", "colour": "BLACK",
+                "material": "LEATHER", "make": null, "model_name": null, "dimensions": null},
+ "condition": {"value": "good", "note": null},
+ "text_read": [{"text": "FIRS/ABJ/0412", "looks_like": "firs_tag_like"}],
+ "sap_candidates": {"count": 1, "basis": "old_tag", "query": {"old_tag": "FIRS/ABJ/0412",
+                    "serial": null, "class": "2000", "description": "HIGH BACK EXECUTIVE SWIVEL CHAIR"},
+                    "items": [{"id": 9001, "rank": 1, "reason_code": "old_tag_unique",
+                               "reason": "…", "asset_number": "…", "sub_number": null,
+                               "class": "2000", "description": "…", "old_tag": "FIRS/ABJ/0412",
+                               "office_code": "ABJ"}], "note": null},
+ "notes": [],
+ "usage": {"input_tokens": 3120, "output_tokens": 410, "cache_read_tokens": 2400,
+           "cache_write_tokens": 0, "cost_usd": 0.0213},
+ "notice": "Photograph the item, not people. The photo is sent to Anthropic (Claude) to read it.",
+ "is_test_fixture": false}
+```
+
+- `category` is always one of the tenant's classes; `alternatives` at most two.
+- `make` / `model_name` only if legible, `dimensions` only if a label states
+  them (a photo has no scale). A value the provider proposed without having
+  read it is REMOVED and said in `notes` — never silently.
+- `condition.value` is the published enum; *unserviceable* is `poor` with the
+  note `unserviceable` (R5).
+- `text_read[].looks_like`: `brand`, `model`, `serial_like`, `firs_tag_like`, `other`.
+- `sap_candidates`: handoff 63's matcher fed with the tag, serial, class and
+  description read. `items` (up to five, each with its ranking reason) only
+  for a caller holding `sap_mirror:read`; `null` with the count for anybody
+  else. A candidate fills nothing: no asset route writes `sap_asset_number`.
+
+**Refusals** (nothing asked of the provider): `403 forbidden` `switched_off`;
+`429 rate_limited` `daily_cap` — *"Today's 500 identifications are used;
+fill the details by hand."*; `503 server_misconfigured` `provider_not_ready`
+(no key placed, or the stand-in off a `test` database); the photo's own
+`400`/`413`/`415`; `400 invalid_request` for neither or both photo parts.
+**After the provider is asked** (each a recorded call, counted): `503
+internal_error` `provider_timeout` / `provider_error` / `provider_declined`,
+and `502 internal_error` `answer_discarded` (failed the schema; never shown)
+— all with *"The photo could not be identified just now; fill the details by
+hand."* and `details.suggestion_id`.
+
+The daily cap is counted, not reserved: calls made at the same instant as
+the last allowed one can each pass, so a day can close over the cap by the
+number of calls in flight at that moment.
+
+### 17.2 The save: `ai_suggestion` on POST `/api/v1/assets` and PATCH `/api/v1/assets/<id>`
+
+The one key a save takes that is not an asset field:
+
+```json
+{"name": "High back executive swivel chair", "colour": "BLACK", "condition": "fair",
+ "category_id": 12, "ai_suggestion": {"id": 412, "ignored": ["material"]}}
+```
+
+It decides what the save RECORDS, never what it writes. Per field the
+suggestion proposed (`category_id`, `name`, `colour`, `material`, `make`,
+`model_name`, `dimensions`, `condition`): **accepted** when the saved value
+equals the proposal (text compared trimmed and case-folded), **changed**
+(`from` → `to`) when it differs, **ignored** when the field is listed in
+`ignored` or not sent. Recorded as one append-only `nrs.asset.event`
+(`ai_suggestion_applied`), shown in the history as one line — *"Details
+suggested from a photo; 4 accepted, 1 changed."* (type `details_suggested`)
+— and answered on the save as `data.ai_suggestion` (`id`, `event_id`,
+`counts`, `fields`). A held photo becomes the asset's photo in the same
+save. Refused before anything is written: a malformed block (`400`), an
+unknown id (`404`), a call that identified nothing (`400 not_identified`),
+a suggestion already saved (`409 already_applied`), a photo of another asset
+(`400 other_asset`), a held photo past its 24 hours (`409 photo_expired`),
+an asset already holding 12 photos (`409 photo_limit`).
+
+### 17.3 GET / PATCH `/api/v1/settings/ai-identify`
+
+GET (`settings:read`): `enabled`, `provider`, `provider_label`, `model`
+(default `claude-opus-5-5`), `timeout_seconds` (default 20), `daily_cap`
+(default 500), `effort` (default `low`), `key_placed`, `key_command`,
+`today` (`day`, `calls`, `remaining` — the Lagos day), `notice`,
+`prompt_version`. PATCH (`settings:write`) takes `enabled`, `provider`,
+`model`, `timeout_seconds` (5–60), `daily_cap` (1–100,000), `effort`. **The
+key is never set or returned over the API**: the owner places it with
+`scripts/set_ai_key.sh <db>` (local) or the `CADRA_AI_API_KEY` key of the
+`cadra-odoo` secret (cluster, mirrored by bootstrap). Switching on is
+refused while the provider cannot answer (no key; the stand-in off a `test`
+database). `GET /api/v1/settings` (`assets:read`) carries `ai_identify`
+(`enabled`, `provider`, `provider_label`, `notice`) for every screen.

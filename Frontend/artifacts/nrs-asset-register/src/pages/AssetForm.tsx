@@ -33,6 +33,13 @@ import { ENUM_DEFAULT, withCurrent } from "@/lib/enums";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { ScopeRefusal } from "@/components/ScopeRefusal";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
+import { AiNotice, SuggestionFacts, useAiSwitch } from "@/components/IdentifyFromPhoto";
+import {
+  FIELD_WORDS, identifyNewPhoto, proposedValues,
+  type AiSuggestion, type SuggestedField,
+} from "@/lib/aiIdentify";
+import { preparePhotoForUpload } from "@/lib/assetPhotos";
+import { Camera, Check, Sparkles, X } from "lucide-react";
 
 
 type FormShape = {
@@ -290,7 +297,31 @@ export default function AssetForm({ mode }: Props) {
   // The expiry-date-only input is secondary, and folded away unless the
   // record already holds a bare date.
   const [showExpiryOnly, setShowExpiryOnly] = useState(false);
-  const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) => setForm(s => ({ ...s, [k]: v }));
+  // ─── Identify from photo (handoff 64 §3) ───
+  // A suggestion fills the form, and every field it filled stays MARKED as
+  // suggested until the person accepts it, dismisses it (the value it
+  // replaced comes back) or edits it — the AI proposes, a person confirms.
+  // The save waits until none is left unsettled, and names the suggestion so
+  // the server records what happened to each field.
+  const ai = useAiSwitch();
+  const [suggestion, setSuggestion] = useState<AiSuggestion | null>(null);
+  const [unsettled, setUnsettled] = useState<Set<SuggestedField>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<SuggestedField>>(new Set());
+  const [replaced, setReplaced] = useState<Partial<FormShape>>({});
+  const [photoProblem, setPhotoProblem] = useState<string | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const settle = (k: string) => setUnsettled(prev => {
+    if (!prev.has(k as SuggestedField)) return prev;
+    const next = new Set(prev);
+    next.delete(k as SuggestedField);
+    return next;
+  });
+  // Every edit by the person goes through `set`: an edit of a suggested field
+  // settles it — the saved value is theirs, and the server compares it.
+  const set = <K extends keyof FormShape>(k: K, v: FormShape[K]) => {
+    settle(k as string);
+    setForm(s => ({ ...s, [k]: v }));
+  };
 
   // Read once, here. These are hooks, so they cannot be called from inside the
   // .map()s that consume them further down. `state` is published as
@@ -422,10 +453,90 @@ export default function AssetForm({ mode }: Props) {
   const recordOnly = chosenCategory?.identification_mode === "record_only";
   const referenceMissing = recordOnly && mode === "create" && !form.record_reference.trim();
 
+  const identify = useMutation<AiSuggestion, CadraApiError, File>({
+    mutationFn: async (file: File) => {
+      setPhotoProblem(null);
+      setPreparingPhoto(true);
+      let prepared;
+      try {
+        prepared = await preparePhotoForUpload(file);
+      } catch (e) {
+        setPhotoProblem((e as Error).message);
+        throw e;
+      } finally {
+        setPreparingPhoto(false);
+      }
+      return identifyNewPhoto(prepared.blob, prepared.filename);
+    },
+    onSuccess: (s) => {
+      const proposed = proposedValues(s);
+      const was: Partial<FormShape> = {};
+      const open = new Set<SuggestedField>();
+      const next = { ...form } as Record<string, unknown>;
+      for (const [f, v] of Object.entries(proposed) as [SuggestedField, string | number][]) {
+        was[f as keyof FormShape] = form[f as keyof FormShape] as never;
+        if (String(next[f] ?? "") !== String(v)) open.add(f);
+        next[f] = v;
+      }
+      setForm(next as FormShape);
+      setReplaced(was);
+      setUnsettled(open);
+      setDismissed(new Set());
+      setSuggestion(s);
+    },
+  });
+  const acceptSuggested = (f: SuggestedField) => settle(f);
+  const acceptAll = () => setUnsettled(new Set());
+  const dismissSuggested = (f: SuggestedField) => {
+    setForm(s => ({ ...s, [f]: replaced[f as keyof FormShape] ?? (blank as Record<string, unknown>)[f] }));
+    setDismissed(prev => new Set(prev).add(f));
+    settle(f);
+  };
+  // Every field still holding what the photo proposed goes back to what it
+  // replaced — accepted ones too: the save that follows names no suggestion,
+  // so a proposed value left in the form would reach the asset with no
+  // record that it came from a photo (verification pass). A field the
+  // person typed over is theirs and stays.
+  const discardSuggestion = () => {
+    if (suggestion) {
+      const proposed = proposedValues(suggestion);
+      setForm(s => {
+        const next = { ...s } as Record<string, unknown>;
+        for (const [f, v] of Object.entries(proposed)) {
+          if (String(next[f] ?? "") === String(v)) {
+            next[f] = replaced[f as keyof FormShape] ?? (blank as Record<string, unknown>)[f];
+          }
+        }
+        return next as FormShape;
+      });
+    }
+    setSuggestion(null);
+    setUnsettled(new Set());
+    setDismissed(new Set());
+  };
+  /** The marker under a field the photo filled, while it is unsettled. */
+  const Suggested = ({ f }: { f: SuggestedField }) => !unsettled.has(f) ? null : (
+    <p className="flex items-center gap-2 text-[10px] text-violet-800 dark:text-violet-300" data-testid={`suggested-${f}`}>
+      <Sparkles size={11} /> Suggested from the photo
+      <button type="button" onClick={() => acceptSuggested(f)} className="inline-flex items-center gap-0.5 underline"
+              data-testid={`accept-${f}`}>
+        <Check size={10} /> Accept
+      </button>
+      <button type="button" onClick={() => dismissSuggested(f)} className="inline-flex items-center gap-0.5 underline"
+              data-testid={`dismiss-${f}`}>
+        <X size={10} /> Dismiss
+      </button>
+    </p>
+  );
+  const ring = (f: SuggestedField) => unsettled.has(f) ? "ring-2 ring-violet-400/70 border-violet-400" : "";
+
   const mutation = useMutation({
-    mutationFn: () => mode === "edit"
-      ? updateAsset(id!, toBody(form, isDisposed, original, recordOnly))
-      : createAsset(toBody(form, false, null, recordOnly)),
+    mutationFn: () => {
+      if (mode === "edit") return updateAsset(id!, toBody(form, isDisposed, original, recordOnly));
+      const body = toBody(form, false, null, recordOnly);
+      if (suggestion) body.ai_suggestion = { id: suggestion.suggestion_id, ignored: [...dismissed] };
+      return createAsset(body);
+    },
     onSuccess: (asset) => {
       // The shared list, not a shorter one of this form's own. This form can
       // change `state` — it is how a missing asset is put back — so a save
@@ -491,10 +602,11 @@ export default function AssetForm({ mode }: Props) {
           </button>
           <button
             onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !form.name.trim() || referenceMissing}
+            disabled={mutation.isPending || !form.name.trim() || referenceMissing || unsettled.size > 0}
+            data-testid="button-save-asset"
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl",
-              form.name.trim() && !referenceMissing && !mutation.isPending
+              form.name.trim() && !referenceMissing && !mutation.isPending && unsettled.size === 0
                 ? "bg-primary text-white hover:opacity-90"
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}
@@ -528,9 +640,56 @@ export default function AssetForm({ mode }: Props) {
         </div>
       )}
 
+      {mode === "create" && ai && (
+        <div className="bg-card border border-violet-300/70 dark:border-violet-700/50 rounded-2xl p-5 space-y-3" data-testid="ai-form-panel">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-[13px] font-bold text-foreground flex items-center gap-1.5"><Sparkles size={14} /> Identify from photo</h2>
+              <AiNotice text={ai.notice} />
+            </div>
+            {/* One suggestion at a time: a second photo over an unsettled
+                first would make Dismiss restore the first one's values. */}
+            {!suggestion && <label className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer",
+              identify.isPending || preparingPhoto ? "bg-muted text-muted-foreground" : "bg-primary text-white hover:opacity-90")}>
+              {identify.isPending || preparingPhoto ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
+              {identify.isPending || preparingPhoto ? "Reading the photo…" : "Take or upload a photo"}
+              <input type="file" accept="image/jpeg,image/png,image/*" capture="environment" className="hidden"
+                     disabled={identify.isPending || preparingPhoto}
+                     onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) identify.mutate(f); }}
+                     data-testid="ai-form-photo-input" />
+            </label>}
+          </div>
+          {photoProblem && <p className="text-xs text-red-700 dark:text-red-400" data-testid="ai-form-photo-problem">{photoProblem}</p>}
+          {identify.error && !photoProblem && <ApiErrorMessage err={identify.error} />}
+          {suggestion && (
+            <>
+              <SuggestionFacts s={suggestion} onPickCategory={c => set("category_id", c.id)} />
+              <div className="flex items-center gap-3 flex-wrap text-[11px]" data-testid="ai-form-status">
+                {unsettled.size > 0 ? (
+                  <>
+                    <span className="text-foreground" data-testid="ai-unsettled-count">
+                      {unsettled.size} suggested value{unsettled.size === 1 ? "" : "s"} still to accept or dismiss
+                      ({[...unsettled].map(f => FIELD_WORDS[f]).join(", ")}). The asset is not saved until each is settled.
+                    </span>
+                    <button type="button" onClick={acceptAll} className="underline text-foreground" data-testid="ai-accept-all">Accept all</button>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">Every suggested value is settled. The photo becomes the asset's first photo when you save.</span>
+                )}
+                <button type="button" onClick={discardSuggestion} className="underline text-muted-foreground" data-testid="ai-discard">
+                  Don't use this suggestion
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <Section title="Identity" sub="Tags and basic identifiers">
         <Field label="Name" span={2}>
-          <input className={inputCls} value={form.name} onChange={e => set("name", e.target.value)} required />
+          <input className={cn(inputCls, ring("name"))} value={form.name} onChange={e => set("name", e.target.value)} required data-testid="input-name" />
+          <Suggested f="name" />
         </Field>
         <Field label="Asset tag">
           <input
@@ -579,28 +738,35 @@ export default function AssetForm({ mode }: Props) {
           <input className={inputCls} value={form.manufacturer} onChange={e => set("manufacturer", e.target.value)} />
         </Field>
         <Field label="Make">
-          <input className={inputCls} value={form.make} onChange={e => set("make", e.target.value)} />
+          <input className={cn(inputCls, ring("make"))} value={form.make} onChange={e => set("make", e.target.value)} data-testid="input-make" />
+          <Suggested f="make" />
         </Field>
         <Field label="Model">
-          <input className={inputCls} value={form.model_name} onChange={e => set("model_name", e.target.value)} />
+          <input className={cn(inputCls, ring("model_name"))} value={form.model_name} onChange={e => set("model_name", e.target.value)} data-testid="input-model" />
+          <Suggested f="model_name" />
         </Field>
         {/* Section 12 (handoff 58): mandatory at a gated receipt for a class
             identified by tag and attributes — the categories screen says
             which. */}
         <Field label="Colour">
-          <input className={inputCls} data-testid="input-colour" value={form.colour} onChange={e => set("colour", e.target.value)} />
+          <input className={cn(inputCls, ring("colour"))} data-testid="input-colour" value={form.colour} onChange={e => set("colour", e.target.value)} />
+          <Suggested f="colour" />
         </Field>
         <Field label="Material">
-          <input className={inputCls} data-testid="input-material" value={form.material} onChange={e => set("material", e.target.value)} />
+          <input className={cn(inputCls, ring("material"))} data-testid="input-material" value={form.material} onChange={e => set("material", e.target.value)} />
+          <Suggested f="material" />
         </Field>
         <Field label="Dimensions">
-          <input className={inputCls} data-testid="input-dimensions" value={form.dimensions} onChange={e => set("dimensions", e.target.value)} />
+          <input className={cn(inputCls, ring("dimensions"))} data-testid="input-dimensions" value={form.dimensions} onChange={e => set("dimensions", e.target.value)} />
+          <Suggested f="dimensions" />
         </Field>
       </Section>
 
       <Section title="Classification" sub="FK ids only for now — picker endpoints not yet in API">
         <Field label="Category id">
-          <input className={inputCls} type="number" value={form.category_id ?? ""} onChange={e => set("category_id", e.target.value ? Number(e.target.value) : null)} />
+          <input className={cn(inputCls, ring("category_id"))} type="number" value={form.category_id ?? ""} onChange={e => set("category_id", e.target.value ? Number(e.target.value) : null)} data-testid="input-category-id" />
+          {chosenCategory && <p className="text-[10px] text-muted-foreground">{chosenCategory.name}</p>}
+          <Suggested f="category_id" />
         </Field>
         <Field label="Subcategory id">
           <input className={inputCls} type="number" value={form.subcategory_id ?? ""} onChange={e => set("subcategory_id", e.target.value ? Number(e.target.value) : null)} />
@@ -656,9 +822,10 @@ export default function AssetForm({ mode }: Props) {
 
       <Section title="Condition & state">
         <Field label="Condition">
-          <select className={inputCls} value={form.condition} onChange={e => set("condition", e.target.value)}>
+          <select className={cn(inputCls, ring("condition"))} value={form.condition} onChange={e => set("condition", e.target.value)} data-testid="select-condition">
             {withCurrent(conditionOptions, form.condition).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+          <Suggested f="condition" />
         </Field>
         <Field label="State">
           {/* These two matched the model's values, but displayed the raw keys:

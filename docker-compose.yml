@@ -70,6 +70,9 @@ services:
       CADRA_EMAIL_RELAY_URL: ${CADRA_EMAIL_RELAY_URL:-}
       CADRA_EMAIL_RELAY_SECRET: ${CADRA_EMAIL_RELAY_SECRET:-}
       CADRA_TURNSTILE_SECRET: ${CADRA_TURNSTILE_SECRET:-}
+      # Handoff 64: the provider key for Identify from photo — the owner's.
+      # Empty leaves whatever a tenant holds alone (bootstrap is one-way).
+      CADRA_AI_API_KEY: ${CADRA_AI_API_KEY:-}
     volumes:
       - ./:/mnt/extra-addons:ro
       - cadra_odoo_data:/var/lib/odoo

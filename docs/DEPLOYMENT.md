@@ -205,6 +205,14 @@ failure, so a half-provisioned tenant is never committed.
    - Mirrors `CADRA_TURNSTILE_SECRET` into `myservice_api.turnstile_secret`,
      one-way: an empty variable leaves a stored value alone, so a job that
      loses the variable cannot strip bot protection off a live tenant.
+   - Mirrors `CADRA_AI_API_KEY` into `myservice_api.ai_api_key` (handoff
+     64, *Identify from photo*), one-way for the same reason. The key is the
+     owner's and is never printed. Placing it switches nothing on: the
+     tenant switch `cadra.ai.identify` stays off until an administrator sets
+     it in Settings. Locally, without a bootstrap run:
+     `scripts/set_ai_key.sh <db>` (prompts, nothing echoed; `--clear`
+     removes it). The Odoo image carries the `anthropic` SDK (pinned in both
+     Dockerfiles), so **an image rebuild is part of deploying 64**.
    - Adds the admin user to `group_asset_manager` and `group_security_admin`.
    - Provisions **three** API clients, each with its own `res.users` rather
      than acting as Administrator: `test_client` (the full canonical scope
