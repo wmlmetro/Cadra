@@ -17,6 +17,17 @@ jobs:
     # The deploy-readiness gate: bring the stack up cold, run the
     # bootstrap, run the pytest API suite. If this is green, the docs/api/
     # response captures live as a workflow artifact for inspection.
+    #
+    # Both states of the receipt gates, side by side (handoff 63b). Until
+    # then CI proved the switch OFF and the gates-ON run was a second full
+    # pass on the Builder's laptop, on a tenant that grows every week —
+    # 24 min of pytest on `test19` against 2 min here. The matrix runs the
+    # same job twice in parallel; `gates` decides one row after seeding.
+    name: bootstrap-and-test (gates ${{ matrix.gates }})
+    strategy:
+      fail-fast: false
+      matrix:
+        gates: ["off", "on"]
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -125,6 +136,25 @@ jobs:
           cp "docs/api/.personas.${DB}" docs/api/.personas.localhost
           echo "personas: $(grep -cv '^#' docs/api/.personas.localhost) seeded on '$DB'"
 
+      - name: Set the receipt gates (${{ matrix.gates }})
+        run: |
+          # `cadra.receipt.gated` is read with raw SQL and ABSENT MEANS OFF
+          # (`asset_gates._receipt_gated`), so the OFF leg writes the row
+          # too: each leg says which state it proved, in the database it
+          # proved it on, rather than inheriting a default.
+          DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
+          if [ "${{ matrix.gates }}" = "on" ]; then v=true; else v=false; fi
+          docker compose -f docker-compose.yml -f docker-compose.19.yml \
+            exec -T db psql -U odoo -d "$DB" -v ON_ERROR_STOP=1 -tAc \
+            "INSERT INTO ir_config_parameter (key, value, create_date, write_date)
+             VALUES ('cadra.receipt.gated', '$v', now(), now())
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+          got=$(docker compose -f docker-compose.yml -f docker-compose.19.yml \
+                exec -T db psql -U odoo -d "$DB" -tAc \
+                "SELECT value FROM ir_config_parameter WHERE key = 'cadra.receipt.gated'")
+          echo "cadra.receipt.gated = $got on '$DB'"
+          [ "$got" = "$v" ]
+
       - name: Run the pytest API suite
         run: pytest tests/ -v
 
@@ -215,7 +245,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cadra-test-artifacts-${{ github.run_id }}
+          name: cadra-test-artifacts-${{ github.run_id }}-gates-${{ matrix.gates }}
           path: |
             docs/api/test-report.md
             docs/api/test-responses/
