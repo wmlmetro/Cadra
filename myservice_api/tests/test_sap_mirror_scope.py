@@ -32,7 +32,11 @@ from odoo.addons.myservice_asset_register.tests import (
 READERS = ('myservice_asset_register.group_asset_controller',
            'myservice_asset_register.group_register_maker',
            'myservice_asset_register.group_register_checker',
-           'myservice_api.group_auditor')
+           'myservice_api.group_auditor',
+           # Handoff 66: the audit team matches an item in the room to SAP's
+           # record (the capturer) and judges the match (the reviewer).
+           'myservice_asset_register.group_audit_capturer',
+           'myservice_asset_register.group_audit_reviewer')
 VENDRA_SCOPES = 'assets:read assets:write candidates:read'
 
 

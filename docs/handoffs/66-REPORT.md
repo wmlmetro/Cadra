@@ -162,7 +162,7 @@ label layout as data).
 | Browser | specs 46, 65, 66 **17 of 17** on `test19f`, gates off (spec 46 checks all 13 personas against every audit item: drawn ⇒ answered, hidden ⇒ 403) |
 | Endpoint reference | 198 routes, 198 index rows (`test_endpoint_reference.py` 4 of 4) |
 | Final local pytest (fresh `test19f`, template rebuilt, gates ON) | **1,531 passed, 0 failed, 10 skipped of 1,541** in 14 m 37 s |
-| CI | 39318028299 on `06439a2`: 2 failed of 1,540 in each leg (the SPA scope maps, not yet pushed); 39319646680 cancelled by the next push; 39320416377 on `c0d52d3`: pytest passed both legs, **the in-registry step red in both legs with its result beyond GitHub's truncated log** — being reproduced locally with CI's exact command on the same fresh `test19f` (**CI pending**, amended below) |
+| CI | 39318028299 on `06439a2`: 2 failed of 1,540 in each leg (the SPA scope maps, not yet pushed); 39319646680 cancelled by the next push; 39320416377 on `c0d52d3`: pytest passed both legs, the in-registry step red in both legs with its result beyond GitHub's truncated log. **Reproduced locally with CI's exact command on the same fresh `test19f`: 1 failed, 0 errors of 1,306** — `TestSapMirrorScope`'s pin on who reads SAP's mirror, which the two audit roles now do (decided, Deviations 9); fixed, 0 failed of 4. **CI on the fix: pending, amended below** |
 
 ## Deviations and findings
 
@@ -228,6 +228,10 @@ label layout as data).
 7. **`nrs19`'s upgrade wrote its ledger** (11,960 codes, all active, from
    the codes it already holds), as every tenant's did. Nothing else was
    written there; ruling 1's read-only stands for data.
+9. **The audit roles read SAP's mirror** (`sap_mirror:read`): the capturer
+   matches an item to SAP's record in the room, the reviewer judges the
+   match. `TestSapMirrorScope` pins the readers so that a new one is a
+   decision; this is that decision, for the Architect to overrule.
 8. **Order-dependent test, named again:**
    `test_every_bare_override_of_an_inherited_route_is_named` failed in an
    isolated in-registry run (as in reports 64 and 65); CI runs it in order.
