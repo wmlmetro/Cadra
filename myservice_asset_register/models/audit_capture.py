@@ -61,8 +61,12 @@ from .asset_sap import SAP_SOURCE_AUDIT, _SAP_AUDIT_CONTEXT
 from .sap_mirror import LINKED_EXISTS, norm_tag
 
 #: The flag every writer below sets; `write` refuses the guarded fields
-#: without it. The same key lets `asset_sap` accept `audit_from_sap_mirror`.
-AUDIT_WRITE_KEY = _SAP_AUDIT_CONTEXT
+#: without it.
+AUDIT_WRITE_KEY = 'cadra_audit_record_write'
+#: A different flag — set only by an outcome-b acceptance — lets `asset_sap`
+#: accept `sap_code_source = audit_from_sap_mirror` (verification pass, 66:
+#: one key for both let every audit write claim the source).
+SAP_AUDIT_KEY = _SAP_AUDIT_CONTEXT
 
 #: The scopes, spelled as literals for `asset_gates`' reason (the scope
 #: table lives in `myservice_api`, which depends on this module).
@@ -101,6 +105,10 @@ CONFIRMED_FIELDS = ('name', 'category_id', 'condition', 'make', 'model_name',
                     'serial_number', 'colour', 'material', 'dimensions',
                     'legacy_asset_code', 'notes')
 CONDITIONS = ('new', 'good', 'fair', 'poor')
+#: What the Asset Controller may complete when registering an exception as
+#: new — its identity, as Section 12 asks of its class; nothing else.
+IDENTITY_FIELDS = ('make', 'model_name', 'serial_number', 'colour',
+                   'material', 'dimensions')
 
 _LAGOS = pytz.timezone('Africa/Lagos')
 _CODE_LOCK = 'cadra_audit_code_block'
@@ -314,6 +322,17 @@ class NRSAssetCode(models.Model):
             state = 'active' if asset.register_state == REGISTERED \
                 else 'in_review'
             row = rows.get(asset.asset_code)
+            if row and (row.source != 'block' or row.asset_id
+                        or row.state not in ('reserved', 'in_review')):
+                # A code is issued once (R2): a voided code, a code another
+                # asset carries or carried, is never taken over — by an
+                # import passing an explicit `asset_code` least of all.
+                raise UserError(_(
+                    'Asset code %(code)s was already issued (%(state)s%(on)s) '
+                    'and is never reused.', code=asset.asset_code,
+                    state=dict(CODE_STATES)[row.state],
+                    on=(_(' to asset %d') % row.asset_id.id)
+                    if row.asset_id else ''))
             if row:
                 row._w({'asset_id': asset.id, 'state': state,
                         'activated_at': now if state == 'active' else False})
@@ -946,6 +965,11 @@ class NRSAuditCapture(models.Model):
                                 'neither register is known by what it is '
                                 'called.'), 'validation_failed',
                               field='fields.name')
+            if body.get('label') is not None:
+                raise _refuse(_('`label` says whether an asset on the register '
+                                'still carries its label; a new item\'s label '
+                                'is the code it was given.'),
+                              'validation_failed', field='label')
             code_row = self._code_for(body, device)
             vals.update({'code': code_row.code, 'code_id': code_row.id,
                          'scanned_label': body['scanned_label'].strip()})
@@ -1134,6 +1158,10 @@ class NRSAuditCapture(models.Model):
         self.ensure_one()
         domain = [('campaign_id', '=', self.campaign_id.id),
                   ('state', '=', 'accepted'), ('id', '!=', self.id)]
+        if self.duplicate_of_id.state == 'accepted':
+            # Whatever the basis — the old tag included (verification
+            # pass, 66): the capture it was held beside is accepted.
+            return self.duplicate_of_id
         if self.asset_id:
             twin = self.search(domain + [('asset_id', '=', self.asset_id.id)],
                                limit=1)
@@ -1154,7 +1182,8 @@ class NRSAuditCapture(models.Model):
                 'Capture %(twin)s of the same %(what)s was already accepted '
                 'in this campaign; return this one as a duplicate.',
                 twin=twin.capture_uuid,
-                what=_('Cadra asset') if self.asset_id else _('SAP record')),
+                what=_('Cadra asset') if self.asset_id else _('SAP record')
+                if self.sap_record_id else _('item')),
                 duplicate_of=twin.capture_uuid)
         reviewer = self.env.user
         cap = self.sudo()
@@ -1262,8 +1291,13 @@ class NRSAuditCapture(models.Model):
         the old print voided with its reason, a reprint row one higher."""
         tag = asset.active_tag_id
         if not tag:
-            raise _refuse(_('%s has no label to reprint.') % asset.asset_code,
-                          asset_id=asset.id)
+            pending = asset.tag_ids.filtered(lambda t: t.state == 'pending')
+            raise _refuse(_(
+                '%(code)s has a label replacement already waiting on %(who)s; '
+                'decide it first.', code=asset.asset_code,
+                who=pending[:1].approver_id.display_name or _('an approver'))
+                if pending else _('%s has no label to reprint.')
+                % asset.asset_code, asset_id=asset.id)
         reason = 'lost' if self.label == 'missing' else 'damaged'
         tag.with_user(self.operator_id).sudo()._replacement_ctx().write({
             'state': 'pending', 'replacement_reason': reason,
@@ -1315,7 +1349,7 @@ class NRSAuditCapture(models.Model):
             if isinstance(confirmed.get(key), str) and confirmed[key].strip():
                 vals[key] = confirmed[key].strip()
         asset = self.env['nrs.asset'].with_user(reviewer).sudo().with_context(
-            **{AUDIT_WRITE_KEY: True}).create(vals)
+            **{SAP_AUDIT_KEY: True}).create(vals)
         self._affix(asset)
         self._w({'photos_copied': self._copy_photos(asset)})
         return asset
@@ -1338,10 +1372,23 @@ class NRSAuditCapture(models.Model):
         cap = self.sudo()
         cap._w({'state': 'returned', 'reviewed_by_id': self.env.user.id,
                 'reviewed_at': fields.Datetime.now(), 'return_reason': text})
-        if cap.code_id and cap.code_id.state == 'in_review':
-            # Kept for the re-capture: back to the capturer's reserve.
-            cap.code_id._set({'state': 'reserved', 'capture_id': False,
-                              'used_at': False})
+        code = cap.code_id
+        if code and code.state == 'in_review':
+            if cap.duplicate_of_id or code.block_id.state != 'issued':
+                # A duplicate's label is a SECOND label on an item already
+                # captured, and a code of a returned block can never be used
+                # again: void it, never free it for another item (R2;
+                # verification pass, 66). The label is taken off.
+                code._void(_(
+                    'Capture %(id)s returned%(dup)s: %(why)s',
+                    id=cap.capture_uuid,
+                    dup=_(' as a duplicate') if cap.duplicate_of_id
+                    else _(' after its block was returned'), why=text))
+            else:
+                # Kept for the re-capture of the same item: back to the
+                # capturer's reserve.
+                code._set({'state': 'reserved', 'capture_id': False,
+                           'used_at': False})
         return cap
 
     # ── the exceptions (outcome c) ────────────────────────────────────
@@ -1357,7 +1404,7 @@ class NRSAuditCapture(models.Model):
                             state=dict(EXCEPTION_STATES)[
                                 self.exception_state].lower()))
 
-    def _register_new(self):
+    def _register_new(self, completed=None):
         """The Asset Controller registers the exception as new: an asset
         whose label (the capture's code) is already on it, waiting on the
         Register Maker — the normal maker and checker gates, and INT-06's
@@ -1374,17 +1421,32 @@ class NRSAuditCapture(models.Model):
             'condition': cap.condition, 'register_state': 'tagged',
             'register_state_since': fields.Datetime.now(),
         }
+        completed = completed or {}
+        stray = sorted(set(completed) - set(IDENTITY_FIELDS))
+        if stray:
+            raise _refuse(_('Only the item\'s identity can be completed here: '
+                            '%s.') % ', '.join(IDENTITY_FIELDS),
+                          'validation_failed', rejected_fields=stray,
+                          writable=list(IDENTITY_FIELDS))
         for key in ('make', 'model_name', 'serial_number',
-                    'legacy_asset_code'):
-            if isinstance(confirmed.get(key), str) and confirmed[key].strip():
-                vals[key] = confirmed[key].strip()
+                    'legacy_asset_code', 'colour', 'material', 'dimensions'):
+            value = completed.get(key, confirmed.get(key))
+            if isinstance(value, str) and value.strip():
+                vals[key] = value.strip()
+        # Section 12, as for any unit that will reach the register through
+        # the maker and checker (verification pass, 66): the class's serial
+        # and mandatory attributes, placeholders and a serial already held
+        # refused in words — before anything is written.
+        probe = dict(vals)
+        vals.update(self.env['nrs.asset'].sudo()._check_receipt_identity(
+            probe))
         asset = self.env['nrs.asset'].with_user(me).sudo().with_context(
-            **{_GATE_WRITE_KEY: True, AUDIT_WRITE_KEY: True}).create(vals)
+            **{_GATE_WRITE_KEY: True}).create(vals)
         # Its birth state, said: no gate fired (`gate` empty), so nobody is
         # recorded as having received, verified or tagged it.
         self.env['nrs.asset.event'].sudo().with_context(
             cadra_event_source='api_audit')._record(
-            asset, EVENT_GATE_FIRED, from_value='captured', to_value='tagged',
+            asset, EVENT_GATE_FIRED, from_value=False, to_value='tagged',
             gate=False, gate_action='audit-exception',
             reason=_('Found by audit %(name)s in neither register; its label '
                      '%(code)s is on it. Waiting on the Register Maker.',

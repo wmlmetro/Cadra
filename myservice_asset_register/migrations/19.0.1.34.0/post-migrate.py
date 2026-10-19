@@ -29,7 +29,8 @@ def migrate(cr, version):
                'backfill', a.id, a.create_date,
                CASE WHEN a.register_state = 'registered'
                     THEN a.create_date END,
-               CASE WHEN a.register_state = 'vfm_rejected' THEN now() END,
+               CASE WHEN a.register_state = 'vfm_rejected'
+                    THEN now() AT TIME ZONE 'UTC' END,
                CASE WHEN a.register_state = 'vfm_rejected'
                     THEN 'The receipt was rejected by IAD (recorded when the '
                          'ledger was built).' END,

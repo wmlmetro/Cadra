@@ -406,9 +406,10 @@ class CadraAiV1(http.Controller):
                          "`photo_id`, or `file` + `source`)",
                  # Handoff 66: the audit capturer identifies too — the phone
                  # and the web capture call this one route (R11) — so either
-                 # scope opens it, checked in the body (a route's `scopes`
-                 # are all-of).
-                 scopes=[], idempotent=True,
+                 # scope opens it: `scopes_any`, checked by the decorator
+                 # before the idempotency replay.
+                 scopes_any=[SCOPE_ASSETS_WRITE, "audit:capture"],
+                 idempotent=True,
                  success_status=201,
                  error_statuses=(403, 413, 415, 429, 502, 503),
                  request_schema={
@@ -434,13 +435,6 @@ class CadraAiV1(http.Controller):
                  response_schema=_SUGGESTION_SCHEMA)
     def ai_identify(self, **kwargs):
         env = request.env
-        if not (caller_holds(SCOPE_ASSETS_WRITE)
-                or caller_holds("audit:capture")):
-            return err(ERR_FORBIDDEN,
-                       "Identifying from a photo needs `assets:write` or "
-                       "`audit:capture`.", status=403,
-                       details={"required_scopes_any": [
-                           SCOPE_ASSETS_WRITE, "audit:capture"]})
         s = ai_settings(env)
         if not s["enabled"]:
             return err(ERR_FORBIDDEN,

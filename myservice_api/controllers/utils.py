@@ -122,6 +122,11 @@ ERR_TAG_NUMBER_TAKEN     = "tag_number_taken"
 #: `nrs.asset.tag.label.ACTIVE_NUMBER_INDEX`). Named here as a string, not
 #: imported: the API maps the database's own constraint name.
 _TAG_NUMBER_INDEX = "nrs_asset_tag_label_active_name_uniq"
+#: Handoff 66: a capture and a photo are synced idempotently on their own
+#: keys, stored unique; two syncs of one at the same instant meet here.
+ERR_SYNC_IN_FLIGHT       = "sync_in_flight"
+_SYNC_RACE_INDEXES = ("nrs_audit_capture_capture_uuid_unique",
+                      "nrs_audit_photo_same_bytes_once")
 
 
 def refuse_unwritable(rejected, writable, *, hint=None):
@@ -1997,7 +2002,8 @@ def _client_value_error(exc):
 
 # ─── endpoint decorator ──────────────────────────────────────────────
 
-def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
+def cadra_endpoint(scopes=(), idempotent=False, success_status=200,
+                   scopes_any=()):
     """Auth + scope-check + idempotency + envelope-wrap + JSON HTTP response.
 
     Apply BELOW Odoo's @http.route decorator (or use the `cadra_route`
@@ -2019,6 +2025,17 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
             _, envelope, _ = require_jwt(scopes)
             if envelope is not None:
                 return _http_response(envelope)
+            # Any ONE of `scopes_any` (handoff 66). Here, before the
+            # idempotency replay below — a check in the route's body ran
+            # after it, so a token holding neither scope that sent a known
+            # key was handed the cached answer (verification pass, 66).
+            if scopes_any and not any(caller_holds(s) for s in scopes_any):
+                return _http_response(err(
+                    ERR_FORBIDDEN,
+                    "This route needs one of these scopes: %s."
+                    % ", ".join("`%s`" % s for s in scopes_any),
+                    status=403,
+                    details={"required_scopes_any": list(scopes_any)}))
 
             # Idempotency (only for write methods — read methods are naturally
             # idempotent and don't need caching)
@@ -2139,6 +2156,21 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                 ))
             except psycopg2.errors.UniqueViolation as e:
                 request.env.cr.rollback()
+                if e.diag.constraint_name in _SYNC_RACE_INDEXES:
+                    # Handoff 66: the same capture (or photo) synced twice
+                    # at once. The second request could not see the first's
+                    # row in its snapshot; sent again, it is answered with
+                    # the stored capture (`replayed: true`).
+                    return _http_response(err(
+                        ERR_SYNC_IN_FLIGHT,
+                        "The same capture or photo is being synced by "
+                        "another request at this moment. Nothing was "
+                        "written by this one; send it again and it is "
+                        "answered with the stored record.",
+                        status=409,
+                        details={"retryable": True,
+                                 "constraint": e.diag.constraint_name},
+                    ))
                 if e.diag.constraint_name == _TAG_NUMBER_INDEX:
                     # Since handoff 63b numbers come from a sequence per
                     # prefix and two mints no longer meet; this is the one

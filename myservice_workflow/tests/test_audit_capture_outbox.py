@@ -155,7 +155,12 @@ class TestTheAuditSendsNothing(CadraTransactionCase):
         self.assertEqual(cap.exception_state, 'open')
         ledger = self.env['nrs.asset.code'].search([('code', '=', code)])
         self.assertEqual(ledger.state, 'in_review')
-        asset = cap.with_user(self.controller).sudo()._register_new()
+        with self.assertRaises(GateRefused):
+            # The class asks a serial and its make and model (Section 12).
+            cap.with_user(self.controller).sudo()._register_new()
+        asset = cap.with_user(self.controller).sudo()._register_new({
+            'serial_number': 'SN66-OUTBOX-0001', 'make': 'Generic',
+            'model_name': 'Office chair'})
         self.assertEqual(asset.register_state, 'tagged')
         self.assertEqual(asset.asset_code, code)
         self.assertEqual(ledger.state, 'in_review',

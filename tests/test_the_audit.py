@@ -151,7 +151,7 @@ def world(client):
         201)["data"]
     block = assert_envelope_ok(_as(
         client, CTL, "POST", "/audit/blocks",
-        json={"device_id": device["id"], "size": 6}), 201)["data"]
+        json={"device_id": device["id"], "size": 7}), 201)["data"]
     campaign = assert_envelope_ok(_as(
         client, CTL, "POST", "/audit/campaigns",
         json={"name": f"pytest audit {u}",
@@ -269,9 +269,17 @@ def test_outcome_c_is_an_exception_registered_new_or_voided(client, world):
     assert_envelope_err(_as(client, REV, "POST",
                             f"/audit/captures/{cap1['capture_id']}/"
                             "register-new", json={}), 403, "forbidden")
+    # Section 12 as for any unit going to the register: the class's serial
+    # and mandatory attributes, refused in words, then completed.
+    r = _as(client, CTL, "POST",
+            f"/audit/captures/{cap1['capture_id']}/register-new", json={})
+    assert_envelope_err(r, 400, "validation_failed")
+    assert _code(client, c1)["state"] == "in_review"
     reg = assert_envelope_ok(_as(
         client, CTL, "POST",
-        f"/audit/captures/{cap1['capture_id']}/register-new", json={}))[
+        f"/audit/captures/{cap1['capture_id']}/register-new",
+        json={"fields": {"serial_number": f"SN66-{w['u']}-1",
+                         "make": "Generic", "model_name": "Office chair"}}))[
         "data"]
     assert reg["exception_state"] == "registered"
     assert reg["result_asset"]["asset_code"] == c1
@@ -376,13 +384,17 @@ def test_a_duplicate_is_held_and_a_sync_twice_is_one(client, world):
         client, REV, "POST", f"/audit/captures/{second['capture_id']}/return",
         json={"reason": "the same chair as the first capture"}))["data"]
     assert ret["state"] == "returned"
-    assert _code(client, c5)["state"] == "reserved"
+    # A duplicate's label is a second label on an item already captured:
+    # its code is voided, never freed for another item (R2).
+    row = _code(client, c5)
+    assert row["state"] == "void" and "duplicate" in row["void_reason"]
+    c6 = w["codes"][5]
     # The same capture synced twice is one capture.
     body = {"capture_id": str(uuid.uuid4()),
             "campaign_id": w["campaign"]["id"],
             "location_id": w["rooms"][0], "outcome": "in_neither",
             "photo_ids": [_photo(client, w, 72)], "captured_at": _now(),
-            "code": c5, "scanned_label": c5,
+            "code": c6, "scanned_label": c6,
             "fields": {"condition": "good", "category_id": w["category"],
                        "name": "pytest-audit synced twice"}}
     dev = w["device"]["device_code"]
@@ -394,6 +406,10 @@ def test_a_duplicate_is_held_and_a_sync_twice_is_one(client, world):
     got = assert_envelope_ok(_as(client, CAP, "GET",
                                  f"/audit/captures/{body['capture_id']}"))
     assert got["data"]["id"] == one["id"]
+    # An iOS phone holds the id upper-case: the same capture.
+    up = assert_envelope_ok(_as(
+        client, CAP, "GET", f"/audit/captures/{body['capture_id'].upper()}"))
+    assert up["data"]["id"] == one["id"]
     w["synced_twice"] = one
 
 
@@ -406,11 +422,14 @@ def test_returning_the_block_voids_what_it_did_not_use(client, world):
                                f"/audit/blocks/{block['id']}/return",
                                json={"reason": "end of the campaign"}))[
         "data"]
-    # Six codes: one active (b), one in review (c registered as new), one
-    # void (c voided), one active (the duplicate's first), one in review
-    # (synced twice) — and one never used, voided now.
+    # Seven codes: one active (b), one in review (c registered as new), one
+    # void (c voided), one active (the duplicate's first), one void (the
+    # returned duplicate), one in review (synced twice) — and one never
+    # used, voided now.
     assert r["state"] == "returned" and r["voided_now"] == 1, r
-    unused = w["codes"][5]
+    assert r["codes_by_state"] == {"active": 2, "in_review": 2,
+                                   "void": 3, "reserved": 0}, r
+    unused = w["codes"][6]
     row = _code(client, unused)
     assert row["state"] == "void" and "returned" in row["void_reason"]
     assert_envelope_err(_as(client, CTL, "POST",
@@ -478,6 +497,17 @@ def test_ai_config_for_the_phone(client, world):
     assert data["capture"]["max_working_days_back"] == 5
     assert "remaining_today" in data["ai_identify"]
     assert_envelope_err(_as(client, REV, "GET", "/ai/config"), 403)
+    # The either-scope gate is the decorator's, BEFORE any idempotency
+    # replay: a token with neither scope is refused whatever key it sends.
+    r = requests.post(
+        f"{client.base}/api/v1/ai/identify", timeout=60,
+        headers={"Authorization": f"Bearer {gates._token(client, REV)}",
+                 "X-Idempotency-Key": "pytest-audit-replay-probe"},
+        files={"file": ("x.png", _png(99), "image/png")},
+        data={"source": "web"})
+    err = assert_envelope_err(r, 403, "forbidden")["error"]
+    assert err["details"]["required_scopes_any"] == ["assets:write",
+                                                     "audit:capture"]
 
 
 def _login_scopes(client, key):

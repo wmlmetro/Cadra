@@ -510,8 +510,19 @@ export async function acceptCaptures(captureIds: string[], dryRun: boolean): Pro
   })).data;
 }
 
-export async function registerException(captureId: string): Promise<AuditCapture> {
-  return (await apiPost<AuditCapture>(`/api/v1/audit/captures/${encodeURIComponent(captureId)}/register-new`, {})).data;
+/** The item's identity the Asset Controller may complete when registering
+ *  an exception as new — what Section 12 asks of its class
+ *  (`audit_capture.IDENTITY_FIELDS` on the server). */
+export const IDENTITY_FIELDS = ["serial_number", "make", "model_name", "colour", "material", "dimensions"] as const;
+export type IdentityField = typeof IDENTITY_FIELDS[number];
+
+export async function registerException(
+  captureId: string, fields: Partial<Record<IdentityField, string>> = {},
+): Promise<AuditCapture> {
+  const sent = Object.fromEntries(Object.entries(fields).filter(([, v]) => (v ?? "").trim() !== "")
+    .map(([k, v]) => [k, (v as string).trim()]));
+  return (await apiPost<AuditCapture>(`/api/v1/audit/captures/${encodeURIComponent(captureId)}/register-new`,
+    Object.keys(sent).length ? { fields: sent } : {})).data;
 }
 
 export async function voidException(captureId: string, reason: string): Promise<AuditCapture> {

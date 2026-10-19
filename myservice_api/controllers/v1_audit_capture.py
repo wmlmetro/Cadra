@@ -37,6 +37,7 @@ cap left today and the label layout.
 import csv
 import io
 import json
+import uuid
 
 from odoo import fields, http
 from odoo.exceptions import UserError, ValidationError
@@ -62,7 +63,6 @@ from odoo.addons.myservice_asset_register.models.audit_capture import (
 
 from .query_params import BadFilter, parse_bool, parse_enum, parse_int
 from .utils import (
-    ERR_FORBIDDEN,
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     ERR_VALIDATION_FAILED,
@@ -72,7 +72,6 @@ from .utils import (
     SCOPE_AUDIT_READ,
     SCOPE_AUDIT_REVIEW,
     _http_response,
-    caller_holds,
     err,
     gate_refusal,
     gate_refusal_parts,
@@ -294,7 +293,17 @@ def _capture_out(cap):
     }
 
 
+def _norm_uuid(value):
+    """A capture id as stored: the canonical lower-case UUID. A phone may
+    hold it upper-case (iOS `UUID().uuidString`) — the same capture."""
+    try:
+        return str(uuid.UUID(str(value)))
+    except (ValueError, TypeError, AttributeError):
+        return value
+
+
 def _capture_or_404(capture_id):
+    capture_id = _norm_uuid(capture_id)
     cap = _env("nrs.audit.capture").search(
         [("capture_uuid", "=", capture_id)], limit=1)
     if not cap:
@@ -312,13 +321,22 @@ def _browse_or_404(model, rec_id, what):
     return rec, None
 
 
+def _cell(value):
+    """A CSV cell a spreadsheet will not run: text a person or SAP typed
+    (a description, an old tag) that begins `=`, `+`, `-` or `@` is
+    prefixed with a quote, as OWASP's CSV-injection advice says."""
+    if value is None:
+        return ""
+    text = str(value)
+    return "'" + text if text[:1] in ("=", "+", "-", "@") else text
+
+
 def _csv(rows, columns, filename):
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(columns)
     for row in rows:
-        writer.writerow(["" if row.get(c) is None else row.get(c)
-                         for c in columns])
+        writer.writerow([_cell(row.get(c)) for c in columns])
     data = buf.getvalue().encode("utf-8")
     return request.make_response(data, headers=[
         ("Content-Type", "text/csv; charset=utf-8"),
@@ -842,7 +860,15 @@ class CadraAuditCaptureV1(http.Controller):
         if not photo:
             return _http_response(err(ERR_NOT_FOUND, "There is no audit "
                                       "photo with id %s." % id, status=404))
-        data = photo._bytes()
+        try:
+            data = photo._bytes()
+        except UserError as e:
+            # Altered underneath the row: not served as the photo.
+            return _http_response(err(
+                "conflict", str(e.args[0]), status=409,
+                details={"reason": "integrity_mismatch",
+                         "photo_id": photo.id,
+                         "recorded_sha256": photo.sha256}))
         return request.make_response(data, headers=[
             ("Content-Type", photo.mimetype),
             ("Content-Length", str(len(data))),
@@ -1038,6 +1064,7 @@ class CadraAuditCaptureV1(http.Controller):
                 ("state", "=", "pending_review"),
                 ("duplicate_of_id", "=", False)], order="id",
                 limit=BATCH_MAX).mapped("capture_uuid")
+        ids = [_norm_uuid(i) for i in ids]
         found = {c.capture_uuid: c for c in Capture.search(
             [("capture_uuid", "in", ids)])}
         me = request.env.user
@@ -1092,15 +1119,26 @@ class CadraAuditCaptureV1(http.Controller):
                  method="POST",
                  summary="Register a found-not-in-SAP item as new, through "
                          "the Register Maker and Checker",
-                 scopes=[SCOPE_AUDIT_MANAGE])
+                 scopes=[SCOPE_AUDIT_MANAGE],
+                 request_schema={"type": "object", "properties": {
+                     "fields": {"type": "object", "description":
+                                "The item's identity the class asks for and "
+                                "the capture lacks: make, model_name, "
+                                "serial_number, colour, material, "
+                                "dimensions."}}})
     def exception_register(self, capture_id, **kwargs):
-        body, error = _body(set())
+        body, error = _body({"fields"})
         if error:
             return error
+        completed = body.get("fields") or {}
+        if not isinstance(completed, dict):
+            return err(ERR_INVALID_REQUEST, "`fields` is an object.",
+                       details={"field": "fields"})
         cap, error = _capture_or_404(capture_id)
         if error:
             return error
-        _asset, error = _guard(lambda: cap.with_user(request.env.user).sudo()._register_new())
+        _asset, error = _guard(lambda: cap.with_user(
+            request.env.user).sudo()._register_new(completed))
         return error or _capture_out(cap)
 
     @cadra_route("/api/v1/audit/captures/<string:capture_id>/void",
@@ -1125,14 +1163,8 @@ class CadraAuditCaptureV1(http.Controller):
     @cadra_route("/api/v1/ai/config", method="GET",
                  summary="The AI switch, model and today's remaining calls, "
                          "and the label layout — for a phone going offline",
-                 scopes=[])
+                 scopes_any=[SCOPE_AUDIT_CAPTURE, SCOPE_ASSETS_WRITE])
     def ai_config(self, **kwargs):
-        if not (caller_holds(SCOPE_AUDIT_CAPTURE)
-                or caller_holds(SCOPE_ASSETS_WRITE)):
-            return err(ERR_FORBIDDEN, "Reading the capture configuration "
-                       "needs `audit:capture` or `assets:write`.",
-                       status=403, details={"required_scopes_any": [
-                           SCOPE_AUDIT_CAPTURE, SCOPE_ASSETS_WRITE]})
         env = request.env
         s = ai_settings(env)
         calls = env["nrs.ai.suggestion"].sudo()._calls_today()

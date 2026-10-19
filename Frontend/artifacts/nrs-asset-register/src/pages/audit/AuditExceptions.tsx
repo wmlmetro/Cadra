@@ -26,7 +26,8 @@ import {
 import type { CadraApiError } from "@/lib/api";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import {
-  AUDIT_KEY, fetchCaptures, registerException, voidException, type AuditCapture,
+  AUDIT_KEY, IDENTITY_FIELDS, fetchCaptures, registerException, voidException,
+  type AuditCapture, type IdentityField,
 } from "@/lib/auditCapture";
 import {
   Btn, Empty, ErrorPanel, INPUT, Loading, PageHeader, Photo, Pill, TEXTAREA, invalidateAudit, n, when,
@@ -84,8 +85,12 @@ export default function AuditExceptions() {
 
 function ExceptionCard({ c }: { c: AuditCapture }) {
   const qc = useQueryClient();
+  // Section 12 asks the class's serial and attributes of a unit going to the
+  // register; what the capture lacks is completed here (prefilled from it).
+  const [identity, setIdentity] = useState<Partial<Record<IdentityField, string>>>(() =>
+    Object.fromEntries(IDENTITY_FIELDS.map(k => [k, typeof c.fields?.[k] === "string" ? String(c.fields[k]) : ""])));
   const reg = useMutation<AuditCapture, CadraApiError>({
-    mutationFn: () => registerException(c.capture_id), onSuccess: () => invalidateAudit(qc),
+    mutationFn: () => registerException(c.capture_id, identity), onSuccess: () => invalidateAudit(qc),
   });
   const [voiding, setVoiding] = useState(false);
   return (
@@ -114,6 +119,17 @@ function ExceptionCard({ c }: { c: AuditCapture }) {
           </p>
         )}
         {c.exception_state === "open" && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1" data-testid={`exception-identity-${c.capture_id}`}>
+            {IDENTITY_FIELDS.map(k => (
+              <label key={k} className="text-[11px] text-muted-foreground flex flex-col gap-0.5">
+                {IDENTITY_WORDS[k]}
+                <input className={INPUT} value={identity[k] ?? ""} data-testid={`exception-${k}`}
+                       onChange={e => setIdentity(v => ({ ...v, [k]: e.target.value }))} />
+              </label>
+            ))}
+          </div>
+        )}
+        {c.exception_state === "open" && (
           <div className="flex gap-2 pt-1">
             <Btn testid={`button-register-new-${c.capture_id}`} pending={reg.isPending} onClick={() => reg.mutate()}>Register as new</Btn>
             <Btn kind="plain" testid={`button-void-${c.capture_id}`} onClick={() => setVoiding(true)}>Void</Btn>
@@ -125,6 +141,11 @@ function ExceptionCard({ c }: { c: AuditCapture }) {
     </div>
   );
 }
+
+const IDENTITY_WORDS: Record<IdentityField, string> = {
+  serial_number: "Serial number", make: "Make", model_name: "Model",
+  colour: "Colour", material: "Material", dimensions: "Dimensions",
+};
 
 function VoidDialog({ c, onClose }: { c: AuditCapture; onClose: () => void }) {
   const qc = useQueryClient();

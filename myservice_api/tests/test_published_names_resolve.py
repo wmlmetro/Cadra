@@ -398,7 +398,8 @@ _BODY_ROUTES = {
         (None, None, "`capture_ids` or `campaign_id` + `location_id`, "
                      "`dry_run`: a batch of single acceptances"),
     ("POST", "/api/v1/audit/captures/<string:capture_id>/register-new"):
-        (None, None, "no body: written by "
+        (None, None, "`fields`: the item's identity, refused outside "
+                     "`audit_capture.IDENTITY_FIELDS`; written by "
                      "`nrs.audit.capture._register_new`"),
     ("POST", "/api/v1/audit/captures/<string:capture_id>/void"):
         (None, None, "`reason`: written by "

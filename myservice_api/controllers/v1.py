@@ -140,7 +140,7 @@ PAGINATION_QUERY_PARAMS = (
 def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
                 success_status=None, request_schema=None, request_example=None,
                 query_params=None, response_schema=None, error_statuses=(),
-                max_content_length=None):
+                max_content_length=None, scopes_any=()):
     """REST route registrar + auth/envelope wrapper.
 
     method:          "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
@@ -197,6 +197,8 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
             "method": method,
             "summary": summary or (fn.__doc__ or fn.__name__).strip().splitlines()[0],
             "scopes": list(scopes),
+            # Handoff 66: ONE of these, checked before idempotency.
+            "scopes_any": list(scopes_any),
             "idempotent": idempotent,
             "success_status": success_status,
             "request_schema": request_schema,
@@ -209,6 +211,7 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
             scopes=scopes,
             idempotent=idempotent,
             success_status=success_status,
+            scopes_any=scopes_any,
         )(fn)
         routing = {}
         if max_content_length:
@@ -2705,7 +2708,8 @@ class MyserviceApiV1(http.Controller):
             op = {
                 "summary": entry["summary"],
                 "tags": [_tag_from_path(entry["path"])],
-                "security": [{"bearerAuth": []}] if entry["scopes"] else [],
+                "security": [{"bearerAuth": []}]
+                if entry["scopes"] or entry.get("scopes_any") else [],
                 "x-cadra-scopes": entry["scopes"],
                 "responses": _standard_responses(
                     success_status=entry["success_status"],
@@ -2713,6 +2717,8 @@ class MyserviceApiV1(http.Controller):
                     error_statuses=entry.get("error_statuses") or (),
                 ),
             }
+            if entry.get("scopes_any"):
+                op["x-cadra-scopes-any-of"] = list(entry["scopes_any"])
             if params:
                 op["parameters"] = list(params)
 

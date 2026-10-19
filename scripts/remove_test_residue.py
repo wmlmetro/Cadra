@@ -249,6 +249,12 @@ ChangeRequest = (env["nrs.asset.change.request"].sudo()        # noqa: F821
 # the code and has not been upgraded.
 Photo = (env["nrs.asset.photo"].sudo()               # noqa: F821
          if "nrs.asset.photo" in env else None)      # noqa: F821
+# `nrs.audit.capture` (handoff 66) pins too: a capture names the asset it
+# found (`asset_id`) or became (`result_asset_id`), both restrict, and a
+# capture is never deleted. A pending or returned capture of an asset
+# writes no event, so it is named here or the apply dies on a foreign key.
+Capture = (env["nrs.audit.capture"].sudo()           # noqa: F821
+           if "nrs.audit.capture" in env else None)  # noqa: F821
 Location = env["generic.location"].sudo()            # noqa: F821
 Request = env["request.request"].sudo()              # noqa: F821
 
@@ -270,6 +276,10 @@ for asset in fixtures:
     photos = (Photo.search_count([("asset_id", "=", asset.id)])
               if Photo is not None else 0)
     requests = Request.search_count([("nrs_asset_id", "=", asset.id)])
+    captures = (Capture.search_count(
+        ["|", ("asset_id", "=", asset.id),
+         ("result_asset_id", "=", asset.id)])
+        if Capture is not None else 0)
     if asset.disposal_approved_by:
         refused.append((asset, "carries an APPROVED disposal — not reversible; "
                                "mark it instead (scripts/mark_test_fixtures.py)"))
@@ -295,6 +305,10 @@ for asset in fixtures:
                                "for a change and who decided it cannot be "
                                "deleted, in any state — a withdrawn request "
                                "is still a record" % approvals))
+    elif captures:
+        refused.append((asset, "is named by %d audit capture(s); `asset_id` "
+                               "and `result_asset_id` are ondelete=restrict "
+                               "and a capture is never deleted" % captures))
     elif photos:
         refused.append((asset, "carries %d photo(s); `asset_id` is "
                                "ondelete=restrict and a photo of an asset is "
