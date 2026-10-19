@@ -4,7 +4,7 @@
 **Report:** `docs/handoffs/63b-REPORT.md` (keep it to ~150 lines)
 **Runs after:** 63, merged. **Before 64.** Branch from `dev`, after
 pulling.
-**Time budget:** 2½ hours. This handoff exists to make every later one
+**Time budget:** 3 hours. This handoff exists to make every later one
 shorter.
 
 **Step 0:** commit `CLAUDE.md`'s two new sections, *Speed* and *Progress*,
@@ -67,6 +67,25 @@ states are proved on every push, at the same time, without anyone's laptop.
   it a **Lagos day**, like every other date the register publishes.
   CHANGELOG: behaviour change. The tests must pass at any hour; prove it
   by running them with the clock set to 00:30 Lagos.
+
+## 3b · Two receipts at once get the same tag (a real bug, 30 min)
+
+Vendra report 58: two chairs of one receipt, delivered by Vendra's two
+INT-03 calls 100 ms apart, both got `NRS-FURN-018` (`test19`, assets
+106911 and 106912). Report 63's unique index now makes the second create a
+`409` on the cluster tenants, so a receipt can lose a unit to a race.
+
+- **Make the location-built tag number safe under concurrency.** Use a
+  row lock or a database sequence per prefix, whichever fits
+  `asset_tag.py`'s generator with the least change. Never read
+  max-then-insert.
+- **Prove it with a test** that fires 20 concurrent creates at one
+  location prefix and gets 20 distinct tags.
+- **If a collision can still happen in any path**, answer it with a
+  distinct error code (e.g. `tag_number_taken`) and say so in the
+  endpoint reference. Vendra 59 will treat that code as retryable.
+- Fix the two duplicate tags on `test19` the same way as report 63's other
+  duplicates: listed, not silently renumbered.
 
 ## 4 · What must not change
 
