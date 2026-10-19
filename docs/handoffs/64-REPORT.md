@@ -173,14 +173,14 @@ The default cap bounds a tenant's day at about $12.
    All fixed, the strip and the asker rule with tests. Left as nits: a
    Photos-tab field shown "Same" is recorded *ignored*; no test pins the
    cap's Lagos midnight.
+10. **Found by the live-check dry run:** the settings PATCH answered with the
+    values from before its own write (a raw-SQL read before the ORM flush).
+    Fixed, with a test proved to fail first.
 11. **CI caught two of mine, twice:** the HTTP suite's own list of recorded
     history kinds (`tests/test_asset_events_api.py::_RECORDED_TYPES`) — first
     the list, then the two tests that read it as "the suite writes one of
     each". Fixed in `4e11165` and `1d6368d`; I had run the in-registry pin
     and not the HTTP one.
-10. **Found by the live-check dry run:** the settings PATCH answered with the
-    values from before its own write (a raw-SQL read before the ORM flush).
-    Fixed, with a test proved to fail first.
 
 ## Where the time went
 
