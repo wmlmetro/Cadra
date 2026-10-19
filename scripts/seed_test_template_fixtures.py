@@ -1,5 +1,6 @@
-# Run inside `odoo shell` on the TEMPLATE only, by scripts/fresh_test_tenant.sh
-# (handoff 63b). Not on any tenant by hand.
+# Run inside `odoo shell` by scripts/fresh_test_tenant.sh on the local
+# template, and by CI on the database it built (handoff 63b). Refuses any
+# database not marked `test`. Not on a tenant by hand.
 #
 # What `test19` carries that a database built the way CI builds one does
 # not, and that the HTTP suite reaches for by name — each was a SKIP on the

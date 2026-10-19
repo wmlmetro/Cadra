@@ -136,6 +136,19 @@ jobs:
           cp "docs/api/.personas.${DB}" docs/api/.personas.localhost
           echo "personas: $(grep -cv '^#' docs/api/.personas.localhost) seeded on '$DB'"
 
+      - name: Seed the fixtures test19 carries — the handoff-41 accounts, two employees
+        run: |
+          # The same seed `scripts/fresh_test_tenant.sh` puts in the local
+          # template (handoff 63b). Without it the suite SKIPS the tests that
+          # need a tagger-only account, a manager whose direct and effective
+          # roles differ, or two employees to hand an asset between — 24 of
+          # the first fresh tenant's 37 skips, and CI was skipping them too.
+          DB=$(grep -E '^POSTGRES_DB=' .env.example | cut -d= -f2-)
+          docker compose -f docker-compose.yml -f docker-compose.19.yml exec -T odoo bash -c \
+            "odoo shell -c /etc/odoo/odoo.conf -d $DB --no-http --http-port=8099 --gevent-port=8098 --log-level=warn <<< \"exec(open('/mnt/extra-addons/scripts/seed_test_template_fixtures.py').read())\"" \
+            | tee /tmp/fixtures.out | grep -E '^\[template-fixtures\]'
+          grep -q 'h41_tagger: ' /tmp/fixtures.out
+
       - name: Set the receipt gates (${{ matrix.gates }})
         run: |
           # `cadra.receipt.gated` is read with raw SQL and ABSENT MEANS OFF
