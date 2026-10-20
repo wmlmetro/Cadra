@@ -1,0 +1,15 @@
+== cadra19
+asset-code ledger on cadra19: 1335 rows written now; 1335 assets, ledger by state {'active': 1335}
+== gtb19
+asset-code ledger on gtb19: 156 rows written now; 156 assets, ledger by state {'active': 156}
+== nrs
+asset-code ledger on nrs: 1272 rows written now; 1272 assets, ledger by state {'active': 1272}
+== lasg
+asset-code ledger on lasg: 150 rows written now; 150 assets, ledger by state {'active': 150}
+== gtb
+asset-code ledger on gtb: 150 rows written now; 150 assets, ledger by state {'active': 150}
+== jaizbankplc
+asset-code ledger on jaizbankplc: 4164 rows written now; 4164 assets, ledger by state {'active': 4164}
+test19: asset-code ledger 23405 rows written; 23405 assets; {'active': 21288, 'in_review': 2111, 'void': 6}
+nrs19: asset-code ledger 11960 rows written; 11960 assets; {'active': 11960}
+test19f: 400 of 400 (253 active, 147 in_review)

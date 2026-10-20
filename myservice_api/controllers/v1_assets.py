@@ -532,7 +532,9 @@ def _serialize_sap(a):
 
 
 def _duplicate_flag(a):
-    event = a._sap_duplicate_flags().get(a.id)
+    # One event query per PAGE, not per asset (handoff 66): the model reads
+    # the flags of `a`'s whole prefetch batch once.
+    event = a._sap_duplicate_flag()
     if not event:
         return None
     return {"sap_asset_number": event.to_value or None,

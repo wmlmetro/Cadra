@@ -12,6 +12,7 @@ import {
   Wrench, Tag, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
   Hourglass, ShieldCheck, History, PanelLeft,
   FileCog, Trash2, Camera, Download, Inbox, UserX, Database, Scale, Link2,
+  ClipboardList, ClipboardCheck, ScanLine, AlertTriangle, Smartphone,
   type LucideIcon,
   Sparkles,
 } from "lucide-react";
@@ -190,6 +191,18 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
     { key: "disposals_report",        name: "Disposals",               path: "/reports/disposals",     icon: Trash2,      scope: "assets:read" },
     { key: "register_snapshot",       name: "Register snapshot",       path: "/reports/asset-register", icon: Camera,     scope: "assets:read" },
     { key: "register_export",         name: "Export",                  path: "/reports/export",        icon: Download,    scope: "export:read" },
+    // The audit in the room (handoff 66 §6). Each item declares what the
+    // SERVER requires for the page's purpose: the campaigns and their two
+    // closing lists are `audit:read` (capturer, reviewer, Asset Controller,
+    // Auditor; opening and closing one is `audit:manage` on the page);
+    // reviewing is `audit:review`; capturing at a desk is `audit:capture`;
+    // the exceptions and the devices and code blocks are the Asset
+    // Controller's `audit:manage`.
+    { key: "audit_campaigns",         name: "Audit campaigns",         path: "/audit/campaigns",       icon: ClipboardList,  scope: "audit:read" },
+    { key: "audit_review",            name: "Audit review",            path: "/audit/review",          icon: ClipboardCheck, scope: "audit:review" },
+    { key: "audit_capture",           name: "Audit capture",           path: "/audit/capture",         icon: ScanLine,       scope: "audit:capture" },
+    { key: "audit_exceptions",        name: "Audit exceptions",        path: "/audit/exceptions",      icon: AlertTriangle,  scope: "audit:manage" },
+    { key: "audit_devices",           name: "Devices and codes",       path: "/audit/devices",         icon: Smartphone,     scope: "audit:manage" },
   ]},
   // Who holds which role, and changing it (handoffs 41–43): administrators.
   { key: "administration", label: "Administration", items: [

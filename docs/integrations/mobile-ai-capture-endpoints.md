@@ -1,8 +1,11 @@
-# Cadra's backend for AI item identification: what exists, what is coming
+# Cadra's backend for AI item identification and the audit capture: what exists
 
 **For:** the Cadra Mobile team (Barcode Station app, AI capture mode).
 **Answers:** *Backend Endpoints for AI Item Identification* (your list of
-13 October 2026), read against Cadra's code on 15 October 2026.
+13 October 2026), read against Cadra's code on 15 October 2026 and
+re-read on 19 October 2026 against release 66. **Every one of your 24 rows
+now either exists or is not needed (§3).** What release 66 gives you that
+you did not have yesterday is §9; what you still cannot build is §10.
 **Base URL:** as in your list, `https://<tenant>/api/v1`; every path below
 is relative to it.
 
@@ -22,12 +25,13 @@ A few words used throughout:
   people before it is registered. Lists hide candidates unless you ask.
 - **Release numbers** (61–66) are Cadra's build instructions, in order:
   **61** photos, the sync filter, room codes; **62** Cadra telling Vendra
-  each receipt step; **63** the SAP copy and the matcher (built — §7);
-  **64** AI identification on Cadra's server (§8); **65** Cadra's own
-  register linked to SAP's records; **66** devices, code blocks and the
-  audit capture. *(Renumbered twice: by release 63 on 18 October 2026 —
-  the audit capture was "63" in the first edition — and by release 64 on
-  19 October, after ruling R11: it is 66.)*
+  each receipt step; **63** the SAP copy and the matcher (§7); **64** AI
+  identification on Cadra's server (§8); **65** Cadra's own register linked
+  to SAP's records; **66** devices, code blocks, campaigns and the audit
+  capture (§9). All six are built.
+- **Full contract:** `docs/api/cadra_api_endpoint_reference.md` — §17 for
+  identification, **§19 for the audit capture** (every body, answer and
+  refusal). This document says what to use; that one says exactly how.
 
 ---
 
@@ -52,7 +56,7 @@ A few words used throughout:
    code, and stops: it never tries the serial. `/barcode/lookup` tries tag
    number → asset code → serial number (the serial stripped and compared
    without regard to case), and says which one matched in `matched_by`
-   (`tag_number`, `asset_code`, `serial_number`; from this release also
+   (`tag_number`, `asset_code`, `serial_number`; since release 61 also
    `location`, see §5.6). A serial carried by more than one asset is a `404`
    with `details.ambiguous: true` and `details.matches: <how many>`, never a
    silent first pick. It finds candidates too. Scope `assets:read`.
@@ -76,20 +80,20 @@ before anything reaches the register. A capture that matches nothing goes to
 a *found, not in SAP* list for the Asset Controller, never straight onto the
 register. The receipt checks for new purchases do not apply, because nothing
 was bought. The SAP copy and the matcher are in 63 (§7); the capture, the review
-and the two exception lists come in 66.
+and the two closing lists are in 66 (§9).
 
 **R2. Codes come from blocks the Asset Controller issues to a registered
 device.** The phone may take the next code offline, from a block issued to
 that device by the Asset Controller (not requested by the phone on its own
 authority). Each code is *reserved*, then *active* (used by a confirmed
 capture) or *void*. **"Return unused codes on sync" voids them: a code is
-never handed out again, to any device.** (66.)
+never handed out again, to any device.** Built in 66 (§9.2).
 
 **R4. A named person signs in; a device never does.** The phone signs in
 with `POST /auth/login` and the operator's own account (`{"login",
 "password"}`). Every record says which person did it; no shared login, no
-device credential. A device is a record bound to one person at a time (66),
-not a way to sign in. What you should know about the login today:
+device credential. A device is a record bound to one person at a time
+(66, §9.1), not a way to sign in. What you should know about the login today:
 - the access token lasts one hour; the answer also carries a refresh token
   that lasts 30 days, and `POST /auth/refresh` exchanges it for a new pair.
   A refresh token is single-use: replaying a spent one revokes the whole
@@ -101,8 +105,9 @@ not a way to sign in. What you should know about the login today:
   on for the hosted tenants. How a native app satisfies that is an open question for us both; raise it before
   you build the sign-in screen;
 - some role pairs cannot be held by one person at all (for example the
-  Store Officer and the Tag-Issuing Unit). The audit team's roles are set in
-  66.
+  Store Officer and the Tag-Issuing Unit). Since 66 the **Audit Capturer**
+  and the **Audit Reviewer** are such a pair: the reviewer is the second
+  person on every capture.
 
 **R5. Condition: *Unserviceable* is recorded as `poor`, with the note
 "unserviceable".** The published condition values are `new`, `good`,
@@ -124,42 +129,40 @@ the demo tenants are not blocked by this.
 Your list has 24 rows: 6 "reuse as is" and 18 new. Three rows name two
 paths (`/locations` with `/{id}/children`; `/mark-missing` with
 `/mark-found`; the model manifest with its download); each is counted once,
-as you wrote it.
+as you wrote it. **Two statuses only: *exists* (with the route to call) or
+*not needed* (with why).** The routes are Cadra's names, not yours: the
+audit capture lives under `/audit/…`, not `/ai-captures/…` or `/devices/…`.
 
-| # | Your endpoint | Status | Use / what it will be |
+| # | Your endpoint | Status | Use |
 |---|---|---|---|
 | 1 | `GET /asset-categories` | **exists** | As is, and it replaces #16. §4.1 |
-| 2 | `GET /locations` (+ `/{id}/children`) | **exists** | As is; rooms gain a scannable `location_code` in this release. §4.2 |
+| 2 | `GET /locations` (+ `/{id}/children`) | **exists** | As is; every location carries a scannable `location_code`. §4.2, §5.6 |
 | 3 | `GET /assets/by-tag/{tag}` | **exists** | No serial step: use `GET /barcode/lookup?query=`. §4.3 |
-| 4 | `POST /assets/{id}/tag-affixed` | **exists** | Scope `tagging:write`; offline `affixed_at` accepted. §4.4 |
-| 5 | `POST /assets/{id}/verify` | **exists** | `notes` only, no photo; refused on a candidate from this release. §4.5 |
-| 6 | `POST /assets/{id}/mark-missing`, `/mark-found` | **exists** | `reason` required; refused on a candidate from this release. §4.6 |
-| 7 | `POST /devices` | **comes later (66)** | A device record bound to one person at a time; not a credential (R4). |
-| 8 | `POST /devices/{id}/code-blocks` | **comes later (66)** | Blocks issued by the Asset Controller to a registered device (R2). |
-| 9 | `GET /devices/{id}/code-blocks` | **comes later (66)** | Balance and state of a device's blocks: reserved / active / void. |
-| 10 | `POST /devices/{id}/code-blocks/{block_id}/return` | **comes later (66)** | Specified as a **void** of the unused remainder, never a return to a pool (R2). |
-| 11 | `GET /ai/config` | **comes later (66)** | The tenant's settings an offline phone needs, beside the label layout (#23): placed in 66 because the offline phone needs both. The capitalisation threshold has no value anywhere yet: it is NRS's open question 1. |
-| 12 | `POST /ai-captures/photos` | **added in this release**, on an asset | Photos attach to an asset: `POST /assets/{id}/photos`. A photo held by a capture before it is matched comes with the capture in 66. §5.1 |
-| 13 | `POST /ai-captures` | **comes later (66)** | The audit capture (R1): photos, AI suggestion against confirmed values, the chosen SAP record or *none*, the code used, the operator and the device. Replay-safe by a stored, unique `capture_id`, not by the 24-hour idempotency key. |
-| 14 | `GET /ai-captures/{capture_id}` | **comes later (66)** | The capture's sync and review state. |
-| 15 | `POST /ai-captures/{capture_id}/void` | **comes later (66)** | Voids an issued code with a reason, in the code ledger (R2). Today codes exist only on assets, so a code voided before any asset exists has nowhere to be recorded. |
-| 16 | `GET /asset-classes/{id}/required-fields` | **redundant** | Use `GET /asset-categories` (§1). |
-| 17 | `GET /ai/signatures?location_id=&since=` | **comes later (66)** | No signature storage exists yet. It comes with the capture and its review in 66, where the duplicate check inside a room happens. |
-| 18 | `GET /assets?location_id=&updated_since=` | **added in this release** | `location_id` exists; `updated_since` is added. §5.5 |
-| 19 | `GET /assets/{id}/photos` | **added in this release** | Photos and Internal Audit's evidence in one list. §5.2 |
-| 20 | `POST /ai/lost-tag-requests` | **redundant** | Use the existing tag replacement, which from this release reprints under the same code. §5.7 |
-| 21 | `POST /assets/{id}/swap-flags` | **comes later (after 66)** | A swap flag belongs to an audit campaign — a record of an audit in progress that a flag is raised in and reviewed against — and no release has built one yet. Placed after 66; the nearest existing record is the refused-affix event. |
-| 22 | `GET /ai-captures/flags?since=` | **comes later (66)** | A second capture matching an SAP record already accepted is held for review with both photos side by side. |
-| 23 | `GET /barcode/label-template` | **comes later (66)** | The label layout as data, beside `/ai/config` (#11): an offline phone needs both. Until 66, print to the rules in §6. |
-| 24 | `GET /ai/models/manifest` + file download | **not needed: Cadra identifies the photo (R11)** | No model is trained, packaged or downloaded. The phone sends the photo to `POST /api/v1/ai/identify` (§8), the same route the web app calls; Cadra's server asks a vision model and returns suggestions a person confirms. Offline, the photo is identified when it syncs. |
+| 4 | `POST /assets/{id}/tag-affixed` | **exists** | Scope `tagging:write`; offline `affixed_at` accepted. §4.4. In an audit you do not call it: the capture's `scanned_label` is the affix check (§9.3). |
+| 5 | `POST /assets/{id}/verify` | **exists** | `notes` only, no photo; refused on a candidate. §4.5. In an audit, an accepted *on the register* capture records the verification (§9.3). |
+| 6 | `POST /assets/{id}/mark-missing`, `/mark-found` | **exists** | `reason` required; refused on a candidate. §4.6 |
+| 7 | `POST /devices` | **exists** — `POST /audit/devices` | The **Asset Controller's** act (`audit:manage`), not the phone's: a device record bound to one person, answering its `device_code`. The phone reads its devices with `GET /audit/devices?mine=true`. §9.1 |
+| 8 | `POST /devices/{id}/code-blocks` | **exists** — `POST /audit/blocks` | `{"device_id", "size"}`, 1–500 codes, the Asset Controller's (`audit:manage`). §9.2 |
+| 9 | `GET /devices/{id}/code-blocks` | **exists** — `GET /audit/blocks?device_id=` and `GET /audit/blocks/{id}` | The list gives each block's `codes_by_state` (reserved / in review / active / void); one block gives every code and its state. `audit:read`. §9.2 |
+| 10 | `POST /devices/{id}/code-blocks/{block_id}/return` | **exists** — `POST /audit/blocks/{id}/return` | **Voids** every unused code, never a return to a pool (R2). The Asset Controller's (`audit:manage`), not the phone's. §9.2 |
+| 11 | `GET /ai/config` | **exists** — `GET /ai/config` | The AI switch, the model, calls left today, the label layout, and the capture limits. `audit:capture` or `assets:write`. The capitalisation threshold is not in it: NRS's open question 1 has no answer yet. §9.6 |
+| 12 | `POST /ai-captures/photos` | **exists** — `POST /audit/photos` | A capture's photo, before any asset exists; the same 300 KB / JPEG-PNG rules as §5.1; a re-sync of the same bytes answers the photo kept. For a photo on an existing asset outside an audit: `POST /assets/{id}/photos` (§5.1). §9.3 |
+| 13 | `POST /ai-captures` | **exists** — `POST /audit/captures` | The audit capture (R1): photos, the AI suggestion beside the confirmed values, the outcome and its target (a Cadra asset, a SAP record, or neither), the code used and the label scanned, the operator and the device. **Replay-safe by a stored, unique `capture_id`**, not by the 24-hour idempotency key. §9.3 |
+| 14 | `GET /ai-captures/{capture_id}` | **exists** — `GET /audit/captures/{capture_id}` | The capture's sync and review state. §9.4 |
+| 15 | `POST /ai-captures/{capture_id}/void` | **exists** — `POST /audit/captures/{capture_id}/void` | The Asset Controller voids an accepted *found, not in SAP* exception with a reason, and its code with it, in the code ledger (R2). Not the phone's act; see §10 for a spoiled label. §9.5 |
+| 16 | `GET /asset-classes/{id}/required-fields` | **not needed** | `GET /asset-categories` already returns each class's mandatory fields (§1). |
+| 17 | `GET /ai/signatures?location_id=&since=` | **not needed (R11)** | No visual signature is computed or stored: recognition is on Cadra's server (§8). A duplicate is caught by what is measurable — the same Cadra asset, SAP record or old tag captured twice in a campaign, held for the reviewer with the photos side by side (§9.3). |
+| 18 | `GET /assets?location_id=&updated_since=` | **exists** | §5.5. For an audit room, `GET /audit/campaigns/{id}/slice` (§9.2). |
+| 19 | `GET /assets/{id}/photos` | **exists** | Photos and Internal Audit's evidence in one list. §5.2 |
+| 20 | `POST /ai/lost-tag-requests` | **not needed** | Outside an audit, the existing tag replacement, which reprints under the same code (§5.7). In an audit, a capture with `label: "missing"` or `"unreadable"` asks for the reprint, and the reviewer's acceptance approves it (§9.3). |
+| 21 | `POST /assets/{id}/swap-flags` | **not needed (66)** | A swap — a label on the wrong item — shows as two captures of the same Cadra asset (or the same old tag) in one campaign. The second is **held** beside the first (`duplicate_of`, `duplicate_basis`), never refused, and the reviewer, seeing both, accepts one and returns the other with a reason. An item found in another room is moved by its acceptance. No separate flag record. §9.3 |
+| 22 | `GET /ai-captures/flags?since=` | **exists** — `GET /audit/captures?duplicates=true&campaign_id=` | The held duplicates of a campaign. There is no `since`: filter by `campaign_id`, `location_id`, `state`. §9.4 |
+| 23 | `GET /barcode/label-template` | **exists** — in `GET /ai/config`, `label` | The label layout as data: the code verbatim, QR first, Code 128 only on `large`. §6, §9.6 |
+| 24 | `GET /ai/models/manifest` + file download | **not needed (R11)** | No model is trained, packaged or downloaded. The phone sends the photo to `POST /api/v1/ai/identify` (§8), the same route the web app calls; Cadra's server asks a vision model and returns suggestions a person confirms. Offline, the photo is identified when it syncs. |
 
-Totals: **exists 6 · added in 61 3 · comes later 12 (11 in 66, 1 after 66)
-· redundant 2 · not needed (R11) 1** = 24. *Release numbers corrected by
-handoff 64: the audit-capture path the "comes later" rows wait for is now
-66; 64 is AI identification (§8) and 65 the link to SAP's records.* The sixth status of the first
-edition, *not yet scheduled*, is gone: every row now has a release (Cadra's
-release 63 placed the last four). The SAP copy and the matcher your step 4
-calls are built (§7) — they were never one of your 24 rows.
+Totals: **exists 19 · not needed 5** (#16, #17, #20, #21, #24) = 24. Nothing
+is left *comes later*. The first edition's *redundant* (#16, #20) are now
+*not needed*, with the route that does the job named.
 
 ## 4 · What exists, and how it differs from your list
 
@@ -169,7 +172,7 @@ Each route below is cited as registered in `myservice_api/controllers/`.
 `v1_settings.py`, `/api/v1/asset-categories`, GET, scope `assets:read`.
 Per class: `id`, `name`, `code`, `domain`, `description`, `identification_mode`,
 `class_attributes_schema`, `sap_asset_class`, depreciation policy and counts.
-Not paginated. **Changing in this release:** the default schema of a `tag_id`
+Not paginated. **Changed in release 61:** the default schema of a `tag_id`
 class becomes `name`, `colour`, `material`, `dimensions`; `make` and
 `model_name` are no longer mandatory by default, so a chair with no visible
 brand can be recorded. A class whose schema was customised keeps it. Read the
@@ -185,8 +188,8 @@ schema from this route; don't hard-code it.
 - Each location carries `parent_id` and `parent_path` (the id chain,
   e.g. `"1/4/12/"`), so you can rebuild the tree offline from one walk of
   `/locations`.
-- **Until this release no location has anything to scan.** From this
-  release each carries a `location_code`: §5.6.
+- **Until release 61 no location had anything to scan.** Since then each
+  carries a `location_code`: §5.6.
 
 ### 4.3 `GET /assets/by-tag/{tag}`
 `v1_assets.py`, `/api/v1/assets/by-tag/<string:tag>`, GET, scope
@@ -218,7 +221,7 @@ with `X-Idempotency-Key`.
 `v1_assets.py`, `/api/v1/assets/<int:id>/verify`, POST, scope
 `assets:write`, idempotent. Body: `notes` only. It records who verified and
 when. **No photo is accepted here**: AI-FR-12's photo goes to
-`POST /assets/{id}/photos` (§5.1). **From this release** it is refused on a
+`POST /assets/{id}/photos` (§5.1). **Since release 61** it is refused on a
 candidate with `409 not_on_the_register`: a unit not yet on the register
 cannot be verified on it.
 
@@ -226,12 +229,12 @@ cannot be verified on it.
 `v1_assets.py`, `/api/v1/assets/<int:id>/mark-missing` and
 `/api/v1/assets/<int:id>/mark-found`, POST, scope `assets:write`,
 idempotent. **`reason` is required on both.** Each answers `409` when the
-asset is in the wrong state (already missing; not missing). **From this
-release** both are refused on a candidate with `409 not_on_the_register`.
+asset is in the wrong state (already missing; not missing). **Since
+release 61** both are refused on a candidate with `409 not_on_the_register`.
 They are not a lost-*tag* flow: they say the *asset* is missing or found.
 For a lost or faded tag, see §5.7.
 
-## 5 · Added in this release
+## 5 · Added in release 61
 
 Checked against the finished build of release 61 and driven by its test
 suite on 15 October 2026.
@@ -371,7 +374,7 @@ For a lost or faded label, use the existing replacement, not a new route:
   The approver is an Asset Manager, and never the person who asked;
 - `GET /tags/replacements` lists them, decided ones included.
 
-**Behaviour change in this release:** an approved replacement **reprints the
+**Behaviour change in release 61:** an approved replacement **reprints the
 same number** instead of minting a new one. The label record counts its
 reprints, the old print is voided with its reason, and the history says
 which print is current. Note what this means on the item: an old print and
@@ -408,18 +411,24 @@ and/or supervisor. That is NRS's open question 5 and is not added now.
    at its printed scale on every size. At small and medium sizes a Code
    128 serves only handheld laser scanners, and 5 mil is at their floor too.
    (Cadra's sizes: small 50×25 mm, medium 50×30 mm, large 100×60 mm.)
-4. **Prints made offline must be reported on sync.** Cadra records every
-   label it prints; a phone printing offline goes round that record unless
-   the capture says what it printed (66).
+4. **A label the phone prints offline is accounted for by its capture.**
+   In an audit the phone prints a code from its block (§9.2), fixes it, and
+   scans it back: the capture carries `code` and `scanned_label`, which must
+   be equal (§9.3). On acceptance Cadra records that label as affixed from
+   that scan; an unused code is voided when its block is returned. A
+   *reprint* under an existing code (a capture with `label: "missing"`) is
+   different: it is recorded through `POST /tags/printed` and confirmed on
+   `POST /assets/{id}/tag-affixed`, both `tagging:write` — see §10.
+5. **The layout as data** is in `GET /ai/config` → `label` (§9.6).
 
 ## 7 · Added in release 63: SAP's register, and which record an item is
 
 Release 63 (18 October 2026) loaded SAP's asset master into Cadra as a
 **read-only copy** — not the asset register — and built the matcher your
-step 4 calls. Both need the scope `sap_mirror:read`, which the audit
-team's roles will carry (66); today the Asset Controller, the Register
-Maker and Checker and the Auditor hold it. An operator who is only an Asset
-User is refused, `403`.
+step 4 calls. Both need the scope `sap_mirror:read`, which the **Audit
+Capturer** and **Audit Reviewer** carry since 66, beside the Asset
+Controller, the Register Maker and Checker and the Auditor. An operator who
+is only an Asset User is refused, `403`.
 
 ### 7.1 `GET /sap-assets?office=<code>&class=<class>&updated_since=` — the slice to cache
 
@@ -462,7 +471,10 @@ to Cadra, Cadra's server asks a vision model, and the answer comes back as
 suggestions a person confirms — the same route the web app calls. Full
 contract: `docs/api/cadra_api_endpoint_reference.md` §17.
 
-### 8.1 `POST /api/v1/ai/identify` — `assets:write`
+### 8.1 `POST /api/v1/ai/identify` — `assets:write` or `audit:capture`
+
+Since 66 the Audit Capturer may call it too (the route checks for either
+scope; neither is `403`, `details.required_scopes_any`).
 
 **multipart/form-data**, exactly one of:
 
@@ -470,6 +482,13 @@ contract: `docs/api/cadra_api_endpoint_reference.md` §17.
 - `file` + `source=mobile` — a photo for an item not yet registered. Cadra
   holds it 24 hours; the save that registers the item claims it as the
   asset's first photo.
+
+**In an audit, send `file`.** `photo_id` names a photo on an asset, not an
+audit photo (`POST /audit/photos`), so the capture's photo goes up twice:
+once here, to be identified, and once to `/audit/photos`, to be kept with
+the capture. The copy held here is not claimed by a capture and lapses after
+24 hours. Put the answer's `suggestion_id` in the capture's
+`ai_suggestion_id` (§9.3).
 
 Send `X-Idempotency-Key`: a re-send after a dropped connection gets the same
 answer and is not counted twice. **Offline:** queue the photo and identify it
@@ -501,9 +520,185 @@ in one line. A field is never written from a suggestion the save did not
 send. An SAP candidate fills nothing: the SAP number is set at registration
 by the Register Maker, or by SAP.
 
+**In an audit the capture is the record instead.** The capture keeps the
+suggestion it names (`ai_suggestion`: `id`, `result`, `suggested`) beside
+`fields`, what the person confirmed, so the reviewer sees one against the
+other. No per-field *accepted / changed / ignored* event is written for a
+capture; in an *in SAP* capture the SAP record the person picked is the
+match, not the AI's candidate.
+
 ### 8.3 Whether to draw the button
 
-`GET /api/v1/settings` → `ai_identify.enabled`. Off — the default on every
-tenant — draw nothing. `ai_identify.notice` is the sentence to show once:
+`GET /api/v1/settings` → `ai_identify.enabled`, or, for a phone about to go
+offline, `GET /api/v1/ai/config` → `ai_identify.enabled` and
+`remaining_today` (§9.6). Off — the default on every tenant — draw nothing. `ai_identify.notice` is the sentence to show once:
 *"Photograph the item, not people. The photo is sent to <provider> to read
 it."*
+
+## 9 · Added in release 66: what you need now that you didn't have yesterday
+
+Release 66 (19 October 2026) built the audit capture R1 describes. Every
+route is in `myservice_api/controllers/v1_audit_capture.py`; the full
+contract is the endpoint reference §19. **Each capture ends as one of three
+outcomes, and a second person accepts every one:**
+
+| `outcome` | The item is… | When the reviewer accepts it |
+|---|---|---|
+| `on_register` | on Cadra's register (its Cadra label, its old FIRS tag, or a pick from the room's list) | verified in place: the room and condition written, the photos copied onto the asset; a missing or unreadable label reprinted under the same code |
+| `in_sap` | in SAP's register, not Cadra's | a new register asset with SAP's number and your printed code; nothing sent to SAP |
+| `in_neither` | in neither | a *found, not in SAP* exception for the Asset Controller; its code is held |
+
+The people: the operator holds **Audit Capturer** (`audit:read`,
+`audit:capture`, `sap_mirror:read`, and Asset User's reads); the second
+person **Audit Reviewer**; the **Asset Controller** sets up devices, blocks
+and campaigns. The capturer and reviewer roles cannot be held together, and
+a campaign names its own capturers and reviewers: the role alone is not
+enough.
+
+### 9.1 The device — `X-Cadra-Device`
+
+The Asset Controller registers the phone (`POST /audit/devices`) and binds
+it to the operator. The answer carries the device's **`device_code`**
+(`DEV-` and eight hex characters): get it onto the phone once — the
+Controller reads it off the registration — and send it on every capture as
+the **`X-Cadra-Device`** header. The operator still signs in as themselves
+(`POST /auth/login`, R4). A capture is refused when the header is missing or
+unknown (`400`), or the device is deactivated or bound to somebody else
+(`403`, *"… is bound to A. Person, not to you. The Asset Controller rebinds
+a device."*). `GET /audit/devices?mine=true` lists the devices bound to the
+signed-in person, each with its `device_code` and `open_block_id`. A person
+may be bound to more than one device, so store the phone's own code rather
+than picking from that list.
+
+### 9.2 Codes, campaigns and the room slice — what to download before going offline
+
+- **The block.** `GET /audit/blocks/{open_block_id}` gives every code in
+  the phone's block with its state; take the next `reserved` one for each
+  new label. Codes come from the same sequence as every Cadra asset code,
+  so a printed code can never collide with an asset made any other way. A
+  code is reserved to this device AND this person: the same code from
+  another phone or another operator is refused.
+- **The campaign.** `GET /audit/campaigns?state=open` — the list is not
+  filtered to the caller; keep the campaigns whose `capturers` include the
+  signed-in person. Each carries its `scope` (locations and SAP office
+  codes) and `progress`.
+- **The room.** Scan the door: `GET /barcode/lookup?query=<room code>`
+  answers `matched_by: "location"` with the room's id (§5.6). Then **`GET
+  /audit/campaigns/{id}/slice?location_id=<room>`** gives the room's Cadra
+  assets (`kind=assets`, the default: code, tag, old tag, serial, class,
+  condition, SAP number), and **`…&kind=sap_records`** the active SAP
+  records for the room's office (number, class, description, old tag,
+  serial, `linked_asset_id`). Paged with `cursor`, refreshed with
+  `updated_since` exactly as §5.5. A room outside the campaign is `409`.
+- **The settings.** `GET /ai/config` (§9.6).
+
+### 9.3 The capture — `POST /audit/photos`, then `POST /audit/captures`
+
+1. Sync each photo: `POST /audit/photos`, multipart `file` and
+   `source=mobile`, the §5.1 rules (JPEG/PNG by its bytes, ≤ 300 KB). A
+   retry of the same bytes answers the photo already kept,
+   `already_synced: true`. Keep the returned `id`.
+2. Sync the capture: `POST /audit/captures` with `X-Cadra-Device`, and
+   - `capture_id` — **a UUID the phone makes when the item is captured**.
+     It is stored unique, so a capture sent twice, today or in four days,
+     is one capture (`replayed: true` on the second answer);
+   - `campaign_id`, `location_id` (the room), `outcome`, `photo_ids` (at
+     least one), `captured_at` (ISO-8601, at most **five working days**
+     back, Monday to Friday on Lagos days, never in the future);
+   - `fields` — what the person confirmed: `condition` always (`new`,
+     `good`, `fair`, `poor`), and any of `name`, `category_id`, `make`,
+     `model_name`, `serial_number`, `colour`, `material`, `dimensions`,
+     `legacy_asset_code`, `notes`;
+   - `ai_suggestion_id` — optional, the `suggestion_id` of §8.1;
+   - for `on_register`: `asset_id`, and `label` (`present`, `missing`,
+     `unreadable`). No code: the item keeps its own;
+   - for `in_sap`: `sap_record_id`, `code`, `scanned_label`,
+     `fields.category_id`;
+   - for `in_neither`: `code`, `scanned_label`, `fields.category_id`,
+     `fields.name`.
+
+   **`scanned_label` is what the scanner read off the label just fixed, and
+   it must equal `code`**: that is the affix check, made in the room.
+3. **A duplicate is held, not refused.** A second capture in the campaign of
+   the same Cadra asset, SAP record or old tag is accepted `201` with
+   `duplicate_of` and `duplicate_basis`; the reviewer sees both.
+
+Refused, in words, nothing written: a closed campaign; the operator not on
+the campaign; a room outside it; a code not reserved to this device and
+person, already used, or not equal to the scanned label; an asset still a
+receipt candidate, or disposed; a SAP record retired, missing from the
+latest export, or already on Cadra's register (*"capture it as found on the
+register"*); for `in_sap` and `in_neither`, a class identified by its
+record alone (land, buildings, software — they carry no label).
+
+### 9.4 Knowing what happened — `GET /audit/captures/{capture_id}`
+
+After a sync, `GET /audit/captures/{capture_id}` confirms the server has
+it. The same read later shows the review: `state` (`pending_review`,
+`accepted`, `returned`), `reviewed_by`, `return_reason`, `result_asset`
+(the asset an `in_sap` capture became), `reprint_label_id`,
+`exception_state`. `GET /audit/captures?mine=true&state=returned` lists the
+operator's returned captures. **A returned capture's code goes back to the
+phone's reserve; re-capture the item as a NEW capture with a new
+`capture_id`** — re-sending the old id answers the returned capture.
+
+### 9.5 Review and the closing lists (not the phone's, but what it feeds)
+
+The reviewer accepts or returns (`POST /audit/captures/{capture_id}/accept`,
+`…/return` with a reason; a room at once with `POST /audit/captures/accept`).
+The Asset Controller registers or voids each *found, not in SAP* exception,
+and closes the campaign once nothing waits for review. Closing keeps the
+audit's two lists per office — ***found, not in SAP*** and ***in SAP, not
+found*** — at `GET /audit/campaigns/{id}/lists` (and `.csv`).
+
+### 9.6 `GET /ai/config` — one read before going offline
+
+`audit:capture` or `assets:write`. Answers `ai_identify` (`enabled`,
+`provider`, `model`, `daily_cap`, `calls_today`, `remaining_today`,
+`route`), `label` (the code verbatim; QR on every size and first; Code 128
+on `large` only; the code printed as text under the symbol) and `capture`
+(`earliest_captured_on`, `max_working_days_back`, `device_header`,
+`max_block_size`, `confirmed_fields`, `outcomes`). Read the limits from
+here rather than hard-coding them.
+
+## 10 · What you still cannot build
+
+1. **Cadra does not push.** Nothing tells the phone a capture was accepted
+   or returned. Poll `GET /audit/captures?mine=true` (by `state`); the list
+   has no `updated_since`, so filter by `state`, `campaign_id` or
+   `location_id`.
+2. **A spoiled label cannot be voided on its own.** A code printed and torn
+   before use stays `reserved` until the Asset Controller returns the whole
+   block (`POST /audit/blocks/{id}/return`), which voids every unused code.
+   There is no route to void one reserved code, and none for the phone to
+   return its own block.
+3. **The phone cannot enrol itself.** Registering, binding and
+   deactivating a device, issuing and returning blocks, and opening and
+   closing campaigns are the Asset Controller's (`audit:manage`). Getting
+   the `device_code` onto the phone (typed, or a QR you draw from it) is
+   yours to design; Cadra prints no device label.
+4. **A reprint under an existing code is not finished by the audit roles.**
+   Accepting an *on the register* capture with `label: "missing"` creates
+   the reprint (`reprint_label_id`), but printing it is recorded through
+   `POST /tags/printed` and fixing it confirmed on
+   `POST /assets/{id}/tag-affixed`, and both need `tagging:write`, which
+   the Audit Capturer and Reviewer do not hold — the Tag-Issuing Unit's
+   station does it. Until its print is recorded, an affix of that number is
+   refused (§5.7).
+5. **SAP records with no office cannot be sliced by room.** SAP's export
+   carries no location; the office is read from an old `FIRS/<office>/…`
+   tag. A record with none (37,831 active on the October import, §7.1)
+   never appears in a room's `kind=sap_records` slice, and the closing list
+   reports such records as a count, not as *not found*. That waits on SAP's
+   location extract from NRS. Search them with `GET /sap-assets/match`.
+6. **The photo goes up twice when it is identified** (§8.1): an audit photo
+   cannot be named by `photo_id` on `/ai/identify`.
+7. **The printer is yours.** Cadra publishes the layout (§6, §9.6) and the
+   codes; the printer, its driver and the print itself are the app's.
+   Cadra does not record the phone's print of a block code as a print —
+   the capture's scanned label is the record.
+8. **Public holidays are working days** to the five-day window: it counts
+   Monday to Friday and knows no holiday calendar.
+9. **The capitalisation threshold** is not in `/ai/config`, or anywhere:
+   NRS's open question 1.
+10. **Sign-in on a Turnstile tenant** is still the open question in R4.

@@ -404,7 +404,12 @@ class CadraAiV1(http.Controller):
     @cadra_route("/api/v1/ai/identify", method="POST",
                  summary="Identify the item in a photo (multipart: "
                          "`photo_id`, or `file` + `source`)",
-                 scopes=[SCOPE_ASSETS_WRITE], idempotent=True,
+                 # Handoff 66: the audit capturer identifies too — the phone
+                 # and the web capture call this one route (R11) — so either
+                 # scope opens it: `scopes_any`, checked by the decorator
+                 # before the idempotency replay.
+                 scopes_any=[SCOPE_ASSETS_WRITE, "audit:capture"],
+                 idempotent=True,
                  success_status=201,
                  error_statuses=(403, 413, 415, 429, 502, 503),
                  request_schema={

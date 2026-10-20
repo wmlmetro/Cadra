@@ -114,6 +114,10 @@ export const SCOPE_WORDS: Record<string, string> = {
   "register:check":     "Approve a submitted unit onto the register",
   "evidence:read":      "Open Internal Audit's evidence on a received unit",
   "sap_mirror:read":    "Read SAP's asset master as Cadra holds it, and how much of it Cadra holds",
+  "audit:read":         "See audit campaigns, their captures, devices and code blocks",
+  "audit:capture":      "Capture items in the room during an audit, from a device bound to you",
+  "audit:review":       "Accept or return somebody else's audit captures",
+  "audit:manage":       "Register devices, issue code blocks, open and close audit campaigns, resolve exceptions",
   "admin":              "Everything — system administrator",
 };
 

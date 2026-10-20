@@ -2694,3 +2694,25 @@ An import over a non-empty mirror counts first and writes only if under
 5% would be marked absent. The October file's full re-import took 348 s
 on a busy bench (63: 100 s). "Yes, mark them absent" skips the count.
 
+
+## 35 · The audit in the room (handoff 66)
+
+### 35.1 · A campaign maps rooms to SAP offices by hand — `[open]`, NRS
+Cadra's locations carry no SAP office code (report 65 §7), so each campaign
+says it: a scope line is a building or room AND the office code its SAP
+records carry (`FIRS/<office>/…`). Without the office the room's slice of
+SAP is empty and *in SAP, not found* cannot be computed. NRS names, per
+campaign, the offices it covers. SAP's location extract (ANLZ) would make
+this automatic; it is still asked of SAP's team (report 63).
+
+### 35.2 · The audit roles need people on the production tenant — `[open]`, owner
+`audit_capturer` and `audit_reviewer` are grantable on the Users screen; the
+Asset Controller registers devices and issues blocks. On the cluster the
+demo personas gain the two audit people only when the demo-personas
+workflow is run again for a tenant. `nrs19` stays read-only (ruling 1 of
+handoff 66): its upgrade wrote the ledger (11,960 codes, all active) and
+nothing else.
+
+### 35.3 · The phone app is the mobile team's — `[open]`, mobile team
+`docs/integrations/mobile-ai-capture-endpoints.md` lists every route as
+*exists* or *not needed*, and §10 there what they still cannot build.

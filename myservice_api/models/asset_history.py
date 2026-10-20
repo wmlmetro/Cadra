@@ -221,6 +221,11 @@ _EVENT_TITLES = {
     # reference change) and then this, in the same second.
     "sap_link": "SAP link",
     "sap_duplicate_flagged": "Flagged as a likely duplicate",
+    # Handoff 66. An audit capture accepted by a second person: the asset
+    # found in place, registered from SAP's record, or a found-not-in-SAP
+    # item registered as new. After `sap_link` in time: an acceptance in
+    # place verifies the asset (a `verified` event) in the same second.
+    "audit_capture": "Audit capture accepted",
     "details_changed": "Details changed",
     "integration_event": "Event for an external system",
     "maintenance_request": "Maintenance request raised",
@@ -788,6 +793,25 @@ class NRSAssetHistory(models.Model):
                                ev.to_value or "—", ev.notes or "—"))
                 detail.update(sap_asset_number=ev.to_value or None,
                               note=ev.notes or None)
+            elif etype == "audit_capture":
+                # Handoff 66. Who captured it, who accepted it, which
+                # campaign, and — for an item registered from SAP's record
+                # — why the receipt gates did not apply.
+                published = "audit_capture"
+                try:
+                    about = json.loads(ev.notes or "{}")
+                except ValueError:
+                    about = {}
+                summary = ev.reason or "Audit capture accepted"
+                detail.update(outcome=ev.to_value or None,
+                              reason=ev.reason or None,
+                              capture_id=about.get("capture_id"),
+                              campaign=about.get("campaign"),
+                              campaign_id=about.get("campaign_id"),
+                              captured_by=about.get("captured_by"),
+                              reviewed_by=about.get("reviewed_by"),
+                              code=about.get("code"),
+                              room=about.get("room"))
             else:
                 # A reference or a warranty field: the same shape, a field
                 # with a before and an after. The warranty fields carry no
@@ -875,6 +899,8 @@ class NRSAssetHistory(models.Model):
              "a link to SAP's record proposed, decided or undone"),
             ("sap_duplicate_flagged", "sap_duplicate_flagged",
              "a flag as a likely duplicate"),
+            ("audit_capture", "audit_capture",
+             "an audit capture accepted by a second person"),
         )
         out = []
         for stored, published, what in kinds:
@@ -949,7 +975,8 @@ class NRSAssetHistory(models.Model):
                     "that nobody can edit or delete it. There is no earlier "
                     "record to look for: identification did not exist before "
                     "then." % _when(began))
-            elif stored in ("sap_link", "sap_duplicate_flagged"):
+            elif stored in ("sap_link", "sap_duplicate_flagged",
+                            "audit_capture"):
                 # Handoff 65: both arrived with their record; a link to SAP's
                 # export and a duplicate flag were never recorded any other
                 # way.

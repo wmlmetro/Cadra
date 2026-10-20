@@ -122,6 +122,11 @@ ERR_TAG_NUMBER_TAKEN     = "tag_number_taken"
 #: `nrs.asset.tag.label.ACTIVE_NUMBER_INDEX`). Named here as a string, not
 #: imported: the API maps the database's own constraint name.
 _TAG_NUMBER_INDEX = "nrs_asset_tag_label_active_name_uniq"
+#: Handoff 66: a capture and a photo are synced idempotently on their own
+#: keys, stored unique; two syncs of one at the same instant meet here.
+ERR_SYNC_IN_FLIGHT       = "sync_in_flight"
+_SYNC_RACE_INDEXES = ("nrs_audit_capture_capture_uuid_unique",
+                      "nrs_audit_photo_same_bytes_once")
 
 
 def refuse_unwritable(rejected, writable, *, hint=None):
@@ -310,6 +315,17 @@ SCOPE_EVIDENCE_READ      = "evidence:read"
 # Importing a new export is not this scope's: it takes `settings:write`
 # held by a System Administrator (`v1_sap_mirror.py`).
 SCOPE_SAP_MIRROR_READ    = "sap_mirror:read"
+# Handoff 66 — the audit in the room. `audit:read` sees campaigns, captures,
+# devices, blocks, the ledger and the two closing lists (the capturer, the
+# reviewer, the Asset Controller and the Auditor — ends `:read`, so the
+# Auditor-is-read-only pin holds). `audit:capture` syncs a capture from a
+# device bound to the caller; `audit:review` accepts or returns somebody
+# else's; `audit:manage` is the Asset Controller's — devices, code blocks,
+# campaigns, and the found-not-in-SAP exceptions.
+SCOPE_AUDIT_READ         = "audit:read"
+SCOPE_AUDIT_CAPTURE      = "audit:capture"
+SCOPE_AUDIT_REVIEW       = "audit:review"
+SCOPE_AUDIT_MANAGE       = "audit:manage"
 
 ALL_SCOPES = frozenset({
     SCOPE_ASSETS_READ, SCOPE_ASSETS_WRITE,
@@ -332,6 +348,8 @@ ALL_SCOPES = frozenset({
     SCOPE_SETTINGS_CLASSES,
     SCOPE_EVIDENCE_READ,
     SCOPE_SAP_MIRROR_READ,
+    SCOPE_AUDIT_READ, SCOPE_AUDIT_CAPTURE, SCOPE_AUDIT_REVIEW,
+    SCOPE_AUDIT_MANAGE,
     SCOPE_ADMIN,
 })
 
@@ -433,7 +451,15 @@ GROUP_SCOPES = (
         SCOPE_SETTINGS_CLASSES,
         # Handoff 63: what SAP holds — the Controller issues the codes an
         # audit capture matches against it.
-        SCOPE_SAP_MIRROR_READ)),
+        SCOPE_SAP_MIRROR_READ,
+        # Handoff 66: devices, code blocks, campaigns and the exceptions.
+        SCOPE_AUDIT_READ, SCOPE_AUDIT_MANAGE)),
+    # Handoff 66 — the audit team. The capturer reads SAP's mirror for the
+    # match it makes in the room; the reviewer reads it to judge the match.
+    ("myservice_asset_register.group_audit_capturer", (
+        SCOPE_AUDIT_READ, SCOPE_AUDIT_CAPTURE, SCOPE_SAP_MIRROR_READ)),
+    ("myservice_asset_register.group_audit_reviewer", (
+        SCOPE_AUDIT_READ, SCOPE_AUDIT_REVIEW, SCOPE_SAP_MIRROR_READ)),
     # Handoff 61: the maker and the checker register cost against IAD's
     # evidence, so they read it (ruling 1 on report 60). Handoff 63: they
     # register against SAP's asset master, so they read the mirror too.
@@ -481,6 +507,8 @@ GROUP_SCOPES = (
         SCOPE_EVIDENCE_READ,
         # Handoff 63: SAP's asset master and how much of it Cadra holds.
         SCOPE_SAP_MIRROR_READ,
+        # Handoff 66: the audit campaigns and their two closing lists.
+        SCOPE_AUDIT_READ,
     )),
 
     # The employee roster and the SAP/spreadsheet imports that feed it.
@@ -596,6 +624,12 @@ SCOPE_GROUPS = {
     SCOPE_EVIDENCE_READ:      ("myservice_api.group_auditor",),
     # Handoff 63, the same shape: the read-only group among its holders.
     SCOPE_SAP_MIRROR_READ:    ("myservice_api.group_auditor",),
+    # Handoff 66: each audit scope to the one role whose job it is; the read
+    # to the Auditor, the read-only group among its holders.
+    SCOPE_AUDIT_READ:         ("myservice_api.group_auditor",),
+    SCOPE_AUDIT_CAPTURE:      ("myservice_asset_register.group_audit_capturer",),
+    SCOPE_AUDIT_REVIEW:       ("myservice_asset_register.group_audit_reviewer",),
+    SCOPE_AUDIT_MANAGE:       ("myservice_asset_register.group_asset_controller",),
     SCOPE_INTEGRATIONS_WRITE: ("myservice_identity.group_identity_manager",),
     SCOPE_TAGGING_WRITE:      ("myservice_asset_register.group_tag_issuing_unit",),
     # SCOPE_WEBHOOKS_ADMIN and SCOPE_ADMIN map to nothing on purpose — see the
@@ -1968,7 +2002,8 @@ def _client_value_error(exc):
 
 # ─── endpoint decorator ──────────────────────────────────────────────
 
-def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
+def cadra_endpoint(scopes=(), idempotent=False, success_status=200,
+                   scopes_any=()):
     """Auth + scope-check + idempotency + envelope-wrap + JSON HTTP response.
 
     Apply BELOW Odoo's @http.route decorator (or use the `cadra_route`
@@ -1990,6 +2025,17 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
             _, envelope, _ = require_jwt(scopes)
             if envelope is not None:
                 return _http_response(envelope)
+            # Any ONE of `scopes_any` (handoff 66). Here, before the
+            # idempotency replay below — a check in the route's body ran
+            # after it, so a token holding neither scope that sent a known
+            # key was handed the cached answer (verification pass, 66).
+            if scopes_any and not any(caller_holds(s) for s in scopes_any):
+                return _http_response(err(
+                    ERR_FORBIDDEN,
+                    "This route needs one of these scopes: %s."
+                    % ", ".join("`%s`" % s for s in scopes_any),
+                    status=403,
+                    details={"required_scopes_any": list(scopes_any)}))
 
             # Idempotency (only for write methods — read methods are naturally
             # idempotent and don't need caching)
@@ -2110,6 +2156,21 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200):
                 ))
             except psycopg2.errors.UniqueViolation as e:
                 request.env.cr.rollback()
+                if e.diag.constraint_name in _SYNC_RACE_INDEXES:
+                    # Handoff 66: the same capture (or photo) synced twice
+                    # at once. The second request could not see the first's
+                    # row in its snapshot; sent again, it is answered with
+                    # the stored capture (`replayed: true`).
+                    return _http_response(err(
+                        ERR_SYNC_IN_FLIGHT,
+                        "The same capture or photo is being synced by "
+                        "another request at this moment. Nothing was "
+                        "written by this one; send it again and it is "
+                        "answered with the stored record.",
+                        status=409,
+                        details={"retryable": True,
+                                 "constraint": e.diag.constraint_name},
+                    ))
                 if e.diag.constraint_name == _TAG_NUMBER_INDEX:
                     # Since handoff 63b numbers come from a sequence per
                     # prefix and two mints no longer meet; this is the one

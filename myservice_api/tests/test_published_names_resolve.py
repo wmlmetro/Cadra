@@ -353,6 +353,57 @@ _BODY_ROUTES = {
                      "`v1_photos.UPLOAD_FILE_FIELDS`/`UPLOAD_TEXT_FIELDS` by "
                      "`utils.get_multipart`; written by "
                      "`nrs.asset.photo._upload`, never by field name"),
+    # Handoff 66. The audit's acts: every body is refused outside its
+    # route's own set (`v1_audit_capture._body`) and written by the audit
+    # models' acts (`myservice_asset_register/models/audit_capture.py`),
+    # never by field name. A capture's confirmed values travel inside
+    # `fields` and are refused outside `audit_capture.CONFIRMED_FIELDS`.
+    ("POST", "/api/v1/audit/devices"):
+        (None, None, "`name`, `user_id`: written by "
+                     "`nrs.audit.device._register_device`"),
+    ("POST", "/api/v1/audit/devices/<int:id>/bind"):
+        (None, None, "`user_id`: written by `nrs.audit.device._bind`"),
+    ("POST", "/api/v1/audit/devices/<int:id>/deactivate"):
+        (None, None, "no body: written by `nrs.audit.device._deactivate`"),
+    ("POST", "/api/v1/audit/blocks"):
+        (None, None, "`device_id`, `size`: written by "
+                     "`nrs.audit.code.block._issue_block`"),
+    ("POST", "/api/v1/audit/blocks/<int:id>/return"):
+        (None, None, "`reason`: written by "
+                     "`nrs.audit.code.block._return_block`"),
+    ("POST", "/api/v1/audit/campaigns"):
+        (None, None, "`name`, `scope`, `capturer_ids`, `reviewer_ids`, "
+                     "`date_start`, `date_end`: written by "
+                     "`nrs.audit.campaign._open_campaign`"),
+    ("PATCH", "/api/v1/audit/campaigns/<int:id>"):
+        (None, None, "`name`, `capturer_ids`, `reviewer_ids`, `date_end`: "
+                     "mapped by hand onto the campaign in the route"),
+    ("POST", "/api/v1/audit/campaigns/<int:id>/close"):
+        (None, None, "no body: written by "
+                     "`nrs.audit.campaign._close_campaign`"),
+    ("POST", "/api/v1/audit/photos"):
+        (None, None, "a multipart photo upload: parts `file`, `source`, "
+                     "refused outside them by `utils.get_multipart`; "
+                     "written by `nrs.audit.photo._upload`"),
+    ("POST", "/api/v1/audit/captures"):
+        (None, None, "a capture, written by `nrs.audit.capture._receive` "
+                     "after every check; confirmed values inside `fields`, "
+                     "refused outside `CONFIRMED_FIELDS`"),
+    ("POST", "/api/v1/audit/captures/<string:capture_id>/accept"):
+        (None, None, "no body: written by `nrs.audit.capture._accept`"),
+    ("POST", "/api/v1/audit/captures/<string:capture_id>/return"):
+        (None, None, "`reason`: written by "
+                     "`nrs.audit.capture._return_capture`"),
+    ("POST", "/api/v1/audit/captures/accept"):
+        (None, None, "`capture_ids` or `campaign_id` + `location_id`, "
+                     "`dry_run`: a batch of single acceptances"),
+    ("POST", "/api/v1/audit/captures/<string:capture_id>/register-new"):
+        (None, None, "`fields`: the item's identity, refused outside "
+                     "`audit_capture.IDENTITY_FIELDS`; written by "
+                     "`nrs.audit.capture._register_new`"),
+    ("POST", "/api/v1/audit/captures/<string:capture_id>/void"):
+        (None, None, "`reason`: written by "
+                     "`nrs.audit.capture._void_exception`"),
     # Handoff 65. The link's acts name ids, a note or a reason — never a
     # field of a model; each body is refused outside its route's own set
     # (`v1_sap_links._body`) and written by `nrs.sap.link`'s acts.

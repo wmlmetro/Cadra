@@ -112,6 +112,10 @@ EXPECTED_AUDITOR_SCOPES = frozenset({
     # Handoff 63 §1: SAP's asset master as Cadra holds it, and how much of
     # it Cadra holds. docs/DECISIONS.md, 2026-10-18.
     "sap_mirror:read",
+    # Handoff 66: the audit campaigns and their two closing lists — what an
+    # audit found, which is an auditor's to read. docs/DECISIONS.md,
+    # 2026-10-19.
+    "audit:read",
 })
 
 AUDITOR_GROUP_XMLID = "myservice_api.group_auditor"

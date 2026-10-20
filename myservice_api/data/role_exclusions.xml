@@ -48,5 +48,12 @@
             <field name="group_b" ref="myservice_asset_register.group_iad_vfm_approver"/>
             <field name="reason">Value for money is verified by one IAD officer and approved by another</field>
         </record>
+        <!-- Handoff 66: the reviewer is the second person on every audit
+             capture. -->
+        <record id="role_exclusion_audit_capturer_reviewer" model="nrs.role.exclusion">
+            <field name="group_a" ref="myservice_asset_register.group_audit_capturer"/>
+            <field name="group_b" ref="myservice_asset_register.group_audit_reviewer"/>
+            <field name="reason">An audit capture is made by one person and accepted by another; the reviewer is the second person</field>
+        </record>
     </data>
 </odoo>

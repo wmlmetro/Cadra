@@ -190,5 +190,31 @@
             <field name="implied_ids" eval="[(4, ref('group_asset_user'))]"/>
             <field name="comment">Approves or returns a registration a different person submitted. Approval puts the unit on the register and sends SAP its asset master.</field>
         </record>
+
+        <!-- Handoff 66 — the audit in the room. One privilege, two choices:
+             the capturer and the reviewer are exclusive by rule (the
+             reviewer is the second person; `nrs.role.exclusion` refuses the
+             pair at grant), so a single selection on the user form is the
+             truth of it. -->
+        <record id="privilege_audit_team" model="res.groups.privilege">
+            <field name="name">Audit Team</field>
+            <field name="sequence">60</field>
+            <field name="category_id" ref="module_category_nrs_assets"/>
+            <field name="description">Whether this person captures items in a room during an audit, or reviews (accepts or returns) what somebody else captured.</field>
+        </record>
+        <record id="group_audit_capturer" model="res.groups">
+            <field name="name">Audit Capturer</field>
+            <field name="privilege_id" ref="privilege_audit_team"/>
+            <field name="sequence">10</field>
+            <field name="implied_ids" eval="[(4, ref('group_asset_user'))]"/>
+            <field name="comment">Captures items in a room during an audit campaign — on the register, in SAP's register, or in neither — with a photo, on a device bound to them, using codes from their block.</field>
+        </record>
+        <record id="group_audit_reviewer" model="res.groups">
+            <field name="name">Audit Reviewer</field>
+            <field name="privilege_id" ref="privilege_audit_team"/>
+            <field name="sequence">20</field>
+            <field name="implied_ids" eval="[(4, ref('group_asset_user'))]"/>
+            <field name="comment">Accepts or returns the captures a different person made. Acceptance verifies a register asset in place, registers an item from SAP's record, or opens a found-not-in-SAP exception.</field>
+        </record>
     </data>
 </odoo>

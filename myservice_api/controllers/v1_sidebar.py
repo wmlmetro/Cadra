@@ -89,7 +89,10 @@ SIDEBAR_GROUPS = (
                   "sap_asset_master",
                   "sidebar_settings")),
     ("audit", ("access_changes", "configuration_changes", "disposals_report",
-               "register_snapshot", "register_export")),
+               "register_snapshot", "register_export",
+               # Handoff 66 — the audit in the room.
+               "audit_campaigns", "audit_review", "audit_capture",
+               "audit_exceptions", "audit_devices")),
     ("administration", ("users",)),
     ("tools", ("barcode_station",)),
 )

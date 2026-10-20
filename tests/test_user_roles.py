@@ -64,7 +64,9 @@ GRANTABLE = frozenset({"asset_user", "asset_officer", "asset_manager",
                        # by the handoff (kept by 58).
                        "iad_vfm_officer", "iad_vfm_approver",
                        "asset_controller", "register_maker",
-                       "register_checker"})
+                       "register_checker",
+                       # Handoff 66: the audit team.
+                       "audit_capturer", "audit_reviewer"})
 
 
 # ─── helpers ─────────────────────────────────────────────────────────

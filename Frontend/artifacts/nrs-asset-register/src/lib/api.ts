@@ -178,6 +178,9 @@ async function parseEnvelope<T>(res: Response, path: string): Promise<CadraRespo
 interface MutateOpts {
   /** Idempotency key for safe retries. Same key + endpoint within 24h returns cached response. */
   idempotencyKey?: string;
+  /** Extra request headers — e.g. `X-Cadra-Device` on an audit capture
+   *  (handoff 66), which names the device the capture was taken on. */
+  headers?: Record<string, string>;
 }
 
 export async function apiGet<T>(
@@ -278,6 +281,7 @@ async function apiMutate<T>(
     };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (opts?.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+    if (opts?.headers) Object.assign(headers, opts.headers);
 
     return fetch(buildUrl(path), {
       method,
@@ -308,6 +312,7 @@ export async function apiUpload<T>(
       // Do NOT set Content-Type — fetch sets the multipart boundary automatically.
     };
     if (opts?.idempotencyKey) headers["X-Idempotency-Key"] = opts.idempotencyKey;
+    if (opts?.headers) Object.assign(headers, opts.headers);
 
     return fetch(buildUrl(path), { method: "POST", headers, body: form });
   });

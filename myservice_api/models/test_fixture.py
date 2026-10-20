@@ -340,3 +340,44 @@ class NRSSapLink(models.Model):
     permanent and must be identifiable as one."""
     _name = 'nrs.sap.link'
     _inherit = ['nrs.sap.link', 'cadra.test.fixture.mixin']
+
+
+# Handoff 66 — the audit in the room. Every row a capture, a review or the
+# Asset Controller writes is permanent (nothing here is ever deleted), so a
+# fixture's must say so on its face.
+class NRSAuditDevice(models.Model):
+    _name = 'nrs.audit.device'
+    _inherit = ['nrs.audit.device', 'cadra.test.fixture.mixin']
+
+
+class NRSAssetCode(models.Model):
+    """A ledger row a test's asset or block wrote says so. The migration's
+    backfill writes with SQL and leaves the label empty: those codes belong
+    to assets that carry their own label."""
+    _name = 'nrs.asset.code'
+    _inherit = ['nrs.asset.code', 'cadra.test.fixture.mixin']
+
+
+class NRSAuditCodeBlock(models.Model):
+    _name = 'nrs.audit.code.block'
+    _inherit = ['nrs.audit.code.block', 'cadra.test.fixture.mixin']
+
+
+class NRSAuditCampaign(models.Model):
+    _name = 'nrs.audit.campaign'
+    _inherit = ['nrs.audit.campaign', 'cadra.test.fixture.mixin']
+
+
+class NRSAuditCampaignScope(models.Model):
+    _name = 'nrs.audit.campaign.scope'
+    _inherit = ['nrs.audit.campaign.scope', 'cadra.test.fixture.mixin']
+
+
+class NRSAuditPhoto(models.Model):
+    _name = 'nrs.audit.photo'
+    _inherit = ['nrs.audit.photo', 'cadra.test.fixture.mixin']
+
+
+class NRSAuditCapture(models.Model):
+    _name = 'nrs.audit.capture'
+    _inherit = ['nrs.audit.capture', 'cadra.test.fixture.mixin']

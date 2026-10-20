@@ -126,7 +126,31 @@ API_GRANTABLE_XMLIDS = (
     'myservice_asset_register.group_asset_controller',
     'myservice_asset_register.group_register_maker',
     'myservice_asset_register.group_register_checker',
+    # Handoff 66: the audit team, granted on the Users screen like the gate
+    # roles, for the same reason.
+    'myservice_asset_register.group_audit_capturer',
+    'myservice_asset_register.group_audit_reviewer',
 )
+
+
+def forget_group_memberships(env):
+    """Drop the registry's cached group memberships, in THIS process.
+
+    Odoo 19 caches a user's group ids per user (`res.users._get_group_ids`,
+    an ormcache) the first time membership is asked. A grant that is
+    REFUSED (`_assert_grants_allowed`, the role exclusions) or PREVIEWED
+    (`POST /users/<id>/roles` with `dry_run`) writes the groups inside a
+    savepoint, reads membership — which fills the cache with the groups it
+    is about to undo — and rolls the savepoint back. A savepoint rollback
+    does not reset the registry's caches, so the person went on HOLDING the
+    refused role: every later `/auth/login` minted its scopes, until some
+    other group write cleared the cache (handoff 66: the capturer persona's
+    token carried `audit:review` after a refused capturer + reviewer grant;
+    reproduced, four logins of four). Called before every such refusal is
+    raised and after every preview is rolled back. Nothing is cached again
+    between this call and the rollback: the caller raises at once."""
+    env.registry.clear_cache()
+    env.registry.clear_cache('groups')
 
 
 def api_caller():
@@ -235,8 +259,10 @@ def _assert_api_change_is_allowed(env, user, added, removed, *,
     offending = sorted((set(added) | set(removed)) - allowed)
     Groups = env['res.groups'].sudo()
     if offending:
+        forget_group_memberships(env)
         raise AccessError(_not_grantable_message(env, Groups.browse(offending[0])))
     if added and user.id == env.uid:
+        forget_group_memberships(env)
         raise AccessError(_self_grant_message(user, Groups.browse(min(added))))
 
 

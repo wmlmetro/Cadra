@@ -36,14 +36,17 @@ race one record onto two assets. Every act also writes an `nrs.asset.event`
 of type `sap_link` on the asset, which is what the history reads and what
 the no-two-gates rule reads.
 """
+import itertools
 import json
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.constants import PREFETCH_MAX
 
 from .asset_event import (EVENT_SAP_DUPLICATE_FLAGGED, EVENT_SAP_LINK)
 from .asset_gates import (GATE_LINK_CHECK, GATE_LINK_MAKE, GateRefused,
                           REGISTERED, S_REGISTER_CHECK, S_REGISTER_MAKE)
+from . import serial_placeholders
 from .sap_mirror import LINKED_EXISTS, norm_number
 
 #: The `sap_code_source` a link writes (`asset_sap`).
@@ -64,6 +67,11 @@ REASONS = {
 }
 #: A contested record (§2): the maker chose one of several Cadra assets.
 CONTESTED_SUFFIX = '; chosen from %d Cadra assets'
+
+#: `env.cr.cache` slot holding the duplicate flags of ONE batch of assets
+#: being serialized (handoff 66): `(prefetch_ids, {asset_id: event_id},
+#: event_ids)`. Emptied by the only writer of a flag, `_sap_flag_duplicate`.
+_FLAG_SLOT = 'cadra.sap_duplicate_flags'
 
 _STAMP_FIELDS = ('state', 'decided_by_id', 'decided_at', 'return_reason')
 
@@ -239,11 +247,14 @@ class NRSSapLink(models.Model):
                 number=asset.sap_asset_number), 'invalid_state',
                 {'sap_asset_number': asset.sap_asset_number})
         asset._refuse_posting_in_flight()
-        if self.reason_code == 'old_tag_unique' \
+        if self.reason_code in ('old_tag_unique', 'serial_unique') \
                 and 'chosen from' not in (self.reason or ''):
             # Proposed as uncontested; another Cadra asset may have come to
-            # point at the same record since (verification pass, finding 9).
-            rivals = asset._rivals_by_old_tag(rec)
+            # point at the same record since (verification pass, finding 9;
+            # the serial twin, handoff 66).
+            rivals = (asset._rivals_by_old_tag(rec)
+                      if self.reason_code == 'old_tag_unique'
+                      else asset._rivals_by_serial(rec))
             if rivals:
                 raise GateRefused(_(
                     'SAP asset %(number)s is now also pointed at by '
@@ -313,6 +324,36 @@ class NRSAssetSapLink(models.Model):
             "AND coalesce(btrim(sap_asset_number), '') = '' "
             "AND regexp_replace(upper(replace(legacy_asset_code, E'\\\\', "
             "'/')), '\\s+', '', 'g') = %s", (self.id, rec.old_tag_norm))
+        return [r[0] for r in self.env.cr.fetchall()]
+
+    def _rivals_by_serial(self, rec):
+        """Other register assets with no SAP number that the matcher would
+        point at `rec` by its serial: the serial normalised as
+        `serial_placeholders.normalise` does (stripped, upper-case, one
+        space) equal to the record's `serial_norm`, and — the matcher tries
+        a serial only when no active record carries the tag — no old tag
+        carried by an active record of the latest export
+        (`sap_mirror._confident_targets`)."""
+        self.ensure_one()
+        if rec.serial_kind != 'real' or not rec.serial_norm:
+            return []
+        # A value the tenant lists as a placeholder points no asset anywhere
+        # (`_confident_targets` drops it on the register's side).
+        if serial_placeholders.matcher(serial_placeholders.load(self.env))(
+                rec.serial_norm):
+            return []
+        self.env.flush_all()
+        self.env.cr.execute(
+            "SELECT a.id FROM nrs_asset a WHERE a.id <> %s "
+            "AND a.register_state = 'registered' "
+            "AND coalesce(btrim(a.sap_asset_number), '') = '' "
+            "AND upper(btrim(regexp_replace(a.serial_number, '\\s+', ' ', "
+            "'g'))) = %s "
+            "AND NOT EXISTS (SELECT 1 FROM nrs_sap_asset s "
+            "WHERE s.sap_active AND s.in_latest_export "
+            "AND s.old_tag_norm = regexp_replace(upper(replace("
+            "a.legacy_asset_code, E'\\\\', '/')), '\\s+', '', 'g'))",
+            (self.id, rec.serial_norm))
         return [r[0] for r in self.env.cr.fetchall()]
 
     def _open_sap_link(self):
@@ -456,6 +497,38 @@ class NRSAssetSapLink(models.Model):
             out.setdefault(ev.asset_id.id, ev)
         return out
 
+    def _sap_duplicate_flag(self):
+        """The latest duplicate flag event on this ONE asset, or an empty
+        recordset — for the asset serializer (handoff 66: it was one event
+        query per asset, N+1 on every asset list).
+
+        Read for the asset's whole prefetch batch in one query — a page
+        iterated with `for a in page` shares one `_prefetch_ids` object —
+        and kept in a one-slot cursor cache keyed by THAT object, so the
+        next asset of the same page is a dictionary hit and any other
+        recordset reads afresh. A single record (its own prefetch) is never
+        cached: what it says cannot outlive the call."""
+        self.ensure_one()
+        Event = self.env['nrs.asset.event'].sudo()
+        prefetch = self._prefetch_ids
+        cache = self.env.cr.cache
+        slot = cache.get(_FLAG_SLOT)
+        if slot is None or slot[0] is not prefetch or self.id not in slot[1]:
+            ids = list(itertools.islice(dict.fromkeys(itertools.chain(
+                (self.id,), (i for i in prefetch if isinstance(i, int)))),
+                PREFETCH_MAX))
+            flags = self.browse(ids)._sap_duplicate_flags()
+            mapping = dict.fromkeys(ids, False)
+            mapping.update({aid: ev.id for aid, ev in flags.items()})
+            slot = (prefetch, mapping,
+                    tuple(ev.id for ev in flags.values()))
+            if len(ids) > 1:
+                cache[_FLAG_SLOT] = slot
+        event_id = slot[1][self.id]
+        if not event_id:
+            return Event
+        return Event.browse(event_id).with_prefetch(slot[2])
+
     @api.model
     def _sap_flag_duplicate(self, sap_record, note, scopes=None,
                             targets=None):
@@ -492,6 +565,8 @@ class NRSAssetSapLink(models.Model):
                 who=first.actor_name or _('somebody')), 'invalid_state',
                 {'flagged_at': fields.Datetime.to_string(first.occurred_at)})
         Event = self.env['nrs.asset.event']
+        # The serializer's batch cache is stale the moment a flag lands.
+        self.env.cr.cache.pop(_FLAG_SLOT, None)
         for asset in group:
             Event._record(asset, EVENT_SAP_DUPLICATE_FLAGGED,
                           source='api_sap_link' if asset._in_api() else None,

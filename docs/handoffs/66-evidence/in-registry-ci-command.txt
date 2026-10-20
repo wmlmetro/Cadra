@@ -1,0 +1,2 @@
+2026-10-19 21:08:49,633 1122 ERROR test19f odoo.addons.myservice_api.tests.test_sap_mirror_scope: FAIL: TestSapMirrorScope.test_the_scope_table_gives_the_mirror_to_the_four_and_nobody_else
+2026-10-19 21:09:41,926 1122 ERROR test19f odoo.tests.result: 1 failed, 0 error(s) of 1306 tests when loading database 'test19f' 

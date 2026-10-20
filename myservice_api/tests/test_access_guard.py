@@ -491,4 +491,5 @@ class TestAccessGuard(CadraHttpCase):
         self.assertEqual(grantable, set(API_GRANTABLE_XMLIDS))
         by_key = {x["key"]: x for x in roles}
         self.assertIs(by_key["system"]["grantable"], False)
-        self.assertEqual(len(grantable), 10)
+        # 10 until handoff 66, which added the audit capturer and reviewer.
+        self.assertEqual(len(grantable), 12)

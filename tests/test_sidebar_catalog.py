@@ -66,6 +66,9 @@ PUBLISHED_ITEMS = {
     "ai_identify",
     # Link to SAP (handoff 65), after Candidates.
     "sap_links",
+    # The audit in the room (handoff 66), in the Audit group.
+    "audit_campaigns", "audit_review", "audit_capture", "audit_exceptions",
+    "audit_devices",
 }
 
 _KEY = re.compile(r"^[a-z][a-z0-9_]*$")

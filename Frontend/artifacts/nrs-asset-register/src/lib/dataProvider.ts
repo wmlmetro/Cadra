@@ -3548,6 +3548,7 @@ export const EXCLUDABLE_ROLE_KEYS = [
   "asset_user", "asset_officer", "asset_manager", "tag_issuing_unit",
   "iad_vfm_officer", "iad_vfm_approver", "asset_controller",
   "register_maker", "register_checker", "auditor",
+  "audit_capturer", "audit_reviewer",
 ] as const;
 
 export interface RoleRefKN { key: string; name: string }

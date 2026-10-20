@@ -47,6 +47,12 @@ SAP_SOURCE_CONFIRMED = 'confirmed'
 # it is neither of the two above. Only `nrs.sap.link` writes it.
 SAP_SOURCE_LINKED = 'linked_from_sap_mirror'
 _SAP_LINK_CONTEXT = 'cadra_sap_link'
+# Handoff 66 — an asset an audit team found in a room, matched to SAP's
+# record and registered from it by two people (the capturer and the
+# reviewer, `nrs.audit.capture`). Like a link, SAP already has the master:
+# nothing is queued. Only the capture's acceptance may write it.
+SAP_SOURCE_AUDIT = 'audit_from_sap_mirror'
+_SAP_AUDIT_CONTEXT = 'cadra_audit_write'
 
 # How far the INT-06 posting has got. Maintained by the transport module; a
 # plain stored field rather than a compute over dispatch rows, so the asset
@@ -112,6 +118,7 @@ class NRSAssetSAP(models.Model):
         (SAP_SOURCE_MANUAL, 'Entered by hand'),
         (SAP_SOURCE_CONFIRMED, 'Entered by hand, confirmed by SAP'),
         (SAP_SOURCE_LINKED, "Linked from SAP's export by two people"),
+        (SAP_SOURCE_AUDIT, "Registered from SAP's export by an audit team"),
     ], string='SAP Code Source', copy=False, index=True,
        help='How the SAP asset number got onto this record. A code returned '
             'by SAP is evidence that finance booked the asset; a code typed '
@@ -288,6 +295,12 @@ class NRSAssetSAP(models.Model):
                 '"Linked from SAP\'s export by two people" is recorded only '
                 'when a Register Checker approves a Register Maker\'s '
                 'proposal on Link to SAP.'))
+        if vals.get('sap_code_source') == SAP_SOURCE_AUDIT \
+                and not self.env.context.get(_SAP_AUDIT_CONTEXT):
+            raise ValidationError(_(
+                '"Registered from SAP\'s export by an audit team" is recorded '
+                'only when an audit reviewer accepts a capture matched to '
+                'SAP\'s record.'))
         if self.env.context.get(self._SAP_EVIDENCE_CONTEXT):
             return
         if vals.get('sap_code_source') in (SAP_SOURCE_INTEGRATION,

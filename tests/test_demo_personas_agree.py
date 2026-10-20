@@ -56,6 +56,9 @@ ALLOWED_GROUPS = {
     "myservice_asset_register.group_asset_controller",
     "myservice_asset_register.group_register_maker",
     "myservice_asset_register.group_register_checker",
+    # Handoff 66's audit team, both API-grantable.
+    "myservice_asset_register.group_audit_capturer",
+    "myservice_asset_register.group_audit_reviewer",
     "myservice_asset_register.group_tag_issuing_unit",
     "myservice_api.group_auditor",
     "base.group_system",
