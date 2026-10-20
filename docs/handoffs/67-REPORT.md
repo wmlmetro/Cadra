@@ -260,6 +260,10 @@ file's `test_one_record_and_the_asset_side_of_the_link` failed when run
 alone on a fresh tenant: it read "the first asset" from a register with 0
 assets, leaning on an earlier file to have made one. It now makes its own.
 The file passes 20 of 20, twice, on a fresh `test19f`.
+**CI on the fix, `ab15799`: green in both runs and both switch states.**
+The push run 39400286342 and the PR run 39400290325 each gave pytest
+1,534 passed, 16 skipped of 1,550 in each leg, and the in-registry step
+passed.
 
 
 PR #128.

@@ -15,3 +15,4 @@ Plan: Step 0 5 · §2 the four mobile gaps 20 · §3 size band + acceptance API 
 - 07:32 Progress: 97% — PR #128 open; report pushed CI pending.
 - 07:44 CI 39380829526: pytest green both legs, in-registry red (truncated log); reproduced locally — the published-names guard did not know the two new body routes. Fixed, pushed 2790fbe 07:58.
 - 08:11 Progress: 100% — CI 39383419099 green both switch states (1,534 passed, 16 skipped of 1,550 each; in-registry passed); report amended and pushed.
+- 10:39 After the report: PR run on 5dec8a8 red, 1 of 1,550 (test_sap_mirror re-import, a timing flake since 63); fixed in the test, CI 39400286342 + 39400290325 green both legs.
