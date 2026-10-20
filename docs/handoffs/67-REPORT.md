@@ -238,3 +238,8 @@ Started 06:48; budget 3 h. The report was pushed at about 07:32, roughly
 - **Verification fixes and affected reruns** 07:18–07:28; the browser rerun
   on `test19f` took 8 min.
 - **Report** 07:08–07:31, written while those ran.
+
+## CI
+
+PR #128. Run 39380771889 on `ebf51d9` (the fixes): **pending** —
+https://github.com/wmlmetro/Cadra/actions/runs/39380771889
