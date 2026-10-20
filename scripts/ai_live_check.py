@@ -292,8 +292,14 @@ def run_folder(base, auth, photos, labels, out, model, provider=None):
         print(f"{'':<28} SAP: {sap_line}")
         print(f"{'':<28} {seconds:.1f} s, "
               f"{'$%.4f' % cost if cost is not None else 'price not set'}, "
-              f"{usage.get('input_tokens')} in / "
-              f"{usage.get('output_tokens')} out tokens"
+              f"{usage.get('input_tokens')} in"
+              # A provider's cache: the fixed part of the prompt (the classes
+              # and SAP's descriptions) is WRITTEN on a first call and READ
+              # after. Both are input; printing only the uncached part read as
+              # "3 in" on staging's first OpenAI run (handoff 68 addendum).
+              f" (+{usage.get('cache_read_tokens') or 0} cached, "
+              f"+{usage.get('cache_write_tokens') or 0} written to the cache)"
+              f" / {usage.get('output_tokens')} out tokens"
               f"{'' if answered == model else f' (answered by {answered})'}\n")
         rows.append({"file": path.name, "ok": True, "first": first,
                      "top3": top3, "seconds": seconds, "cost": cost,
@@ -357,7 +363,19 @@ def main():
                          "(default: the tenant's provider and model)")
     ap.add_argument("--out", type=pathlib.Path,
                     help="also write every answer as JSON lines here")
-    args = ap.parse_args()
+    args, extra = ap.parse_known_args()
+    if extra:
+        # A token typed after `--token` would otherwise be ECHOED by
+        # argparse's "unrecognized arguments" — and it is already in the
+        # shell's history. Refuse it without repeating it.
+        if any(x.startswith("eyJ") or len(x) > 60 for x in extra):
+            sys.exit("A token was typed on the command line: it was NOT used, "
+                     "and it is now in your shell history. Sign out of the app "
+                     "(that ends the session), delete the line from your "
+                     "shell's history file, sign in again, and run with "
+                     "`--token` and NOTHING after it — the script then asks "
+                     "for the token at a hidden prompt.")
+        ap.error("unrecognized arguments: " + " ".join(extra))
 
     wanted = parse_models(args.models)
     folder = args.folder.expanduser()
