@@ -11,6 +11,13 @@
  *
  * `settings:write` for the changes, as the server's PATCH is; `settings:read`
  * sees the page read-only.
+ *
+ * Since handoff 67 (AI-NFR-08) the page also says how the suggestions were
+ * used: made, identified, used in a save or a capture, and accepted
+ * unchanged, by class, by site (the audit campaign's location) and by
+ * model, over the last 30 days (7 or 90 on request), from
+ * `nrs.ai.suggestion`. Every number says what it counts — the server's own
+ * definitions are printed under the tables, verbatim.
  */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,6 +49,36 @@ export interface AiIdentifySettings {
 }
 
 const KEY = ["settings", "ai-identify"] as const;
+
+/** One row of the acceptance dashboard (`GET /settings/ai-identify/acceptance`). */
+export interface AcceptanceRow {
+  key: string;
+  label: string;
+  made: number;
+  identified: number;
+  used: number;
+  accepted_unchanged: number;
+  /** 0..1, or null when nothing was used. */
+  share_accepted_unchanged: number | null;
+}
+
+export interface Acceptance {
+  window: { days: number; from: string; to: string; timezone: string };
+  totals: Omit<AcceptanceRow, "key" | "label">;
+  by_category: AcceptanceRow[];
+  by_site: AcceptanceRow[];
+  by_model: AcceptanceRow[];
+  definitions: Record<string, string>;
+}
+
+const ACCEPTANCE_DAYS = [7, 30, 90] as const;
+
+/** The order and the words the definitions are printed under. */
+const DEFINITION_WORDS: [string, string][] = [
+  ["made", "Made"], ["identified", "Identified"], ["used", "Used"],
+  ["accepted_unchanged", "Accepted unchanged"], ["share_accepted_unchanged", "Share"],
+  ["by_category", "By class"], ["by_site", "By site"], ["by_model", "By model"],
+];
 const inputCls = "px-3 py-1.5 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20";
 
 export default function AiIdentifySettingsPage() {
@@ -201,10 +238,119 @@ export default function AiIdentifySettingsPage() {
         </>
       )}
 
+      {s && <AcceptanceDashboard />}
+
       {readOnly && (
         <p className="text-[11px] text-muted-foreground" data-testid="settings-read-only">
           Changing this needs the settings role (Asset Manager or administrator).
         </p>
+      )}
+    </div>
+  );
+}
+
+function share(v: number | null) {
+  return v == null
+    ? <span title="nothing used yet">—</span>
+    : `${Math.round(v * 100)}%`;
+}
+
+/**
+ * How suggestions were used (handoff 67, AI-NFR-08). Read-only, under
+ * `settings:read`, as the page. The numbers are the server's; this only
+ * lays them out and prints what each one counts.
+ */
+function AcceptanceDashboard() {
+  const [days, setDays] = useState<number>(30);
+  const q = useQuery<Acceptance, CadraApiError>({
+    queryKey: ["ai-identify-acceptance", days],
+    queryFn: async () => (await apiGet<Acceptance>("/api/v1/settings/ai-identify/acceptance", { days })).data,
+    staleTime: 60_000,
+  });
+  const a = q.data;
+  const t = a?.totals;
+  return (
+    <section className="bg-card border border-border rounded-2xl p-5 space-y-3" data-testid="ai-acceptance">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <h2 className="text-[13px] font-bold">How suggestions were used — last {days} days</h2>
+        <select className={inputCls} value={days} onChange={e => setDays(Number(e.target.value))}
+                aria-label="Days" data-testid="ai-acceptance-days">
+          {ACCEPTANCE_DAYS.map(d => <option key={d} value={d}>Last {d} days</option>)}
+        </select>
+      </div>
+      {q.isLoading && (
+        <p className="text-[12px] text-muted-foreground flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" /> Counting…</p>
+      )}
+      {q.error && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-xl p-3 flex items-start gap-2">
+          <AlertCircle size={14} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <ApiErrorMessage err={q.error} />
+        </div>
+      )}
+      {a && t && (
+        <>
+          <p className="text-[11px] text-muted-foreground" data-testid="ai-acceptance-window">
+            {a.window.from} to {a.window.to}, days in {a.window.timezone === "Africa/Lagos" ? "Lagos" : a.window.timezone}.
+          </p>
+          <p className="text-[12px] text-foreground" data-testid="ai-acceptance-totals">
+            <span className="font-semibold">{t.made}</span> made · <span className="font-semibold">{t.identified}</span> identified ·{" "}
+            <span className="font-semibold">{t.used}</span> used · <span className="font-semibold">{t.accepted_unchanged}</span> accepted
+            unchanged · share {share(t.share_accepted_unchanged)}
+          </p>
+          <AcceptanceTable title="By class" rows={a.by_category} testid="ai-acceptance-by-category" />
+          <AcceptanceTable title="By site" rows={a.by_site} testid="ai-acceptance-by-site" />
+          <AcceptanceTable title="By model" rows={a.by_model} testid="ai-acceptance-by-model" />
+          <dl className="text-[11px] text-muted-foreground space-y-1 border-t border-border pt-3" data-testid="ai-acceptance-definitions">
+            {DEFINITION_WORDS.filter(([k]) => a.definitions?.[k]).map(([k, w]) => (
+              <div key={k} className="flex gap-1.5">
+                <dt className="font-semibold text-foreground shrink-0">{w}:</dt>
+                <dd data-testid={`ai-acceptance-definition-${k}`}>{a.definitions[k]}</dd>
+              </div>
+            ))}
+            {Object.keys(a.definitions ?? {}).filter(k => !DEFINITION_WORDS.some(([d]) => d === k)).map(k => (
+              <div key={k} className="flex gap-1.5">
+                <dt className="font-semibold text-foreground shrink-0">{k}:</dt>
+                <dd data-testid={`ai-acceptance-definition-${k}`}>{a.definitions[k]}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      )}
+    </section>
+  );
+}
+
+function AcceptanceTable({ title, rows, testid }: { title: string; rows: AcceptanceRow[]; testid: string }) {
+  return (
+    <div className="space-y-1">
+      <h3 className="text-[12px] font-semibold">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground" data-testid={`${testid}-empty`}>No suggestion was made in this window.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[520px]" data-testid={testid}>
+            <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr className="border-b border-border">
+                <th className="text-left py-1 pr-3">{title.replace(/^By /, "")}</th>
+                {["Made", "Identified", "Used", "Accepted unchanged", "Share"].map(h => (
+                  <th key={h} className="text-right py-1 pl-3">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.key} className="border-b border-border" data-testid={`${testid}-row-${r.key}`}>
+                  <td className="py-1 pr-3">{r.label}</td>
+                  <td className="text-right pl-3 tabular-nums">{r.made}</td>
+                  <td className="text-right pl-3 tabular-nums">{r.identified}</td>
+                  <td className="text-right pl-3 tabular-nums">{r.used}</td>
+                  <td className="text-right pl-3 tabular-nums">{r.accepted_unchanged}</td>
+                  <td className="text-right pl-3 tabular-nums">{share(r.share_accepted_unchanged)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

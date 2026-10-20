@@ -72,6 +72,7 @@ from .utils import (
     SCOPE_AUDIT_READ,
     SCOPE_AUDIT_REVIEW,
     _http_response,
+    caller_holds,
     err,
     gate_refusal,
     gate_refusal_parts,
@@ -197,7 +198,11 @@ def _code_out(c):
             "voided_at": _iso(c.voided_at), "voided_by": _user(c.voided_by_id),
             "void_reason": c.void_reason or None,
             "asset_id": c.asset_id.id or None,
-            "capture_id": c.capture_id.capture_uuid or None}
+            "capture_id": c.capture_id.capture_uuid or None,
+            "print_count": c.print_count,
+            "first_printed_at": _iso(c.first_printed_at),
+            "last_printed_at": _iso(c.last_printed_at),
+            "last_printed_by": _user(c.last_printed_by_id)}
 
 
 def _campaign_out(c, detail=False):
@@ -272,6 +277,11 @@ def _capture_out(cap):
                           if suggestion else None),
         "captured_at": _iso(cap.captured_at),
         "received_at": _iso(cap.received_at),
+        # AI-FR-10: only what the capturer chose to send, only here.
+        "gps": ({"latitude": cap.gps_latitude,
+                 "longitude": cap.gps_longitude,
+                 "accuracy_m": cap.gps_accuracy_m or None}
+                if cap.gps_recorded else None),
         "captured_by": _user(cap.operator_id),
         "device": {"id": cap.device_id.id, "name": cap.device_id.name},
         "duplicate_of": cap.duplicate_of_id.capture_uuid or None,
@@ -504,8 +514,12 @@ class CadraAuditCaptureV1(http.Controller):
         return error or _block_out(block, codes=True)
 
     @cadra_route("/api/v1/audit/blocks/<int:id>/return", method="POST",
-                 summary="Return a block: its unused codes are voided",
-                 scopes=[SCOPE_AUDIT_MANAGE],
+                 summary="Return a block: its unused codes are voided (the "
+                         "Asset Controller any block, a capturer their own)",
+                 # Handoff 67 §2.3: the capturer returns their own block — a
+                 # shift ending at a shared station — not only the Asset
+                 # Controller.
+                 scopes_any=[SCOPE_AUDIT_MANAGE, SCOPE_AUDIT_CAPTURE],
                  request_schema={"type": "object", "properties": {
                      "reason": {"type": "string"}}})
     def block_return(self, id, **kwargs):
@@ -515,13 +529,87 @@ class CadraAuditCaptureV1(http.Controller):
         block, error = _browse_or_404("nrs.audit.code.block", id, "block")
         if error:
             return error
+        holder_only = not caller_holds(SCOPE_AUDIT_MANAGE)
         voided, error = _guard(lambda: block.with_user(
-            request.env.user).sudo()._return_block(body.get("reason")))
+            request.env.user).sudo()._return_block(
+                body.get("reason"), holder_only=holder_only))
         if error:
             return error
         out = _block_out(block, codes=True)
         out["voided_now"] = voided
         return out
+
+    @cadra_route("/api/v1/audit/codes/printed", method="POST",
+                 summary="Record that codes from your block were printed "
+                         "(the station's print, handoff 67)",
+                 scopes=[SCOPE_AUDIT_CAPTURE], success_status=200,
+                 request_schema={"type": "object", "required": ["codes"],
+                                 "properties": {"codes": {
+                                     "type": "array", "minItems": 1,
+                                     "maxItems": BATCH_MAX,
+                                     "items": {"type": "string"}}}})
+    def codes_printed(self, **kwargs):
+        """Every print of a block code is recorded, as every tag label's is
+        (61): who printed it, when, how many times. A code not reserved to
+        the caller on the device in `X-Cadra-Device` refuses the whole
+        request, before anything is recorded."""
+        body, error = _body({"codes"})
+        if error:
+            return error
+        codes = body.get("codes")
+        if not isinstance(codes, list) or not codes \
+                or len(codes) > BATCH_MAX or not all(
+                    isinstance(c, str) and c.strip() for c in codes):
+            return err(ERR_VALIDATION_FAILED,
+                       "`codes` lists between 1 and %d codes that were "
+                       "printed." % BATCH_MAX, details={"field": "codes"})
+        wanted = list(dict.fromkeys(c.strip() for c in codes))
+        me = request.env.user
+
+        def act():
+            device = _env("nrs.audit.device")._from_header(
+                request.httprequest.headers.get(DEVICE_HEADER), me)
+            rows = _env("nrs.asset.code").search([("code", "in", wanted)])
+            found = {r.code: r for r in rows}
+            missing = [c for c in wanted if c not in found]
+            if missing:
+                raise GateRefused(
+                    "No code %s exists in the ledger." % ", ".join(missing),
+                    "validation_failed", {"field": "codes",
+                                          "unknown": missing})
+            for c in wanted:
+                found[c]._assert_reserved_to(me, device)
+            return rows.with_user(me).sudo()._record_print()
+        rows, error = _guard(act)
+        if error:
+            return error
+        return {"recorded": [{"code": r.code, "print_count": r.print_count,
+                              "last_printed_at": _iso(r.last_printed_at)}
+                             for r in rows.sorted("code")]}
+
+    @cadra_route("/api/v1/audit/codes/<string:code>/void", method="POST",
+                 summary="Void one spoiled code reserved to you (a label "
+                         "torn at print); never reissued",
+                 scopes=[SCOPE_AUDIT_CAPTURE],
+                 request_schema={"type": "object", "required": ["reason"],
+                                 "properties": {
+                                     "reason": {"type": "string"}}})
+    def code_void(self, code, **kwargs):
+        body, error = _body({"reason"})
+        if error:
+            return error
+        row = _env("nrs.asset.code").search([("code", "=", code.strip())],
+                                            limit=1)
+        if not row:
+            return err(ERR_NOT_FOUND, "No code %s exists in the ledger."
+                       % code, status=404, details={"code": code})
+        me = request.env.user
+
+        def act():
+            row._assert_reserved_to(me)
+            return row.with_user(me).sudo()._void_spoiled(body.get("reason"))
+        result, error = _guard(act)
+        return error or _code_out(result)
 
     @cadra_route("/api/v1/audit/codes", method="GET",
                  summary="The ledger of asset codes — which codes exist",
@@ -902,13 +990,28 @@ class CadraAuditCaptureV1(http.Controller):
                          "ai_suggestion_id": {"type": "integer"},
                          "captured_at": {"type": "string",
                                          "format": "date-time"},
+                         "gps": {"type": "object", "description":
+                                 "AI-FR-10, optional: where the device was. "
+                                 "Stored on the capture only — never sent "
+                                 "to the AI provider, never on the asset.",
+                                 "properties": {
+                                     "latitude": {"type": "number",
+                                                  "minimum": -90,
+                                                  "maximum": 90},
+                                     "longitude": {"type": "number",
+                                                   "minimum": -180,
+                                                   "maximum": 180},
+                                     "accuracy_m": {"type": "number",
+                                                    "minimum": 0}},
+                                 "required": ["latitude", "longitude"]},
                          "fields": {"type": "object", "properties": {
                              k: {} for k in CONFIRMED_FIELDS}}}})
     def capture(self, **kwargs):
         body, error = _body({"capture_id", "campaign_id", "location_id",
                              "outcome", "asset_id", "sap_record_id", "code",
                              "scanned_label", "label", "photo_ids",
-                             "ai_suggestion_id", "captured_at", "fields"})
+                             "ai_suggestion_id", "captured_at", "fields",
+                             "gps"})
         if error:
             return error
         me = request.env.user

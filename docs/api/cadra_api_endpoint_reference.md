@@ -4357,6 +4357,7 @@ design (handoff 48).
 | 40f | POST   | `/api/v1/ai/identify` | `assets:write` **or** `audit:capture` since handoff 66, checked in the route; behind `cadra.ai.identify` (handoff 64: multipart — `photo_id`, or `file` + `source`; the suggestion from a photo, written to no asset — §17) |
 | 40g | GET    | `/api/v1/settings/ai-identify` | `settings:read` (handoff 64: switch, provider, model, timeout, daily cap and today's count; `key_placed`, never the key — §17) |
 | 40h | PATCH  | `/api/v1/settings/ai-identify` | `settings:write` (handoff 64: everything above except the key, which is the owner's — §17) |
+| 40j | GET    | `/api/v1/settings/ai-identify/acceptance` | `settings:read` (handoff 67: suggestions made and the share accepted unchanged, by class, site and model, `?days=` — §20.5) |
 | 40i | GET    | `/api/v1/ai/config` | `audit:capture` **or** `assets:write`, checked in the route (handoff 66: the AI switch, model and calls left today, the label layout and the capture limits, for a phone going offline — §19.9) |
 | 41 | POST   | `/api/v1/assets/<id>/mark-found` | `assets:write` |
 | 42 | POST   | `/api/v1/assets/<id>/mark-missing` | `assets:write` |
@@ -4485,8 +4486,10 @@ design (handoff 48).
 | 162 | GET    | `/api/v1/audit/blocks` | `audit:read` (handoff 66: blocks, `?device_id=`, `?state=` — §19.3) |
 | 163 | POST   | `/api/v1/audit/blocks` | `audit:manage` (handoff 66: issue 1–500 codes to a device and its bound person — §19.3) |
 | 164 | GET    | `/api/v1/audit/blocks/<id>` | `audit:read` (handoff 66: one block and every code in it — §19.3) |
-| 165 | POST   | `/api/v1/audit/blocks/<id>/return` | `audit:manage` (handoff 66: unused codes voided, never reissued — §19.3) |
+| 165 | POST   | `/api/v1/audit/blocks/<id>/return` | `audit:manage` **or** `audit:capture` — the capturer their OWN block only (handoff 66; 67 §2.3: unused codes voided, never reissued — §19.3, §20.3) |
 | 166 | GET    | `/api/v1/audit/codes` | `audit:read` (handoff 66: the asset-code ledger, paged — §19.3) |
+| 166a | POST   | `/api/v1/audit/codes/printed` | `audit:capture` + `X-Cadra-Device` (handoff 67: record a print of codes reserved to you on that device — §20.1) |
+| 166b | POST   | `/api/v1/audit/codes/<code>/void` | `audit:capture` (handoff 67: void one spoiled code reserved to you, a reason required, never reissued — §20.2) |
 | 167 | GET    | `/api/v1/audit/campaigns` | `audit:read` (handoff 66: campaigns with progress, `?state=` — §19.4) |
 | 168 | POST   | `/api/v1/audit/campaigns` | `audit:manage` (handoff 66: open a campaign — scope, capturers, reviewers, dates — §19.4) |
 | 169 | GET    | `/api/v1/audit/campaigns/<id>` | `audit:read` (handoff 66: one campaign, with its rooms — §19.4) |
@@ -5997,3 +6000,71 @@ auditors who take it away. `?list=` is required.
 The label layout is data so the phone never guesses: **QR first, the code
 verbatim, no Code 128 below `large`** (handoffs 54 and 61: a camera read the
 small and medium Code 128 0 of 24).
+
+
+## 20 · The station captures (handoff 67)
+
+The Barcode Station page gained a *Capture* mode for a person holding
+`audit:capture`: 66's web capture, the same `POST /audit/captures` and the
+same review. A station is a registered device (§19.2), bound by the Asset
+Controller to whoever is signed in at it. **Shift change:** the person
+leaving returns their block (§20.3), the controller rebinds the device to
+the next person and issues them a block — the rebinding rule of §19.2 is
+unchanged (refused while a block issued to the previous person is open).
+
+### 20.1 POST `/api/v1/audit/codes/printed` — a station's print, recorded
+
+`audit:capture` and `X-Cadra-Device`. `{"codes": ["NRS-000123", …]}`, 1 to
+100. Every code must be reserved to the caller on that device and still
+`reserved`; one that is not refuses the whole request (`403`, or `409` for a
+used or void code; `400` for a code the ledger does not hold) and nothing
+is recorded. Answers `{"recorded": [{code, print_count, last_printed_at}]}`.
+A code row (§19.3) now also carries `print_count`, `first_printed_at`,
+`last_printed_at` and `last_printed_by`.
+
+### 20.2 POST `/api/v1/audit/codes/<code>/void` — one spoiled code
+
+`audit:capture`. `{"reason": "label torn at print"}`, required. Only a block
+code reserved to the caller and still `reserved` (`403` otherwise, `409`
+once used or void, `404` unknown). The code is voided with the reason and
+the caller, and is never reissued. Answers the code row.
+
+### 20.3 Returning your own block
+
+`POST /api/v1/audit/blocks/<id>/return` is open to `audit:capture` for a
+block issued to the caller (`403` for anybody else's). The Asset Controller
+(`audit:manage`) still returns any block. Unused codes are voided as before.
+
+### 20.4 GPS on a capture, and identifying a synced photo
+
+- `POST /api/v1/audit/captures` accepts optional `"gps": {"latitude",
+  "longitude", "accuracy_m"}` (AI-FR-10). Stored on the capture only and
+  published on its reads as `gps` (or `null`); never on the asset, never
+  sent to the AI provider (`/ai/identify` has no part that could carry it,
+  and 64 strips the photo's EXIF before it leaves).
+- `POST /api/v1/ai/identify` accepts the multipart part `audit_photo_id` —
+  a photo the caller synced with `POST /audit/photos` — so a phone uploads a
+  photo once. Exactly one of `photo_id`, `audit_photo_id`, `file`. The
+  answer's `photo` is `{"kind": "audit_photo", "id": N}`. Somebody else's
+  audit photo is `403 not_yours`. A capture naming such a suggestion must
+  carry its photo in `photo_ids`; no asset save can name it.
+- The identify answer carries **`size_band`** (AI-FR-03): `{"value":
+  "small"|"medium"|"large"|null, "approximate": true, "label": "Approximate
+  size", "definition", "definitions"}` — the words each band means, judged
+  from what the item is, never measured. Not a field any save writes;
+  `attributes.dimensions` stays empty unless a label states them. Prompt
+  version `67.1`.
+
+### 20.5 GET `/api/v1/settings/ai-identify/acceptance` (AI-NFR-08)
+
+`settings:read`, `?days=` 1–365 (default 30, Lagos days, today included).
+`{window, totals, by_category, by_site, by_model, definitions}`; every row
+`{key, label, made, identified, used, accepted_unchanged,
+share_accepted_unchanged}`. `definitions` says, in words, what each count
+counts: *made* every call; *identified* a suggestion a person could see;
+*used* named by an asset save or an audit capture; *accepted unchanged*
+every proposed field kept as proposed; the share is accepted unchanged over
+used, `null` when nothing was used. Class is the class SUGGESTED; site is
+the campaign location covering the capture's room (suggestions no capture
+used are one row); model is the model that answered.
+

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
@@ -16,13 +16,16 @@ import {
 // set in that one file; this screen imported one of them.
 import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 import { CadraApiError } from "@/lib/api";
-import { printLabels, floorRoomFromTag, LABEL_SIZES, type LabelData, type LabelSize } from "@/lib/labels";
+import { printLabels, floorRoomFromTag, type LabelData, type LabelSize } from "@/lib/labels";
 import {
   RequestTagReplacementDialog, ApproveTagReplacementDialog, RejectTagReplacementDialog,
 } from "@/components/TagReplacementDialogs";
 import { ConfirmAffixedDialog } from "@/components/ConfirmAffixedDialog";
 import RoomScanResult from "@/components/station/RoomScanResult";
 import RoomLabelPrint from "@/components/station/RoomLabelPrint";
+import LabelSizePicker from "@/components/station/LabelSizePicker";
+import { CaptureScreen } from "@/pages/audit/AuditCapture";
+import { Tabs } from "@/pages/audit/shared";
 import { roomOf } from "@/lib/locationLabels";
 import {
   fetchLabelsToFix, labelNumberOf, ageOf, type LabelToFixRow,
@@ -44,8 +47,81 @@ const MATCHED_BY_WORDS: Record<BarcodeMatchedBy, string> = {
 type Mode = "type" | "camera";
 type Notice = { kind: "error" | "warn" | "ok"; text: string } | null;
 
+/** The station's two modes (handoff 67 §1, Lot 6). *Scan & print* is the
+ *  station as it was; *Capture* is 66's audit capture, run at the station. */
+type StationMode = "scan" | "capture";
+const STATION_MODE_KEY = "cadra.station.mode";
+
+function readStationMode(): StationMode {
+  try {
+    return window.localStorage.getItem(STATION_MODE_KEY) === "capture" ? "capture" : "scan";
+  } catch {
+    return "scan";
+  }
+}
+
+function rememberStationMode(m: StationMode) {
+  try {
+    window.localStorage.setItem(STATION_MODE_KEY, m);
+  } catch {
+    // Not remembered: the next visit opens on Scan & print, the default.
+  }
+}
+
+/**
+ * The Barcode Station. Since handoff 67 a regional station also CAPTURES
+ * (Lot 6): the *Capture* tab is drawn only for a person holding
+ * `audit:capture`, and it is the very screen *Audit capture* draws —
+ * `CaptureScreen variant="station"` — so the station adds no rule of its
+ * own: the same `POST /audit/captures`, the same review. The last tab
+ * chosen is remembered per browser; the default is *Scan & print*. The
+ * label size is the station's, shared by both tabs.
+ */
 export default function BarcodeStation() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
+  const scopes = useScopes();
+  const canCapture = scopes.has(SCOPE.auditCapture);
+  const [chosen, setChosen] = useState<StationMode>(readStationMode);
+  const [size, setSize] = useState<LabelSize>("standard");
+  const stationMode: StationMode = canCapture ? chosen : "scan";
+
+  useEffect(() => {
+    setTitle("Barcode Station");
+    setSearchHandler(undefined);
+  }, [setTitle, setSearchHandler]);
+
+  const choose = (m: StationMode) => { setChosen(m); rememberStationMode(m); };
+  const tabs = canCapture ? (
+    <Tabs<StationMode>
+      label="Station mode" testidPrefix="station-mode" value={stationMode} onChange={choose}
+      tabs={[{ key: "scan", label: "Scan & print" }, { key: "capture", label: "Capture" }]}
+    />
+  ) : null;
+
+  if (stationMode === "capture") {
+    return (
+      <div className="p-6 space-y-5 max-w-[1100px] mx-auto" data-testid="barcode-station" data-mode="capture">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Barcode Station</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Capture items for an audit campaign at this station, one at a time: scan the room's label, photograph the
+            item, say what it is and — for an item not on Cadra's register — print the next code from this station's
+            block, fix it to the item and scan it back. A reviewer accepts each capture; you cannot review your own.
+          </p>
+          {tabs}
+        </div>
+        <CaptureScreen variant="station" labelSize={size} onLabelSize={setSize} />
+      </div>
+    );
+  }
+  return <ScanAndPrint tabs={tabs} size={size} setSize={setSize} />;
+}
+
+/** *Scan & print* — everything the station was before handoff 67,
+ *  unchanged. */
+function ScanAndPrint({ tabs, size, setSize }: {
+  tabs: ReactNode; size: LabelSize; setSize: (s: LabelSize) => void;
+}) {
   const [, nav] = useLocation();
   // Handoffs 46/47: the station is three jobs held by different people, and
   // each control is drawn only for the scope its route requires. Minting a
@@ -66,11 +142,6 @@ export default function BarcodeStation() {
   // it needs `candidates:read` — and it is drawn only on a tenant whose
   // receipt gates are on, so with the gates off the station is unchanged.
   const canReadCandidates = scopes.has(SCOPE.candidatesRead);
-
-  useEffect(() => {
-    setTitle("Barcode Station");
-    setSearchHandler(undefined);
-  }, [setTitle, setSearchHandler]);
 
   const domainOptions = useEnum("domain");
   const domainLabelOf = useEnumLabel("domain");
@@ -93,7 +164,6 @@ export default function BarcodeStation() {
   // camera that filled it. Typing clears it: a typed string has no format.
   const [scanFormat, setScanFormat] = useState<ScanFormat | null>(null);
   const scanBoxRef = useRef<HTMLInputElement>(null);
-  const [size, setSize] = useState<LabelSize>("standard");
   const [domain, setDomain] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [notice, setNotice] = useState<Notice>(null);
@@ -580,6 +650,7 @@ export default function BarcodeStation() {
         <p className="text-xs text-muted-foreground mt-1">
           Look up an asset by tag, asset code or serial number, generate barcodes for untagged assets, replace a damaged tag, and print labels.
         </p>
+        {tabs}
       </div>
 
       {kpis.error && (
@@ -611,7 +682,7 @@ export default function BarcodeStation() {
           >
             <Printer size={12} /> Print {printName(printableNewTag.reprint_count)} of {printableNewTag.tag_number}
           </button>
-          <SizePicker value={size} onChange={setSize} />
+          <LabelSizePicker value={size} onChange={setSize} />
         </div>
       )}
 
@@ -841,7 +912,7 @@ export default function BarcodeStation() {
                   Open asset <ArrowRight size={11} />
                 </button>
               )}
-              <SizePicker value={size} onChange={setSize} />
+              <LabelSizePicker value={size} onChange={setSize} />
             </div>
           </div>
         )}
@@ -960,7 +1031,7 @@ export default function BarcodeStation() {
               that only feed them are not drawn (handoffs 46/47). */}
           {canGenerate && (
           <div className="flex flex-wrap items-center gap-2">
-            <SizePicker value={size} onChange={setSize} />
+            <LabelSizePicker value={size} onChange={setSize} />
             <button
               onClick={() => void generate.mutateAsync([...pickedAssets]).catch(() => {})}
               disabled={pickedRows.length === 0 || generate.isPending}
@@ -1084,7 +1155,7 @@ export default function BarcodeStation() {
                 <option key={d.value} value={d.value}>{d.label}</option>
               ))}
             </select>
-            <SizePicker value={size} onChange={setSize} />
+            <LabelSizePicker value={size} onChange={setSize} />
             <button
               onClick={() => void printSelected()}
               disabled={selectedVisible.length === 0}
@@ -1256,7 +1327,7 @@ function LabelsToFixPanel({
             data-testid="labels-to-fix-filter"
             className="px-2.5 py-1.5 rounded-xl border border-border bg-background text-[11px] w-40"
           />
-          <SizePicker value={size} onChange={onSize} />
+          <LabelSizePicker value={size} onChange={onSize} />
           <button
             type="button"
             onClick={onPrint}
@@ -1607,22 +1678,6 @@ function UntaggedRow({ asset, pickable, checked, onToggle, onOpen }: {
       <td onClick={onOpen} className="px-3 py-2 text-[12px] truncate max-w-[180px] cursor-pointer">{asset.location}</td>
       <td onClick={onOpen} className="px-3 py-2 text-[12px] cursor-pointer">{conditionLabelOf(asset.condition)}</td>
     </tr>
-  );
-}
-
-function SizePicker({ value, onChange }: { value: LabelSize; onChange: (v: LabelSize) => void }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value as LabelSize)}
-      title={LABEL_SIZES.find((s) => s.value === value)?.hint}
-      aria-label="Label size"
-      className="px-2 py-1.5 text-[11px] border border-border rounded-xl bg-background"
-    >
-      {LABEL_SIZES.map((s) => (
-        <option key={s.value} value={s.value}>{s.label} — {s.hint.split(" — ")[0]}</option>
-      ))}
-    </select>
   );
 }
 

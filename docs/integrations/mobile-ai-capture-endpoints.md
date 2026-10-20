@@ -661,23 +661,52 @@ on `large` only; the code printed as text under the symbol) and `capture`
 `max_block_size`, `confirmed_fields`, `outcomes`). Read the limits from
 here rather than hard-coding them.
 
-## 10 · What you still cannot build
+## 10 · Added in release 67: four of last release's gaps, closed
+
+1. **Identify an audit photo by its id.** `POST /api/v1/ai/identify` takes
+   the multipart part `audit_photo_id` — the id `POST /audit/photos` gave
+   you — instead of `file`, so the photo goes up once. Exactly one of
+   `photo_id`, `audit_photo_id`, `file`; `source` goes with `file` only.
+   Only a photo YOU synced (`403 not_yours` otherwise). The answer's
+   `photo` is `{"kind": "audit_photo", "id": N}`; name `suggestion_id` as
+   the capture's `ai_suggestion_id`, and the capture must carry that photo
+   in `photo_ids` (`400` otherwise).
+2. **Void one spoiled code.** `POST /api/v1/audit/codes/{code}/void`
+   (`audit:capture`), `{"reason": "label torn at print"}` required. Only a
+   block code reserved to you and still `reserved` (`403` / `409`). It is
+   never reissued; move on to the next code in the block.
+3. **Return your own block.** `POST /api/v1/audit/blocks/{id}/return` is
+   open to the capturer for a block issued to them (`{"reason"}` optional);
+   every unused code is voided. Somebody else's block is `403`.
+4. **GPS on a capture (AI-FR-10), optional.** `POST /audit/captures` takes
+   `"gps": {"latitude": 9.0579, "longitude": 7.4951, "accuracy_m": 12.5}`
+   (`accuracy_m` optional; latitude −90…90, longitude −180…180, any other
+   key refused). Stored on the capture only and read back as `gps` (or
+   `null`). It is never sent to the AI provider — `/ai/identify` has no
+   part for it, and the server strips EXIF (the photo's own GPS) before a
+   photo leaves.
+
+Also new, if you print at a station or want them: **`POST
+/api/v1/audit/codes/printed`** (`audit:capture` + `X-Cadra-Device`,
+`{"codes": [...]}`) records a print of block codes (`print_count` on each
+code row) — the web station calls it; the phone may. And the identify
+answer carries **`size_band`** (`small` / `medium` / `large` / `null`,
+`approximate: true`, with the words each band means) — show it as
+*approximate size*; it is not a field you save, and `dimensions` stays
+empty unless a label states them.
+
+## 11 · What you still cannot build
 
 1. **Cadra does not push.** Nothing tells the phone a capture was accepted
    or returned. Poll `GET /audit/captures?mine=true` (by `state`); the list
    has no `updated_since`, so filter by `state`, `campaign_id` or
    `location_id`.
-2. **A spoiled label cannot be voided on its own.** A code printed and torn
-   before use stays `reserved` until the Asset Controller returns the whole
-   block (`POST /audit/blocks/{id}/return`), which voids every unused code.
-   There is no route to void one reserved code, and none for the phone to
-   return its own block.
-3. **The phone cannot enrol itself.** Registering, binding and
-   deactivating a device, issuing and returning blocks, and opening and
-   closing campaigns are the Asset Controller's (`audit:manage`). Getting
-   the `device_code` onto the phone (typed, or a QR you draw from it) is
-   yours to design; Cadra prints no device label.
-4. **A reprint under an existing code is not finished by the audit roles.**
+2. **The phone cannot enrol itself.** Registering, binding and
+   deactivating a device, issuing blocks, and opening and closing
+   campaigns are the Asset Controller's (`audit:manage`). Getting the
+   `device_code` onto the phone (typed, or a QR you draw from it) is yours
+   to design; Cadra prints no device label.
+3. **A reprint under an existing code is not finished by the audit roles.**
    Accepting an *on the register* capture with `label: "missing"` creates
    the reprint (`reprint_label_id`), but printing it is recorded through
    `POST /tags/printed` and fixing it confirmed on
@@ -685,20 +714,16 @@ here rather than hard-coding them.
    the Audit Capturer and Reviewer do not hold — the Tag-Issuing Unit's
    station does it. Until its print is recorded, an affix of that number is
    refused (§5.7).
-5. **SAP records with no office cannot be sliced by room.** SAP's export
+4. **SAP records with no office cannot be sliced by room.** SAP's export
    carries no location; the office is read from an old `FIRS/<office>/…`
    tag. A record with none (37,831 active on the October import, §7.1)
    never appears in a room's `kind=sap_records` slice, and the closing list
    reports such records as a count, not as *not found*. That waits on SAP's
    location extract from NRS. Search them with `GET /sap-assets/match`.
-6. **The photo goes up twice when it is identified** (§8.1): an audit photo
-   cannot be named by `photo_id` on `/ai/identify`.
-7. **The printer is yours.** Cadra publishes the layout (§6, §9.6) and the
+5. **The printer is yours.** Cadra publishes the layout (§6, §9.6) and the
    codes; the printer, its driver and the print itself are the app's.
-   Cadra does not record the phone's print of a block code as a print —
-   the capture's scanned label is the record.
-8. **Public holidays are working days** to the five-day window: it counts
+6. **Public holidays are working days** to the five-day window: it counts
    Monday to Friday and knows no holiday calendar.
-9. **The capitalisation threshold** is not in `/ai/config`, or anywhere:
+7. **The capitalisation threshold** is not in `/ai/config`, or anywhere:
    NRS's open question 1.
-10. **Sign-in on a Turnstile tenant** is still the open question in R4.
+8. **Sign-in on a Turnstile tenant** is still the open question in R4.

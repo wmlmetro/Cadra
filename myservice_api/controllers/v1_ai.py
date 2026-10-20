@@ -9,7 +9,10 @@ THE ROUTES
   - `photo_id` — a photo already on an asset (`POST /assets/<id>/photos`);
   - `file` (+ `source`: `web`/`mobile`) — a photo for an asset that does
     not exist yet, checked by the photo's own rules and HELD
-    (`nrs.ai.pending.photo`) until a save claims it, or for 24 hours.
+    (`nrs.ai.pending.photo`) until a save claims it, or for 24 hours;
+  - `audit_photo_id` (handoff 67 §2.1) — a photo the caller already synced
+    for an audit capture (`POST /audit/photos`), so the phone does not
+    upload it twice. The capture names the suggestion; no asset save can.
 
   201 with the suggestion: the class (with confidence and up to two
   alternatives), the attributes in SAP's style, the condition, the text
@@ -36,7 +39,8 @@ THE REFUSALS, every one in words and before the provider is asked:
   test stand-in on a database not marked `test`;
 * the photo's own: `413` over 300 KB, `415` not a JPEG or PNG, `400`
   empty or unreadable;
-* `400 invalid_request` — neither or both of `photo_id` / `file`.
+* `400 invalid_request` — not exactly one of `photo_id` / `audit_photo_id`
+  / `file`.
 
 AND AFTER IT IS ASKED — each still a recorded call (`nrs.ai.suggestion`,
 counted against the cap):
@@ -57,6 +61,7 @@ guard, and a handful over is what it costs to avoid that.
 import logging
 
 from odoo import fields, http
+from odoo.exceptions import UserError
 from odoo.http import request
 
 from odoo.addons.myservice_asset_register.models.ai_suggestion import (
@@ -74,6 +79,7 @@ from odoo.addons.myservice_asset_register.models.asset_photo import (
 from odoo.addons.myservice_nrs_base.database_class import TEST, database_class
 
 from . import ai_provider as ai
+from .query_params import BadFilter, parse_int
 from .utils import (
     ERR_FORBIDDEN,
     ERR_INTERNAL,
@@ -97,7 +103,9 @@ from .v1 import cadra_route
 _logger = logging.getLogger(__name__)
 
 IDENTIFY_FILE_FIELDS = ("file",)
-IDENTIFY_TEXT_FIELDS = ("photo_id", "source")
+IDENTIFY_TEXT_FIELDS = ("photo_id", "audit_photo_id", "source")
+#: The parts that name the photo; exactly one is sent.
+PHOTO_PARTS = ("photo_id", "audit_photo_id", "file")
 
 #: What the settings PATCH accepts. NOT the key: it is the owner's, set in
 #: the server's environment (`CADRA_AI_API_KEY`), and no route reads it back.
@@ -286,9 +294,23 @@ def _published(clean, notes, categories, sap):
         "category": category,
         "attributes": clean["attributes"],
         "condition": condition,
+        "size_band": size_band_block(clean.get("size_band")),
         "text_read": clean["text_read"],
         "sap_candidates": sap,
         "notes": notes,
+    }
+
+
+def size_band_block(value):
+    """AI-FR-03: the approximate size, said as approximate, with the words
+    each band means (handoff 67 §3). Not a field any save writes."""
+    return {
+        "value": value,
+        "approximate": True,
+        "label": "Approximate size",
+        "definition": ai.SIZE_BAND_WORDS.get(value) or
+        "The provider could not tell the item's size from the photo.",
+        "definitions": dict(ai.SIZE_BAND_WORDS),
     }
 
 
@@ -300,6 +322,8 @@ def serialize_suggestion(rec, data, settings):
     if photo:
         photo_ref = {"kind": "asset_photo", "id": photo.id,
                      "asset_id": photo.asset_id.id}
+    elif rec.audit_photo_id:
+        photo_ref = {"kind": "audit_photo", "id": rec.audit_photo_id.id}
     elif pending:
         photo_ref = {"kind": "pending", "id": pending.id,
                      "expires_at": fields.Datetime.to_string(
@@ -346,7 +370,8 @@ _SUGGESTION_SCHEMA = {
         "latency_ms": {"type": "integer"},
         "photo": {"type": "object", "properties": {
             "kind": {"type": "string",
-                     "enum": ["asset_photo", "pending", "expired"]},
+                     "enum": ["asset_photo", "audit_photo", "pending",
+                              "expired"]},
             "id": {"type": "integer", "nullable": True},
             "asset_id": {"type": "integer"},
             "expires_at": {"type": "string"}}},
@@ -361,6 +386,19 @@ _SUGGESTION_SCHEMA = {
         "condition": {"type": "object", "properties": {
             "value": {"type": "string", "enum": list(ai.CONDITIONS)},
             "note": {"type": "string", "nullable": True}}},
+        "size_band": {"type": "object", "description":
+                      "AI-FR-03: an APPROXIMATE size in words — `value` "
+                      "small / medium / large or null, `approximate` always "
+                      "true, `definition` the words for that band. Not a "
+                      "field a save writes; `attributes.dimensions` stays "
+                      "empty unless a label states them.",
+                      "properties": {
+                          "value": {"type": "string", "nullable": True,
+                                    "enum": list(ai.SIZE_BANDS)},
+                          "approximate": {"type": "boolean"},
+                          "label": {"type": "string"},
+                          "definition": {"type": "string"},
+                          "definitions": {"type": "object"}}},
         "text_read": {"type": "array", "items": {"type": "object",
                       "properties": {
                           "text": {"type": "string"},
@@ -417,7 +455,9 @@ class CadraAiV1(http.Controller):
                      "x-cadra-content-type": "multipart/form-data",
                      "description":
                          "**multipart/form-data**. Exactly one of "
-                         "`photo_id` (a photo already on an asset) or "
+                         "`photo_id` (a photo already on an asset), "
+                         "`audit_photo_id` (a photo you synced for an audit "
+                         "capture) or "
                          "`file` (a photo for an asset not yet saved; held "
                          "%d hours for a save to claim it). JPEG or PNG, at "
                          "most %d bytes. A part not listed here is refused "
@@ -426,6 +466,7 @@ class CadraAiV1(http.Controller):
                          % (PENDING_PHOTO_HOURS, MAX_PHOTO_BYTES),
                      "properties": {
                          "photo_id": {"type": "integer"},
+                         "audit_photo_id": {"type": "integer"},
                          "file": {"type": "string", "format": "binary"},
                          "source": {"type": "string",
                                     "enum": list(UPLOAD_SOURCES),
@@ -448,18 +489,56 @@ class CadraAiV1(http.Controller):
             return error
         upload = uploads.get("file")
         raw_id = values.get("photo_id")
-        if bool(upload) == bool(raw_id):
+        raw_audit = values.get("audit_photo_id")
+        received = [k for k, v in (("photo_id", raw_id),
+                                   ("audit_photo_id", raw_audit),
+                                   ("file", upload)) if v]
+        if len(received) != 1:
             return err(ERR_INVALID_REQUEST,
                        "Send exactly one of `photo_id` (a photo already on "
-                       "an asset) or `file` (a new photo). Nothing was "
-                       "written.",
+                       "an asset), `audit_photo_id` (a photo you synced for "
+                       "an audit capture) or `file` (a new photo). Nothing "
+                       "was written.",
                        details={"reason": "photo_part",
-                                "received": sorted(
-                                    ([] if not upload else ["file"])
-                                    + ([] if not raw_id else ["photo_id"]))})
+                                "received": sorted(received),
+                                "allowed": list(PHOTO_PARTS)})
         photo = None
+        audit_photo = None
         data = None
-        if raw_id:
+        if raw_audit:
+            if values.get("source"):
+                return refuse_unwritable(["source"], ["audit_photo_id"],
+                                         hint="`source` goes with `file`; a "
+                                              "synced photo already says "
+                                              "which app took it.")
+            try:
+                aid = int(raw_audit)
+            except ValueError:
+                return err(ERR_VALIDATION_FAILED,
+                           "`audit_photo_id` must be a photo's id (an "
+                           "integer).", details={"field": "audit_photo_id"})
+            audit_photo = env["nrs.audit.photo"].sudo().browse(aid).exists()
+            if not audit_photo:
+                return err(ERR_NOT_FOUND, "No audit photo %d." % aid,
+                           status=404)
+            if audit_photo.uploaded_by_id != env.user:
+                return err(ERR_FORBIDDEN,
+                           "Audit photo %d was synced by somebody else; you "
+                           "identify the photos you took." % aid, status=403,
+                           details={"reason": "not_yours",
+                                    "audit_photo_id": aid})
+            try:
+                data = audit_photo._bytes()
+            except UserError:
+                return err(ERR_VALIDATION_FAILED,
+                           "Audit photo %d's stored bytes no longer match "
+                           "what was uploaded; it cannot be identified."
+                           % aid, status=409,
+                           details={"reason": "integrity_mismatch"})
+            mimetype = audit_photo.mimetype
+            width, height = audit_photo.width, audit_photo.height
+            hint = audit_photo.filename or ""
+        elif raw_id:
             if values.get("source"):
                 return refuse_unwritable(["source"], ["photo_id"],
                                          hint="`source` goes with `file`; a "
@@ -542,7 +621,8 @@ class CadraAiV1(http.Controller):
 
         def record(result, **kw):
             return Suggestion._record(
-                photo=photo, pending=pending, provider=s["provider"],
+                photo=photo, pending=pending, audit_photo=audit_photo,
+                provider=s["provider"],
                 prompt_version=ai.PROMPT_VERSION, result=result,
                 actor=env.user, **kw)
 
@@ -598,6 +678,36 @@ class CadraAiV1(http.Controller):
                  response_schema=_SETTINGS_SCHEMA)
     def ai_settings_get(self, **kwargs):
         return _settings_block(request.env)
+
+    @cadra_route("/api/v1/settings/ai-identify/acceptance", method="GET",
+                 summary="Identify from photo: suggestions made and the "
+                         "share accepted unchanged, by class, site and "
+                         "model (AI-NFR-08)",
+                 scopes=[SCOPE_SETTINGS_READ],
+                 query_params=[{"name": "days", "schema": {
+                     "type": "integer", "minimum": 1, "maximum": 365,
+                     "default": 30},
+                     "description": "The last N Lagos days, today "
+                                    "included."}],
+                 response_schema={"type": "object", "properties": {
+                     "window": {"type": "object"},
+                     "totals": {"type": "object"},
+                     "by_category": {"type": "array",
+                                     "items": {"type": "object"}},
+                     "by_site": {"type": "array",
+                                 "items": {"type": "object"}},
+                     "by_model": {"type": "array",
+                                  "items": {"type": "object"}},
+                     "definitions": {"type": "object", "description":
+                                     "What every count counts, in words."}}})
+    def ai_acceptance(self, **kwargs):
+        try:
+            days = parse_int("days", kwargs.get("days"), minimum=1,
+                             maximum=365)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
+        return request.env["nrs.ai.suggestion"].sudo()._acceptance(
+            days or 30)
 
     @cadra_route("/api/v1/settings/ai-identify", method="PATCH",
                  summary="Identify from photo: switch, provider, model, "

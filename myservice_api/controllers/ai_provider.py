@@ -44,7 +44,7 @@ _logger = logging.getLogger(__name__)
 
 #: Bumped whenever the prompt, the schema or the validator changes what a
 #: suggestion means. Recorded on every `nrs.ai.suggestion`.
-PROMPT_VERSION = "64.1"
+PROMPT_VERSION = "67.1"
 
 PROVIDER_ANTHROPIC = "anthropic"
 PROVIDER_FAKE = "fake"
@@ -93,6 +93,22 @@ CONDITIONS = ("new", "good", "fair", "poor", "decommissioned")
 TEXT_KINDS = ("brand", "model", "serial_like", "firs_tag_like", "other")
 ATTRIBUTES = ("name", "colour", "material", "make", "model_name",
               "dimensions")
+#: AI-FR-03 (handoff 67 §3): an APPROXIMATE size, in words, because a photo
+#: has no scale and `dimensions` stays empty unless a label states them.
+#: `unknown` is the provider's way of saying none (an enum with null is not
+#: something every structured-output engine accepts); published as null.
+SIZE_BANDS = ("small", "medium", "large")
+SIZE_BAND_UNKNOWN = "unknown"
+SIZE_BAND_WORDS = {
+    "small": "One person carries it in one hand or under an arm — a desk "
+             "phone, a monitor, a stool, a side table.",
+    "medium": "One person lifts it with both arms or rolls it, and it goes "
+              "through a door without tilting — an office chair, a printer, "
+              "a two-drawer cabinet.",
+    "large": "Two or more people move it, or it is tilted or taken apart to "
+             "go through a door — a desk, a conference table, a wardrobe, a "
+             "sofa, a tall cabinet.",
+}
 _MAX_TEXT = 200
 
 
@@ -227,6 +243,8 @@ def answer_schema(category_ids):
                 "required": ["value", "note"],
                 "additionalProperties": False,
             },
+            "size_band": {"type": "string",
+                          "enum": list(SIZE_BANDS) + [SIZE_BAND_UNKNOWN]},
             "text_read": {
                 "type": "array",
                 "items": {
@@ -242,7 +260,7 @@ def answer_schema(category_ids):
             },
         },
         "required": ["category", "alternatives", "attributes", "condition",
-                     "text_read"],
+                     "size_band", "text_read"],
         "additionalProperties": False,
     }
 
@@ -268,6 +286,7 @@ has no scale: never estimate a size. Null otherwise.
 - condition.value: one of new, good, fair, poor, decommissioned. An item \
 that is broken or unusable is "poor" with condition.note "unserviceable". \
 condition.note is otherwise null or a few words.
+- size_band: %(size_bands)s
 - text_read: every piece of text you can read on the item, each with what \
 it looks like: brand, model, serial_like (a serial-number plate or \
 sticker), firs_tag_like (an old asset tag — FIRS was the service's former \
@@ -275,7 +294,10 @@ name, and its tags read like FIRS/<office>/<number>), or other. An empty \
 list if there is none.
 
 If the photo shows a person, describe only the item. If no item can be \
-seen, choose the closest class with a low confidence."""
+seen, choose the closest class with a low confidence.""" % {"size_bands": "how big the item is, APPROXIMATELY, judged from \
+what it is and how it is built — never measured, a photo has no scale. " + \
+    " ".join('"%s": %s' % (b, SIZE_BAND_WORDS[b]) for b in SIZE_BANDS) + \
+    ' "unknown" when you cannot tell.'}
 
 
 def build_system(categories, examples):
@@ -353,7 +375,7 @@ def validate_answer(data, category_ids):
     if not isinstance(data, dict):
         raise InvalidAnswer("the answer is not an object")
     expected = {"category", "alternatives", "attributes", "condition",
-                "text_read"}
+                "size_band", "text_read"}
     if set(data) != expected:
         raise InvalidAnswer("the answer's keys are not the schema's")
     category = _scored(data["category"], ids, "category")
@@ -377,6 +399,10 @@ def validate_answer(data, category_ids):
         raise InvalidAnswer("condition is not one of the published values")
     condition = {"value": cond["value"],
                  "note": _text(cond["note"], "condition.note")}
+    band = data["size_band"]
+    if band not in SIZE_BANDS + (SIZE_BAND_UNKNOWN,):
+        raise InvalidAnswer("size_band is not one of the published values")
+    size_band = None if band == SIZE_BAND_UNKNOWN else band
     reads = data["text_read"]
     if not isinstance(reads, list) or len(reads) > 40:
         raise InvalidAnswer("text_read is not a list")
@@ -400,7 +426,7 @@ def validate_answer(data, category_ids):
             attributes[key] = None
     return {"category": category, "alternatives": alternatives,
             "attributes": attributes, "condition": condition,
-            "text_read": text_read}, notes
+            "size_band": size_band, "text_read": text_read}, notes
 
 
 # ── the providers ────────────────────────────────────────────────────
@@ -480,6 +506,8 @@ class FakeProvider(Provider):
             text_read += [{"text": "HP", "looks_like": "brand"},
                           {"text": "LASERJET M404", "looks_like": "model"}]
         chair = "chair" in words
+        band = ("large" if words & {"table", "desk", "wardrobe", "cabinet"}
+                else "medium" if chair or brand else SIZE_BAND_UNKNOWN)
         return {
             "category": {"id": chosen, "confidence": 0.86},
             "alternatives": [{"id": c, "confidence": 0.05} for c in rest],
@@ -495,6 +523,7 @@ class FakeProvider(Provider):
             "condition": ({"value": "poor", "note": "unserviceable"}
                           if "unserviceable" in words
                           else {"value": "good", "note": None}),
+            "size_band": band,
             "text_read": text_read,
         }
 

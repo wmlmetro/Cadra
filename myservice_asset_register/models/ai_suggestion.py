@@ -222,6 +222,12 @@ class NRSAiSuggestion(models.Model):
     pending_photo_id = fields.Many2one(
         'nrs.ai.pending.photo', string='Pending Photo', index=True,
         ondelete='set null')
+    # Handoff 67 §2.1: a photo already synced for an audit capture, named by
+    # its id so the phone does not upload it twice. Kept, never expired
+    # (`nrs.audit.photo`), so this link does not go NULL.
+    audit_photo_id = fields.Many2one(
+        'nrs.audit.photo', string='Audit Photo', index=True,
+        ondelete='restrict')
     photo_sha256 = fields.Char(string='Photo SHA-256', required=True)
     photo_size = fields.Integer(string='Photo Size (bytes)')
 
@@ -274,15 +280,16 @@ class NRSAiSuggestion(models.Model):
     # ── the one way a row is written ──────────────────────────────────
 
     @api.model
-    def _record(self, *, photo=None, pending=None, provider, model,
-                prompt_version, result, suggestion=None, failure=None,
-                latency_ms=None, usage=None, actor=None):
+    def _record(self, *, photo=None, pending=None, audit_photo=None,
+                provider, model, prompt_version, result, suggestion=None,
+                failure=None, latency_ms=None, usage=None, actor=None):
         user = actor if actor is not None else self.env.user
-        holder = photo if photo else pending
+        holder = photo or pending or audit_photo
         usage = usage or {}
         return self.sudo().with_context(**{SUGGESTION_APPEND_KEY: True}).create({
             'photo_id': photo.id if photo else False,
             'pending_photo_id': pending.id if pending else False,
+            'audit_photo_id': audit_photo.id if audit_photo else False,
             'photo_sha256': holder.sha256,
             'photo_size': holder.size,
             'actor_id': user.id,
@@ -386,6 +393,14 @@ class NRSAiSuggestion(models.Model):
                          'ai_suggestion_id': self.id,
                          'asset_id': earlier.asset_id.id,
                          'event_id': earlier.id})
+        if self.audit_photo_id:
+            raise SuggestionRefused(
+                _("Suggestion %(id)s was made from an audit capture's photo; "
+                  "it is used by that capture, and an asset gains it when a "
+                  "reviewer accepts the capture. Nothing was written.",
+                  id=self.id),
+                details={'reason': 'audit_photo', 'ai_suggestion_id': self.id,
+                         'audit_photo_id': self.audit_photo_id.id})
         if self.photo_id and (asset is None or self.photo_id.asset_id != asset):
             raise SuggestionRefused(
                 _("Suggestion %(id)s is about a photo of asset %(code)s; it "
@@ -498,3 +513,118 @@ class NRSAiSuggestion(models.Model):
             photo_id=photo.id if photo else False,
             notes=json.dumps(notes, sort_keys=True))
         return event, outcomes, counts
+
+    # ── how suggestions were used (AI-NFR-08, handoff 67 §3) ──────────
+
+    @api.model
+    def _acceptance(self, days=30):
+        """Suggestions made in the last `days` Lagos days and the share a
+        person kept exactly as proposed — in total, by the class suggested,
+        by site and by model. Every count is defined in `ACCEPTANCE_WORDS`,
+        which the response carries, so no number stands without what it
+        counts."""
+        today = lagos_today()
+        first = today - timedelta(days=days - 1)
+        start, _end = lagos_day_bounds_utc(first)
+        cr = self.env.cr
+        cr.execute("SELECT id, result, model, provider, suggestion_json "
+                   "FROM nrs_ai_suggestion WHERE requested_at >= %s",
+                   (start,))
+        rows = cr.fetchall()
+        ids = [r[0] for r in rows]
+        unchanged = {}          # suggestion id -> kept exactly as proposed
+        site = {}               # suggestion id -> (key, label)
+        if ids:
+            cr.execute("SELECT ai_suggestion_id, notes FROM nrs_asset_event "
+                       "WHERE event_type = %s AND ai_suggestion_id = ANY(%s)",
+                       (EVENT_AI_SUGGESTION_APPLIED, ids))
+            for sid, notes in cr.fetchall():
+                counts = (json.loads(notes or '{}').get('counts') or {})
+                unchanged[sid] = not counts.get(OUTCOME_CHANGED) \
+                    and not counts.get(OUTCOME_IGNORED)
+            caps = self.env['nrs.audit.capture'].sudo().search(
+                [('ai_suggestion_id', 'in', ids)])
+            for cap in caps:
+                sugg = cap.ai_suggestion_id
+                written = json.loads(cap.confirmed_json or '{}')
+                outcomes = sugg._outcomes(written, asset=cap.asset_id or None)
+                unchanged[sugg.id] = all(
+                    o['outcome'] == OUTCOME_ACCEPTED
+                    for o in outcomes.values())
+                where = cap.campaign_id._site_of(cap.location_id)
+                site[sugg.id] = (str(where.id), where.display_name)
+        names = {}
+        cat_ids = set()
+        parsed = {}
+        for sid, result, _m, _p, data in rows:
+            cid = (json.loads(data or '{}').get('category') or {}).get('id') \
+                if result == 'ok' else None
+            parsed[sid] = cid
+            if cid:
+                cat_ids.add(cid)
+        for cat in self.env['nrs.asset.category'].sudo().with_context(
+                active_test=False).browse(list(cat_ids)).exists():
+            names[cat.id] = cat.name
+
+        def blank(key, label):
+            return {'key': key, 'label': label, 'made': 0, 'identified': 0,
+                    'used': 0, 'accepted_unchanged': 0}
+        totals = blank('all', 'All suggestions')
+        groups = {'by_category': {}, 'by_site': {}, 'by_model': {}}
+        for sid, result, model, provider, _d in rows:
+            cid = parsed[sid]
+            keys = {
+                'by_category': (str(cid), names.get(cid, _('Class %s') % cid))
+                if cid else ('none', _('Not identified')),
+                'by_site': site.get(sid, ('none', _(
+                    'Not used by an audit capture'))),
+                'by_model': (model or provider, model or provider),
+            }
+            buckets = [totals] + [
+                groups[g].setdefault(k, blank(k, label))
+                for g, (k, label) in keys.items()]
+            for b in buckets:
+                b['made'] += 1
+                if result == 'ok':
+                    b['identified'] += 1
+                if sid in unchanged:
+                    b['used'] += 1
+                    if unchanged[sid]:
+                        b['accepted_unchanged'] += 1
+
+        def share(b):
+            b['share_accepted_unchanged'] = round(
+                b['accepted_unchanged'] / b['used'], 4) if b['used'] else None
+            return b
+        out = {
+            'window': {'days': days, 'from': first.isoformat(),
+                       'to': today.isoformat(), 'timezone': 'Africa/Lagos'},
+            'totals': share(totals),
+            'definitions': dict(ACCEPTANCE_WORDS),
+        }
+        for g, rows_ in groups.items():
+            out[g] = sorted((share(b) for b in rows_.values()),
+                            key=lambda b: (-b['made'], b['label'] or ''))
+        return out
+
+
+#: What every count on the acceptance dashboard counts (handoff 67 §3).
+ACCEPTANCE_WORDS = {
+    'made': 'Calls to the provider in the window, every result counted — a '
+            'call that failed or was discarded was still made.',
+    'identified': 'Calls that came back with a suggestion a person could '
+                  'see (result: identified).',
+    'used': 'Identified suggestions a person then named when saving an '
+            'asset or sending an audit capture.',
+    'accepted_unchanged': 'Used suggestions where every field proposed was '
+                          'kept exactly as proposed (text compared ignoring '
+                          'case) — none changed, none left out.',
+    'share_accepted_unchanged': 'Accepted unchanged divided by used; blank '
+                                'when nothing was used.',
+    'by_category': 'Grouped by the class the provider suggested, not the '
+                   'class the person saved.',
+    'by_site': 'Grouped by the campaign location covering the room the '
+               'capture was made in; suggestions no audit capture used are '
+               'one row.',
+    'by_model': 'Grouped by the model that answered.',
+}

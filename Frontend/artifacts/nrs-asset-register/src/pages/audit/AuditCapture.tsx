@@ -21,24 +21,39 @@
  *      retry after a failed send is the same capture, not a second one.
  *
  * Every refusal is the server's sentence, verbatim.
+ *
+ * Since handoff 67 the same screen is the Barcode Station's *Capture* mode
+ * (Lot 6): `CaptureScreen variant="station"`. One screen, one flow, no new
+ * rules — the station differs only in where it runs: it IS a device (it
+ * remembers which of the person's devices it is), the room is found by
+ * scanning its room label first, and a code is printed through the
+ * station's print funnel and the print recorded, with *Spoiled label* and
+ * *Return my block* beside it (`components/station/CaptureStationParts`).
+ * Both places identify a photo by the id it was synced under
+ * (`audit_photo_id`), never by uploading it twice, and may record where the
+ * item was captured (GPS, off unless ticked; on the capture record only).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, CheckCircle2, Keyboard, Loader2, ScanLine, Sparkles, X } from "lucide-react";
+import { Camera, CheckCircle2, Keyboard, Loader2, MapPin, ScanLine, Sparkles, X } from "lucide-react";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { ScopeRefusal } from "@/components/ScopeRefusal";
 import BarcodeScanner from "@/components/BarcodeScanner";
-import { useAiSwitch, AiNotice } from "@/components/IdentifyFromPhoto";
+import { useAiSwitch, AiNotice, SizeBandLine } from "@/components/IdentifyFromPhoto";
+import {
+  StationBlockLine, StationCodePrint, StationDeviceLine, readStationDeviceCode, rememberStationDeviceCode,
+} from "@/components/station/CaptureStationParts";
 import type { CadraApiError } from "@/lib/api";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import { preparePhotoForUpload } from "@/lib/assetPhotos";
-import { identifyNewPhoto, type AiSuggestion } from "@/lib/aiIdentify";
+import { identifyAuditPhoto, type AiSuggestion } from "@/lib/aiIdentify";
+import type { LabelSize } from "@/lib/labels";
 import { fetchAssetCategories } from "@/lib/dataProvider";
 import {
   AUDIT_KEY, LABEL_WORDS, OUTCOME_WORDS, STATE_WORDS,
   fetchBlock, fetchBlocks, fetchCampaigns, fetchCaptures, fetchDevices, fetchRoomsUnder, fetchSlice,
   lookupScan, matchSap, myUid, nowIso, sendCapture, uploadAuditPhoto,
-  type AuditCampaign, type AuditCapture, type AuditPhoto, type CaptureBody, type ConfirmedFields,
+  type AuditCampaign, type AuditCapture, type AuditPhoto, type CaptureBody, type CaptureGps, type ConfirmedFields,
   type LabelState, type MatchResult, type Outcome, type RoomRef, type SliceAsset, type SliceSapRecord,
 } from "@/lib/auditCapture";
 import { cn, formatIsoDate } from "@/lib/utils";
@@ -80,7 +95,36 @@ export default function AuditCapture() {
   return <CaptureScreen />;
 }
 
-function CaptureScreen() {
+/** Where the screen runs. `desk` is the Audit capture page (66); `station`
+ *  is the Barcode Station's Capture mode (67), which also carries the
+ *  station's label size so a code prints the size the desk's printer holds. */
+export type CaptureScreenProps =
+  | { variant?: "desk" }
+  | { variant: "station"; labelSize: LabelSize; onLabelSize: (s: LabelSize) => void };
+
+/** Where the item is, from the browser — asked once, at send time, only when
+ *  the person ticked the box. Never sent anywhere but the capture body. */
+function currentGps(): Promise<CaptureGps> {
+  return new Promise((resolve, reject) => {
+    if (!("geolocation" in navigator)) {
+      reject(new Error("this browser has no location service"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({
+        latitude: p.coords.latitude, longitude: p.coords.longitude,
+        ...(Number.isFinite(p.coords.accuracy) ? { accuracy_m: Math.max(0, p.coords.accuracy) } : {}),
+      }),
+      (e) => reject(new Error(e.code === e.PERMISSION_DENIED ? "the browser was not allowed to read the location"
+        : e.code === e.TIMEOUT ? "the location did not arrive within 10 seconds" : "the location could not be read")),
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  });
+}
+
+export function CaptureScreen(props: CaptureScreenProps = {}) {
+  const station = props.variant === "station" ? props : null;
+  const isStation = !!station;
   const qc = useQueryClient();
   const ai = useAiSwitch();
 
@@ -102,11 +146,18 @@ function CaptureScreen() {
     if (campaignId == null && campaigns.data?.length) setCampaignId(campaigns.data[0].id);
   }, [campaigns.data, campaignId]);
   useEffect(() => {
-    if (deviceId == null && myDevices.length) setDeviceId(myDevices[0].id);
-  }, [myDevices, deviceId]);
+    if (deviceId != null || !myDevices.length) return;
+    // The station remembers which of the person's devices it is.
+    const remembered = isStation ? readStationDeviceCode() : null;
+    setDeviceId((myDevices.find(d => d.device_code === remembered) ?? myDevices[0]).id);
+  }, [myDevices, deviceId, isStation]);
   useEffect(() => { setRoom(null); }, [campaignId]);
   const campaign = campaigns.data?.find(c => c.id === campaignId) ?? null;
   const device = myDevices.find(d => d.id === deviceId) ?? null;
+  const deviceCode = device?.device_code ?? null;
+  useEffect(() => {
+    if (isStation && deviceCode) rememberStationDeviceCode(deviceCode);
+  }, [isStation, deviceCode]);
 
   const rooms = useQuery<RoomRef[], CadraApiError>({
     queryKey: [...AUDIT_KEY, "rooms", campaignId],
@@ -126,7 +177,9 @@ function CaptureScreen() {
   // ── 2. the item ──
   const [captureId, setCaptureId] = useState<string>(() => crypto.randomUUID());
   const [photos, setPhotos] = useState<AuditPhoto[]>([]);
-  const [lastPicture, setLastPicture] = useState<{ blob: Blob; filename: string } | null>(null);
+  // The photo *Identify* asks about: the last one synced, by its id
+  // (handoff 67 §2.1 — the bytes are already on the server).
+  const [lastPhotoId, setLastPhotoId] = useState<number | null>(null);
   const [photoError, setPhotoError] = useState<Error | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -154,7 +207,7 @@ function CaptureScreen() {
       const prepared = await preparePhotoForUpload(file);
       const photo = await uploadAuditPhoto(prepared.blob, prepared.filename);
       setPhotos(ps => ps.some(p => p.id === photo.id) ? ps : [...ps, photo]);
-      setLastPicture({ blob: prepared.blob, filename: prepared.filename });
+      setLastPhotoId(photo.id);
     } catch (e) {
       setPhotoError(e as Error);
     } finally {
@@ -164,7 +217,7 @@ function CaptureScreen() {
   };
 
   const identify = useMutation<AiSuggestion, CadraApiError>({
-    mutationFn: () => identifyNewPhoto(lastPicture!.blob, lastPicture!.filename),
+    mutationFn: () => identifyAuditPhoto(lastPhotoId as number),
     onSuccess: (s) => {
       const proposed: Values = {};
       if (s.category?.id) proposed.category_id = String(s.category.id);
@@ -198,9 +251,12 @@ function CaptureScreen() {
       const open = await fetchBlocks({ deviceId: deviceId as number, state: "issued" });
       return open[0] ? fetchBlock(open[0].id) : null;
     },
-    enabled: needsCode && deviceId != null,
+    // The station shows its block all the time — it is where *Return my
+    // block* lives; the desk reads it only when a code is needed.
+    enabled: (needsCode || isStation) && deviceId != null,
   });
-  const nextCode = block.data?.codes?.find(c => c.state === "reserved")?.code ?? null;
+  const nextCodeRow = block.data?.codes?.find(c => c.state === "reserved") ?? null;
+  const nextCode = nextCodeRow?.code ?? null;
   const reservedLeft = block.data?.codes?.filter(c => c.state === "reserved").length ?? 0;
 
   // ── 5. send ──
@@ -216,8 +272,22 @@ function CaptureScreen() {
     return out;
   }, [values]);
 
+  // ── GPS (AI-FR-10, handoff 67 §2.4) — off unless ticked ──
+  const [withGps, setWithGps] = useState(false);
+  const [gpsNote, setGpsNote] = useState<string | null>(null);
+
   const send = useMutation<AuditCapture, CadraApiError>({
-    mutationFn: () => {
+    mutationFn: async () => {
+      setGpsNote(null);
+      let gps: CaptureGps | undefined;
+      if (withGps) {
+        try {
+          gps = await currentGps();
+        } catch (e) {
+          // Sent without it, and said after.
+          setGpsNote(`Sent without GPS: ${e instanceof Error ? e.message : "the location could not be read"}.`);
+        }
+      }
       const body: CaptureBody = {
         capture_id: captureId, campaign_id: campaignId as number, location_id: room!.id,
         outcome: outcome as Outcome, photo_ids: photos.map(p => p.id), captured_at: nowIso(), fields,
@@ -226,6 +296,7 @@ function CaptureScreen() {
       if (outcome === "on_register" && asset) { body.asset_id = asset.id; body.label = label; }
       if (outcome === "in_sap" && sap) body.sap_record_id = sap.id;
       if (needsCode) { body.code = nextCode ?? ""; body.scanned_label = scanned.trim(); }
+      if (gps) body.gps = gps;
       return sendCapture(device!.device_code, body);
     },
     onSuccess: (c) => {
@@ -234,7 +305,7 @@ function CaptureScreen() {
       // The next item: a new capture id, everything about the item cleared;
       // the campaign, device and room stay — the person is still in it.
       setCaptureId(crypto.randomUUID());
-      setPhotos([]); setLastPicture(null); setValues({ condition: "" }); setSuggested({}); setSuggestion(null);
+      setPhotos([]); setLastPhotoId(null); setValues({ condition: "" }); setSuggested({}); setSuggestion(null);
       setOutcome(null); setAsset(null); setSap(null); setScanned(""); setLabel("present");
       identify.reset();
     },
@@ -261,13 +332,15 @@ function CaptureScreen() {
   if (outcome === "in_neither" && !(values.name ?? "").trim()) missing.push("a description");
 
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader icon={<ScanLine size={15} />} title="Audit capture">
-        Capture one item at a time, at a desk. The same capture the phone makes: a photo, what the item is, and — for
-        an item not on Cadra's register — the next code from your device's block, printed and fixed to it. A reviewer
-        accepts it; you cannot review your own.
-      </PageHeader>
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 max-w-4xl">
+    <div className={station ? undefined : "flex flex-col h-full"} data-testid={station ? "station-capture" : undefined}>
+      {!station && (
+        <PageHeader icon={<ScanLine size={15} />} title="Audit capture">
+          Capture one item at a time, at a desk. The same capture the phone makes: a photo, what the item is, and — for
+          an item not on Cadra's register — the next code from your device's block, printed and fixed to it. A reviewer
+          accepts it; you cannot review your own.
+        </PageHeader>
+      )}
+      <div className={station ? "space-y-5" : "flex-1 overflow-y-auto px-5 py-4 space-y-5 max-w-4xl"}>
         {sent && (
           <div className="rounded-xl border border-green-300 bg-green-50 dark:bg-green-950/30 p-3 text-[12px]" data-testid="capture-sent"
                data-capture-id={sent.capture_id}>
@@ -278,8 +351,12 @@ function CaptureScreen() {
               Capture <span className="font-mono">{sent.capture_id}</span>
               {sent.code && <> · code <span className="font-mono">{sent.code}</span></>}
               {sent.duplicate_of && <> · held as a duplicate of an earlier capture, for the reviewer to compare</>}
+              {sent.gps && <> · with where it was captured</>}
             </p>
           </div>
+        )}
+        {gpsNote && !send.isPending && (
+          <p className="text-[11px] text-amber-800 dark:text-amber-300" data-testid="capture-gps-note">{gpsNote}</p>
         )}
 
         {/* 1 — where */}
@@ -293,16 +370,27 @@ function CaptureScreen() {
               {(campaigns.data ?? []).length === 0 && <option value="">No open campaign names you as a capturer</option>}
               {(campaigns.data ?? []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <select className={INPUT} data-testid="capture-device" aria-label="Device"
-                    value={deviceId ?? ""} onChange={e => setDeviceId(e.target.value ? Number(e.target.value) : null)}>
-              {myDevices.length === 0 && <option value="">No device is bound to you</option>}
-              {myDevices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.device_code})</option>)}
-            </select>
+            {!station && (
+              <select className={INPUT} data-testid="capture-device" aria-label="Device"
+                      value={deviceId ?? ""} onChange={e => setDeviceId(e.target.value ? Number(e.target.value) : null)}>
+                {myDevices.length === 0 && <option value="">No device is bound to you</option>}
+                {myDevices.map(d => <option key={d.id} value={d.id}>{d.name} ({d.device_code})</option>)}
+              </select>
+            )}
           </div>
-          {devices.data && myDevices.length === 0 && (
+          {!station && devices.data && myDevices.length === 0 && (
             <p className="text-[11px] text-amber-800 dark:text-amber-300">The Asset Controller binds a device to you on <span className="font-semibold">Devices and codes</span>; a capture names the device it was taken on.</p>
           )}
-          {campaign && <RoomChooser rooms={rooms.data ?? []} loading={rooms.isLoading} room={room} onRoom={setRoom} />}
+          {station && (
+            <>
+              <StationDeviceLine device={device} loaded={!!devices.data} devices={myDevices} onDevice={setDeviceId} />
+              {device && <StationBlockLine block={block.data} loading={block.isLoading} />}
+            </>
+          )}
+          {campaign && (
+            <RoomChooser rooms={rooms.data ?? []} loading={rooms.isLoading} room={room} onRoom={setRoom}
+                         campaignId={campaign.id} scanFirst={isStation} />
+          )}
           {rooms.error && <ErrorPanel err={rooms.error} />}
         </section>
 
@@ -315,7 +403,7 @@ function CaptureScreen() {
             <Btn kind="plain" testid="button-capture-photo" pending={uploading} onClick={() => fileInput.current?.click()}>
               <Camera size={12} /> {photos.length ? "Add another photo" : "Take or choose a photo"}
             </Btn>
-            {ai && lastPicture && (
+            {ai && lastPhotoId != null && (
               <Btn kind="plain" testid="button-identify" pending={identify.isPending} onClick={() => identify.mutate()}>
                 <Sparkles size={12} /> Identify from photo
               </Btn>
@@ -368,6 +456,7 @@ function CaptureScreen() {
         {/* 4 — the fields */}
         <section className="space-y-2" aria-label="Fields">
           <p className={LABEL}>4 · Confirm what you see</p>
+          {suggestion && <SizeBandLine band={suggestion.size_band} />}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <FieldRow label="Class" suggestedValue={suggested.category_id} value={values.category_id ?? ""}>
               <select className={cn(INPUT, "w-full")} data-testid="select-field-category" aria-label="Class"
@@ -407,8 +496,15 @@ function CaptureScreen() {
               : !nextCode ? <p className="text-[12px] text-amber-800 dark:text-amber-300" data-testid="capture-no-code">Every code in {block.data.name} is used. Ask the Asset Controller for another block.</p>
               : (
                 <div className="space-y-2">
-                  <p className="text-[12px]">Print this code on a label and fix it to the item ({reservedLeft} left in {block.data.name}):</p>
+                  <p className="text-[12px]">
+                    {station ? "Print this code's label here" : "Print this code on a label"} and fix it to the item ({reservedLeft} left in {block.data.name}):
+                  </p>
                   <p className="text-[22px] font-mono font-bold tracking-wide" data-testid="capture-next-code">{nextCode}</p>
+                  {station && (
+                    <StationCodePrint key={captureId} code={nextCode} codeRow={nextCodeRow} deviceCode={deviceCode}
+                      assetName={(values.name ?? "").trim() || "Audit capture"}
+                      size={station.labelSize} onSize={station.onLabelSize} onSpoiled={() => setScanned("")} />
+                  )}
                   <ScannedLabel value={scanned} onChange={setScanned} expected={nextCode} />
                 </div>
               )}
@@ -416,6 +512,14 @@ function CaptureScreen() {
         )}
 
         <div className="space-y-2 pb-6">
+          {/* AI-FR-10: optional, off by default, asked of the browser once at
+              send time. On the capture record only — never sent to the AI
+              provider, never on a label. */}
+          <label className="text-[12px] flex items-center gap-2">
+            <input type="checkbox" className="accent-primary" checked={withGps} onChange={e => setWithGps(e.target.checked)}
+                   data-testid="input-capture-gps" />
+            <MapPin size={12} className="text-muted-foreground" /> Record where this was captured (GPS)
+          </label>
           {send.error && <ErrorPanel err={send.error} testid="capture-send-error" />}
           <div className="flex items-center gap-3 flex-wrap">
             <Btn testid="button-send-capture" disabled={!ready} pending={send.isPending} onClick={() => { setSent(null); send.mutate(); }}>
@@ -450,7 +554,9 @@ function FieldRow({ label, suggestedValue, value, children }: {
   );
 }
 
-function ScanOrType({ onValue, placeholder, testid }: { onValue: (v: string) => void; placeholder: string; testid: string }) {
+function ScanOrType({ onValue, placeholder, testid, autoFocus }: {
+  onValue: (v: string) => void; placeholder: string; testid: string; autoFocus?: boolean;
+}) {
   const [mode, setMode] = useState<"type" | "camera">("type");
   const [typed, setTyped] = useState("");
   return (
@@ -468,7 +574,8 @@ function ScanOrType({ onValue, placeholder, testid }: { onValue: (v: string) => 
         </div>
         {mode === "type" && (
           <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) onValue(typed.trim()); }}>
-            <input value={typed} onChange={e => setTyped(e.target.value)} placeholder={placeholder}
+            {/* A handheld scanner types into whatever has focus, then Enter. */}
+            <input value={typed} onChange={e => setTyped(e.target.value)} placeholder={placeholder} autoFocus={autoFocus}
                    className={cn(INPUT, "w-56 font-mono")} data-testid={testid} />
             <Btn type="submit" kind="plain" disabled={!typed.trim()} testid={`${testid}-go`}>Find</Btn>
           </form>
@@ -481,29 +588,53 @@ function ScanOrType({ onValue, placeholder, testid }: { onValue: (v: string) => 
   );
 }
 
-function RoomChooser({ rooms, loading, room, onRoom }: {
+/**
+ * The room: chosen from the campaign's rooms, or found by its room code
+ * (`LOC-…`) scanned off the room's label. A code is matched against the
+ * campaign's rooms first; one the list does not hold (a room deeper than
+ * the list goes) is resolved by the scan lookup and then asked of the
+ * campaign's own slice, so a room outside the campaign is refused in the
+ * server's words before anything is captured in it. At the station the
+ * scan comes first and the list is the fallback.
+ */
+function RoomChooser({ rooms, loading, room, onRoom, campaignId, scanFirst }: {
   rooms: RoomRef[]; loading: boolean; room: RoomRef | null; onRoom: (r: RoomRef | null) => void;
+  campaignId: number; scanFirst?: boolean;
 }) {
   const scan = useMutation<RoomRef, CadraApiError | Error, string>({
     mutationFn: async (v) => {
+      const typed = v.trim().toUpperCase();
+      const listed = rooms.find(r => r.location_code && r.location_code.toUpperCase() === typed);
+      if (listed) return listed;
       const a = await lookupScan(v);
       if (a.kind !== "room") throw new Error(`${v} is an asset's label (${a.asset.asset_code}), not a room's code.`);
+      const inList = rooms.find(r => r.id === a.room.id);
+      if (inList) return { ...inList, location_code: inList.location_code ?? a.room.location_code };
+      // Not in the list: the campaign decides. Its slice refuses a room it
+      // does not cover ("<room> is outside campaign <name>."), verbatim.
+      await fetchSlice<SliceAsset>(campaignId, a.room.id, "assets");
       return a.room;
     },
     onSuccess: (r) => onRoom(r),
   });
+  const chooser = (
+    <div className="flex flex-wrap gap-2 items-center">
+      {scanFirst && <span className="text-[11px] text-muted-foreground">or choose it:</span>}
+      <select className={INPUT} data-testid="capture-room" aria-label="Room" value={room?.id ?? ""}
+              onChange={e => { const r = rooms.find(x => x.id === Number(e.target.value)); onRoom(r ?? null); }}>
+        <option value="">{loading ? "Reading the rooms…" : "Choose the room…"}</option>
+        {room && !rooms.some(r => r.id === room.id) && <option value={room.id}>{room.name}</option>}
+        {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+      </select>
+      {!scanFirst && <span className="text-[11px] text-muted-foreground">or scan its room code:</span>}
+    </div>
+  );
   return (
     <div className="space-y-1.5">
-      <div className="flex flex-wrap gap-2 items-center">
-        <select className={INPUT} data-testid="capture-room" aria-label="Room" value={room?.id ?? ""}
-                onChange={e => { const r = rooms.find(x => x.id === Number(e.target.value)); onRoom(r ?? null); }}>
-          <option value="">{loading ? "Reading the rooms…" : "Choose the room…"}</option>
-          {room && !rooms.some(r => r.id === room.id) && <option value={room.id}>{room.name}</option>}
-          {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-        </select>
-        <span className="text-[11px] text-muted-foreground">or scan its room code:</span>
-      </div>
-      <ScanOrType onValue={(v) => scan.mutate(v)} placeholder="LOC-…" testid="input-room-code" />
+      {scanFirst && <p className="text-[12px]">Scan the room's label (its room code), or type it:</p>}
+      {!scanFirst && chooser}
+      <ScanOrType onValue={(v) => scan.mutate(v)} placeholder="LOC-…" testid="input-room-code" autoFocus={scanFirst} />
+      {scanFirst && chooser}
       {scan.error && <ErrorPanel err={scan.error} testid="room-scan-error" />}
       {room && <p className="text-[12px]" data-testid="capture-room-chosen">Room: <span className="font-semibold">{room.name}</span>{room.location_code && <span className="font-mono text-muted-foreground"> {room.location_code}</span>}</p>}
     </div>
