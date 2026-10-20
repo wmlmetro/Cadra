@@ -127,7 +127,7 @@ Two PRD alignments:
 | Browser, station specs on `test19` (10, 39, 40, 54, 61 room codes, 64) | **23 passed, 6 skipped**; 46, 66 and 67 refused there at a precondition — `test19`'s personas file has no audit personas (0 of 2; `test19f`'s has them), predating this handoff — and run on `test19f` above |
 | Fan-out (8 tenants + template) | clean, `67-evidence/fanout.txt`; template 155.6 s |
 | Final local pytest (fresh `test19f`, gates OFF — no gate code changed) | **1 failed, 1538 passed, 10 skipped of 1,549** in 11 m 0 s — the one: `test_query_param_guard` wanted the new `?days=` in its inventory; added, rerun green (above) |
-| CI | 39378524343 on `36eaaf1`: the same one failure in both legs (1 failed, 1532 passed, 16 skipped), nothing else. Rerun on the fix commit — see the CI line at the end |
+| CI | **39383419099 on `2790fbe`: green, both switch states** — 1,534 passed, 16 skipped of 1,550 each; in-registry passed (details in § CI) |
 
 ## Deviations and findings
 
@@ -238,6 +238,9 @@ Started 06:48; budget 3 h. The report was pushed at about 07:32, roughly
 - **Verification fixes and affected reruns** 07:18–07:28; the browser rerun
   on `test19f` took 8 min.
 - **Report** 07:08–07:31, written while those ran.
+- **CI** 07:32–08:11. The in-registry guard was found by reproducing
+  locally (07:44–07:57), the fix pushed at 07:58, green at 08:11. The
+  report was pushed marked *CI pending* first, with no idle wait.
 
 ## CI
 
@@ -258,4 +261,7 @@ PR #128.
     which needs some movement row on the database; a freshly restored
     `test19f` has none until CI's pytest step (which runs first) writes
     them. It was not seen in CI's order.
-- **The fix commit's run:** see below.
+- **39383419099 on `2790fbe` (the fix): green, both switch states.**
+  pytest 1,534 passed, 16 skipped of 1,550 in each leg. The in-registry
+  step passed in both, and so did every other job.
+  https://github.com/wmlmetro/Cadra/actions/runs/39383419099

@@ -12,3 +12,6 @@ Plan: Step 0 5 · §2 the four mobile gaps 20 · §3 size band + acceptance API 
 - 07:08 Progress: 80% — report drafted (results pending), CLAUDE.md row, DECISIONS, endpoint reference §20, mobile map §10–11. Next: results, verification fixes.
 - 07:18 Progress: 85% — final pytest (fresh test19f, gates off) 1 failed / 1538 passed / 10 skipped of 1,549 in 11 m (the query-param guard's inventory: `?days=`); verification pass: 2 real defects, 1 race. CI 39378524343: the same one failure, both legs.
 - 07:30 Progress: 95% — fixes landed (guard inventory, photo left out drops its suggestion, a failed call refused at capture and skipped by the dashboard, the print count one UPDATE); affected HTTP 58 of 58, in-registry 0 failed of 19, browser 46/66/67 17 of 17 on test19f. Next: push, PR, CI.
+- 07:32 Progress: 97% — PR #128 open; report pushed CI pending.
+- 07:44 CI 39380829526: pytest green both legs, in-registry red (truncated log); reproduced locally — the published-names guard did not know the two new body routes. Fixed, pushed 2790fbe 07:58.
+- 08:11 Progress: 100% — CI 39383419099 green both switch states (1,534 passed, 16 skipped of 1,550 each; in-registry passed); report amended and pushed.
