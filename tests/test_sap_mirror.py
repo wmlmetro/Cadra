@@ -121,6 +121,12 @@ def test_the_import_reads_counts_and_keeps_no_file(loaded):
 
 
 def test_a_reimport_is_unchanged_and_hands_a_sync_nothing(client, loaded):
+    # `since` is whole seconds and the filter is `write_date >= since` (the
+    # sync rule is inclusive, so a sync never misses a write). Taken in the
+    # same second as the fixture's own import, it counted those records as
+    # changed — red on CI's PR run of 5dec8a8, green on its push run. So:
+    # past the fixture's second first, then past `since`'s.
+    time.sleep(1.1)
     since = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     time.sleep(1.1)
     run = _import(client, loaded["rows"])
@@ -258,8 +264,13 @@ def test_one_record_and_the_asset_side_of_the_link(client, loaded):
     assert one.json()["data"]["asset_number"] == rec["asset_number"]
     assert_envelope_err(_as(client, "auditor", "GET", "/sap-assets/999999999"),
                         404, "not_found")
-    asset = _as(client, "auditor", "GET", "/assets",
-                params={"limit": 1}).json()["data"][0]
+    # Any register asset will do; on a freshly restored tenant with this
+    # file run alone there is none yet, so make one rather than lean on an
+    # earlier file having made it.
+    rows = _as(client, "auditor", "GET", "/assets",
+               params={"limit": 1}).json()["data"]
+    asset = rows[0] if rows else gates.new_registered_asset(
+        client, name=f"pytest-sap-mirror {_u()}")
     link = _as(client, "auditor", "GET", f"/assets/{asset['id']}/sap-record")
     assert_envelope_ok(link)
     assert link.json()["data"]["sentence"]

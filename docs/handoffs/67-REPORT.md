@@ -244,6 +244,24 @@ Started 06:48; budget 3 h. The report was pushed at about 07:32, roughly
 
 ## CI
 
+**After the report: the PR check on `5dec8a8` went red in one leg (gates
+off), 1 failed of 1,550**, while the push run on the same commit was green.
+The failure was `tests/test_sap_mirror.py::test_a_reimport_is_unchanged_and_hands_a_sync_nothing`,
+a timing flake present since handoff 63:
+
+- the test took `since` in whole seconds, in the same second as the
+  fixture's own import (07:15:54.x);
+- the filter is inclusive, `write_date >= since`, so it counted the
+  untouched records as changed;
+- its one-second sleep came after taking `since`, not before.
+
+Fixed in the test (sleep first); the API is unchanged. On the way, the same
+file's `test_one_record_and_the_asset_side_of_the_link` failed when run
+alone on a fresh tenant: it read "the first asset" from a register with 0
+assets, leaning on an earlier file to have made one. It now makes its own.
+The file passes 20 of 20, twice, on a fresh `test19f`.
+
+
 PR #128.
 
 - **39380829526 on `986fd8f`** (the verification fixes): pytest passed in
