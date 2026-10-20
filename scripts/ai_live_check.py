@@ -15,17 +15,26 @@ happens — so the owner can pick the cheapest model that is right often
 enough. Without `--models` it runs once, on the model the tenant already has
 (Opus by default, `claude-opus-5-5`, until the owner chooses otherwise).
 
+CHOOSING THE PROVIDER (handoff 68): an entry may be `provider:model` —
+`--models openai:gpt-6.1-sol,anthropic:claude-opus-5-5` — so one folder
+compares providers in one run; the tenant's provider is switched for that
+entry and, like its model, put back afterwards. A bare model is asked of the
+tenant's own provider. The server needs THAT provider's key
+(`CADRA_AI_API_KEY` for Anthropic, `CADRA_OPENAI_API_KEY` for OpenAI); a
+provider whose key is absent is refused at the switch, in words.
+
 BEFORE YOU RUN IT
 -----------------
 1. Set the provider key ON THE SERVER (the key never goes in this script, and
    since handoff 65 never in a database): the server reads `CADRA_AI_API_KEY`
-   from its environment.
+   (Anthropic) and `CADRA_OPENAI_API_KEY` (OpenAI) from its environment.
        scripts/set_ai_key.sh               # local; prompts, nothing echoed,
-                                           # writes .env — then recreate odoo
-   On staging: the `CADRA_AI_API_KEY` key of the `cadra-odoo` secret, then a
-   rollout of the Odoo Deployment (docs/DEPLOYMENT.md).
+       scripts/set_ai_key.sh openai        # writes .env — then recreate odoo
+   On staging: the GitHub secrets of the same names, which deploy-dev syncs
+   into the `cadra-odoo` secret, then a rollout of the Odoo Deployment
+   (docs/DEPLOYMENT.md).
 2. Switch it on, on THAT tenant only: Settings → Identify from photo → on,
-   provider `anthropic`. (Photos leave our servers: R7 / R11.)
+   provider `anthropic` or `openai`. (Photos leave our servers: R7 / R11.)
 3. Photograph 30–50 items around the office — chairs, desks, laptops,
    printers, an air conditioner, and two or three with an old FIRS tag
    visible — and name each file after what it is:
@@ -45,6 +54,9 @@ RUN
     tests/.venv/bin/python scripts/ai_live_check.py \\
         --base http://test19.localhost:8069 --folder ~/Desktop/office-photos \\
         --models claude-opus-5-5,claude-sonnet-5-5,claude-haiku-5-5
+
+    # two providers, one table each, the same photos:
+        --models openai:gpt-6.1-sol,openai:gpt-6-luna,anthropic:claude-opus-5-5
 
 It signs in as an account you name (`--login`, the password is asked for and
 never echoed) — an administrator sees the SAP candidates; an account without
@@ -92,11 +104,57 @@ IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".heic", ".webp"}
 #: input/output prices hold for prompts up to 100K tokens, which a photo and
 #: the class list are far below; its cache-read price was not published
 #: with them, so it is None here.
+#: OpenAI's (handoff 68) — OWNER: confirm these against OpenAI's pricing
+#: page (https://developers.openai.com/api/docs/pricing) too. Read from its
+#: model pages on 2026-10-20, standard tier, prompts under 272K tokens. Its
+#: cache writes are also 1.25 × input, and OpenAI's `input_tokens` includes
+#: cached tokens — Cadra's server records the uncached part apart, as it
+#: does for Anthropic, so the same arithmetic serves both. GPT-6 Luna's
+#: cache-write price was not published beside the others; the 1.25 × rule
+#: is assumed for it.
 PRICES_PER_MTOK = {
     "claude-opus-5-5": (4.00, 20.00, 0.20),
     "claude-sonnet-5-5": (2.00, 10.00, 0.20),
     "claude-haiku-5-5": (0.10, 0.50, None),
+    "gpt-6-astra": (10.00, 50.00, 1.00),
+    "gpt-6.1-sol": (2.00, 10.00, 0.10),
+    "gpt-6-sol": (2.00, 10.00, 0.20),
+    "gpt-6-luna": (0.10, 0.50, 0.01),
 }
+
+
+def price_of(model: str):
+    """The table's row for `model`, or for the model a dated snapshot id
+    belongs to (OpenAI answers `gpt-6.1-sol-2026-09-29`)."""
+    model = model or ""
+    if model in PRICES_PER_MTOK:
+        return PRICES_PER_MTOK[model]
+    snap = re.match(r"^(.+?)-\d{4}-\d{2}-\d{2}$", model)
+    return PRICES_PER_MTOK.get(snap.group(1)) if snap else None
+
+
+def parse_models(arg: str, providers=("anthropic", "openai")):
+    """`--models` as `[(provider or None, model)]`. `provider:model` names
+    the provider; a bare model id is asked of the tenant's own."""
+    out = []
+    for entry in (arg or "").split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        provider, sep, model = entry.partition(":")
+        if not sep:
+            provider, model = None, entry
+        provider = provider and provider.strip().lower()
+        model = model.strip()
+        if provider is not None and provider not in providers:
+            sys.exit(f"--models: '{entry}' names provider '{provider}'; "
+                     f"one of: {', '.join(providers)}.")
+        if not model:
+            sys.exit(f"--models: '{entry}' names no model.")
+        out.append((provider, model))
+    if len(set(out)) != len(out):
+        sys.exit("--models names a model twice.")
+    return out
 
 
 def shrink(path: pathlib.Path) -> tuple[bytes, str]:
@@ -161,7 +219,7 @@ def cost_usd(model: str, usage: dict):
     """USD for one answer at `PRICES_PER_MTOK`, or None when a price this
     answer needs is not set (a model not in the table, or a kind of token
     whose price is None)."""
-    price = PRICES_PER_MTOK.get(model or "")
+    price = price_of(model)
     if not price:
         return None
     p_in, p_out, p_read = price
@@ -177,7 +235,7 @@ def cost_usd(model: str, usage: dict):
             ) / 1_000_000
 
 
-def run_folder(base, auth, photos, labels, out, model):
+def run_folder(base, auth, photos, labels, out, model, provider=None):
     """Every photo through the route once, on whatever model the tenant is
     set to now. One row per photo."""
     rows = []
@@ -199,7 +257,8 @@ def run_folder(base, auth, photos, labels, out, model):
         sg = body["data"]
         if out:
             out.write(json.dumps({"file": path.name, "true": kind,
-                                  "model": model, "answer": sg}) + "\n")
+                                  "provider": provider, "model": model,
+                                  "answer": sg}) + "\n")
         top = sg["category"]
         names = [top["name"]] + [a["name"] for a in top["alternatives"]]
         first = is_right(kind, top["name"], labels)
@@ -229,11 +288,11 @@ def run_folder(base, auth, photos, labels, out, model):
     return rows
 
 
-def table(model, rows, labels):
+def table(model, rows, labels, provider=None):
     """One model's totals, in the shape the owner pastes into the report."""
     done = [x for x in rows if x["ok"]]
     n = len(done)
-    lines = [f"MODEL {model}",
+    lines = [f"MODEL {provider + ':' if provider else ''}{model}",
              f"  photos sent              {len(rows)}  (identified {n}, "
              f"refused {len(rows) - n})"]
     if n:
@@ -270,16 +329,15 @@ def main():
     ap.add_argument("--folder", required=True, type=pathlib.Path)
     ap.add_argument("--login", help="the account to sign in as")
     ap.add_argument("--models",
-                    help="comma-separated model ids to compare on the same "
-                         "folder, e.g. claude-opus-5-5,claude-sonnet-5-5,"
-                         "claude-haiku-5-5 (default: the tenant's model)")
+                    help="comma-separated model ids, or provider:model pairs, "
+                         "to compare on the same folder, e.g. "
+                         "openai:gpt-6.1-sol,anthropic:claude-opus-5-5 "
+                         "(default: the tenant's provider and model)")
     ap.add_argument("--out", type=pathlib.Path,
                     help="also write every answer as JSON lines here")
     args = ap.parse_args()
 
-    models = [m.strip() for m in (args.models or "").split(",") if m.strip()]
-    if len(set(models)) != len(models):
-        sys.exit("--models names a model twice.")
+    wanted = parse_models(args.models)
     folder = args.folder.expanduser()
     photos = sorted(p for p in folder.iterdir()
                     if p.suffix.lower() in IMAGE_SUFFIXES)
@@ -309,58 +367,90 @@ def main():
                  f"{s.text[:200]}")
     st = s.json()["data"]
     tenant_model = st["model"]
-    models = models or [tenant_model]
-    print(f"Tenant: {base}  provider {st['provider']}  model {tenant_model}"
+    tenant_provider = st["provider"]
+    # Every entry resolved to (provider, model): a bare model is the
+    # tenant's provider's.
+    runs = [(p or tenant_provider, m) for p, m in wanted] or [
+        (tenant_provider, tenant_model)]
+    keys = st.get("keys") or {}
+    print(f"Tenant: {base}  provider {tenant_provider}  model {tenant_model}"
           f"  effort {st['effort']}  today {st['today']['calls']} of "
-          f"{st['daily_cap']} used  server key "
-          f"{'present' if st.get('key_placed') else 'ABSENT'}\n")
-    if st["provider"] != "anthropic":
-        print("WARNING: this tenant is on the test stand-in, not the real "
-              "provider — the numbers below mean nothing.\n")
-    if not st.get("key_placed") and st["provider"] == "anthropic":
-        print("WARNING: the server holds no provider key "
-              f"({st.get('key_variable', 'CADRA_AI_API_KEY')}); every photo "
-              "will be refused.\n")
-    needed = len(photos) * len(models)
+          f"{st['daily_cap']} used  server keys: "
+          + (", ".join(f"{p} {'present' if k.get('placed') else 'ABSENT'}"
+                       for p, k in keys.items())
+             or ('present' if st.get('key_placed') else 'ABSENT')) + "\n")
+    if any(p == "fake" for p, _m in runs):
+        print("WARNING: a run is on the test stand-in, not a real "
+              "provider — its numbers mean nothing.\n")
+    for p in sorted({p for p, _m in runs if p in keys}):
+        if not keys[p].get("placed"):
+            print(f"WARNING: the server holds no {p} key "
+                  f"({keys[p].get('variable')}); its photos will be "
+                  "refused (the switch to it is refused first).\n")
+    models = [m for _p, m in runs]
+    needed = len(photos) * len(runs)
     if st["today"]["remaining"] < needed:
         print(f"WARNING: {len(photos)} photos × {len(models)} model(s) = "
               f"{needed} identifications and only "
               f"{st['today']['remaining']} left today.\n")
-    unpriced = [m for m in models if m not in PRICES_PER_MTOK]
+    unpriced = [m for m in models if not price_of(m)]
     if unpriced:
         print(f"Note: price not set for {', '.join(unpriced)} — its cost "
               "will say so.\n")
 
     out = args.out.open("w") if args.out else None
     tables = []
+    touched = set()     # the providers this run set a model on
     try:
-        for model in models:
-            if model != tenant_model or len(models) > 1:
+        for provider, model in runs:
+            if (provider, model) != (tenant_provider, tenant_model) \
+                    or len(runs) > 1:
+                body = {"model": model}
+                if provider != tenant_provider or len(
+                        {p for p, _m in runs}) > 1:
+                    body["provider"] = provider
                 p = requests.patch(settings_url, headers=auth,
-                                   json={"model": model}, timeout=30)
+                                   json=body, timeout=30)
                 if p.status_code != 200:
                     msg = ((p.json().get("error") or {}).get("message")
                            if p.headers.get("content-type", "").startswith(
                                "application/json") else p.text[:200])
-                    sys.exit(f"Could not set the tenant's model to {model}: "
-                             f"HTTP {p.status_code} {msg} (choosing a model "
-                             "needs settings:write).")
+                    sys.exit(f"Could not set the tenant to {provider}:"
+                             f"{model}: HTTP {p.status_code} {msg} (choosing "
+                             "a model needs settings:write).")
             print("=" * 72)
-            print(f"{model}\n")
-            rows = run_folder(base, auth, photos, labels, out, model)
-            tables.append(table(model, rows, labels))
+            print(f"{provider}:{model}\n")
+            touched.add(provider)
+            rows = run_folder(base, auth, photos, labels, out, model,
+                              provider=provider)
+            tables.append(table(model, rows, labels, provider=provider))
     finally:
         if out:
             out.close()
         # Put the tenant's model back, whatever happened above.
-        if models != [tenant_model]:
-            back = requests.patch(settings_url, headers=auth,
-                                  json={"model": tenant_model}, timeout=30)
-            print(f"\nThe tenant's model is back to {tenant_model}"
-                  if back.status_code == 200 else
-                  f"\nWARNING: could not put the tenant's model back to "
-                  f"{tenant_model} (HTTP {back.status_code}) — set it in "
-                  "Settings → Identify from photo.")
+        if runs != [(tenant_provider, tenant_model)]:
+            # Every provider's model the run touched, then the provider: each
+            # provider keeps its own model (handoff 68), so each is put back
+            # under its own provider before the tenant's is restored.
+            failed = []
+            for prov in sorted(touched):
+                was = next((o.get("model") for o in st.get(
+                    "provider_options") or () if o.get("value") == prov),
+                    tenant_model if prov == tenant_provider else None)
+                if was:
+                    r = requests.patch(settings_url, headers=auth, json={
+                        "provider": prov, "model": was}, timeout=30)
+                    if r.status_code != 200:
+                        failed.append(f"{prov}:{was}")
+            back = requests.patch(settings_url, headers=auth, json={
+                "provider": tenant_provider, "model": tenant_model},
+                timeout=30)
+            if back.status_code != 200:
+                failed.append(f"{tenant_provider}:{tenant_model}")
+            print(f"\nThe tenant is back to {tenant_provider}:{tenant_model}"
+                  if not failed else
+                  f"\nWARNING: could not put back {', '.join(failed)} — set "
+                  "them in Settings → Identify from photo.")
 
     print("=" * 72)
     print("TABLES (paste into the handoff's report, addendum)\n")

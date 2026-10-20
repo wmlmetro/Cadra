@@ -29,12 +29,29 @@ import { ApiErrorMessage } from "@/components/ApiErrorMessage";
 import { AlertCircle, Check, Clock, KeyRound, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** One provider this tenant may choose (handoff 68). */
+export interface AiProviderOption {
+  value: string;
+  label: string;
+  /** The model it is asked with on this tenant. */
+  model: string;
+  default_model: string;
+  needs_key: boolean;
+  /** Whether the SERVER holds its key — never the key. Null for the stand-in. */
+  key_placed: boolean | null;
+  key_variable: string | null;
+  key_command: string | null;
+}
+
 export interface AiIdentifySettings {
   enabled: boolean;
   provider: string;
   provider_label: string;
   providers: string[];
+  provider_options?: AiProviderOption[];
+  keys?: Record<string, { placed: boolean; variable: string; command: string }>;
   model: string;
+  default_model?: string;
   timeout_seconds: number;
   daily_cap: number;
   effort: string;
@@ -54,6 +71,8 @@ const KEY = ["settings", "ai-identify"] as const;
 export interface AcceptanceRow {
   key: string;
   label: string;
+  /** On a by-model row: the provider that answered (handoff 68). */
+  provider?: string;
   made: number;
   identified: number;
   used: number;
@@ -67,6 +86,7 @@ export interface Acceptance {
   totals: Omit<AcceptanceRow, "key" | "label">;
   by_category: AcceptanceRow[];
   by_site: AcceptanceRow[];
+  by_provider?: AcceptanceRow[];
   by_model: AcceptanceRow[];
   definitions: Record<string, string>;
 }
@@ -77,7 +97,7 @@ const ACCEPTANCE_DAYS = [7, 30, 90] as const;
 const DEFINITION_WORDS: [string, string][] = [
   ["made", "Made"], ["identified", "Identified"], ["used", "Used"],
   ["accepted_unchanged", "Accepted unchanged"], ["share_accepted_unchanged", "Share"],
-  ["by_category", "By class"], ["by_site", "By site"], ["by_model", "By model"],
+  ["by_category", "By class"], ["by_site", "By site"], ["by_provider", "By provider"], ["by_model", "By model"],
 ];
 const inputCls = "px-3 py-1.5 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20";
 
@@ -100,9 +120,20 @@ export default function AiIdentifySettingsPage() {
     staleTime: 0,
   });
   const s = setting.data;
+  // The form follows the SERVER's values whenever they change, not only on
+  // first paint: the page paints from the restored cache and then refetches
+  // (handoff 52), and since handoff 68 the model is the configured
+  // provider's — a draft taken once from the restored copy showed one
+  // provider's model under the other's name after a reload (spec 68).
+  const [draftOf, setDraftOf] = useState<string | null>(null);
   useEffect(() => {
-    if (s && !draft) setDraft({ model: s.model, timeout: String(s.timeout_seconds), cap: String(s.daily_cap), effort: s.effort });
-  }, [s, draft]);
+    if (!s) return;
+    const of = JSON.stringify([s.provider, s.model, s.timeout_seconds, s.daily_cap, s.effort]);
+    if (of !== draftOf) {
+      setDraft({ model: s.model, timeout: String(s.timeout_seconds), cap: String(s.daily_cap), effort: s.effort });
+      setDraftOf(of);
+    }
+  }, [s, draftOf]);
 
   const save = useMutation<AiIdentifySettings, CadraApiError, Record<string, unknown>>({
     mutationFn: async (body) => (await apiPatch<AiIdentifySettings>("/api/v1/settings/ai-identify", body)).data,
@@ -181,16 +212,31 @@ export default function AiIdentifySettingsPage() {
           </section>
 
           <section className="bg-card border border-border rounded-2xl p-5 space-y-3">
-            <h2 className="text-[13px] font-bold flex items-center gap-1.5"><KeyRound size={14} /> Provider key</h2>
+            <h2 className="text-[13px] font-bold flex items-center gap-1.5"><KeyRound size={14} /> Provider keys</h2>
             <p className="text-[12px] text-foreground" data-testid="ai-settings-key">
-              {s.key_placed ? "This server holds a provider key." : "This server holds no provider key."}
+              {s.key_placed ? `This server holds ${s.provider_label}'s key.` : `This server holds no key for ${s.provider_label}.`}
             </p>
+            {s.provider_options && (
+              <ul className="text-[12px] space-y-1" data-testid="ai-settings-keys">
+                {s.provider_options.filter(o => o.needs_key).map(o => (
+                  <li key={o.value} className="flex flex-wrap items-baseline gap-x-2" data-testid={`ai-settings-key-${o.value}`}
+                      data-placed={o.key_placed ? "true" : "false"}>
+                    <span className="font-semibold">{o.label}</span>
+                    <span className={o.key_placed ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}>
+                      {o.key_placed ? "key present" : "key absent"}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      <code className="font-mono">{o.key_variable}</code>
+                      {o.key_command && <> · locally <code className="font-mono">{o.key_command}</code></>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <p className="text-[11px] text-muted-foreground">
-              The key is the owner's and is set on the server, not here: it is{" "}
-              <code className="font-mono">{s.key_variable}</code> in the server's environment, one key for every
-              tenant on the server, kept in no database. It is never shown or typed on this page. Locally the owner
-              sets it with <code className="font-mono">{s.key_command}</code>; on the cluster it is a key of the{" "}
-              <code className="font-mono">cadra-odoo</code> secret.
+              A key is the owner's and is set on the server, not here: each provider has its own variable in the
+              server's environment, one key for every tenant on the server, kept in no database. It is never shown or
+              typed on this page. On the cluster each is a key of the <code className="font-mono">cadra-odoo</code> secret.
             </p>
           </section>
 
@@ -201,12 +247,19 @@ export default function AiIdentifySettingsPage() {
                 <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">Provider
                   <select className={inputCls} value={s.provider} disabled={readOnly}
                           onChange={e => { setNote(null); save.mutate({ provider: e.target.value }); }} data-testid="ai-settings-provider">
-                    {s.providers.map(p => <option key={p} value={p}>{p}</option>)}
+                    {(s.provider_options ?? s.providers.map(p => ({ value: p, label: p } as AiProviderOption))).map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
                   </select>
                 </label>
                 <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">Model
                   <input className={inputCls} value={draft.model} disabled={readOnly}
                          onChange={e => setDraft({ ...draft, model: e.target.value })} data-testid="ai-settings-model" />
+                  {s.default_model && (
+                    <span className="text-[10px]" data-testid="ai-settings-default-model">
+                      {s.provider_label}'s default: <code className="font-mono">{s.default_model}</code>. Each provider keeps its own model.
+                    </span>
+                  )}
                 </label>
                 <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">Timeout (seconds, 5–60)
                   <input className={inputCls} type="number" min={5} max={60} value={draft.timeout} disabled={readOnly}
@@ -299,6 +352,7 @@ function AcceptanceDashboard() {
           </p>
           <AcceptanceTable title="By class" rows={a.by_category} testid="ai-acceptance-by-category" />
           <AcceptanceTable title="By site" rows={a.by_site} testid="ai-acceptance-by-site" />
+          {a.by_provider && <AcceptanceTable title="By provider" rows={a.by_provider} testid="ai-acceptance-by-provider" />}
           <AcceptanceTable title="By model" rows={a.by_model} testid="ai-acceptance-by-model" />
           <dl className="text-[11px] text-muted-foreground space-y-1 border-t border-border pt-3" data-testid="ai-acceptance-definitions">
             {DEFINITION_WORDS.filter(([k]) => a.definitions?.[k]).map(([k, w]) => (
@@ -340,7 +394,7 @@ function AcceptanceTable({ title, rows, testid }: { title: string; rows: Accepta
             <tbody>
               {rows.map(r => (
                 <tr key={r.key} className="border-b border-border" data-testid={`${testid}-row-${r.key}`}>
-                  <td className="py-1 pr-3">{r.label}</td>
+                  <td className="py-1 pr-3">{r.provider ? <><span className="text-muted-foreground">{r.provider} · </span>{r.label}</> : r.label}</td>
                   <td className="text-right pl-3 tabular-nums">{r.made}</td>
                   <td className="text-right pl-3 tabular-nums">{r.identified}</td>
                   <td className="text-right pl-3 tabular-nums">{r.used}</td>

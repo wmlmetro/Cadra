@@ -1,0 +1,12 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 4 tests using 1 worker
+
+[1/4] [chromium] › tests/64-what-the-photo-says.spec.ts:121:7 › 64 — what the photo says › Add asset: suggestions are filled, marked until settled, and the save records what was done
+[2/4] [chromium] › tests/64-what-the-photo-says.spec.ts:177:7 › 64 — what the photo says › Cancel after a suggestion writes nothing
+[3/4] [chromium] › tests/64-what-the-photo-says.spec.ts:191:7 › 64 — what the photo says › Photos tab: suggestions beside the current values, Use this per field
+[4/4] [chromium] › tests/64-what-the-photo-says.spec.ts:232:7 › 64 — what the photo says › Switched off, no screen draws the button
+  4 skipped

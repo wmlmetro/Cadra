@@ -541,14 +541,26 @@ a database** (handoff 65) — `ai_provider.provider_key()` reads
 `CADRA_AI_API_KEY`, which `deploy-dev` syncs into `cadra-odoo` (never patch
 that secret by hand — every push regenerates it). One key per server; never in a test, a log, an error or a
 route; Settings says only `key_placed`. Migration 19.0.3.36.0 deleted the
-old `myservice_api.ai_api_key` row — do not bring it back;
+old `myservice_api.ai_api_key` row — do not bring it back. **Since handoff
+68 there are TWO providers and two keys**: `CADRA_AI_API_KEY` stays
+Anthropic's and OpenAI's is `CADRA_OPENAI_API_KEY` (`set_ai_key.sh openai`,
+the GitHub secret of that name), `provider_key(provider)` reads the one
+asked for, and Settings says each one's presence in `keys`. **The model is
+per provider** — Anthropic's `cadra.ai.model`, OpenAI's
+`cadra.ai.model.openai` (`ai_provider.model_param`) — so a PATCH's `model`
+lands on the provider that body switches TO. Both providers are sent the
+ONE prompt and the ONE schema; the schema must stay valid for OpenAI's
+strict mode (`strict_schema_problems`, `tests/test_openai_provider.py`);
 (3) **a save that used a suggestion names it** — `ai_suggestion: {id,
 ignored}` on `POST`/`PATCH /assets`, taken off the body before
 `_filter_writable`; it decides what is recorded (an `ai_suggestion_applied`
 event), never what is written;
-(4) **the Odoo image carries the `anthropic` SDK** (pinned in both
-Dockerfiles, two Debian-owned dependencies installed beside first): a
-container recreated from an old image identifies nothing and says so.
+(4) **the Odoo image carries the `anthropic` and `openai` SDKs** (pinned in
+both Dockerfiles, two Debian-owned dependencies installed beside first): a
+container recreated from an old image identifies nothing and says so, and
+one built before handoff 68 cannot ask OpenAI. The ORM-create source guard
+exempts the SDKs' two HTTP calls by shape (`<x>.messages.create`,
+`<x>.responses.create`).
 
 ### Since handoff 65 a register asset is LINKED to its SAP record by two people
 
@@ -775,6 +787,7 @@ done
 | 65 | **The link.** A register asset given its SAP number from the mirror by two people: `nrs.sap.link`, the Register Maker proposes (a batch, `dry_run`), the Register Checker approves or returns, the no-two-gates rule with gates `link_make`/`link_check`; the approval writes `sap_code_source = linked_from_sap_mirror` and **sends nothing to SAP** (proved against a live stub target); undone the same way with a reason; never deleted · the contested list, side by side, one proposed or the group flagged (an event per asset, `sap.duplicate_flag`) · an import that would mark > 5% of the mirror absent is `held` before writing, overridden by `mark_absent=true` (recorded) — tripped, overridden and restored on `nrs19` with a truncated copy of SAP's file · `class_evidence` on the coverage report · *Link to SAP* in the app · the AI key in the server's environment, the database row deleted · the access report on Lagos days · one real reprint delivered to the bench Vendra · `nrs19`: the confident list is 2,445, exactly report 63's; linking it would take Cadra from 0 to 2,445 of SAP's 161,647 · found by the verification pass: a link on top of a master in flight would have given SAP two |
 | 66 | **The audit in the room.** Devices bound to one person (`X-Cadra-Device`, not a credential); the asset-code ledger `nrs.asset.code` — every code, backfilled (`test19` 23,405 of 23,405, `nrs19` 11,960 of 11,960) and written by every create; blocks of ≤ 500 codes drawn from the asset-code sequence under a lock, returned with the unused voided; campaigns over locations and SAP office codes, closed only when every capture is reviewed, keeping the two lists (*found, not in SAP*; *in SAP, not found*, no-office records a count); `POST /audit/captures` idempotent on a stored `capture_id`, five working days back, every refusal in words, duplicates held; review: a verified in place (moved under exemption `audit`, reprint under the same code on acceptance), b registered from SAP's record with the phone's code and NO master (proved against a live stub), c an exception registered through maker and checker or voided; capturer × reviewer the ninth exclusion; `/ai/identify` opened to `audit:capture`; `GET /ai/config`; the Audit screens and the web capture; the mobile map every row *exists* or *not needed* · §0: the flag read once per page, the serial-basis contested re-check, and report 65's CHANGELOG duplication found not to exist |
 | 67 | **The station captures.** A *Capture* tab on the Barcode Station for `audit:capture` — 66's capture screen as one component (`desk` / `station`), the station a registered device bound to whoever is signed in, the room by its scanned `LOC-…` code, the label printed through the station's `printLabels` and the print RECORDED on the code's ledger row (`POST /audit/codes/printed`; a block code has no tag label row, so neither the PDF funnel nor `/tags/printed` can record it) · shift change: the leaver returns their own block, the controller rebinds · `/ai/identify` takes `audit_photo_id` (one upload), a capturer voids one spoiled code with a reason and returns their own block, optional GPS stored on the capture only · `size_band` (approximate, in words; prompt 67.1) · `GET /settings/ai-identify/acceptance` — made, identified, used, accepted unchanged, by class suggested, site and model, every count defined in words |
+| 68 | **A second provider.** OpenAI beside Anthropic for *Identify from photo*, chosen per tenant on *Settings → Identify from photo* — the owner's Anthropic account is held at verification · `OpenAIProvider` on the Responses API through the official SDK (`openai==3.26.1`, both Dockerfiles), the SAME prompt 67.1 and the SAME schema in strict mode (it already met strict mode's two rules; a guard keeps it so), `store: false`, the photo's EXIF stripped as for Anthropic, every error in Anthropic's words plus "no quota left" (OpenAI's `429 insufficient_quota`) · `CADRA_OPENAI_API_KEY`, a variable of its own (compose, k8s optional key, deploy-dev, `set_ai_key.sh openai`); Settings says each key present or absent · a model per provider, default `gpt-6.1-sol`; the stand-in offered only on a test database · the live check takes `provider:model` pairs and OpenAI's prices (owner to confirm) · the acceptance dashboard `by_provider` and a provider on each model row · `AnthropicProvider` unchanged · proved through the REAL SDK in the rebuilt image against an in-process transport (the wire body, every error), 24 unit tests on a faked SDK, the settings route in-registry as a `client` tenant |
 | 47 | **A role is a job.** `identity:read` and `dashboards:read` each split in two — `access:read` (the access record, the Auditor's) and `operations:read` (fleet/staff bus/FM/security; the sidebar group key `operations` is a different namespace, on purpose) · tag minting and replacement moved to `tagging:write` (BREAKING — a manager no longer prints labels; the unit's scope covers its job) · **the Asset Officer**: Asset User's reads + `assets:write`, implied by Manager, grantable (the named fifth entry handoff 42 demanded), published as `asset_officer` · `SCOPE_GROUPS[assets:write]` → Officer, so Vendra's credential reads as what it does · Staff Bus and Identity (clearance) out of the sidebar (keys retired, routes serve, clearance OWED to NRS — `docs/GO-LIVE.md` §25) · the hardcoded *All systems operational* pill deleted |
 
 ## Backlog — see `docs/GO-LIVE.md` Part II

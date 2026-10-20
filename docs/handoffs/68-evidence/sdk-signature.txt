@@ -1,0 +1,8 @@
+model True
+instructions True
+input True
+text True
+reasoning True
+max_output_tokens True
+store True
+code attr on APIError: True

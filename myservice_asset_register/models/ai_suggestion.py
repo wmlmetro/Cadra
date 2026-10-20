@@ -520,7 +520,8 @@ class NRSAiSuggestion(models.Model):
     def _acceptance(self, days=30):
         """Suggestions made in the last `days` Lagos days and the share a
         person kept exactly as proposed — in total, by the class suggested,
-        by site and by model. Every count is defined in `ACCEPTANCE_WORDS`,
+        by site, by provider and by model (each model row names its provider,
+        handoff 68). Every count is defined in `ACCEPTANCE_WORDS`,
         which the response carries, so no number stands without what it
         counts."""
         today = lagos_today()
@@ -574,7 +575,8 @@ class NRSAiSuggestion(models.Model):
             return {'key': key, 'label': label, 'made': 0, 'identified': 0,
                     'used': 0, 'accepted_unchanged': 0}
         totals = blank('all', 'All suggestions')
-        groups = {'by_category': {}, 'by_site': {}, 'by_model': {}}
+        groups = {'by_category': {}, 'by_site': {}, 'by_provider': {},
+                  'by_model': {}}
         for sid, result, model, provider, _d in rows:
             cid = parsed[sid]
             keys = {
@@ -582,11 +584,16 @@ class NRSAiSuggestion(models.Model):
                 if cid else ('none', _('Not identified')),
                 'by_site': site.get(sid, ('none', _(
                     'Not used by an audit capture'))),
+                'by_provider': (provider, provider),
                 'by_model': (model or provider, model or provider),
             }
             buckets = [totals] + [
                 groups[g].setdefault(k, blank(k, label))
                 for g, (k, label) in keys.items()]
+            # Which provider answered, on the model's row: two providers'
+            # models side by side in one table say whose each is.
+            groups['by_model'][keys['by_model'][0]].setdefault(
+                'provider', provider)
             for b in buckets:
                 b['made'] += 1
                 if result == 'ok':
@@ -630,5 +637,8 @@ ACCEPTANCE_WORDS = {
     'by_site': 'Grouped by the campaign location covering the room the '
                'capture was made in; suggestions no audit capture used are '
                'one row.',
-    'by_model': 'Grouped by the model that answered.',
+    'by_provider': 'Grouped by the provider asked (anthropic, openai, or '
+                   'the test stand-in fake).',
+    'by_model': 'Grouped by the model that answered; each row names its '
+                'provider.',
 }

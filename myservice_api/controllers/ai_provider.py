@@ -8,10 +8,13 @@ module holds:
   prompt and a JSON schema in; a `ProviderAnswer` out (the parsed JSON, the
   model that answered, the latency and the token counts), or one of three
   exceptions (`ProviderTimeout`, `ProviderError`, `ProviderRefused`);
-* **two implementations** — `FakeProvider`, deterministic and offline, which
-  every test uses; and `AnthropicProvider`, Anthropic's Messages API with
-  image input (the owner's choice, 18 October 2026), through the official
-  SDK, imported only when it is used;
+* **three implementations** — `FakeProvider`, deterministic and offline,
+  which every test uses; `AnthropicProvider`, Anthropic's Messages API with
+  image input (the owner's choice, 18 October 2026); and `OpenAIProvider`,
+  OpenAI's Responses API with image input (handoff 68, the owner's second
+  provider, 20 October 2026) — each through its official SDK, imported only
+  when it is used, and each sent the SAME system prompt, instruction and
+  schema (`build_system`, `INSTRUCTION`, `answer_schema`);
 * **the prompt and the schema** — what is sent (the photo, the tenant's
   classes, each mapped SAP class's twenty commonest descriptions) and
   nothing else: no asset ids, no people, no locations, no SAP numbers;
@@ -21,7 +24,10 @@ module holds:
 
 THE KEY is a secret and the owner's, and it lives in the SERVER'S
 ENVIRONMENT, never in the database (handoff 65 §0a.1, report 64 deviation
-2): `provider_key()` reads `CADRA_AI_API_KEY` from this process — the local
+2): `provider_key(provider)` reads `CADRA_AI_API_KEY` (Anthropic's) or
+`CADRA_OPENAI_API_KEY` (OpenAI's, handoff 68 — a variable of its own, so both
+can be present and switching provider never means swapping a secret) from
+this process — the local
 `.env` (written by `scripts/set_ai_key.sh`) or the cluster's `cadra-odoo`
 secret, handed to the Odoo container by compose and by the deployment. Handoff
 64 kept it in an `ir_config_parameter` row, which any back-office system
@@ -47,11 +53,16 @@ _logger = logging.getLogger(__name__)
 PROMPT_VERSION = "67.1"
 
 PROVIDER_ANTHROPIC = "anthropic"
+PROVIDER_OPENAI = "openai"
 PROVIDER_FAKE = "fake"
-PROVIDERS = (PROVIDER_ANTHROPIC, PROVIDER_FAKE)
+PROVIDERS = (PROVIDER_ANTHROPIC, PROVIDER_OPENAI, PROVIDER_FAKE)
+#: The providers a photo actually leaves the server for — each needs the
+#: owner's key, each has a variable of its own (`ENV_KEYS`).
+KEYED_PROVIDERS = (PROVIDER_ANTHROPIC, PROVIDER_OPENAI)
 #: What a person is told the photo is sent to (the screens' one sentence).
 PROVIDER_LABELS = {
     PROVIDER_ANTHROPIC: "Anthropic (Claude)",
+    PROVIDER_OPENAI: "OpenAI (GPT)",
     PROVIDER_FAKE: "Cadra's test stand-in (nothing leaves the server)",
 }
 
@@ -60,16 +71,33 @@ PROVIDER_LABELS = {
 # without a restart (the receipt gate's reason).
 PARAM_ENABLED = "cadra.ai.identify"
 PARAM_PROVIDER = "cadra.ai.provider"
+#: Anthropic's model — the one parameter handoffs 64–67 had, kept under its
+#: name so no tenant's chosen model moves. Every other provider has its own
+#: (`model_param`), so switching provider never overwrites a model somebody
+#: typed for the other one, and switching back finds it where it was.
 PARAM_MODEL = "cadra.ai.model"
 PARAM_TIMEOUT = "cadra.ai.timeout_seconds"
 PARAM_DAILY_CAP = "cadra.ai.daily_cap"
 PARAM_EFFORT = "cadra.ai.effort"
-#: The secret's NAME — an environment variable of the server process, never a
-#: parameter (handoff 65). Read by `provider_key()` and nothing else.
+#: The secrets' NAMES — environment variables of the server process, never
+#: parameters (handoff 65). Read by `provider_key()` and nothing else.
+#: `CADRA_AI_API_KEY` stays Anthropic's (handoff 68 §2).
 ENV_KEY = "CADRA_AI_API_KEY"
+ENV_KEY_OPENAI = "CADRA_OPENAI_API_KEY"
+ENV_KEYS = {PROVIDER_ANTHROPIC: ENV_KEY, PROVIDER_OPENAI: ENV_KEY_OPENAI}
 
 DEFAULT_PROVIDER = PROVIDER_ANTHROPIC
 DEFAULT_MODEL = "claude-opus-5-5"
+#: Each provider's default model, from its own documentation. OpenAI's
+#: (handoff 68): GPT-6.1 Sol, which OpenAI's model page recommends "to
+#: balance intelligence and cost" — image input and structured outputs both
+#: listed, at a fifth of GPT-6 Astra's price. The owner changes it in
+#: Settings; the live check compares them.
+DEFAULT_MODELS = {
+    PROVIDER_ANTHROPIC: DEFAULT_MODEL,
+    PROVIDER_OPENAI: "gpt-6.1-sol",
+    PROVIDER_FAKE: "cadra-fake-1",
+}
 DEFAULT_TIMEOUT = 20
 DEFAULT_DAILY_CAP = 500
 #: Identifying a chair is a short, visual task: `low` effort, raised from
@@ -80,11 +108,19 @@ EFFORTS = ("low", "medium", "high")
 #: Published prices, USD per million tokens (input, output, cache read),
 #: as cached on 2026-10-06. Cache writes (five-minute) are 1.25 × input.
 #: A model not listed records its tokens and no cost.
+#: OpenAI's (handoff 68), from its model pages as read on 2026-10-20 —
+#: standard tier, prompts under 272K tokens; its cache writes are also
+#: 1.25 × input ($2.50 for GPT-6.1 Sol, $12.50 for GPT-6 Astra). OWNER TO
+#: CONFIRM against https://developers.openai.com/api/docs/pricing.
 PRICES_PER_MTOK = {
     "claude-opus-5-5": (4.00, 20.00, 0.20),
     "claude-sonnet-5-5": (2.00, 10.00, 0.20),
     "claude-haiku-5-5": (0.10, 0.50, 0.01),
     "claude-fable-5-1": (10.00, 50.00, 0.25),
+    "gpt-6-astra": (10.00, 50.00, 1.00),
+    "gpt-6.1-sol": (2.00, 10.00, 0.10),
+    "gpt-6-sol": (2.00, 10.00, 0.20),
+    "gpt-6-luna": (0.10, 0.50, 0.01),
 }
 
 #: The published condition enum (`nrs.asset.condition`). R5: *unserviceable*
@@ -159,9 +195,26 @@ def image_tokens(width, height):
     return int(min(4784, math.ceil(w * h / 750.0)))
 
 
+def model_param(provider):
+    """The parameter holding `provider`'s model on this tenant."""
+    return PARAM_MODEL if provider == PROVIDER_ANTHROPIC \
+        else "%s.%s" % (PARAM_MODEL, provider)
+
+
+def price_of(model):
+    """The table's row for `model` — exactly, or for the model a dated
+    snapshot id belongs to (OpenAI answers `gpt-6.1-sol-2026-09-29` when
+    asked for `gpt-6.1-sol`). None for a model not in the table."""
+    model = model or ""
+    if model in PRICES_PER_MTOK:
+        return PRICES_PER_MTOK[model]
+    snap = re.match(r"^(.+?)-\d{4}-\d{2}-\d{2}$", model)
+    return PRICES_PER_MTOK.get(snap.group(1)) if snap else None
+
+
 def cost_usd(model, usage):
     """USD at the published prices, or None for a model not in the table."""
-    price = PRICES_PER_MTOK.get(model or "")
+    price = price_of(model)
     if not price:
         return None
     p_in, p_out, p_read = price
@@ -625,6 +678,169 @@ class AnthropicProvider(Provider):
         return ProviderAnswer(data, msg.model, latency, usage)
 
 
+def strict_schema_problems(schema, where="answer"):
+    """What stops `schema` being sent in OpenAI's strict mode — its two
+    rules, from the structured-outputs guide: every object says
+    `additionalProperties: false`, and every property is `required` (an
+    optional one is a type that includes null). An empty list for ours: the
+    shared schema meets both as it stands, so it goes to OpenAI UNCHANGED
+    and there is no second schema to drift (handoff 68 §1). The unit test
+    holds it to that; a future edit that breaks it fails there, not at
+    OpenAI's 400."""
+    problems = []
+    if not isinstance(schema, dict):
+        return problems
+    if schema.get("type") == "object" or "properties" in schema:
+        props = schema.get("properties") or {}
+        if schema.get("additionalProperties") is not False:
+            problems.append("%s: additionalProperties is not false" % where)
+        missing = sorted(set(props) - set(schema.get("required") or ()))
+        if missing:
+            problems.append("%s: not required: %s" % (where,
+                                                      ", ".join(missing)))
+        for k, sub in props.items():
+            problems += strict_schema_problems(sub, "%s.%s" % (where, k))
+    if isinstance(schema.get("items"), dict):
+        problems += strict_schema_problems(schema["items"], where + "[]")
+    return problems
+
+
+class OpenAIProvider(Provider):
+    """OpenAI's Responses API with image input, through the official SDK
+    (handoff 68). The Responses API rather than Chat Completions because it
+    is the one OpenAI's current documentation builds on — `instructions`
+    for the system prompt, `text.format` for a strict JSON schema, and every
+    current model served on it.
+
+    One request, the same three things Anthropic is sent: `instructions` is
+    the system prompt (OpenAI caches a repeated prefix of ≥ 1,024 tokens by
+    itself — the class list is that prefix), the image at `high` detail and
+    the instruction, the answer constrained by the SAME schema in strict
+    mode. `store=False`: the Responses API keeps a response for later
+    retrieval by default, and nothing here is fetched again. `reasoning`
+    carries the tenant's effort (low, medium, high are OpenAI's words too).
+    `max_output_tokens` is 8,192, not Anthropic's 4,096, because OpenAI
+    counts the model's reasoning tokens inside it; an answer cut short is
+    malformed and counted like any other. The SDK's own retries are off:
+    the tenant's timeout is the whole budget, and a person is waiting."""
+    name = PROVIDER_OPENAI
+    max_output_tokens = 8192
+
+    def __init__(self, api_key):
+        self._key = api_key
+
+    def identify(self, req):
+        try:
+            import openai
+        except ImportError:
+            raise ProviderError(
+                "The OpenAI SDK is not installed in this server's image "
+                "(the `openai` Python package).") from None
+        import base64 as _b64
+        client = openai.OpenAI(api_key=self._key,
+                               timeout=float(req.timeout),
+                               max_retries=0)
+        image_url = "data:%s;base64,%s" % (
+            req.mimetype, _b64.standard_b64encode(req.image).decode("ascii"))
+        started = time.monotonic()
+        try:
+            resp = client.responses.create(
+                model=req.model,
+                instructions=req.system,
+                input=[{"role": "user", "content": [
+                    {"type": "input_image", "image_url": image_url,
+                     "detail": "high"},
+                    {"type": "input_text", "text": req.instruction},
+                ]}],
+                text={"format": {"type": "json_schema",
+                                 "name": "cadra_identification",
+                                 "strict": True,
+                                 "schema": req.schema}},
+                reasoning={"effort": req.effort},
+                max_output_tokens=self.max_output_tokens,
+                store=False,
+            )
+        # The timeout first: in this SDK it is a subclass of the connection
+        # error, and the order decides which sentence is recorded.
+        except openai.APITimeoutError:
+            raise ProviderTimeout() from None
+        except openai.AuthenticationError:
+            raise ProviderError(
+                "The provider refused this server's key (401). The owner "
+                "sets a new one in %s." % ENV_KEY_OPENAI) from None
+        except openai.PermissionDeniedError:
+            raise ProviderError(
+                "The provider refused this server's key for this model "
+                "(403).") from None
+        except openai.NotFoundError:
+            raise ProviderError(
+                "The provider does not know the configured model "
+                "(%s)." % req.model) from None
+        except openai.RateLimitError as e:
+            # OpenAI says "no quota left" with a 429 of its own code, not a
+            # 403 — told apart, because waiting does not cure it.
+            if getattr(e, "code", None) == "insufficient_quota":
+                raise ProviderError(
+                    "The provider says this key has no quota left (429 "
+                    "insufficient_quota); the owner adds credit to the "
+                    "account.") from None
+            raise ProviderError(
+                "The provider is rate-limiting this key (429).") from None
+        except openai.APIStatusError as e:
+            raise ProviderError(
+                "The provider answered HTTP %s." % e.status_code) from None
+        except openai.APIConnectionError:
+            raise ProviderError(
+                "The provider could not be reached from this server.") \
+                from None
+        # Last: the SDK's base error, for the reason Anthropic's is caught.
+        except openai.OpenAIError:
+            raise ProviderError(
+                "The provider answered in a way Cadra could not read.") \
+                from None
+        latency = int((time.monotonic() - started) * 1000)
+        u = getattr(resp, "usage", None)
+        details = getattr(u, "input_tokens_details", None)
+        read = getattr(details, "cached_tokens", 0) or 0
+        written = getattr(details, "cache_write_tokens", 0) or 0
+        # OpenAI's `input_tokens` INCLUDES the cached and the cache-written
+        # ones; Anthropic's excludes them. Recorded the way the record has
+        # always meant it — uncached input apart — so one price table and
+        # one `cost_usd` serve both. Reasoning tokens are inside
+        # `output_tokens` and billed as output.
+        usage = {
+            "input_tokens": max(0, (getattr(u, "input_tokens", 0) or 0)
+                                - read - written),
+            "output_tokens": getattr(u, "output_tokens", 0) or 0,
+            "cache_read_tokens": read,
+            "cache_write_tokens": written,
+        }
+        if getattr(resp, "status", None) == "failed":
+            raise ProviderError(
+                "The provider answered in a way Cadra could not read.")
+        incomplete = getattr(resp, "incomplete_details", None)
+        if getattr(resp, "status", None) == "incomplete" \
+                and getattr(incomplete, "reason", None) == "content_filter":
+            raise ProviderRefused()
+        texts = []
+        for item in getattr(resp, "output", None) or ():
+            if getattr(item, "type", None) != "message":
+                continue
+            for part in getattr(item, "content", None) or ():
+                kind = getattr(part, "type", None)
+                if kind == "refusal":
+                    raise ProviderRefused()
+                if kind == "output_text":
+                    texts.append(part.text or "")
+        text = "".join(texts)
+        try:
+            data = json.loads(text) if text else None
+        except ValueError:
+            data = None
+        return ProviderAnswer(data, getattr(resp, "model", None) or req.model,
+                              latency, usage)
+
+
 def strip_metadata(data, mimetype):
     """The photo's bytes without its metadata, for the PROVIDER only.
 
@@ -661,17 +877,21 @@ def strip_metadata(data, mimetype):
     return data
 
 
-def provider_key():
-    """The provider key from the server's environment, or "" when none is
-    set. Read on every call rather than once at import, so the answer is
+def provider_key(provider=PROVIDER_ANTHROPIC):
+    """`provider`'s key from the server's environment, or "" when none is
+    set — `CADRA_AI_API_KEY` for Anthropic (and for the fake, which needs
+    none: what Settings said for it before handoff 68), `CADRA_OPENAI_API_KEY`
+    for OpenAI. Read on every call rather than once at import, so the answer is
     whatever the process holds NOW — and a container recreated with the
     variable (`up -d --force-recreate odoo`, or a rollout on the cluster) is
     the only thing that changes it. Returned only to the caller that hands
     it to the provider; nothing serialises it."""
-    return (os.environ.get(ENV_KEY) or "").strip()
+    return (os.environ.get(ENV_KEYS.get(provider, ENV_KEY)) or "").strip()
 
 
 def provider_for(name, api_key):
     if name == PROVIDER_FAKE:
         return FakeProvider()
+    if name == PROVIDER_OPENAI:
+        return OpenAIProvider(api_key)
     return AnthropicProvider(api_key)

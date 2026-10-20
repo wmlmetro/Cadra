@@ -4660,8 +4660,12 @@ def _created_models(path):
         # SDK's HTTP call to the provider (`ai_provider.AnthropicProvider`),
         # not an ORM create — no record is written by it. Exactly that
         # shape, a receiver that IS a `.messages` attribute, and nothing
-        # wider: an Odoo model is never reached as `<x>.messages`.
-        if isinstance(receiver, ast.Attribute) and receiver.attr == "messages":
+        # wider: an Odoo model is never reached as `<x>.messages`. Handoff
+        # 68: `client.responses.create(...)` is OpenAI's, the same shape
+        # (`ai_provider.OpenAIProvider`) — `<x>.responses`, likewise never
+        # an Odoo model.
+        if isinstance(receiver, ast.Attribute) \
+                and receiver.attr in ("messages", "responses"):
             continue
         model = _env_subscript_model(receiver, consts)
         if model is None:

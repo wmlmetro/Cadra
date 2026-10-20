@@ -38,3 +38,4 @@ from . import test_location_code
 from . import test_the_same_code_and_the_photo
 from . import test_sap_mirror_scope
 from . import test_ai_suggestion
+from . import test_ai_providers_settings

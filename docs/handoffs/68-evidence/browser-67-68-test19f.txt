@@ -1,0 +1,10 @@
+
+[preflight] http://test19f.localhost:8069/app/ is up · tenant brand = "My Company"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 2 tests using 1 worker
+
+[1/2] [chromium] › tests/67-station-capture.spec.ts:145:7 › handoff 67 — the station captures › a capture at the station: room by its code, identify, print recorded, scan, send — and the reviewer accepts
+[2/2] [chromium] › tests/68-a-second-provider.spec.ts:62:7 › 68 — a second provider › both providers by name, each key said, the model follows the provider
+  2 passed (35.4s)

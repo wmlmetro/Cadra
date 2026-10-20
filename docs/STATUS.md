@@ -1867,3 +1867,26 @@ Evidence: `docs/handoffs/67-evidence/`.
   used, 1 unchanged, share 0.5); over HTTP the counts move by exactly what
   the test did.
 - **Fan-out**: 8 of 8 tenants and the `test19f` template, clean.
+
+## Handoff 68 — a second provider
+
+Evidence: `docs/handoffs/68-evidence/`.
+
+- **OpenAI as a second provider for *Identify from photo***, chosen per
+  tenant: `tests/test_openai_provider.py` 24 of 24 against a faked SDK (a
+  good answer, the request sent — the one prompt, the one schema in strict
+  mode, `store: false` — nine error mappings, the timeout before the
+  connection error, a refusal, the content filter, four malformed answers
+  discarded by the validator, EXIF absent from the bytes the SDK received).
+- **Through the real SDK** (`openai` 3.26.1 in the rebuilt
+  `cadra-odoo:19.0-dev`, an in-process transport, no network, a dummy key):
+  the wire body (`strict: true`, `store: false`, `detail: high`), a parsed
+  answer with usage recorded uncached-apart, a refusal, and 401 / 429 quota
+  / 429 rate / 404 / 400 / 500 each mapped to Cadra's sentence
+  (`real-sdk-drive.txt`).
+- **The settings route**, in-registry as a `client` tenant
+  (`TestAiProvidersSettings`): the stand-in refused and not offered, each
+  key's presence and never the value, the switch a configuration row, each
+  provider keeping its own model, a switch to a provider without its key
+  refused naming its variable. With `TestAiSuggestion` (by provider):
+  0 failed of 24.
