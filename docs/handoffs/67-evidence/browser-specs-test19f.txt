@@ -1,0 +1,27 @@
+
+[preflight] http://test19f.localhost:8069/app/ is up · tenant brand = "My Company"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 17 tests using 1 worker
+
+[1/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:172:7 › 46 — everyone sees their own job › the personas file exists for this tenant
+[2/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › administrator: lands, sees, and is refused what it does not see
+[3/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › asset_controller: lands, sees, and is refused what it does not see
+[4/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › asset_manager: lands, sees, and is refused what it does not see
+[5/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › audit_capturer: lands, sees, and is refused what it does not see
+[6/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › audit_reviewer: lands, sees, and is refused what it does not see
+[7/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › auditor: lands, sees, and is refused what it does not see
+[8/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › iad_approver: lands, sees, and is refused what it does not see
+[9/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › iad_officer: lands, sees, and is refused what it does not see
+[10/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › register_checker: lands, sees, and is refused what it does not see
+[11/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › register_maker: lands, sees, and is refused what it does not see
+[12/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › storekeeper: lands, sees, and is refused what it does not see
+[13/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see
+[14/17] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › tagger: lands, sees, and is refused what it does not see
+[15/17] [chromium] › tests/66-the-audit-in-the-room.spec.ts:163:7 › handoff 66 — the audit in the room › the reviewer sees the capture's photo and fields, and accepts it
+[16/17] [chromium] › tests/66-the-audit-in-the-room.spec.ts:200:7 › handoff 66 — the audit in the room › the capturer captures an item found in neither register at a desk
+[17/17] [chromium] › tests/67-station-capture.spec.ts:145:7 › handoff 67 — the station captures › a capture at the station: room by its code, identify, print recorded, scan, send — and the reviewer accepts
+  Slow test file: [chromium] › tests/46-everyone-sees-their-own-job.spec.ts (7.5m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  17 passed (8.2m)

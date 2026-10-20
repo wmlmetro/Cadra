@@ -371,6 +371,13 @@ _BODY_ROUTES = {
     ("POST", "/api/v1/audit/blocks/<int:id>/return"):
         (None, None, "`reason`: written by "
                      "`nrs.audit.code.block._return_block`"),
+    # Handoff 67: a station's print of block codes, and one spoiled code.
+    ("POST", "/api/v1/audit/codes/printed"):
+        (None, None, "action: `codes`, the block codes whose print is "
+                     "recorded by `nrs.asset.code._record_print`"),
+    ("POST", "/api/v1/audit/codes/<string:code>/void"):
+        (None, None, "action: `reason`, recorded by "
+                     "`nrs.asset.code._void_spoiled` as the void reason"),
     ("POST", "/api/v1/audit/campaigns"):
         (None, None, "`name`, `scope`, `capturer_ids`, `reviewer_ids`, "
                      "`date_start`, `date_end`: written by "
@@ -434,7 +441,8 @@ _BODY_ROUTES = {
     # Handoff 64 §2. The photo to identify, by id or as a multipart file.
     ("POST", "/api/v1/ai/identify"):
         (None, None, "a multipart request to identify a photo: parts "
-                     "`photo_id`, or `file` + `source`, refused outside "
+                     "`photo_id`, `audit_photo_id` (handoff 67), or `file` + "
+                     "`source`, refused outside "
                      "`v1_ai.IDENTIFY_FILE_FIELDS`/`IDENTIFY_TEXT_FIELDS` by "
                      "`utils.get_multipart`; the suggestion row is written "
                      "by `nrs.ai.suggestion._record` from the provider's "

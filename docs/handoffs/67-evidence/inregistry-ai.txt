@@ -1,0 +1,818 @@
+2026-10-20 06:20:48,022 67 INFO ? odoo: Odoo version 19.0-20260803 
+2026-10-20 06:20:48,023 67 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf 
+2026-10-20 06:20:48,023 67 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/extra-addons/crnd-19', '/mnt/extra-addons/oca-19', '/usr/lib/python3/dist-packages/addons']) 
+2026-10-20 06:20:48,023 67 INFO ? odoo: database: odoo@db:5432 
+2026-10-20 06:20:48,723 67 INFO ? odoo.service.server: HTTP service (werkzeug) running on ad332c114a09:8099 
+2026-10-20 06:20:48,783 67 INFO test19f odoo.tests.common: Importing test framework 
+2026-10-20 06:20:49,008 67 INFO test19f odoo.modules.loading: loading 1 modules... 
+2026-10-20 06:20:49,012 67 INFO test19f odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-10-20 06:20:49,040 67 INFO test19f odoo.modules.loading: updating modules list 
+2026-10-20 06:20:49,047 67 INFO test19f odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-10-20 06:20:50,499 67 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_identity', defaulting to LGPL-3 
+2026-10-20 06:20:50,515 67 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_identity', defaulting to LGPL-3 
+2026-10-20 06:20:50,563 67 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_website_theme', defaulting to LGPL-3 
+2026-10-20 06:20:50,566 67 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_website_theme', defaulting to LGPL-3 
+2026-10-20 06:20:51,057 67 INFO test19f odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['Cadra API (v1)'] to user __system__ #1 via n/a 
+2026-10-20 06:20:51,058 67 INFO test19f odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['Cadra API (v1)'] to user __system__ #1 via n/a 
+2026-10-20 06:20:51,931 67 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_identity', defaulting to LGPL-3 
+2026-10-20 06:20:51,963 67 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_website_theme', defaulting to LGPL-3 
+2026-10-20 06:20:52,376 67 INFO test19f odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a 
+2026-10-20 06:20:52,493 67 INFO test19f odoo.modules.loading: loading 76 modules... 
+2026-10-20 06:20:53,277 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/osv/__init__.py:4: DeprecationWarning: Since 19.0, odoo.osv is deprecated use odoo.fields.Domain
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/crnd-19/generic_resource/__init__.py", line 1, in <module>
+    from . import models
+  File "/mnt/extra-addons/crnd-19/generic_resource/models/__init__.py", line 1, in <module>
+    from . import (
+  File "/mnt/extra-addons/crnd-19/generic_resource/models/ir_rule.py", line 3, in <module>
+    from odoo.osv import expression
+  File "/usr/lib/python3/dist-packages/odoo/osv/__init__.py", line 4, in <module>
+    warnings.warn("Since 19.0, odoo.osv is deprecated use odoo.fields.Domain", DeprecationWarning)
+ 
+2026-10-20 06:20:53,543 67 WARNING test19f py.warnings: /mnt/extra-addons/myservice_fm_dashboard/controllers/dashboard.py:31: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_fm_dashboard/__init__.py", line 1, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_fm_dashboard/controllers/__init__.py", line 1, in <module>
+    from . import dashboard
+  File "/mnt/extra-addons/myservice_fm_dashboard/controllers/dashboard.py", line 31, in <module>
+    class FMDashboardController(http.Controller):
+ 
+2026-10-20 06:20:53,879 67 WARNING test19f py.warnings: /mnt/extra-addons/myservice_fleet_maintenance/controllers/fleet_dashboard.py:9: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_fleet_maintenance/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_fleet_maintenance/controllers/__init__.py", line 1, in <module>
+    from . import fleet_dashboard
+  File "/mnt/extra-addons/myservice_fleet_maintenance/controllers/fleet_dashboard.py", line 9, in <module>
+    class FleetDashboardController(http.Controller):
+ 
+2026-10-20 06:20:53,896 67 WARNING test19f py.warnings: /mnt/extra-addons/myservice_security/controllers/main.py:6: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_security/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_security/controllers/__init__.py", line 1, in <module>
+    from . import main
+  File "/mnt/extra-addons/myservice_security/controllers/main.py", line 6, in <module>
+    class SecurityDashboardController(http.Controller):
+ 
+2026-10-20 06:20:53,927 67 WARNING test19f py.warnings: /mnt/extra-addons/myservice_website_theme/controllers/api.py:109: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_website_theme/__init__.py", line 1, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_website_theme/controllers/__init__.py", line 1, in <module>
+    from . import api
+  File "/mnt/extra-addons/myservice_website_theme/controllers/api.py", line 109, in <module>
+    class NRSHomepageAPI(http.Controller):
+ 
+2026-10-20 06:20:53,951 67 WARNING test19f py.warnings: /mnt/extra-addons/myservice_barcode_station/controllers/main.py:163: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_barcode_station/__init__.py", line 1, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_barcode_station/controllers/__init__.py", line 1, in <module>
+    from . import main
+  File "/mnt/extra-addons/myservice_barcode_station/controllers/main.py", line 163, in <module>
+    class BarcodeStationController(http.Controller):
+ 
+2026-10-20 06:20:53,963 67 WARNING test19f py.warnings: /mnt/extra-addons/myservice_dashboard/controllers/main.py:6: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_dashboard/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_dashboard/controllers/__init__.py", line 1, in <module>
+    from . import main
+  File "/mnt/extra-addons/myservice_dashboard/controllers/main.py", line 6, in <module>
+    class MyServiceDashboardController(http.Controller):
+ 
+2026-10-20 06:20:54,098 67 WARNING test19f py.warnings: /mnt/extra-addons/myservice_identity/controllers/sap_webhook.py:71: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_identity/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_identity/controllers/__init__.py", line 1, in <module>
+    from . import sap_webhook
+  File "/mnt/extra-addons/myservice_identity/controllers/sap_webhook.py", line 71, in <module>
+    class SAPWebhookController(http.Controller):
+ 
+2026-10-20 06:20:54,100 67 WARNING test19f py.warnings: /mnt/extra-addons/myservice_identity/controllers/redhubs_api.py:104: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_identity/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_identity/controllers/__init__.py", line 2, in <module>
+    from . import redhubs_api
+  File "/mnt/extra-addons/myservice_identity/controllers/redhubs_api.py", line 104, in <module>
+    class RedhubsAPIController(http.Controller):
+ 
+2026-10-20 06:20:54,131 67 INFO test19f odoo.modules.loading: Loading module myservice_api (76/76) 
+2026-10-20 06:20:54,231 67 WARNING test19f odoo.fields: Field generic.resource.type.model_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,250 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_1920 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:54,250 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_1024 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:54,250 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_512 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:54,251 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_256 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:54,251 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_128 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:54,252 67 WARNING test19f odoo.fields: Field generic.resource.mixin.resource_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,252 67 WARNING test19f odoo.fields: Field generic.resource.simple.resource_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,253 67 WARNING test19f odoo.fields: Field request.category.parent_path: unknown parameter 'unaccent', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,254 67 WARNING test19f odoo.fields: Field request.request.attachment_ids: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,262 67 WARNING test19f odoo.fields: Field security.duty.roster.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,262 67 WARNING test19f odoo.fields: Field security.access.log.authorized: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,263 67 WARNING test19f odoo.fields: Field workflow.dispatch.log.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,263 67 WARNING test19f odoo.fields: Field workflow.send.wizard.note: unknown parameter 'placeholder', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,291 67 INFO test19f odoo.addons.myservice_api.http_patch: Cadra API: http.Root absent (Odoo 17+); dispatcher patch not needed 
+2026-10-20 06:20:54,552 67 WARNING test19f odoo.fields: Field request.request.attachment_ids: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,574 67 WARNING test19f odoo.fields: Field workflow.dispatch.log.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:54,623 67 INFO test19f odoo.registry: module myservice_api: creating or updating database tables 
+2026-10-20 06:20:55,018 67 WARNING test19f odoo.addons.base.models.ir_model: Two fields (pm_count, pm_schedule_ids) of nrs.asset() have the same label: PM Schedules. [Modules: myservice_asset_register and myservice_asset_register] 
+2026-10-20 06:20:55,018 67 WARNING test19f odoo.addons.base.models.ir_model: Two fields (errors, error_count) of nrs.employee.import.job() have the same label: Errors. [Modules: myservice_identity and myservice_identity] 
+2026-10-20 06:20:55,307 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields.py:843: UserWarning: Field 'generic.location.state_id' in dependency of generic.location.state_name should be searchable. This is necessary to determine which records to recompute when res.country.state.name is modified. You should either make the field searchable, or simplify the field dependency.
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 222, in load_module_graph
+    module.write(module.get_values_from_terp(package.manifest))
+  File "/usr/lib/python3/dist-packages/odoo/addons/website/models/ir_module_module.py", line 98, in write
+    return super(IrModuleModule, self).write(vals)
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4417, in write
+    if self.pool.is_modifying_relations(field):
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 681, in is_modifying_relations
+    result = field in self._field_triggers and bool(
+  File "/usr/lib/python3.12/functools.py", line 995, in __get__
+    val = self.func(instance)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 662, in _field_triggers
+    dependencies = list(field.resolve_depends(self))
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields.py", line 843, in resolve_depends
+    warnings.warn(
+ 
+2026-10-20 06:20:55,307 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields.py:843: UserWarning: Field 'generic.location.country_id' in dependency of generic.location.country_name should be searchable. This is necessary to determine which records to recompute when res.country.name is modified. You should either make the field searchable, or simplify the field dependency.
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 222, in load_module_graph
+    module.write(module.get_values_from_terp(package.manifest))
+  File "/usr/lib/python3/dist-packages/odoo/addons/website/models/ir_module_module.py", line 98, in write
+    return super(IrModuleModule, self).write(vals)
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4417, in write
+    if self.pool.is_modifying_relations(field):
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 681, in is_modifying_relations
+    result = field in self._field_triggers and bool(
+  File "/usr/lib/python3.12/functools.py", line 995, in __get__
+    val = self.func(instance)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 662, in _field_triggers
+    dependencies = list(field.resolve_depends(self))
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields.py", line 843, in resolve_depends
+    warnings.warn(
+ 
+2026-10-20 06:20:55,308 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields.py:832: UserWarning: Field generic.location.building_id should be declared with recursive=True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 222, in load_module_graph
+    module.write(module.get_values_from_terp(package.manifest))
+  File "/usr/lib/python3/dist-packages/odoo/addons/website/models/ir_module_module.py", line 98, in write
+    return super(IrModuleModule, self).write(vals)
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4417, in write
+    if self.pool.is_modifying_relations(field):
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 681, in is_modifying_relations
+    result = field in self._field_triggers and bool(
+  File "/usr/lib/python3.12/functools.py", line 995, in __get__
+    val = self.func(instance)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 662, in _field_triggers
+    dependencies = list(field.resolve_depends(self))
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields.py", line 832, in resolve_depends
+    warnings.warn(f"Field {self} should be declared with recursive=True", stacklevel=1)
+ 
+2026-10-20 06:20:55,318 67 INFO test19f odoo.modules.loading: loading myservice_api/security/api_groups.xml 
+2026-10-20 06:20:55,371 67 INFO test19f odoo.modules.loading: loading myservice_api/security/ir.model.access.csv 
+2026-10-20 06:20:55,405 67 INFO test19f odoo.modules.loading: loading myservice_api/data/api_refresh_token_cron.xml 
+2026-10-20 06:20:55,444 67 INFO test19f odoo.modules.loading: loading myservice_api/data/role_exclusions.xml 
+2026-10-20 06:20:55,455 67 INFO test19f odoo.modules.loading: loading myservice_api/data/mail_templates.xml 
+2026-10-20 06:20:55,526 67 INFO test19f odoo.modules.loading: loading myservice_api/views/api_client_views.xml 
+2026-10-20 06:20:55,600 67 INFO test19f odoo.modules.loading: loading myservice_api/views/menu.xml 
+2026-10-20 06:20:56,217 67 INFO test19f odoo.modules.loading: Module myservice_api loaded in 2.09s, 573 queries (+573 other) 
+2026-10-20 06:20:56,217 67 INFO test19f odoo.modules.loading: 76 modules loaded in 3.72s, 573 queries (+573 extra) 
+2026-10-20 06:20:56,225 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_1920 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:56,225 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_1024 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:56,226 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_512 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:56,226 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_256 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:56,226 67 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_128 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1668, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 708, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1582, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 184, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 485, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 06:20:56,293 67 WARNING test19f odoo.fields: Field generic.resource.type.model_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,309 67 WARNING test19f odoo.fields: Field generic.resource.mixin.resource_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,309 67 WARNING test19f odoo.fields: Field generic.resource.simple.resource_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,310 67 WARNING test19f odoo.fields: Field request.category.parent_path: unknown parameter 'unaccent', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,311 67 WARNING test19f odoo.fields: Field request.request.attachment_ids: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,318 67 WARNING test19f odoo.fields: Field security.duty.roster.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,319 67 WARNING test19f odoo.fields: Field security.access.log.authorized: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,320 67 WARNING test19f odoo.fields: Field workflow.dispatch.log.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,320 67 WARNING test19f odoo.fields: Field workflow.send.wizard.note: unknown parameter 'placeholder', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 06:20:56,887 67 INFO test19f odoo.modules.loading: Modules loaded. 
+2026-10-20 06:20:56,901 67 INFO test19f odoo.registry: Registry changed, signaling through the database 
+2026-10-20 06:20:56,903 67 INFO test19f odoo.registry: Registry loaded in 8.176s 
+2026-10-20 06:20:56,903 67 INFO test19f odoo.service.server: Starting post tests 
+2026-10-20 06:20:56,925 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_a_field_the_asset_already_holds_is_accepted_not_ignored ... 
+2026-10-20 06:20:56,994 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_a_hand_written_row_is_refused_and_no_other_flag_opens_it ... 
+2026-10-20 06:20:56,998 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_a_save_claims_the_held_photo_and_writes_one_event ... 
+2026-10-20 06:20:57,044 67 INFO test19f odoo.models.unlink: User #1 deleted ir.attachment records with IDs: [725] 
+2026-10-20 06:20:57,045 67 INFO test19f odoo.models.unlink: User #1 deleted nrs.ai.pending.photo records with IDs: [22] 
+2026-10-20 06:20:57,057 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_accepted_changed_and_ignored ... 
+2026-10-20 06:20:57,067 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_an_answer_outside_the_tenant_or_the_enum_is_discarded ... 
+2026-10-20 06:20:57,074 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_an_audit_photo_suggestion_is_never_saved_to_an_asset ... 
+2026-10-20 06:20:57,114 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_an_edit_and_a_delete_are_refused_under_sudo ... 
+2026-10-20 06:20:57,123 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_an_expired_held_photo_is_purged_and_the_hash_kept ... 
+2026-10-20 06:20:57,136 67 INFO test19f odoo.models.unlink: User #1 deleted ir.attachment records with IDs: [730] 
+2026-10-20 06:20:57,136 67 INFO test19f odoo.models.unlink: User #1 deleted nrs.ai.pending.photo records with IDs: [25] 
+2026-10-20 06:20:57,140 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_image_tokens_and_cost ... 
+2026-10-20 06:20:57,141 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_only_the_asker_and_only_within_the_hold ... 
+2026-10-20 06:20:57,392 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_acceptance_counts_a_seeded_set ... 
+2026-10-20 06:20:57,472 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_daily_cap_turns_over_at_lagos_midnight ... 
+2026-10-20 06:20:57,644 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_guard_is_the_mixins_and_not_a_copy ... 
+2026-10-20 06:20:57,646 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_prompt_carries_classes_and_words_and_nothing_else ... 
+2026-10-20 06:20:57,684 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_provider_gets_no_gps_and_the_stored_photo_is_untouched ... 
+2026-10-20 06:20:57,695 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_save_records_an_already_held_field_on_the_event ... 
+2026-10-20 06:20:57,734 67 INFO test19f odoo.models.unlink: User #1 deleted ir.attachment records with IDs: [743] 
+2026-10-20 06:20:57,735 67 INFO test19f odoo.models.unlink: User #1 deleted nrs.ai.pending.photo records with IDs: [33] 
+2026-10-20 06:20:57,741 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_schema_offers_only_the_tenants_classes ... 
+2026-10-20 06:20:57,741 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_size_band_is_words_and_unknown_is_none ... 
+2026-10-20 06:20:57,742 67 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_what_was_not_read_is_removed_and_said ... 
+2026-10-20 06:20:57,760 67 INFO test19f odoo.addons.base.models.ir_attachment: filestore gc 4 checked, 3 removed 
+2026-10-20 06:20:57,762 67 INFO test19f odoo.service.server: 19 post-tests in 0.86s, 745 queries 
+2026-10-20 06:20:57,762 67 INFO test19f odoo.tests.stats: myservice_api: 21 tests 0.85s 745 queries 
+2026-10-20 06:20:57,763 67 INFO test19f odoo.tests.result: 0 failed, 0 error(s) of 19 tests when loading database 'test19f' 
+2026-10-20 06:20:57,763 67 INFO test19f odoo.service.server: Initiating shutdown 
+2026-10-20 06:20:57,763 67 INFO test19f odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-10-20 06:20:57,811 67 INFO test19f odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections  

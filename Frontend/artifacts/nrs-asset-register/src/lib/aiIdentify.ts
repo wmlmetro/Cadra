@@ -46,7 +46,7 @@ export interface AiSuggestion {
   provider_label: string;
   model: string | null;
   latency_ms: number | null;
-  photo: { kind: "asset_photo" | "pending" | "expired"; id: number | null; asset_id?: number; expires_at?: string };
+  photo: { kind: "asset_photo" | "audit_photo" | "pending" | "expired"; id: number | null; asset_id?: number; expires_at?: string };
   category: ScoredCategory & { alternatives: ScoredCategory[] };
   attributes: {
     name: string | null; colour: string | null; material: string | null;
@@ -60,6 +60,22 @@ export interface AiSuggestion {
   };
   notes: string[];
   notice: string;
+  /** Handoff 67 (AI-FR-03): an APPROXIMATE size band, defined in words. It
+   *  is no field of the asset or the capture — shown, never sent.
+   *  `attributes.dimensions` stays empty unless a label states them.
+   *  Optional: a server before 67 does not send it. */
+  size_band?: SizeBand;
+}
+
+export type SizeBandValue = "small" | "medium" | "large";
+
+export interface SizeBand {
+  value: SizeBandValue | null;
+  approximate: true;
+  label: string;
+  /** Words for the chosen band, or why none was chosen. */
+  definition: string;
+  definitions: Record<SizeBandValue, string>;
 }
 
 /** The fields a suggestion can propose, in the order the screens show them,
@@ -115,6 +131,16 @@ export async function identifyNewPhoto(picture: Blob, filename: string): Promise
   const form = new FormData();
   form.append("file", picture, filename);
   form.append("source", "web");
+  const res = await apiUpload<AiSuggestion>("/api/v1/ai/identify", form,
+    { idempotencyKey: newIdempotencyKey() });
+  return res.data;
+}
+
+/** A photo already uploaded for an audit capture (`POST /audit/photos`) —
+ *  identified by its id, so it is not uploaded twice (handoff 67 §2.1). */
+export async function identifyAuditPhoto(auditPhotoId: number): Promise<AiSuggestion> {
+  const form = new FormData();
+  form.append("audit_photo_id", String(auditPhotoId));
   const res = await apiUpload<AiSuggestion>("/api/v1/ai/identify", form,
     { idempotencyKey: newIdempotencyKey() });
   return res.data;

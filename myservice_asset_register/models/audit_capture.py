@@ -295,12 +295,70 @@ class NRSAssetCode(models.Model):
     # The code string stays, which is what the ledger is for.
     asset_id = fields.Many2one('nrs.asset', index=True, ondelete='set null')
     capture_id = fields.Many2one('nrs.audit.capture', ondelete='set null')
+    # Handoff 67: a block code printed at a station is recorded, as every
+    # tag label's print is (61). A code has no label row until an asset
+    # carries it, so its prints are counted here, on the ledger.
+    print_count = fields.Integer('Prints', default=0, readonly=True)
+    first_printed_at = fields.Datetime(readonly=True)
+    last_printed_at = fields.Datetime(readonly=True)
+    last_printed_by_id = fields.Many2one('res.users', readonly=True,
+                                         ondelete='set null')
 
     _code_unique = models.Constraint(
         'UNIQUE (code)', 'An asset code exists once.')
 
     def _set(self, vals):
         return self._w(vals)
+
+    def _assert_reserved_to(self, user, device=None):
+        """This code is a block code, still `reserved`, reserved to `user`
+        (and to `device`, when one is named). The refusal says which."""
+        self.ensure_one()
+        if self.source != 'block' or self.user_id != user \
+                or (device is not None and self.device_id != device):
+            raise _refuse(_(
+                'Code %(code)s is not reserved to you%(on)s. Only a code from '
+                'a block issued to you is yours to print or void.',
+                code=self.code,
+                on=(_(' on this device (%s)') % device.name) if device else ''),
+                'forbidden', code=self.code)
+        if self.state != 'reserved':
+            raise _refuse(_(
+                'Code %(code)s is %(state)s; only a code not yet used can be '
+                'printed or voided by its holder.', code=self.code,
+                state=dict(CODE_STATES)[self.state].lower()),
+                code=self.code, code_state=self.state)
+
+    def _record_print(self):
+        """One print of each code, recorded with who and when (§1)."""
+        if not self:
+            return self
+        # One UPDATE, so two prints of one code at the same instant both
+        # count (verification pass, 67: a read-then-write lost one).
+        self.flush_recordset()
+        self.env.cr.execute(
+            "UPDATE nrs_asset_code SET print_count = "
+            "COALESCE(print_count, 0) + 1, "
+            "first_printed_at = COALESCE(first_printed_at, now() AT TIME "
+            "ZONE 'UTC'), last_printed_at = now() AT TIME ZONE 'UTC', "
+            "last_printed_by_id = %s, write_uid = %s, "
+            "write_date = now() AT TIME ZONE 'UTC' WHERE id = ANY(%s)",
+            (self.env.user.id, self.env.user.id, self.ids))
+        self.invalidate_recordset(['print_count', 'first_printed_at',
+                                   'last_printed_at', 'last_printed_by_id'])
+        return self
+
+    def _void_spoiled(self, reason):
+        """The holder voids one code — a label torn at print (§2.2). Never
+        reissued, like every voided code."""
+        self.ensure_one()
+        text = (reason or '').strip() if isinstance(reason, str) else ''
+        if not text:
+            raise _refuse(_('Say why the code is voided — what happened to '
+                            'its label.'), 'validation_failed',
+                          field='reason')
+        self._void(_('Spoiled, voided by its holder: %s') % text)
+        return self
 
     def _void(self, reason, actor=None):
         now = fields.Datetime.now()
@@ -426,10 +484,19 @@ class NRSAuditCodeBlock(models.Model):
             'user_id': device.user_id.id, 'reserved_at': now} for c in codes])
         return block
 
-    def _return_block(self, reason=None):
+    def _return_block(self, reason=None, holder_only=False):
         """Return the block: every code it did not use is VOIDED, never
-        reissued (R2). A code in review stays in review."""
+        reissued (R2). A code in review stays in review.
+
+        `holder_only` (handoff 67 §2.3): the caller is the capturer, not the
+        Asset Controller, and returns only a block issued to them."""
         self.ensure_one()
+        if holder_only and self.user_id != self.env.user:
+            raise _refuse(_(
+                'Block %(block)s was issued to %(who)s, not to you. You return '
+                'your own block; the Asset Controller returns anybody\'s.',
+                block=self.name, who=self.user_id.display_name),
+                'forbidden', block_id=self.id)
         if self.state != 'issued':
             raise _refuse(_('Block %s was already returned.') % self.name)
         text = (reason or '').strip() if isinstance(reason, str) else ''
@@ -565,6 +632,21 @@ class NRSAuditCampaign(models.Model):
             return best
         offices = self._offices()
         return offices[0] if len(offices) == 1 else None
+
+    def _site_of(self, location):
+        """The campaign location a room counts under on the acceptance
+        dashboard (handoff 67 §3): the scope line nearest above it, else the
+        room itself (a campaign with no located scope covers everywhere)."""
+        self.ensure_one()
+        path = location.sudo().parent_path or ''
+        ids = [int(x) for x in path.strip('/').split('/') if x]
+        best, depth = location, -1
+        for line in self.scope_ids:
+            if line.location_id and line.location_id.id in ids:
+                d = ids.index(line.location_id.id)
+                if d > depth:
+                    best, depth = line.location_id, d
+        return best
 
     def _offices(self):
         return sorted({l.office_code for l in self.scope_ids
@@ -803,6 +885,15 @@ class NRSAuditCapture(models.Model):
                                        ondelete='restrict')
     captured_at = fields.Datetime(required=True)
     received_at = fields.Datetime(required=True)
+    # AI-FR-10 (handoff 67 §2.4): where the phone says it was, if the
+    # capturer chose to send it. Stored here only — never on the asset,
+    # never sent to the AI provider, never on a page outside the audit.
+    gps_latitude = fields.Float('GPS Latitude', digits=(10, 7))
+    gps_longitude = fields.Float('GPS Longitude', digits=(10, 7))
+    gps_accuracy_m = fields.Float('GPS Accuracy (m)', digits=(10, 1))
+    # An Odoo float is never NULL; this says a position was sent at all
+    # (0, 0 is a place, in the Gulf of Guinea).
+    gps_recorded = fields.Boolean('GPS Recorded')
     operator_id = fields.Many2one('res.users', 'Captured By', required=True,
                                   ondelete='restrict')
     device_id = fields.Many2one('nrs.audit.device', required=True,
@@ -926,7 +1017,8 @@ class NRSAuditCapture(models.Model):
                               field='fields.category_id')
 
         photos = self._photos(body.get('photo_ids'))
-        suggestion = self._suggestion(body.get('ai_suggestion_id'))
+        suggestion = self._suggestion(body.get('ai_suggestion_id'), photos)
+        gps = _gps(body.get('gps'))
 
         vals = {
             'capture_uuid': uid, 'campaign_id': campaign.id,
@@ -939,6 +1031,7 @@ class NRSAuditCapture(models.Model):
             'ai_suggestion_id': suggestion.id or False,
             'captured_at': captured_at, 'received_at': now,
             'operator_id': me.id, 'device_id': device.id,
+            **gps,
         }
         code_row = None
         if outcome == OUTCOME_ON_REGISTER:
@@ -996,7 +1089,7 @@ class NRSAuditCapture(models.Model):
                 field='photo_ids')
         return theirs
 
-    def _suggestion(self, sid):
+    def _suggestion(self, sid, photos=None):
         Sugg = self.env['nrs.ai.suggestion'].sudo()
         if sid in (None, False):
             return Sugg
@@ -1004,6 +1097,21 @@ class NRSAuditCapture(models.Model):
         if not s or s.actor_id != self.env.user:
             raise _refuse(_('Suggestion %s is not one you asked for.') % sid,
                           'validation_failed', field='ai_suggestion_id')
+        if s.result != 'ok':
+            # Verification pass, 67: a failed call's id (in a 503's details)
+            # has nothing in it to confirm — the asset save refuses it too.
+            raise _refuse(_(
+                'Suggestion %(id)s has nothing to confirm: the photo was not '
+                'identified (%(why)s). Send the capture without it.',
+                id=sid, why=s.failure or s.result), 'validation_failed',
+                field='ai_suggestion_id', reason='not_identified')
+        if s.audit_photo_id and photos is not None \
+                and s.audit_photo_id not in photos:
+            raise _refuse(_(
+                'Suggestion %(id)s was made from audit photo %(photo)d, which '
+                'this capture does not carry. Name the photo in `photo_ids`.',
+                id=sid, photo=s.audit_photo_id.id), 'validation_failed',
+                field='ai_suggestion_id')
         return s
 
     def _target_on_register(self, body, campaign):
@@ -1485,6 +1593,39 @@ def _int(value, field):
         raise _refuse(_('`%s` is an id (a whole number).') % field,
                       'validation_failed', field=field)
     return value
+
+
+def _gps(value):
+    """`{gps_latitude, gps_longitude, gps_accuracy_m}` from a capture's
+    optional `gps`, or `{}`. Refused in words when it is not a position."""
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise _refuse(_('`gps` is an object: latitude, longitude and '
+                        'optionally accuracy_m.'), 'validation_failed',
+                      field='gps')
+    stray = sorted(set(value) - {'latitude', 'longitude', 'accuracy_m'})
+    if stray:
+        raise _refuse(_('`gps` cannot carry: %s.') % ', '.join(stray),
+                      'validation_failed', field='gps',
+                      rejected_fields=stray,
+                      writable=['latitude', 'longitude', 'accuracy_m'])
+    out = {}
+    for key, column, lo, hi in (('latitude', 'gps_latitude', -90, 90),
+                                ('longitude', 'gps_longitude', -180, 180),
+                                ('accuracy_m', 'gps_accuracy_m', 0, 1e6)):
+        v = value.get(key)
+        if v is None and key == 'accuracy_m':
+            continue
+        if isinstance(v, bool) or not isinstance(v, (int, float)) \
+                or not lo <= v <= hi:
+            raise _refuse(_('`gps.%(key)s` is a number from %(lo)s to '
+                            '%(hi)s.', key=key, lo=lo, hi=int(hi)),
+                          'validation_failed', field='gps.%s' % key,
+                          minimum=lo, maximum=hi)
+        out[column] = float(v)
+    out['gps_recorded'] = True
+    return out
 
 
 def _parse_moment(value):

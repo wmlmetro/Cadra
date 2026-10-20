@@ -228,6 +228,7 @@ INVENTORY = {
     ("v1_audit_capture", "device_id"): ("int", ""),
     ("v1_audit_capture", "state"): ("enum", ""),
     ("v1_audit_capture", "block_id"): ("int", ""),
+    ("v1_ai", "days"): ("int", "the acceptance window, 1–365 Lagos days; parse_int at the door, 400 outside it"),
     ("v1_audit_capture", "code"): ("text", "an asset code, matched exactly: the set is every code the ledger holds"),
     ("v1_audit_capture", "campaign_id"): ("int", ""),
     ("v1_audit_capture", "location_id"): ("int", ""),

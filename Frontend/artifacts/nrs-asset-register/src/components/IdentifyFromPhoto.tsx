@@ -6,6 +6,8 @@
  *   it is, the two alternatives, the text read off the item, the SAP records
  *   it may be (or how many, for somebody who may not read them), and any
  *   value the server removed because the photo did not show it.
+ * - `SizeBandLine` — the approximate size band (handoff 67, AI-FR-03), with
+ *   the band's words; shown, never a field anything sends.
  * - `PhotoIdentifyPanel` — the asset's Photos tab: the suggestions BESIDE
  *   the current values, *Use this* per field, one save for the fields used.
  *   It never overwrites a value the person did not choose.
@@ -23,7 +25,7 @@ import { fetchAssetCategories } from "@/lib/dataProvider";
 import { useEnum } from "@/hooks/useEnums";
 import {
   FIELD_WORDS, SUGGESTED_FIELDS, TEXT_KIND_WORDS, fetchAiSwitch, identifyStoredPhoto,
-  proposedValues, type AiSuggestion, type ScoredCategory, type SuggestedField,
+  proposedValues, type AiSuggestion, type ScoredCategory, type SizeBand, type SuggestedField,
 } from "@/lib/aiIdentify";
 
 export function useAiSwitch() {
@@ -41,6 +43,22 @@ export function AiNotice({ text }: { text: string }) {
   );
 }
 
+/** "Approximate size: medium", with what medium means in words. A band
+ *  the server did not choose says why, in its words. Not a field: nothing
+ *  on the asset or the capture carries it (handoff 67, AI-FR-03). */
+export function SizeBandLine({ band }: { band: SizeBand | undefined }) {
+  if (!band) return null;
+  const all = Object.entries(band.definitions ?? {}).map(([k, v]) => `${k}: ${v}`).join("\n");
+  return (
+    <p className="text-[11px] text-muted-foreground" data-testid="ai-size-band" data-band={band.value ?? ""}
+       title={all || band.definition}>
+      {band.label}:{" "}
+      <span className="font-semibold text-foreground">{band.value ?? "not judged"}</span>
+      {band.definition ? <> — {band.definition}</> : null}
+    </p>
+  );
+}
+
 export function SuggestionFacts({ s, onPickCategory }: {
   s: AiSuggestion; onPickCategory?: (c: ScoredCategory) => void;
 }) {
@@ -52,6 +70,7 @@ export function SuggestionFacts({ s, onPickCategory }: {
         ({pct(s.category.confidence)} sure)
         {s.condition.note ? <> · condition note: “{s.condition.note}”</> : null}
       </p>
+      <SizeBandLine band={s.size_band} />
       {s.category.alternatives.length > 0 && (
         <p className="text-muted-foreground" data-testid="ai-alternatives">
           Or perhaps:{" "}

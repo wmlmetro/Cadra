@@ -1,0 +1,183 @@
+
+[preflight] http://test19.localhost:8069/app/ is up · tenant brand = "Nigeria Revenue Service"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 43 tests using 1 worker
+
+[1/43] [chromium] › tests/10-barcode.spec.ts:10:5 › KPI tiles render
+[2/43] [chromium] › tests/10-barcode.spec.ts:18:5 › lookup a real tag and open the asset
+[3/43] [chromium] › tests/10-barcode.spec.ts:45:5 › recent tags table renders (or empty state)
+[4/43] [chromium] › tests/39-the-tagger-confirms.spec.ts:73:5 › the dialog never shows the expected number; the wrong number is refused in the server's words; the right one records who and when
+[5/43] [chromium] › tests/39-the-tagger-confirms.spec.ts:168:5 › confirming the same label twice says already confirmed, and the original record stands
+[6/43] [chromium] › tests/39-the-tagger-confirms.spec.ts:222:5 › a label replaced since the card was loaded is refused: while pending there is no active tag, and once reprinted the label in hand can only be the voided print until the reprint is printed
+[7/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:172:7 › 46 — everyone sees their own job › the personas file exists for this tenant
+  1) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:172:7 › 46 — everyone sees their own job › the personas file exists for this tenant 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 0
+
+    @@ -1,11 +1,9 @@
+      Array [
+        "administrator",
+        "asset_controller",
+        "asset_manager",
+    -   "audit_capturer",
+    -   "audit_reviewer",
+        "auditor",
+        "iad_approver",
+        "iad_officer",
+        "register_checker",
+        "register_maker",
+
+      172 |   test("the personas file exists for this tenant", () => {
+      173 |     test.skip(all.length === 0, `no ${CREDS} — run scripts/demo_personas.sh ${TENANT} seed`);
+    > 174 |     expect(all.map((p) => p.key).sort()).toEqual(Object.keys(LANDING).sort());
+          |                                          ^
+      175 |   });
+      176 |
+      177 |   for (const persona of all) {
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/46-everyone-sees-their-own-job.spec.ts:174:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-d5d8c-file-exists-for-this-tenant-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-d5d8c-file-exists-for-this-tenant-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/46-everyone-sees-their-own-d5d8c-file-exists-for-this-tenant-chromium/error-context.md
+
+    Error Context: test-results/46-everyone-sees-their-own-d5d8c-file-exists-for-this-tenant-chromium/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/46-everyone-sees-their-own-d5d8c-file-exists-for-this-tenant-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/46-everyone-sees-their-own-d5d8c-file-exists-for-this-tenant-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[8/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › administrator: lands, sees, and is refused what it does not see
+[9/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › asset_controller: lands, sees, and is refused what it does not see
+[10/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › asset_manager: lands, sees, and is refused what it does not see
+[11/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › auditor: lands, sees, and is refused what it does not see
+[12/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › iad_approver: lands, sees, and is refused what it does not see
+[13/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › iad_officer: lands, sees, and is refused what it does not see
+[14/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › register_checker: lands, sees, and is refused what it does not see
+[15/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › register_maker: lands, sees, and is refused what it does not see
+[16/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › storekeeper: lands, sees, and is refused what it does not see
+[17/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › tag_unit: lands, sees, and is refused what it does not see
+[18/43] [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › tagger: lands, sees, and is refused what it does not see
+[19/43] [chromium] › tests/61-room-codes.spec.ts:32:5 › the location page shows the room code and prints its label, then the station scans it as a room
+[20/43] [chromium] › tests/61-room-codes.spec.ts:88:5 › the form refuses a room code another location holds, in words, and saves nothing
+[21/43] [chromium] › tests/64-what-the-photo-says.spec.ts:121:7 › 64 — what the photo says › Add asset: suggestions are filled, marked until settled, and the save records what was done
+[22/43] [chromium] › tests/64-what-the-photo-says.spec.ts:177:7 › 64 — what the photo says › Cancel after a suggestion writes nothing
+[23/43] [chromium] › tests/64-what-the-photo-says.spec.ts:191:7 › 64 — what the photo says › Photos tab: suggestions beside the current values, Use this per field
+[24/43] [chromium] › tests/64-what-the-photo-says.spec.ts:232:7 › 64 — what the photo says › Switched off, no screen draws the button
+[25/43] [chromium] › tests/66-the-audit-in-the-room.spec.ts:163:7 › handoff 66 — the audit in the room › the reviewer sees the capture's photo and fields, and accepts it
+  2) [chromium] › tests/66-the-audit-in-the-room.spec.ts:163:7 › handoff 66 — the audit in the room › the reviewer sees the capture's photo and fields, and accepts it 
+
+    Error: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/.personas.test19 has no `audit_capturer` persona — the gates need one.
+
+       at ../fixtures/gates.ts:158
+
+      156 |     if (k === key && login && password) return { key: k, login, password };
+      157 |   }
+    > 158 |   throw new Error(`${PERSONAS} has no \`${key}\` persona — the gates need one.`);
+          |         ^
+      159 | }
+      160 |
+      161 | async function session(key: string): Promise<Session> {
+        at persona (/Users/macbookprom1/Desktop/WML/myservicenrs/e2e/fixtures/gates.ts:158:9)
+        at session (/Users/macbookprom1/Desktop/WML/myservicenrs/e2e/fixtures/gates.ts:164:13)
+        at personaToken (/Users/macbookprom1/Desktop/WML/myservicenrs/e2e/fixtures/gates.ts:183:17)
+        at seed (/Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/66-the-audit-in-the-room.spec.ts:125:42)
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/66-the-audit-in-the-room.spec.ts:164:15
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/66-the-audit-in-the-room-h-bf516-o-and-fields-and-accepts-it-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/66-the-audit-in-the-room-h-bf516-o-and-fields-and-accepts-it-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/66-the-audit-in-the-room-h-bf516-o-and-fields-and-accepts-it-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/66-the-audit-in-the-room-h-bf516-o-and-fields-and-accepts-it-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/66-the-audit-in-the-room-h-bf516-o-and-fields-and-accepts-it-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[26/43] [chromium] › tests/66-the-audit-in-the-room.spec.ts:200:7 › handoff 66 — the audit in the room › the capturer captures an item found in neither register at a desk
+  3) [chromium] › tests/66-the-audit-in-the-room.spec.ts:200:7 › handoff 66 — the audit in the room › the capturer captures an item found in neither register at a desk 
+
+    Error: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/.personas.test19 has no `audit_capturer` persona — the gates need one.
+
+       at ../fixtures/gates.ts:158
+
+      156 |     if (k === key && login && password) return { key: k, login, password };
+      157 |   }
+    > 158 |   throw new Error(`${PERSONAS} has no \`${key}\` persona — the gates need one.`);
+          |         ^
+      159 | }
+      160 |
+      161 | async function session(key: string): Promise<Session> {
+        at persona (/Users/macbookprom1/Desktop/WML/myservicenrs/e2e/fixtures/gates.ts:158:9)
+        at session (/Users/macbookprom1/Desktop/WML/myservicenrs/e2e/fixtures/gates.ts:164:13)
+        at personaToken (/Users/macbookprom1/Desktop/WML/myservicenrs/e2e/fixtures/gates.ts:183:17)
+        at seed (/Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/66-the-audit-in-the-room.spec.ts:125:42)
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/66-the-audit-in-the-room.spec.ts:201:15
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/66-the-audit-in-the-room-h-6816a--neither-register-at-a-desk-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/66-the-audit-in-the-room-h-6816a--neither-register-at-a-desk-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/66-the-audit-in-the-room-h-6816a--neither-register-at-a-desk-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/66-the-audit-in-the-room-h-6816a--neither-register-at-a-desk-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/66-the-audit-in-the-room-h-6816a--neither-register-at-a-desk-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[27/43] [chromium] › tests/67-station-capture.spec.ts:145:7 › handoff 67 — the station captures › a capture at the station: room by its code, identify, print recorded, scan, send — and the reviewer accepts
+[28/43] [chromium] › tests/40-the-camera-in-the-dialog.spec.ts:141:5 › a label read by the camera fills the field and is not submitted; the serial too; confirming then records the row
+[29/43] [chromium] › tests/40-the-camera-in-the-dialog.spec.ts:228:5 › the wrong label read by the camera is refused in the server's words, the inputs kept; the right one typed then submits on Enter
+[30/43] [chromium] › tests/40-the-camera-in-the-dialog.spec.ts:272:5 › camera off: auto-focus and Enter submits exactly as before; toggling the camera on and off returns focus
+[31/43] [chromium] › tests/40-the-camera-in-the-dialog.spec.ts:311:5 › closing the dialog with the camera running stops the camera
+[32/43] [chromium] › tests/54-every-time.spec.ts:129:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a 2D value is accepted on one decode; a 1D value is not
+[33/43] [chromium] › tests/54-every-time.spec.ts:137:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a 1D value is accepted when two consecutive decodes agree — and only then
+[34/43] [chromium] › tests/54-every-time.spec.ts:148:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › two frames disagreeing is refused and says Reading…, the newer read becoming the candidate
+[35/43] [chromium] › tests/54-every-time.spec.ts:156:7 › §4 — acceptance that does not misread (decideScan, the component's own rules) › a blank frame keeps the pending read; two different values become a choice, never a guess
+[36/43] [chromium] › tests/54-every-time.spec.ts:167:5 › the wasm is not fetched on page load, is fetched when the camera starts, and the station then decodes with it
+[37/43] [chromium] › tests/54-every-time.spec.ts:192:5 › each Cadra label size decodes off its Code 128 side, at the template's own source resolution, and says so
+[38/43] [chromium] › tests/54-every-time.spec.ts:216:5 › each Cadra label size decodes off its QR side, at the template's own source resolution, and says so
+[39/43] [chromium] › tests/54-every-time.spec.ts:229:5 › one manufacturer-style label per family decodes to its value and its format
+[40/43] [chromium] › tests/54-every-time.spec.ts:259:5 › two different values in one frame become a choice; the tap fills the box; Neither keeps scanning
+[41/43] [chromium] › tests/54-every-time.spec.ts:286:5 › of two values, the one inside the reticle wins without asking
+[42/43] [chromium] › tests/54-every-time.spec.ts:304:5 › after 4 s with no decode a sentence arrives; after 10 s it offers typing, focuses the box and leaves the camera running
+[43/43] [chromium] › tests/54-every-time.spec.ts:349:5 › a camera-read wrong tag is refused and the refusal record names the symbology it was read from
+  3 failed
+    [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:172:7 › 46 — everyone sees their own job › the personas file exists for this tenant 
+    [chromium] › tests/66-the-audit-in-the-room.spec.ts:163:7 › handoff 66 — the audit in the room › the reviewer sees the capture's photo and fields, and accepts it 
+    [chromium] › tests/66-the-audit-in-the-room.spec.ts:200:7 › handoff 66 — the audit in the room › the capturer captures an item found in neither register at a desk 
+  6 skipped
+  11 did not run
+  23 passed (3.0m)

@@ -1,0 +1,2 @@
+2026-10-20 06:56:47,329 1870 ERROR test19f odoo.addons.myservice_api.tests.test_published_names_resolve: FAIL: TestPublishedNamesResolve.test_every_bare_override_of_an_inherited_route_is_named
+2026-10-20 06:56:49,066 1870 ERROR test19f odoo.tests.result: 1 failed, 0 error(s) of 14 tests when loading database 'test19f' 

@@ -59,6 +59,12 @@ export interface AuditCode {
   void_reason: string | null;
   asset_id: number | null;
   capture_id: string | null;
+  /** Handoff 67: every print of a block code is recorded, as every tag
+   *  label's is (61) — how many times, when, by whom. */
+  print_count: number;
+  first_printed_at?: string | null;
+  last_printed_at: string | null;
+  last_printed_by: UserRef | null;
 }
 
 export interface AuditBlock {
@@ -128,10 +134,32 @@ export async function issueBlock(deviceId: number, size: number): Promise<AuditB
   return (await apiPost<AuditBlock>("/api/v1/audit/blocks", { device_id: deviceId, size })).data;
 }
 
+/** The Asset Controller returns any block; since handoff 67 a capturer
+ *  returns their own (a shift ending at a shared station). Unused codes are
+ *  voided and never reissued. */
 export async function returnBlock(id: number, reason?: string): Promise<AuditBlock> {
   const body: Record<string, unknown> = {};
   if (reason && reason.trim()) body.reason = reason.trim();
   return (await apiPost<AuditBlock>(`/api/v1/audit/blocks/${id}/return`, body)).data;
+}
+
+export interface CodePrinted { code: string; print_count: number; last_printed_at: string | null }
+
+/** Record that codes from the caller's block were printed (handoff 67) —
+ *  the station's print, after the browser's print view opened. Each code
+ *  must be reserved to the caller on the device named in `X-Cadra-Device`;
+ *  one that is not refuses the whole request and nothing is recorded. */
+export async function recordCodesPrinted(deviceCode: string, codes: string[]): Promise<CodePrinted[]> {
+  return (await apiPost<{ recorded: CodePrinted[] }>("/api/v1/audit/codes/printed", { codes }, {
+    headers: { [DEVICE_HEADER]: deviceCode },
+  })).data?.recorded ?? [];
+}
+
+/** Void one spoiled code reserved to the caller (a label torn at print),
+ *  with a reason. A voided code is never reissued (handoff 67 §2.2). */
+export async function voidSpoiledCode(code: string, reason: string): Promise<AuditCode> {
+  return (await apiPost<AuditCode>(`/api/v1/audit/codes/${encodeURIComponent(code)}/void`,
+    { reason: reason.trim() })).data;
 }
 
 // ── campaigns ────────────────────────────────────────────────────────────
@@ -369,6 +397,11 @@ export const CONFIRMED_FIELD_WORDS: Record<keyof ConfirmedFields, string> = {
   notes: "Notes",
 };
 
+/** Where a capture was taken (AI-FR-10, handoff 67 §2.4) — optional, on
+ *  the capture record only: never sent to the AI provider, never on a label
+ *  or a public page. */
+export interface CaptureGps { latitude: number; longitude: number; accuracy_m?: number }
+
 export interface AuditCapture {
   capture_id: string;
   id: number;
@@ -407,6 +440,7 @@ export interface AuditCapture {
   exception_resolved_by: UserRef | null;
   exception_resolved_at: string | null;
   exception_void_reason: string | null;
+  gps?: CaptureGps | null;
   replayed?: boolean;
 }
 
@@ -437,6 +471,7 @@ export interface CaptureBody {
   ai_suggestion_id?: number;
   captured_at: string;
   fields: ConfirmedFields;
+  gps?: CaptureGps;
 }
 
 export async function sendCapture(deviceCode: string, body: CaptureBody): Promise<AuditCapture> {

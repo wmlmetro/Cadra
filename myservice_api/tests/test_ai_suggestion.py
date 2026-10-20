@@ -169,6 +169,7 @@ class TestAiSuggestion(CadraTransactionCase):
                            "material": None, "make": None,
                            "model_name": None, "dimensions": None},
             "condition": {"value": "good", "note": None},
+            "size_band": "medium",
             "text_read": [],
         }
         data.update(over)
@@ -185,6 +186,8 @@ class TestAiSuggestion(CadraTransactionCase):
             self._answer(alternatives=[{"id": self.chair.id,
                                         "confidence": 0.1}]),
             self._answer(text_read=[{"text": "X", "looks_like": "barcode"}]),
+            self._answer(size_band="huge"),
+            self._answer(size_band=None),
             {"category": "a chair"},
             None,
         )
@@ -192,6 +195,65 @@ class TestAiSuggestion(CadraTransactionCase):
             with self.subTest(data=data):
                 with self.assertRaises(ai.InvalidAnswer):
                     ai.validate_answer(data, ids)
+
+    def test_the_size_band_is_words_and_unknown_is_none(self):
+        """Handoff 67 §3 (AI-FR-03): a band from the schema's enum, `unknown`
+        published as None, and the words each band means in the prompt."""
+        ids = [self.chair.id, self.laptop.id]
+        schema = ai.answer_schema(ids)
+        self.assertEqual(schema["properties"]["size_band"]["enum"],
+                         ["small", "medium", "large", "unknown"])
+        self.assertIn("size_band", schema["required"])
+        clean, _n = ai.validate_answer(self._answer(), ids)
+        self.assertEqual(clean["size_band"], "medium")
+        clean, _n = ai.validate_answer(self._answer(size_band="unknown"), ids)
+        self.assertIsNone(clean["size_band"])
+        system = ai.build_system([], {})
+        for band, words in ai.SIZE_BAND_WORDS.items():
+            self.assertIn(words, system)
+        block = v1_ai.size_band_block(None)
+        self.assertTrue(block["approximate"])
+        self.assertIsNone(block["value"])
+        self.assertEqual(set(block["definitions"]), set(ai.SIZE_BANDS))
+
+    def test_the_acceptance_counts_a_seeded_set(self):
+        """Handoff 67 §3 (AI-NFR-08), against a seeded set under a model id
+        nothing else uses: four calls — one discarded, three identified;
+        of those, one saved unchanged, one saved with a field changed, one
+        never used. The model's row is exactly that."""
+        model = "cadra-test-67"
+        asset = self.env["nrs.asset"].create(
+            {"name": "AI probe acceptance", "category_id": self.chair.id})
+
+        def call(result="ok"):
+            return self.Suggestion._record(
+                pending=self._pending(), provider="fake", model=model,
+                prompt_version=ai.PROMPT_VERSION, result=result,
+                suggestion=self._published() if result == "ok" else None)
+        call("invalid")
+        kept, changed, _unused = call(), call(), call()
+        for row, counts in ((kept, {"accepted": 5, "changed": 0,
+                                    "ignored": 0}),
+                            (changed, {"accepted": 4, "changed": 1,
+                                       "ignored": 0})):
+            self.env["nrs.asset.event"]._record(
+                asset, "ai_suggestion_applied", source="api_write",
+                actor=self.env.user, ai_suggestion_id=row.id,
+                notes=json.dumps({"counts": counts, "fields": {}}))
+        out = self.Suggestion._acceptance(30)
+        row = next(r for r in out["by_model"] if r["key"] == model)
+        self.assertEqual(
+            {k: row[k] for k in ("made", "identified", "used",
+                                 "accepted_unchanged",
+                                 "share_accepted_unchanged")},
+            {"made": 4, "identified": 3, "used": 2, "accepted_unchanged": 1,
+             "share_accepted_unchanged": 0.5})
+        cat = next(r for r in out["by_category"]
+                   if r["key"] == str(self.chair.id))
+        self.assertEqual(cat["label"], "AI probe chairs")
+        self.assertEqual((cat["made"], cat["used"]), (3, 2))
+        self.assertEqual(set(out["definitions"]), set(S.ACCEPTANCE_WORDS))
+        self.assertEqual(out["window"]["days"], 30)
 
     def test_what_was_not_read_is_removed_and_said(self):
         ids = [self.chair.id, self.laptop.id]
@@ -247,6 +309,25 @@ class TestAiSuggestion(CadraTransactionCase):
             row._check_applicable(None)
         self.assertEqual(raised.exception.details["reason"],
                          "already_applied")
+
+    def test_an_audit_photo_suggestion_is_never_saved_to_an_asset(self):
+        """Handoff 67 §2.1: a suggestion made from an audit capture's photo
+        is used by that capture; no asset save can apply it."""
+        photo, _created = self.env["nrs.audit.photo"]._upload(
+            _png(41, 31), source="web", filename="chair-67.png")
+        row = self.Suggestion._record(
+            audit_photo=photo, provider="fake", model="cadra-fake-1",
+            prompt_version=ai.PROMPT_VERSION, result="ok",
+            suggestion=self._published())
+        self.assertEqual(row.audit_photo_id, photo)
+        self.assertEqual(row.photo_sha256, photo.sha256)
+        asset = self.env["nrs.asset"].create(
+            {"name": "AI probe audit", "category_id": self.chair.id})
+        for target in (None, asset):
+            with self.assertRaises(S.SuggestionRefused) as raised:
+                row._check_applicable(target)
+            self.assertEqual(raised.exception.details["reason"],
+                             "audit_photo")
 
     def test_an_expired_held_photo_is_purged_and_the_hash_kept(self):
         pending = self._pending()
