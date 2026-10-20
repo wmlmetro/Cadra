@@ -214,7 +214,9 @@ export default function AiIdentifySettingsPage() {
           <section className="bg-card border border-border rounded-2xl p-5 space-y-3">
             <h2 className="text-[13px] font-bold flex items-center gap-1.5"><KeyRound size={14} /> Provider keys</h2>
             <p className="text-[12px] text-foreground" data-testid="ai-settings-key">
-              {s.key_placed ? `This server holds ${s.provider_label}'s key.` : `This server holds no key for ${s.provider_label}.`}
+              {s.provider_options?.find(o => o.value === s.provider)?.needs_key === false
+                ? "The test stand-in needs no key; nothing leaves the server."
+                : s.key_placed ? `This server holds ${s.provider_label}'s key.` : `This server holds no key for ${s.provider_label}.`}
             </p>
             {s.provider_options && (
               <ul className="text-[12px] space-y-1" data-testid="ai-settings-keys">

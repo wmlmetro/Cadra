@@ -821,6 +821,28 @@ _GUARDED_READS = {
     # written before the field landed; it is always there since
     # `myservice_asset_register` 19.0.1.26.0.
     ("v1_settings.py", "_receipt_gate_block", "Asset", "register_state"): None,
+    # Handoff 68: `ai_provider.OpenAIProvider.identify` reads the OpenAI
+    # SDK's response and exception objects with `getattr(..., default)` —
+    # a Responses API answer, its usage block, its output items, an error's
+    # `code`. None is a record: they are the provider's objects, whose
+    # optional parts may be absent, and no Cadra field is behind any of
+    # them. `tests/test_openai_provider.py` drives each through a faked SDK
+    # and `68-evidence/real-sdk-drive.txt` through the real one.
+    ("ai_provider.py", "identify", "e", "code"): None,
+    ("ai_provider.py", "identify", "resp", "usage"): None,
+    ("ai_provider.py", "identify", "u", "input_tokens_details"): None,
+    ("ai_provider.py", "identify", "details", "cached_tokens"): None,
+    ("ai_provider.py", "identify", "details", "cache_write_tokens"): None,
+    ("ai_provider.py", "identify", "u", "input_tokens"): None,
+    ("ai_provider.py", "identify", "u", "output_tokens"): None,
+    ("ai_provider.py", "identify", "resp", "status"): None,
+    ("ai_provider.py", "identify", "resp", "incomplete_details"): None,
+    ("ai_provider.py", "identify", "incomplete", "reason"): None,
+    ("ai_provider.py", "identify", "resp", "output"): None,
+    ("ai_provider.py", "identify", "item", "type"): None,
+    ("ai_provider.py", "identify", "item", "content"): None,
+    ("ai_provider.py", "identify", "part", "type"): None,
+    ("ai_provider.py", "identify", "resp", "model"): None,
 }
 
 #: The one published key that must NOT resolve — see `_location_field`.

@@ -749,8 +749,8 @@ class CadraAiV1(http.Controller):
 
     @cadra_route("/api/v1/settings/ai-identify/acceptance", method="GET",
                  summary="Identify from photo: suggestions made and the "
-                         "share accepted unchanged, by class, site and "
-                         "model (AI-NFR-08)",
+                         "share accepted unchanged, by class, site, "
+                         "provider and model (AI-NFR-08)",
                  scopes=[SCOPE_SETTINGS_READ],
                  query_params=[{"name": "days", "schema": {
                      "type": "integer", "minimum": 1, "maximum": 365,
@@ -764,6 +764,8 @@ class CadraAiV1(http.Controller):
                                      "items": {"type": "object"}},
                      "by_site": {"type": "array",
                                  "items": {"type": "object"}},
+                     "by_provider": {"type": "array",
+                                     "items": {"type": "object"}},
                      "by_model": {"type": "array",
                                   "items": {"type": "object"}},
                      "definitions": {"type": "object", "description":

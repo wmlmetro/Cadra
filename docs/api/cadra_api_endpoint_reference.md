@@ -6067,7 +6067,9 @@ block issued to the caller (`403` for anybody else's). The Asset Controller
 ### 20.5 GET `/api/v1/settings/ai-identify/acceptance` (AI-NFR-08)
 
 `settings:read`, `?days=` 1–365 (default 30, Lagos days, today included).
-`{window, totals, by_category, by_site, by_model, definitions}`; every row
+`{window, totals, by_category, by_site, by_provider, by_model, definitions}`
+(`by_provider` and each `by_model` row's `provider` since handoff 68; a dated
+snapshot model id is counted with its model); every row
 `{key, label, made, identified, used, accepted_unchanged,
 share_accepted_unchanged}`. `definitions` says, in words, what each count
 counts: *made* every call; *identified* a suggestion a person could see;

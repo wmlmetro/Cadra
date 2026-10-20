@@ -12,7 +12,8 @@
 # switching a tenant's provider never means swapping a secret.
 #
 # The key lives in the SERVER'S ENVIRONMENT, never in a database: this
-# writes one line, `CADRA_AI_API_KEY=<key>`, into the repository's `.env`
+# writes one line, `CADRA_AI_API_KEY=<key>` (or `CADRA_OPENAI_API_KEY=<key>`
+# for `openai`), into the repository's `.env`
 # (replacing an existing line in place, or appending one), which compose
 # hands to the Odoo container. Until handoff 65 it took a database name and
 # wrote an `ir_config_parameter` row — readable by any back-office system
@@ -39,10 +40,10 @@ for arg in "$@"; do
   case "$arg" in
     --clear) MODE="--clear" ;;
     -h|--help)
-      sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
-    anthropic) PROVIDER="anthropic" ;;
-    openai) PROVIDER="openai" ;;
+    [Aa][Nn][Tt][Hh][Rr][Oo][Pp][Ii][Cc]) PROVIDER="anthropic" ;;
+    [Oo][Pp][Ee][Nn][Aa][Ii]|[Oo][Pp][Ee][Nn]-[Aa][Ii]) PROVIDER="openai" ;;
     *)
       # Handoff 64's form was `set_ai_key.sh <db>`. The key is per SERVER
       # now, so a database name means nothing here — say so rather than

@@ -34,6 +34,7 @@ the asset already held as suggested is accepted with `already_held` (handoff
 import base64
 import hashlib
 import json
+import re
 from datetime import datetime, timedelta
 
 import pytz
@@ -585,7 +586,12 @@ class NRSAiSuggestion(models.Model):
                 'by_site': site.get(sid, ('none', _(
                     'Not used by an audit capture'))),
                 'by_provider': (provider, provider),
-                'by_model': (model or provider, model or provider),
+                # A dated snapshot is grouped with the model it belongs to:
+                # OpenAI ANSWERS `gpt-6.1-sol-2026-09-29` while a failed call
+                # records the model asked, `gpt-6.1-sol` — one model, one row
+                # (verification pass, handoff 68).
+                'by_model': (_model_family(model) or provider,
+                             _model_family(model) or provider),
             }
             buckets = [totals] + [
                 groups[g].setdefault(k, blank(k, label))
@@ -619,6 +625,11 @@ class NRSAiSuggestion(models.Model):
         return out
 
 
+def _model_family(model):
+    """`model` without a trailing `-YYYY-MM-DD` snapshot date."""
+    return re.sub(r'-\d{4}-\d{2}-\d{2}$', '', model) if model else model
+
+
 #: What every count on the acceptance dashboard counts (handoff 67 §3).
 ACCEPTANCE_WORDS = {
     'made': 'Calls to the provider in the window, every result counted — a '
@@ -639,6 +650,7 @@ ACCEPTANCE_WORDS = {
                'one row.',
     'by_provider': 'Grouped by the provider asked (anthropic, openai, or '
                    'the test stand-in fake).',
-    'by_model': 'Grouped by the model that answered; each row names its '
-                'provider.',
+    'by_model': 'Grouped by the model asked or that answered, a dated '
+                'snapshot (gpt-6.1-sol-2026-09-29) counted with its model; '
+                'each row names its provider.',
 }

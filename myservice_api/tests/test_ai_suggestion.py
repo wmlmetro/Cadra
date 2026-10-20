@@ -262,17 +262,23 @@ class TestAiSuggestion(CadraTransactionCase):
     def test_the_acceptance_says_which_provider_answered(self):
         """Handoff 68 §3: two providers' models side by side, each row
         naming its provider; the by-provider rows count each one's calls."""
-        for provider, model in (("openai", "gpt-test-68"),
-                                ("openai", "gpt-test-68"),
-                                ("anthropic", "claude-test-68")):
+        # A failed call records the model ASKED; an answered one the dated
+        # snapshot OpenAI names — one model, one row.
+        for provider, model, result in (
+                ("openai", "gpt-test-68", "error"),
+                ("openai", "gpt-test-68-2026-09-29", "ok"),
+                ("anthropic", "claude-test-68", "ok")):
             self.Suggestion._record(
                 pending=self._pending(), provider=provider, model=model,
-                prompt_version=ai.PROMPT_VERSION, result="ok",
-                suggestion=self._published())
+                prompt_version=ai.PROMPT_VERSION, result=result,
+                suggestion=self._published() if result == "ok" else None)
         out = self.Suggestion._acceptance(30)
         models = {r["key"]: r for r in out["by_model"]}
         self.assertEqual((models["gpt-test-68"]["provider"],
-                          models["gpt-test-68"]["made"]), ("openai", 2))
+                          models["gpt-test-68"]["made"],
+                          models["gpt-test-68"]["identified"]),
+                         ("openai", 2, 1))
+        self.assertNotIn("gpt-test-68-2026-09-29", models)
         self.assertEqual(models["claude-test-68"]["provider"], "anthropic")
         providers = {r["key"]: r for r in out["by_provider"]}
         self.assertGreaterEqual(providers["openai"]["made"], 2)

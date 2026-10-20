@@ -405,6 +405,9 @@ def main():
         for provider, model in runs:
             if (provider, model) != (tenant_provider, tenant_model) \
                     or len(runs) > 1:
+                # Touched BEFORE the PATCH: a request that times out here
+                # may still have been written there (verification pass).
+                touched.add(provider)
                 body = {"model": model}
                 if provider != tenant_provider or len(
                         {p for p, _m in runs}) > 1:
@@ -420,7 +423,6 @@ def main():
                              "a model needs settings:write).")
             print("=" * 72)
             print(f"{provider}:{model}\n")
-            touched.add(provider)
             rows = run_folder(base, auth, photos, labels, out, model,
                               provider=provider)
             tables.append(table(model, rows, labels, provider=provider))
