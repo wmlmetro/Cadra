@@ -1,6 +1,6 @@
 # Handoff 68 — report: a second provider
 
-**Branch:** `feat/a-second-provider` · **Commits:** `d39a343` (instruction), `4c493e9` (the work), `98bb4dc` (the CI guard and the verification pass's fixes), the report commit · **CI:** _pending_ — run [39425747939](https://github.com/wmlmetro/Cadra/actions/runs/39425747939); the first run, [39423684468](https://github.com/wmlmetro/Cadra/actions/runs/39423684468), failed on one guard (below)
+**Branch:** `feat/a-second-provider` · **Commits:** `d39a343` (instruction), `4c493e9` (the work), `98bb4dc` (the CI guard and the verification pass's fixes), the report commit · **CI: green on `5550ad7`, both switch states** — gates off in push run [39425845240](https://github.com/wmlmetro/Cadra/actions/runs/39425845240), gates on in PR run [39425854959](https://github.com/wmlmetro/Cadra/actions/runs/39425854959); the first run, [39423684468](https://github.com/wmlmetro/Cadra/actions/runs/39423684468), failed on one guard (deviation 6), and 39425747939 was superseded
 
 ## Needs the owner
 
@@ -49,7 +49,7 @@ The new browser test caught one real bug on the settings screen, which was older
 | Full pytest, gates off, fresh `test19f` (on `4c493e9`) | **1,567 passed, 10 skipped, 0 failed of 1,577**, 9 m 59 s |
 | After the verification fixes: the unit, photo and source-guard files; spec 68 | 268 of 268; 1 of 1 |
 | CI run 1 (`4c493e9`), both switch states | pytest **1,561 passed, 16 skipped** each; modules **1 failed of 1,314** each — `test_every_guarded_read_is_classified` (deviation 6) |
-| CI run 2 (`98bb4dc`) | _pending_ |
+| CI on `5550ad7` (the fix + this report), both switch states | pytest **1,561 passed, 16 skipped** each; modules **0 failed, 0 errors of 1,314** each |
 
 ## Deviations and questions
 
@@ -74,4 +74,4 @@ The new browser test caught one real bug on the settings screen, which was older
 - Build: 13:15–13:28 (the image 3 min of it).
 - Targeted tests and fixes: 13:28–13:38.
 - Final suite (10 min), verification pass (5 min) in parallel, and report: 13:38–13:53.
-- CI run 1 failed at 13:50 and the guard was fixed by 13:53; then CI run 2.
+- CI run 1 failed at 13:50 and the guard was fixed by 13:53; CI was green on both legs by 14:07.
