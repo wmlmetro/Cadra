@@ -241,5 +241,21 @@ Started 06:48; budget 3 h. The report was pushed at about 07:32, roughly
 
 ## CI
 
-PR #128. Run 39380771889 on `ebf51d9` (the fixes): **pending** —
-https://github.com/wmlmetro/Cadra/actions/runs/39380771889
+PR #128.
+
+- **39380829526 on `986fd8f`** (the verification fixes): pytest passed in
+  both legs. The in-registry step was red in both, with its result beyond
+  GitHub's truncated log, as in report 66.
+- **Reproduced locally** with CI's exact command on a fresh `test19f`:
+  - The guard `TestPublishedNamesResolve.test_every_route_that_takes_a_body_is_classified`
+    fails and names the two new body routes, `POST /audit/codes/printed`
+    and `…/<code>/void`. Each needed a line in `_BODY_ROUTES` saying what
+    its keys are.
+  - After that line: 1 failed of 14 in that class. The one left is the
+    known isolation-only `…bare_override…` test (reports 64–66).
+  - The full command gives 1 failed of 1,309. The one is
+    `TestAssetHistoryMoves.test_a_located_asset_with_no_record_says_so`,
+    which needs some movement row on the database; a freshly restored
+    `test19f` has none until CI's pytest step (which runs first) writes
+    them. It was not seen in CI's order.
+- **The fix commit's run:** see below.
