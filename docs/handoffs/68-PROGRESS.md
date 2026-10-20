@@ -15,5 +15,5 @@ Times are the machine's clock (`date`), Lagos-independent, 20 October 2026.
 - 13:47 — full pytest gates off on fresh `test19f`: 1,567 passed, 10 skipped of 1,577 (9 m 59 s). Verification pass: no blocker, seven findings, five fixed.
 - 13:48–13:50 — CI run 39423684468 FAILED: modules 1 failed of 1,314 in both legs (`test_every_guarded_read_is_classified`, the OpenAI SDK reads). Classified; locally 0 failed of 38.
 - 13:53 — Progress: 90% — `98bb4dc` pushed; CI run 39425747939 started. Report written, CI pending.
-- 14:07 — CI green on `5550ad7`, both switch states: pytest 1,561 passed / 16 skipped, modules 0 failed of 1,314 (gates off run 39425845240, gates on run 39425854959).
+- 14:07 — CI green on `5550ad7`, both switch states: pytest 1,561 passed / 16 skipped, modules 0 failed of 1,314 (gates off run 39425845240, gates on run 39425854959 — both later cancelled by the next push); 14:20 — run 39427956631 on `8322441` green end to end, the run the report cites.
 - Progress: 100% — report amended and pushed; closing step on `dev`; Architect notified.
