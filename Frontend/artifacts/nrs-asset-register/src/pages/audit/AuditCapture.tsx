@@ -216,6 +216,16 @@ export function CaptureScreen(props: CaptureScreenProps = {}) {
     }
   };
 
+  /** A photo left out takes its suggestion with it: the server refuses a
+   *  capture naming a suggestion made from a photo it does not carry
+   *  (verification pass, 67). The values the person has typed stay. */
+  const leavePhotoOut = (id: number) => {
+    const rest = photos.filter(x => x.id !== id);
+    setPhotos(rest);
+    if (lastPhotoId === id) setLastPhotoId(rest.length ? rest[rest.length - 1].id : null);
+    if (suggestion?.photo?.id === id) { setSuggestion(null); setSuggested({}); }
+  };
+
   const identify = useMutation<AiSuggestion, CadraApiError>({
     mutationFn: () => identifyAuditPhoto(lastPhotoId as number),
     onSuccess: (s) => {
@@ -414,7 +424,7 @@ export function CaptureScreen(props: CaptureScreenProps = {}) {
               {photos.map(p => (
                 <div key={p.id} className="relative">
                   <Photo url={p.url} size="sm" testid="capture-photo-thumb" />
-                  <button type="button" aria-label="Leave this photo out" onClick={() => setPhotos(ps => ps.filter(x => x.id !== p.id))}
+                  <button type="button" aria-label="Leave this photo out" onClick={() => leavePhotoOut(p.id)}
                           className="absolute -top-1.5 -right-1.5 bg-card border border-border rounded-full p-0.5"><X size={10} /></button>
                 </div>
               ))}

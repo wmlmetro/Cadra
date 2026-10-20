@@ -1844,3 +1844,26 @@ Evidence: `docs/handoffs/66-evidence/`.
   `test_a_refused_or_previewed_grant_leaves_no_role_behind`.
 - **The screens**: Audit campaigns, review, capture, exceptions, devices and
   codes; browser specs 46, 65 and 66 17 of 17 on `test19f`.
+
+## Handoff 67 — the station captures
+
+Evidence: `docs/handoffs/67-evidence/`.
+
+- **Capture at the Barcode Station (Lot 6)**: spec 67 drives it as the
+  personas on `test19f` — the station a device bound to the capturer, the
+  room by its scanned code, a photo identified by its audit id (one
+  upload), the code printed and the print recorded (`print_count` 1 on the
+  ledger), the label scanned, the capture sent with GPS, a spoiled code
+  voided, the block returned, the reviewer's acceptance in the Audit screen.
+  Specs 46, 66, 67 17 of 17 on `test19f`; the station specs 10, 39, 40,
+  54, 61 (room codes) and 64 green on `test19`.
+- **The four gaps and their refusals**: `tests/test_the_station.py` 9 of 9
+  (identify by audit photo, a suggestion naming a photo the capture does not
+  carry, a failed call named by a capture, void one code, return one's own
+  block and not another's, print recorded and refused whole, GPS stored and
+  refused when not a position).
+- **The size band and the dashboard**: in-registry `TestAiSuggestion` 0
+  failed of 19, the dashboard against a seeded set (4 made, 3 identified, 2
+  used, 1 unchanged, share 0.5); over HTTP the counts move by exactly what
+  the test did.
+- **Fan-out**: 8 of 8 tenants and the `test19f` template, clean.

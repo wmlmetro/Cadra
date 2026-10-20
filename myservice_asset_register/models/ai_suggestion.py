@@ -546,6 +546,10 @@ class NRSAiSuggestion(models.Model):
                 [('ai_suggestion_id', 'in', ids)])
             for cap in caps:
                 sugg = cap.ai_suggestion_id
+                if sugg.result != 'ok':
+                    # Captures before 67's refusal could name a failed
+                    # call; it proposed nothing, so it was not "used".
+                    continue
                 written = json.loads(cap.confirmed_json or '{}')
                 outcomes = sugg._outcomes(written, asset=cap.asset_id or None)
                 unchanged[sugg.id] = all(

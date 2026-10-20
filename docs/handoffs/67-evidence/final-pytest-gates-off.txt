@@ -1,0 +1,58 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+.........s....................................................s......... [ 23%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 37%]
+..........................s............................................. [ 41%]
+...........................................................F............ [ 46%]
+........................................................s............... [ 51%]
+....sss................................................................. [ 55%]
+........................................................................ [ 60%]
+........................................................................ [ 65%]
+........................................................................ [ 69%]
+........................................................................ [ 74%]
+........................................................................ [ 79%]
+........................................................................ [ 83%]
+........................................................................ [ 88%]
+.............................ss......................s.................. [ 92%]
+........................................................................ [ 97%]
+.....................................                                    [100%]
+=================================== FAILURES ===================================
+___________ test_every_declared_query_parameter_is_in_the_inventory ____________
+
+    def test_every_declared_query_parameter_is_in_the_inventory():
+        """The one that fires when somebody adds a filter.
+    
+        A new parameter with no entry here is a parameter nobody has decided
+        about — and the default outcome of not deciding is the silent
+        pass-through this whole handoff removed.
+        """
+        missing = []
+        for name, facts in _module_facts().items():
+            for param in sorted(facts["declared"] | facts["domain_reads"]):
+                if param in SHARED_PARAMS:
+                    continue
+                if (name, param) not in INVENTORY:
+                    missing.append("%s: %s" % (name, param))
+>       assert not missing, (
+            "these query parameters are declared or acted on but have no "
+            "INVENTORY entry in this file:\n  %s\n\n"
+            "Add one. If it is a bool, an enum or an int it must reach the door "
+            "in myservice_api/controllers/query_params.py; if it genuinely has "
+            "no closed set, waive it with the reason." % "\n  ".join(missing))
+E       AssertionError: these query parameters are declared or acted on but have no INVENTORY entry in this file:
+E           v1_ai: days
+E         
+E         Add one. If it is a bool, an enum or an int it must reach the door in myservice_api/controllers/query_params.py; if it genuinely has no closed set, waive it with the reason.
+E       assert not ['v1_ai: days']
+
+tests/test_query_param_guard.py:473: AssertionError
+============================ cadra api test report =============================
+Report: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-report.md
+Captured responses: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-responses/
+=========================== short test summary info ============================
+FAILED tests/test_query_param_guard.py::test_every_declared_query_parameter_is_in_the_inventory
+1 failed, 1538 passed, 10 skipped in 660.14s (0:11:00)

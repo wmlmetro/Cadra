@@ -331,12 +331,21 @@ class NRSAssetCode(models.Model):
 
     def _record_print(self):
         """One print of each code, recorded with who and when (§1)."""
-        now = fields.Datetime.now()
-        me = self.env.user
-        for row in self:
-            row._w({'print_count': row.print_count + 1,
-                    'first_printed_at': row.first_printed_at or now,
-                    'last_printed_at': now, 'last_printed_by_id': me.id})
+        if not self:
+            return self
+        # One UPDATE, so two prints of one code at the same instant both
+        # count (verification pass, 67: a read-then-write lost one).
+        self.flush_recordset()
+        self.env.cr.execute(
+            "UPDATE nrs_asset_code SET print_count = "
+            "COALESCE(print_count, 0) + 1, "
+            "first_printed_at = COALESCE(first_printed_at, now() AT TIME "
+            "ZONE 'UTC'), last_printed_at = now() AT TIME ZONE 'UTC', "
+            "last_printed_by_id = %s, write_uid = %s, "
+            "write_date = now() AT TIME ZONE 'UTC' WHERE id = ANY(%s)",
+            (self.env.user.id, self.env.user.id, self.ids))
+        self.invalidate_recordset(['print_count', 'first_printed_at',
+                                   'last_printed_at', 'last_printed_by_id'])
         return self
 
     def _void_spoiled(self, reason):
@@ -1088,6 +1097,14 @@ class NRSAuditCapture(models.Model):
         if not s or s.actor_id != self.env.user:
             raise _refuse(_('Suggestion %s is not one you asked for.') % sid,
                           'validation_failed', field='ai_suggestion_id')
+        if s.result != 'ok':
+            # Verification pass, 67: a failed call's id (in a 503's details)
+            # has nothing in it to confirm — the asset save refuses it too.
+            raise _refuse(_(
+                'Suggestion %(id)s has nothing to confirm: the photo was not '
+                'identified (%(why)s). Send the capture without it.',
+                id=sid, why=s.failure or s.result), 'validation_failed',
+                field='ai_suggestion_id', reason='not_identified')
         if s.audit_photo_id and photos is not None \
                 and s.audit_photo_id not in photos:
             raise _refuse(_(

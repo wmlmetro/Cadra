@@ -396,3 +396,17 @@ def test_the_acceptance_dashboard_counts_what_was_done(client, station,
     r = requests.get(client.base + ACCEPTANCE, timeout=60, headers={
         "Authorization": f"Bearer {gates._token(client, CAP)}"})
     assert_envelope_err(r, 403)
+
+
+def test_a_capture_cannot_name_a_call_that_identified_nothing(client,
+                                                              station, ai_on):
+    """Verification pass, 67: a 503's details carry the failed call's id; a
+    capture naming it is refused, as an asset save is, and nothing is
+    written."""
+    s = station
+    pid = _photo(client, "timeout")
+    e = assert_envelope_err(_identify_audit(client, pid), 503)
+    sid = e["error"]["details"]["suggestion_id"]
+    r = _send(client, s, _body(s, pid, ai_suggestion_id=sid), expect=400)
+    e = assert_envelope_err(r, 400)
+    assert e["error"]["details"]["reason"] == "not_identified", e

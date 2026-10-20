@@ -310,6 +310,25 @@ class TestAiSuggestion(CadraTransactionCase):
         self.assertEqual(raised.exception.details["reason"],
                          "already_applied")
 
+    def test_an_audit_photo_suggestion_is_never_saved_to_an_asset(self):
+        """Handoff 67 §2.1: a suggestion made from an audit capture's photo
+        is used by that capture; no asset save can apply it."""
+        photo, _created = self.env["nrs.audit.photo"]._upload(
+            _png(41, 31), source="web", filename="chair-67.png")
+        row = self.Suggestion._record(
+            audit_photo=photo, provider="fake", model="cadra-fake-1",
+            prompt_version=ai.PROMPT_VERSION, result="ok",
+            suggestion=self._published())
+        self.assertEqual(row.audit_photo_id, photo)
+        self.assertEqual(row.photo_sha256, photo.sha256)
+        asset = self.env["nrs.asset"].create(
+            {"name": "AI probe audit", "category_id": self.chair.id})
+        for target in (None, asset):
+            with self.assertRaises(S.SuggestionRefused) as raised:
+                row._check_applicable(target)
+            self.assertEqual(raised.exception.details["reason"],
+                             "audit_photo")
+
     def test_an_expired_held_photo_is_purged_and_the_hash_kept(self):
         pending = self._pending()
         row = self._suggestion(self._published(), pending=pending)
