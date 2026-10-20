@@ -3,11 +3,17 @@
 # Set the provider key for *Identify from photo* on THIS machine's server
 # (handoff 65 §0a.1). The OWNER runs this; the key is the owner's.
 #
-#   scripts/set_ai_key.sh            # prompts; nothing is echoed
-#   scripts/set_ai_key.sh --clear    # empties the key
+#   scripts/set_ai_key.sh                   # Anthropic's key; prompts, nothing echoed
+#   scripts/set_ai_key.sh openai            # OpenAI's key (handoff 68)
+#   scripts/set_ai_key.sh [openai] --clear  # empties that provider's key
+#
+# Each provider has its own variable — `CADRA_AI_API_KEY` (Anthropic, the
+# default) and `CADRA_OPENAI_API_KEY` (OpenAI) — so both can be present and
+# switching a tenant's provider never means swapping a secret.
 #
 # The key lives in the SERVER'S ENVIRONMENT, never in a database: this
-# writes one line, `CADRA_AI_API_KEY=<key>`, into the repository's `.env`
+# writes one line, `CADRA_AI_API_KEY=<key>` (or `CADRA_OPENAI_API_KEY=<key>`
+# for `openai`), into the repository's `.env`
 # (replacing an existing line in place, or appending one), which compose
 # hands to the Odoo container. Until handoff 65 it took a database name and
 # wrote an `ir_config_parameter` row — readable by any back-office system
@@ -24,16 +30,20 @@
 #
 # On the cluster the server reads the same variable from the `cadra-odoo`
 # secret, into which deploy-dev syncs the GitHub repository secret
-# `CADRA_AI_API_KEY` — set it there, not on the cluster (docs/DEPLOYMENT.md).
+# `CADRA_AI_API_KEY` (and `CADRA_OPENAI_API_KEY`) — set it there, not on the
+# cluster (docs/DEPLOYMENT.md).
 set -euo pipefail
 
 MODE=""
+PROVIDER="anthropic"
 for arg in "$@"; do
   case "$arg" in
     --clear) MODE="--clear" ;;
     -h|--help)
-      sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
+    [Aa][Nn][Tt][Hh][Rr][Oo][Pp][Ii][Cc]) PROVIDER="anthropic" ;;
+    [Oo][Pp][Ee][Nn][Aa][Ii]|[Oo][Pp][Ee][Nn]-[Aa][Ii]) PROVIDER="openai" ;;
     *)
       # Handoff 64's form was `set_ai_key.sh <db>`. The key is per SERVER
       # now, so a database name means nothing here — say so rather than
@@ -45,6 +55,11 @@ for arg in "$@"; do
   esac
 done
 
+case "$PROVIDER" in
+  openai) VAR="CADRA_OPENAI_API_KEY"; LABEL="OpenAI" ;;
+  *) VAR="CADRA_AI_API_KEY"; LABEL="Anthropic" ;;
+esac
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$REPO_ROOT/.env"
 
@@ -52,7 +67,7 @@ if [[ "$MODE" == "--clear" ]]; then
   KEY=""
 else
   if [[ -t 0 ]]; then
-    read -r -s -p "Provider key for this server (input hidden): " KEY
+    read -r -s -p "$LABEL key for this server (input hidden): " KEY
     echo
   else
     read -r KEY || true
@@ -78,23 +93,24 @@ chmod 600 "$ENV_FILE"
 TMP="$(mktemp "$REPO_ROOT/.env.XXXXXX")"
 trap 'rm -f "$TMP"' EXIT
 chmod 600 "$TMP"
-CADRA_AI_KEY_IN="$KEY" awk '
-  BEGIN { key = ENVIRON["CADRA_AI_KEY_IN"]; done = 0 }
-  /^[[:space:]]*(export[[:space:]]+)?CADRA_AI_API_KEY[[:space:]]*=/ {
-    if (!done) { print "CADRA_AI_API_KEY=" key; done = 1 }
+CADRA_AI_KEY_IN="$KEY" CADRA_AI_VAR="$VAR" awk '
+  BEGIN { key = ENVIRON["CADRA_AI_KEY_IN"]; var = ENVIRON["CADRA_AI_VAR"]; done = 0
+          pat = "^[[:space:]]*(export[[:space:]]+)?" var "[[:space:]]*=" }
+  $0 ~ pat {
+    if (!done) { print var "=" key; done = 1 }
     next
   }
   { print }
-  END { if (!done) print "CADRA_AI_API_KEY=" key }
+  END { if (!done) print var "=" key }
 ' "$ENV_FILE" > "$TMP"
 mv "$TMP" "$ENV_FILE"
 trap - EXIT
 unset KEY
 
 if [[ "$MODE" == "--clear" ]]; then
-  echo "CADRA_AI_API_KEY emptied in .env."
+  echo "$VAR emptied in .env."
 else
-  echo "CADRA_AI_API_KEY written to .env ($(grep -E '^CADRA_AI_API_KEY=' "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '\n' | wc -c | tr -d ' ') characters)."
+  echo "$VAR written to .env ($(grep -E "^$VAR=" "$ENV_FILE" | head -1 | cut -d= -f2- | tr -d '\n' | wc -c | tr -d ' ') characters)."
 fi
 cat <<'MSG'
 It takes effect when the Odoo container is recreated:
@@ -102,6 +118,7 @@ It takes effect when the Odoo container is recreated:
   export ODOO_DBFILTER='^%d$'
   docker compose -f docker-compose.yml -f docker-compose.19.yml up -d --force-recreate odoo
 
-Then Settings → Identify from photo says whether the server holds a key.
-Setting it switches nothing on; each tenant's switch does.
+Then Settings → Identify from photo says, per provider, whether the server
+holds its key. Setting it switches nothing on; each tenant's switch and
+provider choice do.
 MSG

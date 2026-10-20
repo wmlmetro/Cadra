@@ -1,0 +1,1699 @@
+2026-10-20 12:52:20,588 149 INFO ? odoo: Odoo version 19.0-20261015 
+2026-10-20 12:52:20,589 149 INFO ? odoo: Using configuration file at /etc/odoo/odoo.conf 
+2026-10-20 12:52:20,589 149 INFO ? odoo: addons paths: _NamespacePath(['/usr/lib/python3/dist-packages/odoo/addons', '/var/lib/odoo/.local/share/Odoo/addons/19.0', '/mnt/extra-addons', '/mnt/extra-addons/crnd-19', '/mnt/extra-addons/oca-19', '/usr/lib/python3/dist-packages/addons']) 
+2026-10-20 12:52:20,589 149 INFO ? odoo: database: odoo@db:5432 
+2026-10-20 12:52:21,592 149 INFO ? odoo.service.server: HTTP service (werkzeug) running on ac9957b3db46:8099 
+2026-10-20 12:52:21,686 149 INFO test19f odoo.tests.common: Importing test framework 
+2026-10-20 12:52:21,826 149 INFO test19f odoo.modules.loading: loading 1 modules... 
+2026-10-20 12:52:21,831 149 INFO test19f odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-10-20 12:52:21,864 149 INFO test19f odoo.modules.loading: updating modules list 
+2026-10-20 12:52:21,874 149 INFO test19f odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-10-20 12:52:23,068 149 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_identity', defaulting to LGPL-3 
+2026-10-20 12:52:23,070 149 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_identity', defaulting to LGPL-3 
+2026-10-20 12:52:23,085 149 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_website_theme', defaulting to LGPL-3 
+2026-10-20 12:52:23,086 149 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_website_theme', defaulting to LGPL-3 
+2026-10-20 12:52:23,589 149 INFO test19f odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['Cadra API (v1)'] to user __system__ #1 via n/a 
+2026-10-20 12:52:23,589 149 INFO test19f odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['Cadra API (v1)'] to user __system__ #1 via n/a 
+2026-10-20 12:52:24,824 149 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_identity', defaulting to LGPL-3 
+2026-10-20 12:52:24,853 149 WARNING test19f odoo.modules.module: Missing `license` key in manifest for 'myservice_website_theme', defaulting to LGPL-3 
+2026-10-20 12:52:25,239 149 INFO test19f odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a 
+2026-10-20 12:52:25,311 149 INFO test19f odoo.modules.loading: loading 76 modules... 
+2026-10-20 12:52:25,828 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/osv/__init__.py:4: DeprecationWarning: Since 19.0, odoo.osv is deprecated use odoo.fields.Domain
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/crnd-19/generic_resource/__init__.py", line 1, in <module>
+    from . import models
+  File "/mnt/extra-addons/crnd-19/generic_resource/models/__init__.py", line 1, in <module>
+    from . import (
+  File "/mnt/extra-addons/crnd-19/generic_resource/models/ir_rule.py", line 3, in <module>
+    from odoo.osv import expression
+  File "/usr/lib/python3/dist-packages/odoo/osv/__init__.py", line 4, in <module>
+    warnings.warn("Since 19.0, odoo.osv is deprecated use odoo.fields.Domain", DeprecationWarning)
+ 
+2026-10-20 12:52:26,202 149 WARNING test19f py.warnings: /mnt/extra-addons/myservice_fm_dashboard/controllers/dashboard.py:31: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_fm_dashboard/__init__.py", line 1, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_fm_dashboard/controllers/__init__.py", line 1, in <module>
+    from . import dashboard
+  File "/mnt/extra-addons/myservice_fm_dashboard/controllers/dashboard.py", line 31, in <module>
+    class FMDashboardController(http.Controller):
+ 
+2026-10-20 12:52:26,470 149 WARNING test19f py.warnings: /mnt/extra-addons/myservice_fleet_maintenance/controllers/fleet_dashboard.py:9: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_fleet_maintenance/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_fleet_maintenance/controllers/__init__.py", line 1, in <module>
+    from . import fleet_dashboard
+  File "/mnt/extra-addons/myservice_fleet_maintenance/controllers/fleet_dashboard.py", line 9, in <module>
+    class FleetDashboardController(http.Controller):
+ 
+2026-10-20 12:52:26,485 149 WARNING test19f py.warnings: /mnt/extra-addons/myservice_security/controllers/main.py:6: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_security/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_security/controllers/__init__.py", line 1, in <module>
+    from . import main
+  File "/mnt/extra-addons/myservice_security/controllers/main.py", line 6, in <module>
+    class SecurityDashboardController(http.Controller):
+ 
+2026-10-20 12:52:26,513 149 WARNING test19f py.warnings: /mnt/extra-addons/myservice_website_theme/controllers/api.py:109: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_website_theme/__init__.py", line 1, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_website_theme/controllers/__init__.py", line 1, in <module>
+    from . import api
+  File "/mnt/extra-addons/myservice_website_theme/controllers/api.py", line 109, in <module>
+    class NRSHomepageAPI(http.Controller):
+ 
+2026-10-20 12:52:26,544 149 WARNING test19f py.warnings: /mnt/extra-addons/myservice_barcode_station/controllers/main.py:163: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_barcode_station/__init__.py", line 1, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_barcode_station/controllers/__init__.py", line 1, in <module>
+    from . import main
+  File "/mnt/extra-addons/myservice_barcode_station/controllers/main.py", line 163, in <module>
+    class BarcodeStationController(http.Controller):
+ 
+2026-10-20 12:52:26,557 149 WARNING test19f py.warnings: /mnt/extra-addons/myservice_dashboard/controllers/main.py:6: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_dashboard/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_dashboard/controllers/__init__.py", line 1, in <module>
+    from . import main
+  File "/mnt/extra-addons/myservice_dashboard/controllers/main.py", line 6, in <module>
+    class MyServiceDashboardController(http.Controller):
+ 
+2026-10-20 12:52:26,795 149 WARNING test19f py.warnings: /mnt/extra-addons/myservice_identity/controllers/sap_webhook.py:71: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_identity/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_identity/controllers/__init__.py", line 1, in <module>
+    from . import sap_webhook
+  File "/mnt/extra-addons/myservice_identity/controllers/sap_webhook.py", line 71, in <module>
+    class SAPWebhookController(http.Controller):
+ 
+2026-10-20 12:52:26,805 149 WARNING test19f py.warnings: /mnt/extra-addons/myservice_identity/controllers/redhubs_api.py:104: DeprecationWarning: Since 19.0, @route(type='json') is a deprecated alias to @route(type='jsonrpc')
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 178, in load_module_graph
+    load_openerp_module(package.name)
+  File "/usr/lib/python3/dist-packages/odoo/modules/module.py", line 506, in load_openerp_module
+    __import__(qualname)
+  File "/mnt/extra-addons/myservice_identity/__init__.py", line 2, in <module>
+    from . import controllers
+  File "/mnt/extra-addons/myservice_identity/controllers/__init__.py", line 2, in <module>
+    from . import redhubs_api
+  File "/mnt/extra-addons/myservice_identity/controllers/redhubs_api.py", line 104, in <module>
+    class RedhubsAPIController(http.Controller):
+ 
+2026-10-20 12:52:26,848 149 INFO test19f odoo.modules.loading: Loading module myservice_api (76/76) 
+2026-10-20 12:52:26,957 149 WARNING test19f odoo.fields: Field generic.resource.type.model_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:26,980 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_1920 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:26,980 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_1024 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:26,980 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_512 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:26,981 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_256 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:26,981 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_128 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 173, in load_module_graph
+    registry._setup_models__(env.cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:26,981 149 WARNING test19f odoo.fields: Field generic.resource.mixin.resource_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:26,982 149 WARNING test19f odoo.fields: Field generic.resource.simple.resource_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:26,983 149 WARNING test19f odoo.fields: Field request.category.parent_path: unknown parameter 'unaccent', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:26,983 149 WARNING test19f odoo.fields: Field request.request.attachment_ids: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:26,992 149 WARNING test19f odoo.fields: Field security.duty.roster.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:26,992 149 WARNING test19f odoo.fields: Field security.access.log.authorized: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:26,993 149 WARNING test19f odoo.fields: Field workflow.dispatch.log.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:26,994 149 WARNING test19f odoo.fields: Field workflow.send.wizard.note: unknown parameter 'placeholder', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:27,032 149 INFO test19f odoo.addons.myservice_api.http_patch: Cadra API: http.Root absent (Odoo 17+); dispatcher patch not needed 
+2026-10-20 12:52:27,299 149 WARNING test19f odoo.fields: Field request.request.attachment_ids: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:27,306 149 WARNING test19f odoo.fields: Field workflow.dispatch.log.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:27,322 149 INFO test19f odoo.registry: module myservice_api: creating or updating database tables 
+2026-10-20 12:52:27,493 149 WARNING test19f odoo.addons.base.models.ir_model: Two fields (pm_count, pm_schedule_ids) of nrs.asset() have the same label: PM Schedules. [Modules: myservice_asset_register and myservice_asset_register] 
+2026-10-20 12:52:27,494 149 WARNING test19f odoo.addons.base.models.ir_model: Two fields (errors, error_count) of nrs.employee.import.job() have the same label: Errors. [Modules: myservice_identity and myservice_identity] 
+2026-10-20 12:52:27,719 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields.py:843: UserWarning: Field 'generic.location.state_id' in dependency of generic.location.state_name should be searchable. This is necessary to determine which records to recompute when res.country.state.name is modified. You should either make the field searchable, or simplify the field dependency.
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 222, in load_module_graph
+    module.write(module.get_values_from_terp(package.manifest))
+  File "/usr/lib/python3/dist-packages/odoo/addons/website/models/ir_module_module.py", line 102, in write
+    return super(IrModuleModule, self).write(vals)
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4423, in write
+    if self.pool.is_modifying_relations(field):
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 705, in is_modifying_relations
+    result = field in self._field_triggers and bool(
+  File "/usr/lib/python3.12/functools.py", line 995, in __get__
+    val = self.func(instance)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 686, in _field_triggers
+    dependencies = list(field.resolve_depends(self))
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields.py", line 843, in resolve_depends
+    warnings.warn(
+ 
+2026-10-20 12:52:27,720 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields.py:843: UserWarning: Field 'generic.location.country_id' in dependency of generic.location.country_name should be searchable. This is necessary to determine which records to recompute when res.country.name is modified. You should either make the field searchable, or simplify the field dependency.
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 222, in load_module_graph
+    module.write(module.get_values_from_terp(package.manifest))
+  File "/usr/lib/python3/dist-packages/odoo/addons/website/models/ir_module_module.py", line 102, in write
+    return super(IrModuleModule, self).write(vals)
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4423, in write
+    if self.pool.is_modifying_relations(field):
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 705, in is_modifying_relations
+    result = field in self._field_triggers and bool(
+  File "/usr/lib/python3.12/functools.py", line 995, in __get__
+    val = self.func(instance)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 686, in _field_triggers
+    dependencies = list(field.resolve_depends(self))
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields.py", line 843, in resolve_depends
+    warnings.warn(
+ 
+2026-10-20 12:52:27,720 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields.py:832: UserWarning: Field generic.location.building_id should be declared with recursive=True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 464, in load_modules
+    load_module_graph(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 222, in load_module_graph
+    module.write(module.get_values_from_terp(package.manifest))
+  File "/usr/lib/python3/dist-packages/odoo/addons/website/models/ir_module_module.py", line 102, in write
+    return super(IrModuleModule, self).write(vals)
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4423, in write
+    if self.pool.is_modifying_relations(field):
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 705, in is_modifying_relations
+    result = field in self._field_triggers and bool(
+  File "/usr/lib/python3.12/functools.py", line 995, in __get__
+    val = self.func(instance)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 686, in _field_triggers
+    dependencies = list(field.resolve_depends(self))
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields.py", line 832, in resolve_depends
+    warnings.warn(f"Field {self} should be declared with recursive=True", stacklevel=1)
+ 
+2026-10-20 12:52:27,727 149 INFO test19f odoo.modules.loading: loading myservice_api/security/api_groups.xml 
+2026-10-20 12:52:27,762 149 INFO test19f odoo.modules.loading: loading myservice_api/security/ir.model.access.csv 
+2026-10-20 12:52:27,782 149 INFO test19f odoo.modules.loading: loading myservice_api/data/api_refresh_token_cron.xml 
+2026-10-20 12:52:27,809 149 INFO test19f odoo.modules.loading: loading myservice_api/data/role_exclusions.xml 
+2026-10-20 12:52:27,817 149 INFO test19f odoo.modules.loading: loading myservice_api/data/mail_templates.xml 
+2026-10-20 12:52:27,873 149 INFO test19f odoo.modules.loading: loading myservice_api/views/api_client_views.xml 
+2026-10-20 12:52:27,922 149 INFO test19f odoo.modules.loading: loading myservice_api/views/menu.xml 
+2026-10-20 12:52:28,403 149 INFO test19f odoo.modules.loading: Module myservice_api loaded in 1.56s, 574 queries (+574 other) 
+2026-10-20 12:52:28,404 149 INFO test19f odoo.modules.loading: 76 modules loaded in 3.09s, 574 queries (+574 extra) 
+2026-10-20 12:52:28,410 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_1920 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:28,410 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_1024 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:28,411 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_512 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:28,411 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_256 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:28,411 149 WARNING test19f py.warnings: /usr/lib/python3/dist-packages/odoo/orm/fields_binary.py:270: UserWarning: Image field generic.resource.type.image_128 requires the model to have _log_access = True
+  File "/usr/bin/odoo", line 6, in <module>
+    odoo.cli.main()
+  File "/usr/lib/python3/dist-packages/odoo/cli/command.py", line 133, in main
+    command().run(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 127, in run
+    main(args)
+  File "/usr/lib/python3/dist-packages/odoo/cli/server.py", line 118, in main
+    rc = server.start(preload=config['db_name'], stop=stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1677, in start
+    rc = server.run(preload, stop)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 714, in run
+    rc = preload_registries(preload)
+  File "/usr/lib/python3/dist-packages/odoo/service/server.py", line 1591, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module, install_modules=config['init'], upgrade_modules=config['update'], reinit_modules=config['reinit'])
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 189, in new
+    load_modules(
+  File "/usr/lib/python3/dist-packages/odoo/modules/loading.py", line 474, in load_modules
+    registry._setup_models__(cr, [])  # incremental setup
+  File "/usr/lib/python3/dist-packages/odoo/tools/func.py", line 88, in locked
+    return func(inst, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/odoo/orm/registry.py", line 509, in _setup_models__
+    model_classes.setup_model_classes(env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 323, in setup_model_classes
+    _setup_fields(model_cls, env)
+  File "/usr/lib/python3/dist-packages/odoo/orm/model_classes.py", line 518, in _setup_fields
+    field.setup(model)
+  File "/usr/lib/python3/dist-packages/odoo/orm/fields_binary.py", line 270, in setup
+    warnings.warn(f"Image field {self} requires the model to have _log_access = True", stacklevel=1)
+ 
+2026-10-20 12:52:28,475 149 WARNING test19f odoo.fields: Field generic.resource.type.model_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:28,503 149 WARNING test19f odoo.fields: Field generic.resource.mixin.resource_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:28,503 149 WARNING test19f odoo.fields: Field generic.resource.simple.resource_id: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:28,505 149 WARNING test19f odoo.fields: Field request.category.parent_path: unknown parameter 'unaccent', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:28,505 149 WARNING test19f odoo.fields: Field request.request.attachment_ids: unknown parameter 'auto_join', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:28,517 149 WARNING test19f odoo.fields: Field security.duty.roster.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:28,517 149 WARNING test19f odoo.fields: Field security.access.log.authorized: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:28,519 149 WARNING test19f odoo.fields: Field workflow.dispatch.log.status: unknown parameter 'tracking', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:28,519 149 WARNING test19f odoo.fields: Field workflow.send.wizard.note: unknown parameter 'placeholder', if this is an actual parameter you may want to override the method _valid_field_parameter on the relevant model in order to allow it 
+2026-10-20 12:52:29,122 149 INFO test19f odoo.modules.loading: Modules loaded. 
+2026-10-20 12:52:29,148 149 INFO test19f odoo.registry: Registry changed, signaling through the database 
+2026-10-20 12:52:29,150 149 INFO test19f odoo.registry: Registry loaded in 7.550s 
+2026-10-20 12:52:29,150 149 INFO test19f odoo.service.server: Starting post tests 
+2026-10-20 12:52:29,157 149 INFO test19f odoo.addons.base.models.ir_qweb: Pregenerating assets bundles 
+2026-10-20 12:52:30,856 149 INFO test19f odoo.addons.base.models.ir_qweb: JS Assets bundles generated in 0.8959977626800537 seconds 
+2026-10-20 12:52:31,253 149 INFO test19f odoo.addons.base.models.ir_qweb: CSS Assets bundles generated in 0.3964083194732666 seconds 
+2026-10-20 12:52:31,656 149 INFO test19f odoo.models.unlink: User #1 deleted ir.config_parameter records with IDs: [45] 
+2026-10-20 12:52:31,661 149 INFO test19f odoo.models.unlink: User #1 deleted ir.config_parameter records with IDs: [46] 
+2026-10-20 12:52:31,664 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_providers_settings: Starting TestAiProvidersSettings.test_a_switch_is_recorded_and_each_provider_keeps_its_model ... 
+2026-10-20 12:52:31,689 149 INFO test19f odoo.addons.base.models.ir_http: Generating routing map for key 1 
+2026-10-20 12:52:31,861 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:31.858706\'::timestamp, NULL, \'2026-11-19T12:52:31\'::timestamp, \'CnCO7wh1_Sg_JUNWkoDY5A\', \'127.0.0.1\', false, \'settings:read settings:write\', \'0b23d1ad8918f5c62ee0415d9ad077a6a3cfcaf1f6d795122ee314f715330e8e\', \'ZKFYdhkE\', 52, \'2026-10-20T12:52:31.858706\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:31,862 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:31,975 149 INFO test19f cadra.auth: request_id=6e8564b136f64770b62b0752e45de854 client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:31,978 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:31,980 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:31] "POST /api/v1/auth/token HTTP/1.1" 200 - 15 0.009 0.287
+2026-10-20 12:52:31,996 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "ir_config_parameter" ("create_date", "create_uid", "key", "value", "write_date", "write_uid") VALUES (\'2026-10-20T12:52:31.995886\'::timestamp, 52, \'cadra.ai.provider\', \'anthropic\', \'2026-10-20T12:52:31.995886\'::timestamp, 52) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:31,996 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/utils.py", line 2066, in wrapper
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 887, in ai_settings_patch
+    icp.set_param(param, value)
+  File "/usr/lib/python3/dist-packages/odoo/addons/mail/models/ir_config_parameter.py", line 104, in set_param
+    return super().set_param(key, value)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_config_parameter.py", line 102, in set_param
+    self.create({'key': key, 'value': value})
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/mail/models/ir_config_parameter.py", line 117, in create
+    return super().create(vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_config_parameter.py", line 108, in create
+    return super().create(vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:32,016 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:32,016 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:32] "PATCH /api/v1/settings/ai-identify HTTP/1.1" 200 - 22 0.012 0.016
+2026-10-20 12:52:32,148 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:32.148379\'::timestamp, NULL, \'2026-11-19T12:52:32\'::timestamp, \'DrFaZIK2_oNs8LjXly62_w\', \'127.0.0.1\', false, \'settings:read settings:write\', \'8a5ced3cf7cc0e612ba2bc3067d9b40ef77979b9214f761f3af791b92d3f8e54\', \'J19TMY2b\', 52, \'2026-10-20T12:52:32.148379\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:32,149 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:32,252 149 INFO test19f cadra.auth: request_id=b27f2d4cae0b4659a0cbf534c19ecb41 client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:32,254 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:32,254 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:32] "POST /api/v1/auth/token HTTP/1.1" 200 - 13 0.006 0.228
+2026-10-20 12:52:32,266 149 ERROR test19f odoo.sql_db: bad query: b' UPDATE "ir_config_parameter"\n                    SET "value" = "__tmp"."value"::text, "write_date" = "__tmp"."write_date"::timestamp, "write_uid" = "__tmp"."write_uid"::int4\n                    FROM (VALUES (59, \'openai\', \'2026-10-20T12:52:32.265919\'::timestamp, 52)) AS "__tmp"("id", "value", "write_date", "write_uid")\n                    WHERE "ir_config_parameter"."id" = "__tmp"."id"\n                '
+ERROR: cannot execute UPDATE in a read-only transaction
+ 
+2026-10-20 12:52:32,267 149 WARNING test19f odoo.http: cannot execute UPDATE in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/utils.py", line 2066, in wrapper
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 888, in ai_settings_patch
+    return _settings_block(env)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 215, in _settings_block
+    s = ai_settings(env)
+        ^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 160, in ai_settings
+    raw = _params(env, (ai.PARAM_ENABLED, ai.PARAM_PROVIDER,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 142, in _params
+    env["ir.config_parameter"].flush_model()
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 6383, in flush_model
+    self._flush()
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 6451, in _flush
+    model.browse(some_ids)._write_multi(vals_list)
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4600, in _write_multi
+    self.env.execute_query(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/orm/environments.py", line 534, in execute_query
+    self.cr.execute(query)
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute UPDATE in a read-only transaction
+
+2026-10-20 12:52:32,276 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:32,277 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:32] "PATCH /api/v1/settings/ai-identify HTTP/1.1" 200 - 19 0.005 0.014
+2026-10-20 12:52:32,382 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:32.381725\'::timestamp, NULL, \'2026-11-19T12:52:32\'::timestamp, \'bfP9VjDBtCVKEKHgJvQybQ\', \'127.0.0.1\', false, \'settings:read settings:write\', \'1dda03144fb1183e0e90798a94be7b8ca201c1947624cf6e3db9b5cb6fb977f1\', \'jucFqGfO\', 52, \'2026-10-20T12:52:32.381725\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:32,382 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:32,477 149 INFO test19f cadra.auth: request_id=70f7a480bb064a848ccc64b33b7c4beb client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:32,478 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:32,479 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:32] "POST /api/v1/auth/token HTTP/1.1" 200 - 13 0.005 0.191
+2026-10-20 12:52:32,487 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "ir_config_parameter" ("create_date", "create_uid", "key", "value", "write_date", "write_uid") VALUES (\'2026-10-20T12:52:32.486874\'::timestamp, 52, \'cadra.ai.model.openai\', \'gpt-6-luna\', \'2026-10-20T12:52:32.486874\'::timestamp, 52) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:32,487 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/utils.py", line 2066, in wrapper
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 887, in ai_settings_patch
+    icp.set_param(param, value)
+  File "/usr/lib/python3/dist-packages/odoo/addons/mail/models/ir_config_parameter.py", line 104, in set_param
+    return super().set_param(key, value)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_config_parameter.py", line 102, in set_param
+    self.create({'key': key, 'value': value})
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/mail/models/ir_config_parameter.py", line 117, in create
+    return super().create(vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_config_parameter.py", line 108, in create
+    return super().create(vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:32,495 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:32,495 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:32] "PATCH /api/v1/settings/ai-identify HTTP/1.1" 200 - 19 0.004 0.009
+2026-10-20 12:52:32,597 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:32.596561\'::timestamp, NULL, \'2026-11-19T12:52:32\'::timestamp, \'p06TKQtrQkOCQmjlF9KQig\', \'127.0.0.1\', false, \'settings:read settings:write\', \'0e2409b636d1a71cb2b37d03b9a9c459ad802065db708f3d56fab9295b09ffbe\', \'by3SXnNQ\', 52, \'2026-10-20T12:52:32.596561\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:32,597 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:32,718 149 INFO test19f cadra.auth: request_id=6ea033511ec0431cadb8c68ad27a9675 client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:32,720 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:32,720 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:32] "POST /api/v1/auth/token HTTP/1.1" 200 - 13 0.005 0.217
+2026-10-20 12:52:32,731 149 ERROR test19f odoo.sql_db: bad query: b' UPDATE "ir_config_parameter"\n                    SET "value" = "__tmp"."value"::text, "write_date" = "__tmp"."write_date"::timestamp, "write_uid" = "__tmp"."write_uid"::int4\n                    FROM (VALUES (59, \'anthropic\', \'2026-10-20T12:52:32.730866\'::timestamp, 52)) AS "__tmp"("id", "value", "write_date", "write_uid")\n                    WHERE "ir_config_parameter"."id" = "__tmp"."id"\n                '
+ERROR: cannot execute UPDATE in a read-only transaction
+ 
+2026-10-20 12:52:32,731 149 WARNING test19f odoo.http: cannot execute UPDATE in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/utils.py", line 2066, in wrapper
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 888, in ai_settings_patch
+    return _settings_block(env)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 215, in _settings_block
+    s = ai_settings(env)
+        ^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 160, in ai_settings
+    raw = _params(env, (ai.PARAM_ENABLED, ai.PARAM_PROVIDER,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 142, in _params
+    env["ir.config_parameter"].flush_model()
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 6383, in flush_model
+    self._flush()
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 6451, in _flush
+    model.browse(some_ids)._write_multi(vals_list)
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4600, in _write_multi
+    self.env.execute_query(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/orm/environments.py", line 534, in execute_query
+    self.cr.execute(query)
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute UPDATE in a read-only transaction
+
+2026-10-20 12:52:32,741 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:32,742 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:32] "PATCH /api/v1/settings/ai-identify HTTP/1.1" 200 - 19 0.006 0.012
+2026-10-20 12:52:32,764 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_providers_settings: Starting TestAiProvidersSettings.test_each_providers_key_presence_and_never_the_key ... 
+2026-10-20 12:52:32,774 149 INFO test19f odoo.addons.base.models.ir_http: Generating routing map for key 1 
+2026-10-20 12:52:32,903 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:32.903340\'::timestamp, NULL, \'2026-11-19T12:52:32\'::timestamp, \'k-agZJFoEkXCVRDmBMt-cA\', \'127.0.0.1\', false, \'settings:read settings:write\', \'a6d6199990656194d5b4c152b0fed6ce06086a1cb816d66e458afcfee917b04d\', \'wlmB22gS\', 52, \'2026-10-20T12:52:32.903340\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:32,904 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:33,000 149 INFO test19f cadra.auth: request_id=bb094792725c4ea5874147574284a6be client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:33,002 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:33,002 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "POST /api/v1/auth/token HTTP/1.1" 200 - 15 0.006 0.224
+2026-10-20 12:52:33,009 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "GET /api/v1/settings/ai-identify HTTP/1.1" 200 - 6 0.001 0.003
+2026-10-20 12:52:33,011 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_providers_settings: Starting TestAiProvidersSettings.test_the_stand_in_is_refused_and_not_offered_on_a_client_tenant ... 
+2026-10-20 12:52:33,019 149 INFO test19f odoo.addons.base.models.ir_http: Generating routing map for key 1 
+2026-10-20 12:52:33,145 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:33.144605\'::timestamp, NULL, \'2026-11-19T12:52:33\'::timestamp, \'qWKOO7ItktkspbVgoDlJbA\', \'127.0.0.1\', false, \'settings:read settings:write\', \'fc816883f76402277ebe9461638fa587c9546e60d857dcafcfeccd71104d53ff\', \'4e2xF1u-\', 52, \'2026-10-20T12:52:33.144605\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:33,145 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:33,241 149 INFO test19f cadra.auth: request_id=6c66d93079bf4ed98fbcb10bf2dc5c79 client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:33,243 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:33,243 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "POST /api/v1/auth/token HTTP/1.1" 200 - 15 0.006 0.220
+2026-10-20 12:52:33,251 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "PATCH /api/v1/settings/ai-identify HTTP/1.1" 400 - 5 0.001 0.004
+2026-10-20 12:52:33,350 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:33.349818\'::timestamp, NULL, \'2026-11-19T12:52:33\'::timestamp, \'zxEufWh-Bodd7xJYBPPR0g\', \'127.0.0.1\', false, \'settings:read settings:write\', \'8a7cfca5f7c2882a7a279fcf09eb8114a02b072cd3e4ccd2b724915b65f795e0\', \'hIEQz4vF\', 52, \'2026-10-20T12:52:33.349818\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:33,350 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:33,449 149 INFO test19f cadra.auth: request_id=ab825f199d4a44e8ad09586a3408e417 client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:33,450 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:33,450 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "POST /api/v1/auth/token HTTP/1.1" 200 - 7 0.003 0.193
+2026-10-20 12:52:33,459 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "GET /api/v1/settings/ai-identify HTTP/1.1" 200 - 6 0.001 0.004
+2026-10-20 12:52:33,559 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:33.558986\'::timestamp, NULL, \'2026-11-19T12:52:33\'::timestamp, \'F1Tugvy7e1dx6N50tgShIg\', \'127.0.0.1\', false, \'settings:read settings:write\', \'9301cf1869bf8c40bb1cbe52b93aef3ae1037bb69ca054343ad9655145a523ce\', \'7LN-1-vv\', 52, \'2026-10-20T12:52:33.558986\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:33,560 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:33,657 149 INFO test19f cadra.auth: request_id=694a327d67a046929763891a11f854c3 client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:33,658 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:33,659 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "POST /api/v1/auth/token HTTP/1.1" 200 - 7 0.004 0.193
+2026-10-20 12:52:33,668 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "GET /api/v1/settings/ai-identify HTTP/1.1" 200 - 6 0.001 0.005
+2026-10-20 12:52:33,669 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_providers_settings: Starting TestAiProvidersSettings.test_turning_on_a_provider_without_its_key_names_its_variable ... 
+2026-10-20 12:52:33,677 149 INFO test19f odoo.addons.base.models.ir_http: Generating routing map for key 1 
+2026-10-20 12:52:33,815 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:33.814880\'::timestamp, NULL, \'2026-11-19T12:52:33\'::timestamp, \'3xh0BFJx2p1oZlSm7Sdd4w\', \'127.0.0.1\', false, \'settings:read settings:write\', \'71624b5b9b336a00143ec9320dbeaf0ce6d601009224dfb7b987d547d6a105ef\', \'81mM-peN\', 52, \'2026-10-20T12:52:33.814880\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:33,815 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:33,918 149 INFO test19f cadra.auth: request_id=1f49a0676cda46f7b65b1e1818284562 client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:33,920 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:33,920 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "POST /api/v1/auth/token HTTP/1.1" 200 - 15 0.006 0.239
+2026-10-20 12:52:33,936 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:33] "PATCH /api/v1/settings/ai-identify HTTP/1.1" 400 - 5 0.002 0.008
+2026-10-20 12:52:34,046 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:34.046148\'::timestamp, NULL, \'2026-11-19T12:52:34\'::timestamp, \'5eZWIEMG_bqPbatiFKWr0g\', \'127.0.0.1\', false, \'settings:read settings:write\', \'0cabe638fd966e342f032cc508569028f24e26023d0bbf1c9d423171ce8dd984\', \'TBO7mu_k\', 52, \'2026-10-20T12:52:34.046148\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:34,047 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:34,145 149 INFO test19f cadra.auth: request_id=5bde4c0422e2409ca2b92f2b744cb9cc client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:34,147 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:34,147 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:34] "POST /api/v1/auth/token HTTP/1.1" 200 - 7 0.004 0.201
+2026-10-20 12:52:34,154 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "ir_config_parameter" ("create_date", "create_uid", "key", "value", "write_date", "write_uid") VALUES (\'2026-10-20T12:52:34.154568\'::timestamp, 52, \'cadra.ai.identify\', \'true\', \'2026-10-20T12:52:34.154568\'::timestamp, 52) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:34,155 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/utils.py", line 2066, in wrapper
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1_ai.py", line 887, in ai_settings_patch
+    icp.set_param(param, value)
+  File "/usr/lib/python3/dist-packages/odoo/addons/mail/models/ir_config_parameter.py", line 104, in set_param
+    return super().set_param(key, value)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_config_parameter.py", line 102, in set_param
+    self.create({'key': key, 'value': value})
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/mail/models/ir_config_parameter.py", line 117, in create
+    return super().create(vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_config_parameter.py", line 108, in create
+    return super().create(vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:34,164 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:34,165 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:34] "PATCH /api/v1/settings/ai-identify HTTP/1.1" 200 - 22 0.005 0.010
+2026-10-20 12:52:34,269 149 ERROR test19f odoo.sql_db: bad query: b'INSERT INTO "myservice_api_refresh_token" ("aud", "client_id", "create_date", "create_uid", "expires_at", "family_id", "last_used_ip", "revoked", "scopes", "token_hash", "token_prefix", "user_id", "write_date", "write_uid") VALUES (NULL, 6, \'2026-10-20T12:52:34.269001\'::timestamp, NULL, \'2026-11-19T12:52:34\'::timestamp, \'9CY9iLT9vGzd9Rkjlpt0NA\', \'127.0.0.1\', false, \'settings:read settings:write\', \'75a57ced29368aebd5ee6a32d7cec617325e39eb677ca1a7dad64ec7d8026f1e\', \'tinwYH6N\', 52, \'2026-10-20T12:52:34.269001\'::timestamp, NULL) RETURNING "id"'
+ERROR: cannot execute INSERT in a read-only transaction
+ 
+2026-10-20 12:52:34,270 149 WARNING test19f odoo.http: cannot execute INSERT in a read-only transaction, retrying with a read/write cursor 
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2303, in _serve_db
+    return service_model.retrying(serve_func, env=self.env)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/service/model.py", line 188, in retrying
+    result = func()
+             ^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2379, in _serve_ir_http
+    response = self.dispatcher.dispatch(rule.endpoint, args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 2501, in dispatch
+    return self.request.registry['ir.http']._dispatch(endpoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/addons/base/models/ir_http.py", line 353, in _dispatch
+    result = endpoint(**request.params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/http.py", line 838, in route_wrapper
+    result = endpoint(self, *args, **params_ok)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 380, in token
+    payload = self._session_payload(
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/controllers/v1.py", line 296, in _session_payload
+    rec, raw = request.env["myservice.api.refresh_token"].sudo()._issue(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/extra-addons/myservice_api/models/api_refresh_token.py", line 72, in _issue
+    rec = self.sudo().create({
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/decorators.py", line 369, in create
+    return method(self, vals_list)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4717, in create
+    records = self._create(data_list)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/orm/models.py", line 4894, in _create
+    cr.execute(SQL(
+  File "/usr/lib/python3/dist-packages/odoo/tests/test_cursor.py", line 79, in execute
+    return self._cursor.execute(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/odoo/sql_db.py", line 440, in execute
+    self._obj.execute(query, params)
+psycopg2.errors.ReadOnlySqlTransaction: cannot execute INSERT in a read-only transaction
+
+2026-10-20 12:52:34,377 149 INFO test19f cadra.auth: request_id=15343348ad534964a3c3f438d3a9dd93 client_id=aiproviders_96e9a906 outcome=ok 
+2026-10-20 12:52:34,380 149 INFO test19f odoo.tests.common: Simulating signal changes during tests 
+2026-10-20 12:52:34,380 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:34] "POST /api/v1/auth/token HTTP/1.1" 200 - 13 0.006 0.207
+2026-10-20 12:52:34,395 149 INFO test19f werkzeug: 127.0.0.1 - - [20/Oct/2026 12:52:34] "PATCH /api/v1/settings/ai-identify HTTP/1.1" 400 - 5 0.002 0.007
+2026-10-20 12:52:34,420 149 INFO test19f odoo.addons.base.models.ir_attachment: filestore gc 2 checked, 1 removed 
+2026-10-20 12:52:34,455 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_a_field_the_asset_already_holds_is_accepted_not_ignored ... 
+2026-10-20 12:52:34,619 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_a_hand_written_row_is_refused_and_no_other_flag_opens_it ... 
+2026-10-20 12:52:34,625 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_a_save_claims_the_held_photo_and_writes_one_event ... 
+2026-10-20 12:52:34,689 149 INFO test19f odoo.models.unlink: User #1 deleted ir.attachment records with IDs: [818] 
+2026-10-20 12:52:34,690 149 INFO test19f odoo.models.unlink: User #1 deleted nrs.ai.pending.photo records with IDs: [38] 
+2026-10-20 12:52:34,705 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_accepted_changed_and_ignored ... 
+2026-10-20 12:52:34,713 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_an_answer_outside_the_tenant_or_the_enum_is_discarded ... 
+2026-10-20 12:52:34,717 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_an_audit_photo_suggestion_is_never_saved_to_an_asset ... 
+2026-10-20 12:52:34,764 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_an_edit_and_a_delete_are_refused_under_sudo ... 
+2026-10-20 12:52:34,780 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_an_expired_held_photo_is_purged_and_the_hash_kept ... 
+2026-10-20 12:52:34,803 149 INFO test19f odoo.models.unlink: User #1 deleted ir.attachment records with IDs: [823] 
+2026-10-20 12:52:34,804 149 INFO test19f odoo.models.unlink: User #1 deleted nrs.ai.pending.photo records with IDs: [41] 
+2026-10-20 12:52:34,814 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_image_tokens_and_cost ... 
+2026-10-20 12:52:34,816 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_only_the_asker_and_only_within_the_hold ... 
+2026-10-20 12:52:34,995 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_acceptance_counts_a_seeded_set ... 
+2026-10-20 12:52:35,067 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_acceptance_says_which_provider_answered ... 
+2026-10-20 12:52:35,093 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_daily_cap_turns_over_at_lagos_midnight ... 
+2026-10-20 12:52:35,269 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_guard_is_the_mixins_and_not_a_copy ... 
+2026-10-20 12:52:35,269 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_prompt_carries_classes_and_words_and_nothing_else ... 
+2026-10-20 12:52:35,302 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_provider_gets_no_gps_and_the_stored_photo_is_untouched ... 
+2026-10-20 12:52:35,311 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_save_records_an_already_held_field_on_the_event ... 
+2026-10-20 12:52:35,351 149 INFO test19f odoo.models.unlink: User #1 deleted ir.attachment records with IDs: [839] 
+2026-10-20 12:52:35,352 149 INFO test19f odoo.models.unlink: User #1 deleted nrs.ai.pending.photo records with IDs: [52] 
+2026-10-20 12:52:35,358 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_schema_offers_only_the_tenants_classes ... 
+2026-10-20 12:52:35,359 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_the_size_band_is_words_and_unknown_is_none ... 
+2026-10-20 12:52:35,359 149 INFO test19f odoo.addons.myservice_api.tests.test_ai_suggestion: Starting TestAiSuggestion.test_what_was_not_read_is_removed_and_said ... 
+2026-10-20 12:52:35,363 149 INFO test19f odoo.addons.base.models.ir_attachment: filestore gc 3 checked, 3 removed 
+2026-10-20 12:52:35,365 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_a_declared_translation_is_still_a_translation ... 
+2026-10-20 12:52:35,365 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_every_bare_override_of_an_inherited_route_is_named ... 
+2026-10-20 12:52:35,375 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_every_documented_body_key_is_one_the_route_accepts ... 
+2026-10-20 12:52:35,379 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_every_guarded_read_is_classified ... 
+2026-10-20 12:52:35,714 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_every_guarded_read_names_a_field_that_exists ... 
+2026-10-20 12:52:36,024 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_every_key_a_route_accepts_can_be_read_back ... 
+2026-10-20 12:52:36,301 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_every_key_a_route_accepts_resolves_to_a_field ... 
+2026-10-20 12:52:36,308 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_every_route_that_takes_a_body_is_classified ... 
+2026-10-20 12:52:36,317 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_every_serializer_is_classified ... 
+2026-10-20 12:52:36,566 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_the_census_states_its_denominator ... 
+2026-10-20 12:52:36,573 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: route census: 122 body routes of 229 first-party routed declarations (97 under /api/v1, 25 outside), plus 4 inherited-route overrides with no path of their own 
+2026-10-20 12:52:36,574 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_the_name_this_deployment_does_not_have_is_still_the_one_missing ... 
+2026-10-20 12:52:36,575 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_the_table_names_no_guarded_read_that_is_gone ... 
+2026-10-20 12:52:36,959 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_the_table_names_no_route_that_is_gone ... 
+2026-10-20 12:52:36,968 149 INFO test19f odoo.addons.myservice_api.tests.test_published_names_resolve: Starting TestPublishedNamesResolve.test_the_write_only_list_names_nothing_that_is_published ... 
+2026-10-20 12:52:37,202 149 INFO test19f odoo.addons.base.models.ir_attachment: filestore gc 0 checked, 0 removed 
+2026-10-20 12:52:37,203 149 INFO test19f odoo.service.server: 38 post-tests in 8.05s, 1617 queries 
+2026-10-20 12:52:37,204 149 INFO test19f odoo.tests.stats: myservice_api: 44 tests 5.94s 1330 queries 
+2026-10-20 12:52:37,204 149 INFO test19f odoo.tests.result: 0 failed, 0 error(s) of 38 tests when loading database 'test19f' 
+2026-10-20 12:52:37,204 149 INFO test19f odoo.service.server: Initiating shutdown 
+2026-10-20 12:52:37,204 149 INFO test19f odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-10-20 12:52:37,410 149 INFO test19f odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections  

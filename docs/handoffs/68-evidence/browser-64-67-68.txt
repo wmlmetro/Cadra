@@ -1,0 +1,187 @@
+
+[preflight] http://test19f.localhost:8069/app/ is up · tenant brand = "My Company"
+[auth] logged in as "admin" — storageState saved to .auth/jaiz.json
+
+
+Running 6 tests using 1 worker
+
+[1/6] [chromium] › tests/64-what-the-photo-says.spec.ts:121:7 › 64 — what the photo says › Add asset: suggestions are filled, marked until settled, and the save records what was done
+[2/6] [chromium] › tests/64-what-the-photo-says.spec.ts:177:7 › 64 — what the photo says › Cancel after a suggestion writes nothing
+[3/6] [chromium] › tests/64-what-the-photo-says.spec.ts:191:7 › 64 — what the photo says › Photos tab: suggestions beside the current values, Use this per field
+[4/6] [chromium] › tests/64-what-the-photo-says.spec.ts:232:7 › 64 — what the photo says › Switched off, no screen draws the button
+[5/6] (retries) [chromium] › tests/64-what-the-photo-says.spec.ts:121:7 › 64 — what the photo says › Add asset: suggestions are filled, marked until settled, and the save records what was done (retry #1)
+[6/6] (retries) [chromium] › tests/64-what-the-photo-says.spec.ts:177:7 › 64 — what the photo says › Cancel after a suggestion writes nothing (retry #1)
+[7/6] (retries) [chromium] › tests/64-what-the-photo-says.spec.ts:191:7 › 64 — what the photo says › Photos tab: suggestions beside the current values, Use this per field (retry #1)
+  1) [chromium] › tests/64-what-the-photo-says.spec.ts:191:7 › 64 — what the photo says › Photos tab: suggestions beside the current values, Use this per field 
+
+    Error: expect(received).toMatch(expected)
+
+    Expected pattern: /^Details suggested from a photo; 1 accepted, \d+ ignored\.$/
+    Received string:  "Details suggested from a photo; 3 accepted, 2 ignored."
+
+      227 |     const lines = await historyLines(api, asset.id);
+      228 |     expect(lines).toHaveLength(1);
+    > 229 |     expect(lines[0]).toMatch(/^Details suggested from a photo; 1 accepted, \d+ ignored\.$/);
+          |                      ^
+      230 |   });
+      231 |
+      232 |   test("Switched off, no screen draws the button", async ({ page, api }) => {
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/64-what-the-photo-says.spec.ts:229:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium/error-context.md
+
+    Error Context: test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(received).toMatch(expected)
+
+    Expected pattern: /^Details suggested from a photo; 1 accepted, \d+ ignored\.$/
+    Received string:  "Details suggested from a photo; 3 accepted, 2 ignored."
+
+      227 |     const lines = await historyLines(api, asset.id);
+      228 |     expect(lines).toHaveLength(1);
+    > 229 |     expect(lines[0]).toMatch(/^Details suggested from a photo; 1 accepted, \d+ ignored\.$/);
+          |                      ^
+      230 |   });
+      231 |
+      232 |   test("Switched off, no screen draws the button", async ({ page, api }) => {
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/64-what-the-photo-says.spec.ts:229:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium-retry1/error-context.md
+
+    Error Context: test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium-retry1/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/64-what-the-photo-says-64--74b76-t-values-Use-this-per-field-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[8/6] (retries) [chromium] › tests/64-what-the-photo-says.spec.ts:232:7 › 64 — what the photo says › Switched off, no screen draws the button (retry #1)
+[9/6] [chromium] › tests/67-station-capture.spec.ts:145:7 › handoff 67 — the station captures › a capture at the station: room by its code, identify, print recorded, scan, send — and the reviewer accepts
+[10/6] [chromium] › tests/68-a-second-provider.spec.ts:62:7 › 68 — a second provider › both providers by name, each key said, the model follows the provider
+[11/6] (retries) [chromium] › tests/68-a-second-provider.spec.ts:62:7 › 68 — a second provider › both providers by name, each key said, the model follows the provider (retry #1)
+  2) [chromium] › tests/68-a-second-provider.spec.ts:62:7 › 68 — a second provider › both providers by name, each key said, the model follows the provider 
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByTestId('ai-settings-model')
+    Expected: "gpt-6.1-sol"
+    Received: "claude-opus-5-5"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveValue" with timeout 10000ms
+      - waiting for getByTestId('ai-settings-model')
+        24 × locator resolved to <input value="claude-opus-5-5" data-testid="ai-settings-model" class="px-3 py-1.5 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+           - unexpected value "claude-opus-5-5"
+
+
+      94 |     await page.reload();
+      95 |     await expect(page.getByTestId("ai-settings-provider")).toHaveValue("openai", { timeout: 20_000 });
+    > 96 |     await expect(page.getByTestId("ai-settings-model")).toHaveValue(openaiModel);
+         |                                                         ^
+      97 |
+      98 |     // Back to Anthropic: its model exactly as it was.
+      99 |     await page.getByTestId("ai-settings-provider").selectOption("anthropic");
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/68-a-second-provider.spec.ts:96:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium/error-context.md
+
+    Error Context: test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toHaveValue(expected) failed
+
+    Locator:  getByTestId('ai-settings-model')
+    Expected: "gpt-6.1-sol"
+    Received: "claude-opus-5-5"
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveValue" with timeout 10000ms
+      - waiting for getByTestId('ai-settings-model')
+        24 × locator resolved to <input value="claude-opus-5-5" data-testid="ai-settings-model" class="px-3 py-1.5 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+           - unexpected value "claude-opus-5-5"
+
+
+      94 |     await page.reload();
+      95 |     await expect(page.getByTestId("ai-settings-provider")).toHaveValue("openai", { timeout: 20_000 });
+    > 96 |     await expect(page.getByTestId("ai-settings-model")).toHaveValue(openaiModel);
+         |                                                         ^
+      97 |
+      98 |     // Back to Anthropic: its model exactly as it was.
+      99 |     await page.getByTestId("ai-settings-provider").selectOption("anthropic");
+        at /Users/macbookprom1/Desktop/WML/myservicenrs/e2e/tests/68-a-second-provider.spec.ts:96:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium-retry1/error-context.md
+
+    Error Context: test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium-retry1/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/68-a-second-provider-68-—--eaaee--model-follows-the-provider-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  2 failed
+    [chromium] › tests/64-what-the-photo-says.spec.ts:191:7 › 64 — what the photo says › Photos tab: suggestions beside the current values, Use this per field 
+    [chromium] › tests/68-a-second-provider.spec.ts:62:7 › 68 — a second provider › both providers by name, each key said, the model follows the provider 
+  1 did not run
+  3 passed (2.2m)

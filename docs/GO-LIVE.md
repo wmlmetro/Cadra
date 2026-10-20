@@ -2617,12 +2617,18 @@ draws it from `_tag_sequence_next`, never from a max.
 
 ### 33.1 · Photos go to the provider — `[open]`, owner
 
-R11 puts a photo on the AI provider's servers (Anthropic) each time a person
-presses *Identify*. This joins R7's hosting deviation: **NRS's written
-acceptance names the provider before production photos are sent.** Until
-then `cadra.ai.identify` stays off on every NRS tenant (it is off by default
-everywhere). The screens say it once: *"Photograph the item, not people. The
-photo is sent to Anthropic (Claude) to read it."*
+R11 puts a photo on the AI provider's servers each time a person presses
+*Identify* — **Anthropic or, since handoff 68, OpenAI**, whichever the tenant
+has chosen on *Settings → Identify from photo*. This joins R7's hosting
+deviation: **NRS's written acceptance names the provider — Anthropic, OpenAI,
+or both — before production photos are sent to ANY outside provider.** An
+acceptance that names one does not cover the other. Until then
+`cadra.ai.identify` stays off on every NRS tenant (it is off by default
+everywhere). The screens say it once, naming the tenant's provider:
+*"Photograph the item, not people. The photo is sent to Anthropic (Claude) to
+read it."* — or *"… to OpenAI (GPT) …"*. OpenAI is sent the photo with
+`store: false` (not kept for later retrieval through the API); its retention
+terms are for NRS to read in its acceptance as Anthropic's are.
 
 ### 33.2 · The key, and the switch — `[open]`, owner
 
@@ -2631,7 +2637,11 @@ the server's environment — `scripts/set_ai_key.sh` writes the local `.env`
 (then recreate odoo); on the cluster, the GitHub repository secret
 `CADRA_AI_API_KEY`, synced into `cadra-odoo` by `deploy-dev` on every push
 and picked up by the next rollout of `odoo-19`. Never patched onto the
-cluster secret by hand — the next push wipes it. No database holds it. Placing it turns nothing on; an administrator turns the
+cluster secret by hand — the next push wipes it. No database holds it.
+**OpenAI's key (handoff 68) is a second variable, `CADRA_OPENAI_API_KEY`,**
+placed the same way (`scripts/set_ai_key.sh openai`; the GitHub secret
+`CADRA_OPENAI_API_KEY`), so both can be held and a tenant switches provider
+without anybody touching a secret. Placing it turns nothing on; an administrator turns the
 switch on in *Settings → Identify from photo*, which refuses while no key is
 placed.
 

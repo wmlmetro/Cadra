@@ -5578,19 +5578,28 @@ an asset already holding 12 photos (`409 photo_limit`).
 
 ### 17.3 GET / PATCH `/api/v1/settings/ai-identify`
 
-GET (`settings:read`): `enabled`, `provider`, `provider_label`, `model`
-(default `claude-opus-5-5`), `timeout_seconds` (default 20), `daily_cap`
-(default 500), `effort` (default `low`), `key_placed`, `key_command`,
-`today` (`day`, `calls`, `remaining` — the Lagos day), `notice`,
-`prompt_version`. PATCH (`settings:write`) takes `enabled`, `provider`,
+GET (`settings:read`): `enabled`, `provider` (`anthropic`, `openai` —
+handoff 68 — or the test stand-in `fake`), `provider_label`, `providers` (what
+this tenant may choose: the stand-in only on a `test` database),
+`provider_options` (each with `label`, `model`, `default_model`, `needs_key`,
+`key_placed`, `key_variable`, `key_command`), `keys` (`anthropic`, `openai`:
+`{placed, variable, command}`), `model` (the CONFIGURED provider's; each
+provider keeps its own — default `claude-opus-5-5` for Anthropic,
+`gpt-6.1-sol` for OpenAI), `default_model`, `timeout_seconds` (default 20),
+`daily_cap` (default 500), `effort` (default `low`), `key_placed`,
+`key_command`, `key_variable` (the configured provider's key), `today`
+(`day`, `calls`, `remaining` — the Lagos day), `notice`, `prompt_version`. PATCH (`settings:write`) takes `enabled`, `provider`,
 `model`, `timeout_seconds` (5–60), `daily_cap` (1–100,000), `effort`. **The
 key is never set or returned over the API**, and no database holds it
-(handoff 65): the server reads `CADRA_AI_API_KEY` from its environment —
-`scripts/set_ai_key.sh` writes the local `.env`; on the cluster it is the
-GitHub repository secret `CADRA_AI_API_KEY`, synced into `cadra-odoo` by
-`deploy-dev`. One key per server. Switching on is
-refused while the provider cannot answer (no key; the stand-in off a `test`
-database). `GET /api/v1/settings` (`assets:read`) carries `ai_identify`
+(handoff 65): the server reads `CADRA_AI_API_KEY` (Anthropic) and
+`CADRA_OPENAI_API_KEY` (OpenAI, handoff 68) from its environment —
+`scripts/set_ai_key.sh [openai]` writes the local `.env`; on the cluster they
+are the GitHub repository secrets of the same names, synced into `cadra-odoo`
+by `deploy-dev`. One key per provider per server. A `model` in a PATCH is the
+model of the provider that body switches to, else of the configured one.
+Switching on, or switching provider while on, is refused while the provider
+switched to cannot answer (no key of its own; the stand-in off a `test`
+database), naming its variable. `GET /api/v1/settings` (`assets:read`) carries `ai_identify`
 (`enabled`, `provider`, `provider_label`, `notice`) for every screen.
 
 ## 18 · The link — a register asset given its SAP number, by two people (handoff 65)
@@ -6058,7 +6067,9 @@ block issued to the caller (`403` for anybody else's). The Asset Controller
 ### 20.5 GET `/api/v1/settings/ai-identify/acceptance` (AI-NFR-08)
 
 `settings:read`, `?days=` 1–365 (default 30, Lagos days, today included).
-`{window, totals, by_category, by_site, by_model, definitions}`; every row
+`{window, totals, by_category, by_site, by_provider, by_model, definitions}`
+(`by_provider` and each `by_model` row's `provider` since handoff 68; a dated
+snapshot model id is counted with its model); every row
 `{key, label, made, identified, used, accepted_unchanged,
 share_accepted_unchanged}`. `definitions` says, in words, what each count
 counts: *made* every call; *identified* a suggestion a person could see;

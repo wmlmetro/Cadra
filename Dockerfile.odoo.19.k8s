@@ -19,9 +19,12 @@ RUN pip3 install --no-cache-dir --break-system-packages html2text openpyxl || \
     pip3 install --no-cache-dir html2text openpyxl
 # Handoff 64 — the Anthropic SDK for *Identify from photo* (R11); see
 # Dockerfile.odoo.19.dev for why two dependencies are installed first.
+# Handoff 68 — and the OpenAI SDK beside it, the second provider, pinned the
+# same way (it needs typing_extensions >= 4.14, hence the floor below).
 RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed \
-        idna "typing_extensions>=4.12" \
- && pip3 install --no-cache-dir --break-system-packages anthropic==1.14.0
+        idna "typing_extensions>=4.14" \
+ && pip3 install --no-cache-dir --break-system-packages anthropic==1.14.0 \
+        openai==3.26.1
 
 # In-house + ported Odoo modules (the set that installs on 19). Each module
 # MUST land in its own named destination (a single multi-source COPY would

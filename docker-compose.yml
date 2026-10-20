@@ -78,6 +78,11 @@ services:
       # container for a change to take effect. The 19 and prod overlays
       # inherit it (compose merges `environment` maps).
       CADRA_AI_API_KEY: ${CADRA_AI_API_KEY:-}
+      # Handoff 68: OpenAI's key, the second provider — a variable of its
+      # own, so both can be present and switching provider (Settings →
+      # Identify from photo, per tenant) never means swapping a secret.
+      # `scripts/set_ai_key.sh openai` writes it into `.env`.
+      CADRA_OPENAI_API_KEY: ${CADRA_OPENAI_API_KEY:-}
     volumes:
       - ./:/mnt/extra-addons:ro
       - cadra_odoo_data:/var/lib/odoo

@@ -33,6 +33,8 @@ import zlib
 import importlib.util
 import pathlib
 
+import datetime
+
 import pytest
 import requests
 
@@ -157,15 +159,84 @@ def test_the_settings_never_return_the_key_and_refuse_to_take_one(client):
     assert "sk-not-a-key" not in r.text
 
 
-def test_the_real_provider_cannot_be_switched_on_without_a_key(client):
+@pytest.mark.parametrize("provider, variable, command", [
+    ("anthropic", "CADRA_AI_API_KEY", "scripts/set_ai_key.sh"),
+    ("openai", "CADRA_OPENAI_API_KEY", "scripts/set_ai_key.sh openai"),
+])
+def test_a_real_provider_cannot_be_switched_on_without_its_key(
+        client, provider, variable, command):
     s = _settings(client)
-    if s["key_placed"]:
-        pytest.skip("a key is placed on this tenant")
-    r = client.patch(AI, json={"provider": "anthropic", "enabled": True})
+    # Handoff 68: each provider's key is said apart, and the refusal names
+    # the variable of the provider being switched ON.
+    assert s["keys"][provider]["variable"] == variable
+    assert s["keys"][provider]["command"] == command
+    if s["keys"][provider]["placed"]:
+        pytest.skip(f"{variable} is placed on this server")
+    r = client.patch(AI, json={"provider": provider, "enabled": True})
     body = assert_envelope_err(r, 400, "validation_failed")
     assert body["error"]["details"]["reason"] == "provider_not_ready"
-    assert "set_ai_key.sh" in body["error"]["message"]
-    assert _settings(client)["enabled"] is s["enabled"]
+    assert command in body["error"]["message"]
+    assert variable in body["error"]["message"]
+    after = _settings(client)
+    assert (after["enabled"], after["provider"]) == (s["enabled"],
+                                                     s["provider"])
+
+
+def test_both_providers_are_offered_with_their_keys_said_never_shown(client):
+    s = _settings(client)
+    opts = {o["value"]: o for o in s["provider_options"]}
+    # A test database offers the stand-in too (handoff 68 §3).
+    assert s["providers"] == ["anthropic", "openai", "fake"]
+    assert list(opts) == s["providers"]
+    assert opts["openai"]["label"] == "OpenAI (GPT)"
+    assert opts["openai"]["default_model"] == "gpt-6.1-sol"
+    assert opts["anthropic"]["default_model"] == "claude-opus-5-5"
+    assert opts["fake"]["needs_key"] is False
+    assert opts["fake"]["key_placed"] is None
+    for p in ("anthropic", "openai"):
+        assert isinstance(s["keys"][p]["placed"], bool)
+        assert opts[p]["key_placed"] is s["keys"][p]["placed"]
+        assert set(s["keys"][p]) == {"placed", "variable", "command"}
+
+
+def test_switching_provider_is_recorded_and_each_keeps_its_model(client):
+    was = _settings(client)
+    if was["enabled"]:
+        pytest.skip("the tenant has identification switched on")
+    models = {o["value"]: o["model"] for o in was["provider_options"]}
+    other = "openai" if was["provider"] != "openai" else "anthropic"
+    try:
+        got = assert_envelope_ok(client.patch(
+            AI, json={"provider": other}))["data"]
+        assert (got["provider"], got["model"]) == (other, models[other])
+        assert got["default_model"] == {
+            "openai": "gpt-6.1-sol", "anthropic": "claude-opus-5-5"}[other]
+        # The switch is a row of the configuration record, written now.
+        today = datetime.date.fromisoformat(got["today"]["day"])
+        rows, cursor = [], None
+        while True:
+            params = {"from": str(today - datetime.timedelta(days=1)),
+                      "to": str(today + datetime.timedelta(days=1)),
+                      "limit": 100}
+            if cursor:
+                params["cursor"] = cursor
+            body = assert_envelope_ok(client.get(
+                "/api/v1/reports/configuration-changes", params=params))
+            rows += body["data"]["parameters"]
+            cursor = (body.get("pagination") or {}).get("next_cursor")
+            if not cursor:
+                break
+        row = next((r for r in rows if r["key"] == "cadra.ai.provider"),
+                   None)
+        assert row, "the provider switch is not in the configuration report"
+        assert row["current_value"] == other
+    finally:
+        back = assert_envelope_ok(client.patch(
+            AI, json={"provider": was["provider"]}))["data"]
+    # Neither provider's model moved.
+    assert {o["value"]: o["model"] for o in back["provider_options"]} == \
+        models
+    assert back["model"] == was["model"]
 
 
 def test_the_patch_answers_with_what_it_wrote(client):
@@ -187,7 +258,7 @@ def test_settings_values_are_checked(client):
     for body, field in (({"daily_cap": 0}, "daily_cap"),
                         ({"timeout_seconds": 600}, "timeout_seconds"),
                         ({"effort": "max"}, "effort"),
-                        ({"provider": "openai"}, "provider"),
+                        ({"provider": "gemini"}, "provider"),
                         ({"model": "two words"}, "model"),
                         ({"enabled": "yes"}, "enabled")):
         r = client.patch(AI, json=body)

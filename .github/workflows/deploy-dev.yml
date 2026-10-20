@@ -185,6 +185,9 @@ jobs:
           # cadra-odoo secret on every push, so a key patched onto the
           # cluster by hand is wiped by the next push to dev.
           CADRA_AI_API_KEY: ${{ secrets.CADRA_AI_API_KEY }}
+          # Handoff 68: OpenAI's key, the second provider. Optional and
+          # synced the same way, for the same reason.
+          CADRA_OPENAI_API_KEY: ${{ secrets.CADRA_OPENAI_API_KEY }}
         run: |
           set -e
           : "${POSTGRES_PASSWORD:?GitHub secret POSTGRES_PASSWORD is required}"
@@ -212,6 +215,7 @@ jobs:
             --from-literal=CADRA_EMAIL_RELAY_SECRET="${CADRA_EMAIL_RELAY_SECRET}" \
             --from-literal=CADRA_TURNSTILE_SECRET="${CADRA_TURNSTILE_SECRET}" \
             --from-literal=CADRA_AI_API_KEY="${CADRA_AI_API_KEY}" \
+            --from-literal=CADRA_OPENAI_API_KEY="${CADRA_OPENAI_API_KEY}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply 19 ConfigMaps + Postgres + filestore PVC + Service

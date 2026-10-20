@@ -114,6 +114,10 @@ SETTINGS_KEYS = ("enabled", "provider", "model", "timeout_seconds",
 
 #: The local road to the key (it writes `CADRA_AI_API_KEY` into `.env`).
 KEY_COMMAND = "scripts/set_ai_key.sh"
+#: Per provider (handoff 68): the script takes the provider, Anthropic when
+#: none is named — so the command handoff 65 published still means the same.
+KEY_COMMANDS = {ai.PROVIDER_ANTHROPIC: KEY_COMMAND,
+                ai.PROVIDER_OPENAI: KEY_COMMAND + " openai"}
 
 NOT_NOW = ("The photo could not be identified just now; fill the details "
            "by hand.")
@@ -153,23 +157,48 @@ def ai_settings(env):
     — read from the server's ENVIRONMENT (`ai.provider_key`), never from the
     tenant's parameters (handoff 65) — and is returned ONLY to the caller in
     this module that hands it to the provider; nothing serialises it."""
-    raw = _params(env, (ai.PARAM_ENABLED, ai.PARAM_PROVIDER, ai.PARAM_MODEL,
+    raw = _params(env, (ai.PARAM_ENABLED, ai.PARAM_PROVIDER,
                         ai.PARAM_TIMEOUT, ai.PARAM_DAILY_CAP,
-                        ai.PARAM_EFFORT))
+                        ai.PARAM_EFFORT)
+                  + tuple(ai.model_param(p) for p in ai.PROVIDERS))
     provider = (raw.get(ai.PARAM_PROVIDER) or "").strip() or \
         ai.DEFAULT_PROVIDER
     effort = (raw.get(ai.PARAM_EFFORT) or "").strip() or ai.DEFAULT_EFFORT
+    # Each provider's model, its own parameter or its own default (handoff
+    # 68): the one in use is the configured provider's.
+    models = {p: (raw.get(ai.model_param(p)) or "").strip()
+              or ai.DEFAULT_MODELS[p] for p in ai.PROVIDERS}
     return {
         "enabled": (raw.get(ai.PARAM_ENABLED) or "").strip().lower()
         in ("1", "true", "on", "yes"),
         "provider": provider,
-        "model": (raw.get(ai.PARAM_MODEL) or "").strip() or ai.DEFAULT_MODEL,
+        "model": models.get(provider) or ai.DEFAULT_MODEL,
+        "models": models,
         "timeout_seconds": _int(raw.get(ai.PARAM_TIMEOUT),
                                 ai.DEFAULT_TIMEOUT),
         "daily_cap": _int(raw.get(ai.PARAM_DAILY_CAP), ai.DEFAULT_DAILY_CAP),
         "effort": effort if effort in ai.EFFORTS else ai.DEFAULT_EFFORT,
-        "key": ai.provider_key(),
+        "key": ai.provider_key(provider),
     }
+
+
+def _key_variable(provider):
+    """The variable the configured provider's key is read from — the fake
+    needs none, and is answered with Anthropic's, as before handoff 68."""
+    return ai.ENV_KEYS.get(provider, ai.ENV_KEY)
+
+
+def _key_command(provider):
+    return KEY_COMMANDS.get(provider, KEY_COMMAND)
+
+
+def _choosable(env, current):
+    """The providers this tenant may choose: the stand-in only on a
+    database marked `test` (the PATCH refuses it anywhere else), or when the
+    tenant is already on it, so the list can show what is set."""
+    return [p for p in ai.PROVIDERS
+            if p != ai.PROVIDER_FAKE or database_class(env) == TEST
+            or current == ai.PROVIDER_FAKE]
 
 
 def ai_switch_block(env):
@@ -190,19 +219,39 @@ def _settings_block(env):
         "provider": s["provider"],
         "provider_label": ai.PROVIDER_LABELS.get(s["provider"],
                                                  s["provider"]),
-        "providers": list(ai.PROVIDERS),
+        "providers": _choosable(env, s["provider"]),
+        # Handoff 68: one row per choosable provider — its label, the model
+        # it will be asked with on this tenant, its documented default, and
+        # whether the SERVER holds its key (never the key).
+        "provider_options": [{
+            "value": p,
+            "label": ai.PROVIDER_LABELS[p],
+            "model": s["models"][p],
+            "default_model": ai.DEFAULT_MODELS[p],
+            "needs_key": p in ai.KEYED_PROVIDERS,
+            "key_placed": bool(ai.provider_key(p))
+            if p in ai.KEYED_PROVIDERS else None,
+            "key_variable": ai.ENV_KEYS.get(p),
+            "key_command": KEY_COMMANDS.get(p),
+        } for p in _choosable(env, s["provider"])],
+        "keys": {p: {"placed": bool(ai.provider_key(p)),
+                     "variable": ai.ENV_KEYS[p],
+                     "command": KEY_COMMANDS[p]}
+                 for p in ai.KEYED_PROVIDERS},
         "model": s["model"],
+        "default_model": ai.DEFAULT_MODELS.get(s["provider"]),
         "timeout_seconds": s["timeout_seconds"],
         "daily_cap": s["daily_cap"],
         "effort": s["effort"],
         "efforts": list(ai.EFFORTS),
-        # Whether the SERVER holds a key — one per server, not per tenant
-        # (handoff 65). `key_command` is the local road (it writes `.env`;
-        # it took a database name until 65), `key_variable` the name the
-        # cluster's `cadra-odoo` secret carries it under.
+        # Whether the SERVER holds the CONFIGURED provider's key — one per
+        # server, not per tenant (handoff 65). `key_command` is the local
+        # road (it writes `.env`; it took a database name until 65),
+        # `key_variable` the name the cluster's `cadra-odoo` secret carries
+        # it under. Every provider's presence is in `keys` (handoff 68).
         "key_placed": bool(s["key"]),
-        "key_command": KEY_COMMAND,
-        "key_variable": ai.ENV_KEY,
+        "key_command": _key_command(s["provider"]),
+        "key_variable": _key_variable(s["provider"]),
         "database_class": database_class(env),
         "today": {"day": lagos_today().isoformat(), "calls": calls,
                   "remaining": max(0, s["daily_cap"] - calls)},
@@ -222,12 +271,15 @@ def _provider_misconfigured(env, s):
     if s["provider"] == ai.PROVIDER_FAKE and database_class(env) != TEST:
         return ("This tenant is set to the test stand-in provider, which "
                 "answers only on a database marked `test`. Choose "
-                "`anthropic` in Settings.")
-    if s["provider"] == ai.PROVIDER_ANTHROPIC and not s["key"]:
-        return ("No provider key is set on this server. The owner sets "
+                "`anthropic` or `openai` in Settings.")
+    if s["provider"] in ai.KEYED_PROVIDERS and not s["key"]:
+        return ("No %s key is set on this server. The owner sets "
                 "`%s` in the server's environment — `%s` locally, the "
                 "`cadra-odoo` secret on the cluster — and recreates the "
-                "Odoo container." % (ai.ENV_KEY, KEY_COMMAND))
+                "Odoo container." % (
+                    ai.PROVIDER_LABELS[s["provider"]],
+                    _key_variable(s["provider"]),
+                    _key_command(s["provider"])))
     return None
 
 
@@ -423,10 +475,26 @@ _SETTINGS_SCHEMA = {"type": "object", "properties": {
     "daily_cap": {"type": "integer"},
     "effort": {"type": "string", "enum": list(ai.EFFORTS)},
     "key_placed": {"type": "boolean",
-                   "description": "Whether the server holds a provider key "
-                                  "(`CADRA_AI_API_KEY` in its environment — "
-                                  "one per server, not per tenant). The key "
-                                  "itself is never returned."},
+                   "description": "Whether the server holds the CONFIGURED "
+                                  "provider's key (`key_variable` in its "
+                                  "environment — one per server, not per "
+                                  "tenant). The key itself is never "
+                                  "returned."},
+    "keys": {"type": "object",
+             "description": "Handoff 68: per provider that needs one "
+                            "(`anthropic`, `openai`), `{placed, variable, "
+                            "command}` — whether the server holds its key, "
+                            "never the key."},
+    "provider_options": {"type": "array", "items": {"type": "object"},
+                         "description": "The providers this tenant may "
+                                        "choose (the test stand-in only on a "
+                                        "test database), each with its "
+                                        "label, the model it is asked with "
+                                        "here, its default model and whether "
+                                        "its key is present."},
+    "default_model": {"type": "string",
+                      "description": "The configured provider's documented "
+                                     "default model."},
     "key_command": {"type": "string",
                     "description": "The local command that sets the key "
                                    "(it writes `.env`)."},
@@ -681,8 +749,8 @@ class CadraAiV1(http.Controller):
 
     @cadra_route("/api/v1/settings/ai-identify/acceptance", method="GET",
                  summary="Identify from photo: suggestions made and the "
-                         "share accepted unchanged, by class, site and "
-                         "model (AI-NFR-08)",
+                         "share accepted unchanged, by class, site, "
+                         "provider and model (AI-NFR-08)",
                  scopes=[SCOPE_SETTINGS_READ],
                  query_params=[{"name": "days", "schema": {
                      "type": "integer", "minimum": 1, "maximum": 365,
@@ -696,6 +764,8 @@ class CadraAiV1(http.Controller):
                                      "items": {"type": "object"}},
                      "by_site": {"type": "array",
                                  "items": {"type": "object"}},
+                     "by_provider": {"type": "array",
+                                     "items": {"type": "object"}},
                      "by_model": {"type": "array",
                                   "items": {"type": "object"}},
                      "definitions": {"type": "object", "description":
@@ -734,8 +804,10 @@ class CadraAiV1(http.Controller):
         rejected = [k for k in body if k not in SETTINGS_KEYS]
         if rejected:
             hint = ("The key is the owner's and is never set over the API "
-                    "or kept in the database: it is `%s` in the server's "
-                    "environment (`%s` locally)." % (ai.ENV_KEY, KEY_COMMAND)) \
+                    "or kept in the database: it is in the server's "
+                    "environment (`%s` for Anthropic, `%s` for OpenAI; `%s "
+                    "[openai]` locally)." % (ai.ENV_KEY, ai.ENV_KEY_OPENAI,
+                                             KEY_COMMAND)) \
                 if any("key" in k for k in rejected) else None
             return refuse_unwritable(rejected, SETTINGS_KEYS, hint=hint)
         current = ai_settings(env)
@@ -762,6 +834,9 @@ class CadraAiV1(http.Controller):
                            details={"field": "provider",
                                     "reason": "not_a_test_database"})
             writes[ai.PARAM_PROVIDER] = body["provider"]
+        # The model is the provider's own parameter: the one being switched
+        # to, when the same body switches (handoff 68).
+        target = body.get("provider") or current["provider"]
         if "model" in body:
             model = body["model"]
             if not isinstance(model, str) or not model.strip() \
@@ -771,7 +846,7 @@ class CadraAiV1(http.Controller):
                            "`model` must be the provider's model id — one "
                            "word, at most 80 characters.",
                            details={"field": "model"})
-            writes[ai.PARAM_MODEL] = model.strip()
+            writes[ai.model_param(target)] = model.strip()
         for key, param, lo, hi in (
                 ("timeout_seconds", ai.PARAM_TIMEOUT, 5, 60),
                 ("daily_cap", ai.PARAM_DAILY_CAP, 1, 100000)):
@@ -798,6 +873,7 @@ class CadraAiV1(http.Controller):
         after = dict(current)
         if ai.PARAM_PROVIDER in writes:
             after["provider"] = writes[ai.PARAM_PROVIDER]
+            after["key"] = ai.provider_key(after["provider"])
         turning_on = writes.get(ai.PARAM_ENABLED) == "true" or (
             current["enabled"] and writes.get(ai.PARAM_ENABLED) != "false")
         if turning_on:

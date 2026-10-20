@@ -33,6 +33,15 @@ live at was never the point.
 
 ---
 
+## 2026-10-20 — handoff 68: a second provider · no module version changed
+
+- **New enum value (additive):** `provider` = `openai` on `GET`/`PATCH /api/v1/settings/ai-identify`, on every `POST /api/v1/ai/identify` answer and on `GET /api/v1/settings` → `ai_identify.provider`. OpenAI's Responses API, the same prompt (67.1) and the same schema; `provider_label` "OpenAI (GPT)". A client that branches on `provider` should expect three values: `anthropic`, `openai`, `fake`.
+- **New (additive) on `GET`/`PATCH /settings/ai-identify`:** `keys` — per provider that needs one, `{placed, variable, command}` (`CADRA_AI_API_KEY` for Anthropic, `CADRA_OPENAI_API_KEY` for OpenAI; never the key); `provider_options` — each choosable provider with its label, the model it is asked with on this tenant, its `default_model`, `needs_key` and `key_placed`; `default_model` — the configured provider's default (OpenAI's: `gpt-6.1-sol`).
+- **BEHAVIOUR CHANGE — the model is per provider.** `model` is now the CONFIGURED provider's: Anthropic's stays `cadra.ai.model`, OpenAI's is `cadra.ai.model.openai`, the stand-in's `cadra.ai.model.fake` (default `cadra-fake-1`, where it read Anthropic's before). A `PATCH` with `model` writes the model of the provider the same body switches to, else of the configured one; switching provider never changes another provider's model. `key_placed`, `key_variable` and `key_command` describe the configured provider's key (`scripts/set_ai_key.sh openai` for OpenAI); on the stand-in they describe Anthropic's, as before.
+- **BEHAVIOUR CHANGE — `providers` lists what this tenant may choose:** the stand-in only on a database marked `test` (or when already set to it). The `PATCH` refused it elsewhere already.
+- BEHAVIOUR CHANGE — switching ON, or switching provider while on, is refused (`400 validation_failed`, `provider_not_ready`) when the server lacks the key of the provider being switched TO, naming its variable.
+- **New (additive) on `GET /settings/ai-identify/acceptance`:** `by_provider`, and `provider` on each `by_model` row.
+
 ## 2026-10-19 — handoff 66: the audit in the room · `myservice_asset_register` 19.0.1.34.0, `myservice_api` 19.0.3.37.0
 
 - **New:** the audit capture — 28 routes under `/api/v1/audit/*` plus `GET /api/v1/ai/config`. Endpoint reference §19.

@@ -215,9 +215,14 @@ failure, so a half-provisioned tenant is never committed.
      onto the cluster secret by hand: that step regenerates the whole
      secret and the next push wipes it. The server picks a new value up on
      the next rollout of `odoo-19`, which a push does not do (`upgrade-19`
-     with the pinned image rolls it). No database holds it. The Odoo image carries the
-     `anthropic` SDK (pinned in both Dockerfiles), so an image built before
-     handoff 64 identifies nothing.
+     with the pinned image rolls it). No database holds it. **OpenAI's key
+     (handoff 68) is `CADRA_OPENAI_API_KEY`, the same road** — `.env` via
+     `scripts/set_ai_key.sh openai`, the GitHub secret of that name on the
+     cluster, an optional key of `cadra-odoo` in
+     `k8s/dev/41-odoo-19-deployment.yaml`. The Odoo image carries the
+     `anthropic` and `openai` SDKs (pinned in both Dockerfiles), so an image
+     built before handoff 64 identifies nothing and one built before 68
+     cannot ask OpenAI.
    - Adds the admin user to `group_asset_manager` and `group_security_admin`.
    - Provisions **three** API clients, each with its own `res.users` rather
      than acting as Administrator: `test_client` (the full canonical scope

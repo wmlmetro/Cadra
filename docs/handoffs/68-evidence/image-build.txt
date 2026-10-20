@@ -1,0 +1,228 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.odoo.19.dev
+#1 transferring dockerfile: 1.20kB 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/odoo:19.0
+#2 DONE 3.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/3] FROM docker.io/library/odoo:19.0@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b
+#4 resolve docker.io/library/odoo:19.0@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b 0.0s done
+#4 DONE 0.1s
+
+#4 [1/3] FROM docker.io/library/odoo:19.0@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b
+#4 sha256:36320c76725e729d7943f0b645864ed8a0bf873127de9230969ec5a9538df031 0B / 594B 0.2s
+#4 sha256:36320c76725e729d7943f0b645864ed8a0bf873127de9230969ec5a9538df031 594B / 594B 0.3s done
+#4 sha256:1eb802e5b7e12288230c6e5bb33ff94ee46abf3c5243d02242529f6b53c0f450 0B / 878B 0.2s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 0B / 415.10MB 0.2s
+#4 sha256:5cc952ebd022cd6eee0b8775acdb24753d165c087c23ae4c98bff5b9bd05a0f5 0B / 555B 0.2s
+#4 sha256:607ec7fc413de6004b70311a72261492f6c8574fc8e50f61f13803a6fca15664 0B / 719B 0.2s
+#4 sha256:1eb802e5b7e12288230c6e5bb33ff94ee46abf3c5243d02242529f6b53c0f450 878B / 878B 0.5s done
+#4 sha256:607ec7fc413de6004b70311a72261492f6c8574fc8e50f61f13803a6fca15664 719B / 719B 0.5s
+#4 sha256:e48f2857f3731841c5b0e86ecbe831c659cc6cf00a8c13678a96cf335ed12c1f 0B / 872.66kB 0.2s
+#4 sha256:5cc952ebd022cd6eee0b8775acdb24753d165c087c23ae4c98bff5b9bd05a0f5 555B / 555B 0.8s done
+#4 sha256:607ec7fc413de6004b70311a72261492f6c8574fc8e50f61f13803a6fca15664 719B / 719B 0.5s done
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 0B / 14.20MB 0.2s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 0B / 236.19MB 0.2s
+#4 sha256:e48f2857f3731841c5b0e86ecbe831c659cc6cf00a8c13678a96cf335ed12c1f 872.66kB / 872.66kB 0.6s done
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 1.05MB / 14.20MB 0.6s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 0B / 28.94MB 0.2s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 2.10MB / 14.20MB 0.8s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 4.19MB / 14.20MB 0.9s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 5.24MB / 14.20MB 1.1s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 7.34MB / 14.20MB 1.4s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 3.15MB / 28.94MB 0.9s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 5.24MB / 28.94MB 1.2s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 8.39MB / 14.20MB 1.7s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 9.44MB / 14.20MB 1.8s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 10.49MB / 14.20MB 2.0s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 8.39MB / 28.94MB 1.7s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 11.53MB / 14.20MB 2.3s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 12.06MB / 236.19MB 2.3s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 13.63MB / 14.20MB 2.4s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 10.49MB / 28.94MB 2.1s
+#4 sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 14.20MB / 14.20MB 2.5s done
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 13.63MB / 28.94MB 2.4s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 22.02MB / 415.10MB 3.8s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 15.73MB / 28.94MB 2.7s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 18.35MB / 28.94MB 3.0s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 24.12MB / 236.19MB 3.5s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 19.92MB / 28.94MB 3.2s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 21.76MB / 28.94MB 3.3s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 24.12MB / 28.94MB 3.6s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 26.21MB / 28.94MB 4.5s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 28.31MB / 28.94MB 5.0s
+#4 sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 28.94MB / 28.94MB 5.0s done
+#4 extracting sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 36.70MB / 236.19MB 5.6s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 44.04MB / 415.10MB 6.6s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 49.28MB / 236.19MB 6.5s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 67.11MB / 415.10MB 9.2s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 63.96MB / 236.19MB 8.4s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 77.59MB / 236.19MB 11.4s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 89.13MB / 415.10MB 13.2s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 91.23MB / 236.19MB 13.7s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 110.10MB / 415.10MB 15.3s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 105.91MB / 236.19MB 14.6s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 118.49MB / 236.19MB 17.7s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 131.07MB / 415.10MB 18.9s
+#4 extracting sha256:d5aec63251bb323f816a0f4b8a554bd84e478466a9ed1068daef07368328e9a3 13.5s done
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 132.12MB / 236.19MB 19.5s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 146.80MB / 236.19MB 20.2s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 152.04MB / 415.10MB 21.6s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 162.53MB / 236.19MB 21.3s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 175.11MB / 415.10MB 23.1s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 175.11MB / 236.19MB 22.2s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 196.08MB / 415.10MB 24.3s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 187.70MB / 236.19MB 23.7s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 200.28MB / 236.19MB 25.5s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 217.06MB / 415.10MB 26.7s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 213.91MB / 236.19MB 26.7s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 238.03MB / 415.10MB 28.2s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 226.49MB / 236.19MB 28.4s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 260.05MB / 415.10MB 30.6s
+#4 sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 236.19MB / 236.19MB 30.4s done
+#4 extracting sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 284.16MB / 415.10MB 32.1s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 306.18MB / 415.10MB 33.2s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 328.20MB / 415.10MB 37.8s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 353.37MB / 415.10MB 38.7s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 374.34MB / 415.10MB 42.0s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 395.31MB / 415.10MB 43.6s
+#4 sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 415.10MB / 415.10MB 45.7s done
+#4 extracting sha256:9cbfa0594497838f7f0d535df73a201d8ddfdbb92a52cd52d59ec0806eac83f2 31.4s done
+#4 extracting sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2
+#4 extracting sha256:f78620b774621b2edb5f45eff30e5ef477214b70a2b21e6fde5a6d4b01536ef2 3.9s done
+#4 DONE 66.6s
+
+#4 [1/3] FROM docker.io/library/odoo:19.0@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b
+#4 extracting sha256:e48f2857f3731841c5b0e86ecbe831c659cc6cf00a8c13678a96cf335ed12c1f
+#4 extracting sha256:e48f2857f3731841c5b0e86ecbe831c659cc6cf00a8c13678a96cf335ed12c1f 0.6s done
+#4 DONE 67.2s
+
+#4 [1/3] FROM docker.io/library/odoo:19.0@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b
+#4 extracting sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde
+#4 extracting sha256:e4611cae6ed92e1975c1b0c1e618af6e7ae5552cfd077047904762a0436e6fde 72.4s done
+#4 DONE 139.6s
+
+#4 [1/3] FROM docker.io/library/odoo:19.0@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b
+#4 extracting sha256:607ec7fc413de6004b70311a72261492f6c8574fc8e50f61f13803a6fca15664 0.1s done
+#4 extracting sha256:5cc952ebd022cd6eee0b8775acdb24753d165c087c23ae4c98bff5b9bd05a0f5 0.0s done
+#4 extracting sha256:36320c76725e729d7943f0b645864ed8a0bf873127de9230969ec5a9538df031 0.0s done
+#4 DONE 139.8s
+
+#4 [1/3] FROM docker.io/library/odoo:19.0@sha256:076562619a5de059388d9f9d90545cb575799c04869610a5b20839893819b41b
+#4 extracting sha256:1eb802e5b7e12288230c6e5bb33ff94ee46abf3c5243d02242529f6b53c0f450 0.0s done
+#4 DONE 139.8s
+
+#5 [2/3] RUN pip3 install --no-cache-dir --break-system-packages html2text openpyxl
+#5 2.475 + pip3 install --no-cache-dir --break-system-packages html2text openpyxl
+#5 3.626 WARNING: Skipping /usr/lib/python3.12/dist-packages/charset_normalizer-3.3.2.dist-info due to invalid metadata entry 'name'
+#5 4.268 Collecting html2text
+#5 5.019   Downloading html2text-2025.4.15-py3-none-any.whl.metadata (4.1 kB)
+#5 5.023 Requirement already satisfied: openpyxl in /usr/lib/python3/dist-packages (3.1.2)
+#5 5.217 Downloading html2text-2025.4.15-py3-none-any.whl (34 kB)
+#5 5.676 WARNING: Skipping /usr/lib/python3.12/dist-packages/charset_normalizer-3.3.2.dist-info due to invalid metadata entry 'name'
+#5 5.677 Installing collected packages: html2text
+#5 5.745 Successfully installed html2text-2025.4.15
+#5 5.746 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#5 DONE 7.0s
+
+#6 [3/3] RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed         idna "typing_extensions>=4.14"  && pip3 install --no-cache-dir --break-system-packages anthropic==1.14.0         openai==3.26.1
+#6 0.385 + pip3 install --no-cache-dir --break-system-packages --ignore-installed idna 'typing_extensions>=4.14'
+#6 1.750 Collecting idna
+#6 2.363   Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+#6 2.633 Collecting typing_extensions>=4.14
+#6 2.822   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+#6 3.028 Downloading idna-3.20-py3-none-any.whl (69 kB)
+#6 3.250    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 69.6/69.6 kB 314.1 kB/s eta 0:00:00
+#6 3.446 Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#6 3.485    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.6/45.6 kB 1.0 MB/s eta 0:00:00
+#6 3.797 WARNING: Skipping /usr/lib/python3.12/dist-packages/charset_normalizer-3.3.2.dist-info due to invalid metadata entry 'name'
+#6 3.803 Installing collected packages: typing_extensions, idna
+#6 4.014 Successfully installed idna-3.20 typing_extensions-4.16.0
+#6 4.014 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#6 4.107 + pip3 install --no-cache-dir --break-system-packages anthropic==1.14.0 openai==3.26.1
+#6 4.671 WARNING: Skipping /usr/lib/python3.12/dist-packages/charset_normalizer-3.3.2.dist-info due to invalid metadata entry 'name'
+#6 5.124 Collecting anthropic==1.14.0
+#6 5.739   Downloading anthropic-1.14.0-py3-none-any.whl.metadata (5.8 kB)
+#6 6.007 Collecting openai==3.26.1
+#6 6.209   Downloading openai-3.26.1-py3-none-any.whl.metadata (44 kB)
+#6 6.395      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.3/44.3 kB 202.3 kB/s eta 0:00:00
+#6 6.532 Collecting anyio<5,>=4.1.0 (from anthropic==1.14.0)
+#6 6.723   Downloading anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
+#6 6.839 Collecting docstring-parser<1,>=0.15 (from anthropic==1.14.0)
+#6 7.031   Downloading docstring_parser-0.18.0-py3-none-any.whl.metadata (3.5 kB)
+#6 7.146 Collecting httpx2<3,>=2.0.0 (from anthropic==1.14.0)
+#6 7.353   Downloading httpx2-2.15.1-py3-none-any.whl.metadata (9.6 kB)
+#6 7.722 Collecting jiter<1,>=0.4.0 (from anthropic==1.14.0)
+#6 7.924   Downloading jiter-0.17.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (5.2 kB)
+#6 8.094 Collecting opentelemetry-api<2,>=1.1.0 (from anthropic==1.14.0)
+#6 8.289   Downloading opentelemetry_api-1.45.1-py3-none-any.whl.metadata (1.4 kB)
+#6 8.693 Collecting pydantic<3,>=1.10.0 (from anthropic==1.14.0)
+#6 8.888   Downloading pydantic-2.14.1-py3-none-any.whl.metadata (133 kB)
+#6 9.103      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 133.0/133.0 kB 593.9 kB/s eta 0:00:00
+#6 9.229 Collecting sniffio<2,>=1 (from anthropic==1.14.0)
+#6 9.420   Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+#6 9.424 Requirement already satisfied: typing-extensions<5,>=4.14 in /usr/local/lib/python3.12/dist-packages (from anthropic==1.14.0) (4.16.0)
+#6 9.463 Requirement already satisfied: idna>=2.8 in /usr/local/lib/python3.12/dist-packages (from anyio<5,>=4.1.0->anthropic==1.14.0) (3.20)
+#6 9.572 Collecting httpcore2==2.15.1 (from httpx2<3,>=2.0.0->anthropic==1.14.0)
+#6 9.764   Downloading httpcore2-2.15.1-py3-none-any.whl.metadata (27 kB)
+#6 9.880 Collecting truststore>=0.10 (from httpx2<3,>=2.0.0->anthropic==1.14.0)
+#6 10.09   Downloading truststore-0.10.5-py3-none-any.whl.metadata (4.5 kB)
+#6 10.18 Collecting h11>=0.16 (from httpcore2==2.15.1->httpx2<3,>=2.0.0->anthropic==1.14.0)
+#6 10.38   Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+#6 10.55 Collecting annotated-types>=0.6.0 (from pydantic<3,>=1.10.0->anthropic==1.14.0)
+#6 10.76   Downloading annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
+#6 12.00 Collecting pydantic-core==2.50.1 (from pydantic<3,>=1.10.0->anthropic==1.14.0)
+#6 12.19   Downloading pydantic_core-2.50.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (6.5 kB)
+#6 12.29 Collecting typing-inspection>=0.4.4 (from pydantic<3,>=1.10.0->anthropic==1.14.0)
+#6 12.49   Downloading typing_inspection-0.4.4-py3-none-any.whl.metadata (2.6 kB)
+#6 12.71 Downloading anthropic-1.14.0-py3-none-any.whl (2.0 MB)
+#6 13.31    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 3.4 MB/s eta 0:00:00
+#6 13.52 Downloading openai-3.26.1-py3-none-any.whl (2.2 MB)
+#6 13.76    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 9.0 MB/s eta 0:00:00
+#6 13.95 Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
+#6 13.96    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 132.1/132.1 kB 8.4 MB/s eta 0:00:00
+#6 14.14 Downloading docstring_parser-0.18.0-py3-none-any.whl (22 kB)
+#6 14.33 Downloading httpx2-2.15.1-py3-none-any.whl (96 kB)
+#6 14.34    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 96.4/96.4 kB 16.2 MB/s eta 0:00:00
+#6 14.53 Downloading httpcore2-2.15.1-py3-none-any.whl (85 kB)
+#6 14.54    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 85.1/85.1 kB 18.9 MB/s eta 0:00:00
+#6 14.73 Downloading jiter-0.17.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (341 kB)
+#6 14.76    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 342.0/342.0 kB 10.1 MB/s eta 0:00:00
+#6 14.95 Downloading opentelemetry_api-1.45.1-py3-none-any.whl (60 kB)
+#6 14.96    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.3/60.3 kB 73.6 MB/s eta 0:00:00
+#6 15.15 Downloading pydantic-2.14.1-py3-none-any.whl (488 kB)
+#6 15.20    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 488.1/488.1 kB 10.5 MB/s eta 0:00:00
+#6 15.39 Downloading pydantic_core-2.50.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (2.0 MB)
+#6 15.60    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 9.9 MB/s eta 0:00:00
+#6 15.80 Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
+#6 15.98 Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#6 16.16 Downloading truststore-0.10.5-py3-none-any.whl (19 kB)
+#6 16.36 Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#6 16.55 Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+#6 16.75 WARNING: Skipping /usr/lib/python3.12/dist-packages/charset_normalizer-3.3.2.dist-info due to invalid metadata entry 'name'
+#6 16.80 Installing collected packages: typing-inspection, truststore, sniffio, pydantic-core, opentelemetry-api, jiter, h11, docstring-parser, anyio, annotated-types, pydantic, httpcore2, httpx2, openai, anthropic
+#6 24.56 Successfully installed annotated-types-0.8.0 anthropic-1.14.0 anyio-4.15.1 docstring-parser-0.18.0 h11-0.16.0 httpcore2-2.15.1 httpx2-2.15.1 jiter-0.17.0 openai-3.26.1 opentelemetry-api-1.45.1 pydantic-2.14.1 pydantic-core-2.50.1 sniffio-1.3.1 truststore-0.10.5 typing-inspection-0.4.4
+#6 24.56 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#6 DONE 25.3s
+
+#7 exporting to image
+#7 exporting layers
+#7 exporting layers 2.0s done
+#7 exporting manifest sha256:7dc01fb1a638eef670dfb0e52dd6ebf566b86c0c08b2d3bd1e073e9fecf08fc5 0.0s done
+#7 exporting config sha256:3e04bcd0164983eb9d312ad97f2c1a0cdba2236d8a9513a9602ddaf2d114968b done
+#7 exporting attestation manifest sha256:b11d7b52c9e62bb769537d7867cd26cc8610f63862edce52d8d3903cc7aa0f42 done
+#7 exporting manifest list sha256:4075d886dcebe40d6676ae6ddf369fd7a1280e649e453ec6ca72903d69c2ea01 done
+#7 naming to docker.io/library/cadra-odoo:19.0-dev done
+#7 unpacking to docker.io/library/cadra-odoo:19.0-dev
+#7 unpacking to docker.io/library/cadra-odoo:19.0-dev 2.0s done
+#7 DONE 4.1s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/p14vptj2mmr6jc2lbdpcy85sr

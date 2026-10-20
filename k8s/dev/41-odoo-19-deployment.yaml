@@ -65,6 +65,15 @@ spec:
                   name: cadra-odoo
                   key: CADRA_AI_API_KEY
                   optional: true
+            # Handoff 68. Optional, the same way: OpenAI's key, the second
+            # provider, its own variable so both can be held at once. The
+            # GitHub secret `CADRA_OPENAI_API_KEY`, synced by deploy-dev.
+            - name: CADRA_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cadra-odoo
+                  key: CADRA_OPENAI_API_KEY
+                  optional: true
           envFrom:
             - configMapRef:
                 name: odoo-bootstrap-19
