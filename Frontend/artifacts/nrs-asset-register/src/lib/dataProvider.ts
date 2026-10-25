@@ -1272,6 +1272,8 @@ export interface BarcodeKpis {
 export interface BarcodeTag {
   tag_id: number; tag_number: string; tag_state: string;
   asset_id: number; asset_name: string; domain: string; location: string; condition: string;
+  /** Printed on the label in brackets under the name; "" when the asset has none. */
+  serial_number: string;
 }
 
 // The `domain` values `recent-tags` and `lookup` return are raw selection keys.
@@ -1350,6 +1352,7 @@ export interface UntaggedAsset {
 export interface GeneratedTag {
   asset_id: number; asset_name: string; asset_code: string;
   tag_id: number; tag_number: string; location: string;
+  serial_number: string;
 }
 export interface GenerateTagsResult {
   generated: GeneratedTag[];

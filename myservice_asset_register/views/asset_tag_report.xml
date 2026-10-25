@@ -3,20 +3,25 @@
     <!-- ═══════════════════════════════════════════════════════════
          ASSET TAG LABELS
 
-         One artwork ("Option 1"), rendered at four scales:
+         One artwork, rendered at four scales:
 
-           ┌──────┬─────────────────────────────────┐
-           │      │ ███ NRS FACILITIES MANAGEMENT   │
-           │      │ Workstation Desk                │
-           │ logo │ HQ-GF-MR-FF-001                 │
-           │      │ NRS-FF-DSK-00001                │
-           │      │ ‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖       ▓▓▓     │
-           │ GF-MR│  HQ-GF-MR-FF-001        ▓▓▓     │
-           └──────┴─────────────────────────────────┘
+           ┌───────────────────────────────────────┐
+           │ ▓▓▓▓▓▓▓   Apple M4                    │
+           │ ▓▓ QR ▓   (GWSRW0S14)                 │
+           │ ▓▓▓▓▓▓▓   NRS-AST-011933              │
+           │ ‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖ │
+           └───────────────────────────────────────┘
+
+         The serial line is left off when the asset has none (a `tag_id` or
+         `record_only` class). The Code 128 has a row of its own across the
+         whole content box: a 14-character tag is ~209 modules with its quiet
+         zones, so beside the QR a module printed at ~0.14 mm — below what a
+         phone camera reads; across 46 mm it is ~0.22 mm.
 
          Kept in step with the SPA's client-side labels
          (Frontend/artifacts/nrs-asset-register/src/lib/labels.ts) so a label
-         printed from the Odoo backend matches one printed from the app.
+         printed from the Odoo backend matches one printed from the app, and
+         with the geometry e2e/corpus/run54.mjs measures.
 
          LAYOUT IS TABLE-BASED ON PURPOSE. These render through wkhtmltopdf
          0.12.6, i.e. Qt WebKit — `display: flex` and CSS grid do not work
@@ -33,26 +38,13 @@
         <style>
             .lbl { border-collapse: collapse; width: 100%; height: 100%;
                    background: #fff; font-family: Arial, Helvetica, sans-serif;
-                   color: #000; }
+                   color: #000; line-height: 1.2; }
             .lbl td { padding: 0; }
-            .lbl-side { text-align: center; vertical-align: middle; }
-            .lbl-side-inner { border-collapse: collapse; width: 100%; height: 100%; }
-            .lbl-logo { max-width: 100%; }
-            .lbl-brandname { font-weight: 900; }
-            .lbl-room { color: #888; letter-spacing: .3px; white-space: nowrap; }
-            .lbl-hdr { color: #fff; white-space: nowrap; overflow: hidden; }
-            .lbl-hdr-brand { font-weight: 900; letter-spacing: .2px; }
-            .lbl-hdr-sub { font-weight: 600; letter-spacing: .4px; }
-            .lbl-name { font-weight: 700; white-space: nowrap; overflow: hidden; }
-            .lbl-tag { font-family: 'Courier New', monospace; font-weight: 700;
-                       letter-spacing: .5px; white-space: nowrap; }
-            .lbl-acode { font-family: 'Courier New', monospace; color: #777;
-                         white-space: nowrap; overflow: hidden; }
-            .lbl-codes { border-collapse: collapse; width: 100%; }
-            .lbl-bc { display: block; width: 100%; }
-            .lbl-bctext { font-family: 'Courier New', monospace; font-weight: 700;
-                          letter-spacing: 1.5px; text-align: center; }
             .lbl-qr { display: block; }
+            .lbl-name { white-space: nowrap; overflow: hidden; }
+            .lbl-serial { white-space: nowrap; overflow: hidden; }
+            .lbl-tag { letter-spacing: .3px; white-space: nowrap; }
+            .lbl-bc { display: block; width: 100%; }
             .lbl-cell { border: 0.3mm dashed #c8c8c8; vertical-align: top; }
         </style>
     </template>
@@ -60,105 +52,59 @@
     <!-- ── Shared body. Expects `o` (an nrs.asset) and `size`. ── -->
     <template id="asset_tag_label_body">
         <!-- Per-scale metrics. Every value is tuned against the content box
-             quoted above; changing a page margin means revisiting these. -->
+             quoted above; changing a page margin means revisiting these.
+             Height: qr + bcgap + bc fits the box (standard 13 + 1 + 10 = 24
+             of 28 mm). The text column is what is left beside the QR
+             (standard 46 − 13 − 1.5 = 31.5 mm). `bcw` is a high source width
+             so the bars are not resampled unevenly on the way to 46 mm. -->
         <t t-set="cfg" t-value="{
-            'small':    {'side': '8mm',  'logo': '5mm',  'hdr': '3.4mm', 'hdrfs': '5pt',
-                         'subfs': '4pt',  'namefs': '5pt',  'tagpt': 9.0,
-                         'acodefs': '4.5pt', 'bc': '6mm',  'qr': '7mm',
-                         'roomfs': '3.6pt', 'pad': '0.8mm', 'bctextpt': 5.0,
-                         'tagmax': 17, 'bcw': 400, 'bch': 80, 'qrpx': 100},
-            'standard': {'side': '9mm',  'logo': '5.5mm','hdr': '4mm',   'hdrfs': '5.5pt',
-                         'subfs': '4.5pt','namefs': '5.5pt','tagpt': 10.5,
-                         'acodefs': '5pt',  'bc': '8mm',  'qr': '9mm',
-                         'roomfs': '4pt',   'pad': '1mm',   'bctextpt': 5.5,
-                         'tagmax': 15, 'bcw': 500, 'bch': 80, 'qrpx': 120},
-            'large':    {'side': '16mm', 'logo': '11mm', 'hdr': '7mm',   'hdrfs': '10pt',
-                         'subfs': '8pt',  'namefs': '11pt', 'tagpt': 19.0,
-                         'acodefs': '9pt',  'bc': '18mm', 'qr': '21mm',
-                         'roomfs': '7.5pt', 'pad': '2mm',   'bctextpt': 10.0,
-                         'tagmax': 17, 'bcw': 700, 'bch': 110, 'qrpx': 220}
+            'small':    {'qr': '11mm', 'gap': '1.5mm', 'namefs': '6pt', 'serialfs': '5pt',
+                         'tagpt': 6.5, 'bc': '8mm', 'bcgap': '0.8mm',
+                         'tagmax': 23, 'bcw': 1000, 'bch': 80, 'qrpx': 200},
+            'standard': {'qr': '13mm', 'gap': '1.5mm', 'namefs': '7pt', 'serialfs': '5.5pt',
+                         'tagpt': 7.5, 'bc': '10mm', 'bcgap': '1mm',
+                         'tagmax': 19, 'bcw': 1000, 'bch': 80, 'qrpx': 200},
+            'large':    {'qr': '26mm', 'gap': '3mm',   'namefs': '13pt', 'serialfs': '10pt',
+                         'tagpt': 14.0, 'bc': '20mm', 'bcgap': '2mm',
+                         'tagmax': 21, 'bcw': 1600, 'bch': 110, 'qrpx': 360}
             }[size]"/>
 
-        <!-- Tag codes vary in length (HQ-GF-MR-FF-001 vs LASG-3F-WRD-IT-042).
-             `tagmax` is how many monospace characters fit the content column at
-             full size; anything longer is scaled down to fit. Shrinking is the
-             only acceptable answer here — clipping or wrapping a tag code makes
-             the printed label disagree with the barcode above it. -->
+        <!-- Tag codes vary in length (NRS-AST-011933 vs LASG-3F-WRD-IT-042).
+             `tagmax` is how many characters fit the text column at full size;
+             anything longer is scaled down to fit. Shrinking is the only
+             acceptable answer here — clipping or wrapping a tag code makes
+             the printed label disagree with the barcode under it. -->
         <t t-set="taglen" t-value="len(o.asset_tag or '') or 1"/>
         <t t-set="tagscale" t-value="1.0 if taglen &lt;= cfg['tagmax'] else (cfg['tagmax'] * 1.0 / taglen)"/>
         <t t-set="tag_pt" t-value="round(cfg['tagpt'] * tagscale, 2)"/>
-        <t t-set="bctext_pt" t-value="round(cfg['bctextpt'] * tagscale, 2)"/>
-
-        <t t-set="icp" t-value="env['ir.config_parameter'].sudo()"/>
-        <t t-set="brand_primary" t-value="icp.get_param('cadra.brand_primary') or '#C8102E'"/>
-        <t t-set="brand_short" t-value="icp.get_param('cadra.brand_short_name') or env.company.name or 'Cadra'"/>
-        <!-- cadra.brand_logo is already a data: URI; company.logo is raw base64. -->
-        <t t-set="brand_logo" t-value="icp.get_param('cadra.brand_logo') or ''"/>
-        <t t-set="logo_src" t-value="brand_logo or (('data:image/png;base64,' + env.company.logo.decode('utf-8')) if env.company.logo else '')"/>
         <t t-set="tag_val" t-value="o.asset_tag or ''"/>
+        <t t-set="serial" t-value="(o.serial_number or '').strip()"/>
 
         <table class="lbl">
             <tr>
-                <!-- Brand column, spanning both rows. -->
-                <td class="lbl-side" rowspan="2" t-attf-style="width: {{ cfg['side'] }};">
-                    <table class="lbl-side-inner">
-                        <tr>
-                            <td style="text-align: center; vertical-align: middle;">
-                                <img t-if="logo_src" t-att-src="logo_src"
-                                     class="lbl-logo" t-attf-style="max-height: {{ cfg['logo'] }};"
-                                     alt=""/>
-                                <span t-if="not logo_src" class="lbl-brandname"
-                                      t-attf-style="color: {{ brand_primary }}; font-size: {{ cfg['hdrfs'] }};"
-                                      t-out="brand_short"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td t-attf-style="text-align: center; vertical-align: bottom; height: {{ cfg['hdr'] }};">
-                                <span class="lbl-room" t-attf-style="font-size: {{ cfg['roomfs'] }};"
-                                      t-out="o.floor_room or ''"/>
-                            </td>
-                        </tr>
-                    </table>
+                <td t-attf-style="width: {{ cfg['qr'] }}; padding-right: {{ cfg['gap'] }};
+                                  vertical-align: middle;">
+                    <img t-if="tag_val"
+                         t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', tag_val, width=cfg['qrpx'], height=cfg['qrpx'])"
+                         class="lbl-qr"
+                         t-attf-style="width: {{ cfg['qr'] }}; height: {{ cfg['qr'] }};"
+                         alt="QR"/>
                 </td>
-
-                <!-- Colour band, inset from the left so the mark keeps its column. -->
-                <td class="lbl-hdr"
-                    t-attf-style="background: {{ brand_primary }}; height: {{ cfg['hdr'] }};
-                                  padding: 0 {{ cfg['pad'] }};">
-                    <span class="lbl-hdr-brand" t-attf-style="font-size: {{ cfg['hdrfs'] }};"
-                          t-out="brand_short"/>
-                    <span class="lbl-hdr-sub" t-attf-style="font-size: {{ cfg['subfs'] }};"> FACILITIES MANAGEMENT</span>
+                <td style="vertical-align: middle;">
+                    <div class="lbl-name" t-attf-style="font-size: {{ cfg['namefs'] }};"
+                         t-out="(o.name or '')[:40]"/>
+                    <div t-if="serial" class="lbl-serial" t-attf-style="font-size: {{ cfg['serialfs'] }};"
+                         t-out="'(%s)' % serial"/>
+                    <div class="lbl-tag" t-attf-style="font-size: {{ tag_pt }}pt;"
+                         t-out="tag_val"/>
                 </td>
             </tr>
             <tr>
-                <td t-attf-style="vertical-align: top; padding: {{ cfg['pad'] }};">
-                    <div class="lbl-name" t-attf-style="font-size: {{ cfg['namefs'] }};"
-                         t-out="(o.name or '')[:40]"/>
-                    <div class="lbl-tag" t-attf-style="font-size: {{ tag_pt }}pt;"
-                         t-out="tag_val"/>
-                    <div class="lbl-acode" t-attf-style="font-size: {{ cfg['acodefs'] }};"
-                         t-out="o.asset_code or ''"/>
-
-                    <table class="lbl-codes" t-attf-style="margin-top: {{ cfg['pad'] }};">
-                        <tr>
-                            <td style="vertical-align: bottom;">
-                                <img t-if="tag_val"
-                                     t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=cfg['bcw'], height=cfg['bch'], humanreadable=0)"
-                                     class="lbl-bc" t-attf-style="height: {{ cfg['bc'] }};"
-                                     alt="Code128"/>
-                                <div class="lbl-bctext" t-attf-style="font-size: {{ bctext_pt }}pt;"
-                                     t-out="tag_val"/>
-                            </td>
-                            <td t-attf-style="width: {{ cfg['qr'] }}; padding-left: {{ cfg['pad'] }};
-                                              vertical-align: bottom; text-align: right;">
-                                <img t-if="tag_val"
-                                     t-att-src="'data:image/png;base64,' + o.get_barcode_base64('QR', tag_val, width=cfg['qrpx'], height=cfg['qrpx'])"
-                                     class="lbl-qr"
-                                     t-attf-style="width: {{ cfg['qr'] }}; height: {{ cfg['qr'] }};"
-                                     alt="QR"/>
-                            </td>
-                        </tr>
-                    </table>
+                <td colspan="2" t-attf-style="padding-top: {{ cfg['bcgap'] }}; vertical-align: top;">
+                    <img t-if="tag_val"
+                         t-att-src="'data:image/png;base64,' + o.get_barcode_base64('Code128', tag_val, width=cfg['bcw'], height=cfg['bch'], humanreadable=0)"
+                         class="lbl-bc" t-attf-style="height: {{ cfg['bc'] }};"
+                         alt="Code128"/>
                 </td>
             </tr>
         </table>

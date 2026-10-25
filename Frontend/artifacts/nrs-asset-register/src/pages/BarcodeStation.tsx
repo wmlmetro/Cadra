@@ -361,6 +361,7 @@ function ScanAndPrint({ tabs, size, setSize }: {
       location: hit.location,
       category: hit.category,
       custodian: hit.custodian,
+      serial_number: hit.serial_number,
       floor_room: floorRoomFromTag(hit.tag_number),
     }]);
 
@@ -370,6 +371,7 @@ function ScanAndPrint({ tabs, size, setSize }: {
       tag_number: t.tag_number,
       asset_name: t.asset_name,
       location: t.location,
+      serial_number: t.serial_number,
       floor_room: floorRoomFromTag(t.tag_number),
     })));
 
@@ -456,6 +458,7 @@ function ScanAndPrint({ tabs, size, setSize }: {
       asset_name: g.asset_name,
       asset_code: g.asset_code,
       location: g.location,
+      serial_number: g.serial_number,
       floor_room: floorRoomFromTag(g.tag_number),
     })), true);
   }
@@ -617,6 +620,7 @@ function ScanAndPrint({ tabs, size, setSize }: {
       tag_number: labelNumberOf(r)!,
       asset_name: r.name,
       location: r.current_location?.name,
+      serial_number: r.serial_number ?? undefined,
       floor_room: r.floor_room || floorRoomFromTag(labelNumberOf(r)!),
     })));
   // Ages re-render once a minute; nothing is refetched by it.
@@ -633,6 +637,7 @@ function ScanAndPrint({ tabs, size, setSize }: {
       tag_number: printableNewTag.tag_number,
       asset_name: printableNewTag.asset.name,
       asset_code: printableNewTag.asset_code,
+      serial_number: printableNewTag.serial_number,
       floor_room: floorRoomFromTag(printableNewTag.tag_number),
     }], true);
 

@@ -513,6 +513,7 @@ export function CaptureScreen(props: CaptureScreenProps = {}) {
                   {station && (
                     <StationCodePrint key={captureId} code={nextCode} codeRow={nextCodeRow} deviceCode={deviceCode}
                       assetName={(values.name ?? "").trim() || "Audit capture"}
+                      serialNumber={values.serial_number}
                       size={station.labelSize} onSize={station.onLabelSize} onSpoiled={() => setScanned("")} />
                   )}
                   <ScannedLabel value={scanned} onChange={setScanned} expected={nextCode} />
