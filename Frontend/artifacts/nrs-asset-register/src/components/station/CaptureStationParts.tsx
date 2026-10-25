@@ -159,8 +159,8 @@ export function StationBlockLine({ block, loading }: { block: AuditBlock | null 
  * `codeRow` is the code's ledger row from the block, read for its print
  * count; it refreshes after the print is recorded.
  */
-export function StationCodePrint({ code, codeRow, deviceCode, assetName, size, onSize, onSpoiled }: {
-  code: string; codeRow: AuditCode | null; deviceCode: string | null; assetName: string;
+export function StationCodePrint({ code, codeRow, deviceCode, assetName, serialNumber, size, onSize, onSpoiled }: {
+  code: string; codeRow: AuditCode | null; deviceCode: string | null; assetName: string; serialNumber?: string;
   size: LabelSize; onSize: (s: LabelSize) => void; onSpoiled: () => void;
 }) {
   const qc = useQueryClient();
@@ -177,7 +177,7 @@ export function StationCodePrint({ code, codeRow, deviceCode, assetName, size, o
     setPrinting(true);
     let printed = false;
     try {
-      const res = await printLabels([{ tag_number: code, asset_code: code, asset_name: assetName }], size);
+      const res = await printLabels([{ tag_number: code, asset_code: code, asset_name: assetName, serial_number: serialNumber }], size);
       printed = true;
       if (res.qrUnavailable) {
         setNotice({ kind: "warn", text: "QR codes could not be loaded from the server, so the label printed with the Code128 barcode only." });

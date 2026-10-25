@@ -255,6 +255,8 @@ class BarcodeStationController(http.Controller):
                 'domain': asset.domain or '',
                 'location': asset.location_id.name if asset.location_id else '',
                 'condition': asset.condition or '',
+                # Printed on the label under the name.
+                'serial_number': asset.serial_number or '',
             })
         return result
 
@@ -355,6 +357,7 @@ class BarcodeStationController(http.Controller):
                 'tag_id': tag.id,
                 'tag_number': tag.name,
                 'location': asset.location_id.name if asset.location_id else '',
+                'serial_number': asset.serial_number or '',
             })
         return {'generated': generated, 'skipped': skipped}
 

@@ -17,6 +17,7 @@ export interface LabelToFixRow {
   id: number;
   asset_code: string;
   name: string;
+  serial_number: string | null;
   /** DEPRECATED on the server (the tag NUMBER); read only as a fallback for
    *  `tagging.tag_number`, which is the label actually on the record. */
   tag?: string | null;

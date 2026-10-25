@@ -71,18 +71,19 @@ const READER_OPTIONS = {
 
 /* ── Physical geometry ──────────────────────────────────────────────────
  * From myservice_asset_register/views/asset_tag_report.xml: the per-size cfg
- * dict and the paperformat content boxes. The Code 128's printed width is
- * what is left of the content row after the side column, the content cell's
- * own left+right padding, the QR cell and the QR cell's padding-left:
- *   bc_w = content_w − side − 2·pad − qr − pad
+ * dict and the paperformat content boxes. The Code 128 has a row of its own
+ * across the whole content box, so its printed width is the box's:
+ *   bc_w = content_w
+ * (Until 2026-10-25 the artwork had a brand column and the QR shared the
+ * barcode's row; the baseline in expected-pass.json was measured on that.)
  */
 const CADRA_SIZES = {
-  small:    { contentW: 46, side: 8,  pad: 0.8, qr: 7,  bch: 6,  bcw: 400, bchpx: 80,  qrpx: 100 },
-  standard: { contentW: 46, side: 9,  pad: 1,   qr: 9,  bch: 8,  bcw: 500, bchpx: 80,  qrpx: 120 },
-  large:    { contentW: 92, side: 16, pad: 2,   qr: 21, bch: 18, bcw: 700, bchpx: 110, qrpx: 220 },
+  small:    { contentW: 46, qr: 11, bch: 8,  bcw: 1000, bchpx: 80,  qrpx: 200 },
+  standard: { contentW: 46, qr: 13, bch: 10, bcw: 1000, bchpx: 80,  qrpx: 200 },
+  large:    { contentW: 92, qr: 26, bch: 20, bcw: 1600, bchpx: 110, qrpx: 360 },
 };
 for (const c of Object.values(CADRA_SIZES)) {
-  c.bcWmm = c.contentW - c.side - 2 * c.pad - c.qr - c.pad; // printed Code 128 width, mm
+  c.bcWmm = c.contentW; // printed Code 128 width, mm
 }
 
 /** px per mm. "As printed": 300 dpi flatbed = 300/25.4 = 11.81. "Arm's
@@ -304,10 +305,10 @@ async function main() {
   lines.push("## Assumptions and arithmetic");
   lines.push("");
   lines.push(`- Decoder: zxing-wasm (\`zxing-wasm/full\` in Node — the same WASM core version the SPA bundles via \`zxing-wasm/reader\`), reader options verbatim from \`scanEngine.ts\`: the 13 formats, \`tryHarder\`, \`tryRotate\`, \`tryInvert\`, \`maxNumberOfSymbols: 4\`.`);
-  lines.push(`- Cadra barcode PNGs fetched from the real renderer: \`${ODOO_ORIGIN}/report/barcode\` at the template's cfg source sizes (Code 128: 400×80 / 500×80 / 700×110 px; QR: 100 / 120 / 220 px), value \`${TAG}\`.`);
-  lines.push("- Cadra printed sizes derived from `asset_tag_report.xml`'s cfg and the paperformat content boxes — Code 128 width = content − side − 2·pad − QR − pad:");
+  lines.push(`- Cadra barcode PNGs fetched from the real renderer: \`${ODOO_ORIGIN}/report/barcode\` at the template's cfg source sizes (Code 128: 1000×80 / 1000×80 / 1600×110 px; QR: 200 / 200 / 360 px), value \`${TAG}\`.`);
+  lines.push("- Cadra printed sizes derived from `asset_tag_report.xml`'s cfg and the paperformat content boxes — Code 128 width = the content box's:");
   for (const [size, c] of Object.entries(CADRA_SIZES)) {
-    lines.push(`  - ${size}: ${c.contentW} − ${c.side} − 2×${c.pad} − ${c.qr} − ${c.pad} = **${c.bcWmm.toFixed(1)} mm** × ${c.bch} mm (bar height = cfg \`bc\`); QR ${c.qr} mm square.`);
+    lines.push(`  - ${size}: **${c.bcWmm.toFixed(1)} mm** × ${c.bch} mm (bar height = cfg \`bc\`); QR ${c.qr} mm square.`);
   }
   lines.push("- Manufacturer labels: written by the same package's `writeBarcode`, displayed 40 mm × 10 mm (1D) and 15 mm square (2D). Fitting PDF417 — a natively wide, many-module symbology — into 15 mm COMPRESSES its module width to ≈ 0.1 mm, which is why its row scores low; that is a fact about printing PDF417 at 15 mm, not about the engine.");
   lines.push("- Pixel scales (px per mm): **as printed** = 11.81 (300 dpi flatbed, 300/25.4); **arm's length** = 4.2 (a 1920 px frame spanning ~46 cm of scene — a phone at ~40 cm with ~60° horizontal FOV).");

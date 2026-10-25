@@ -14,7 +14,6 @@
  */
 
 import { code128Svg } from "./code128";
-import { getBrand, brandLogoSrc } from "./brand";
 import { API_BASE } from "./api";
 
 export type LabelSize = "small" | "standard" | "large" | "sheet";
@@ -112,57 +111,54 @@ function code128Img(value: string, className: string): string {
 }
 
 /**
- * One layout at every size (the approved "Option 1" artwork):
+ * One layout at every size:
  *
- *   ┌──────┬─────────────────────────────────┐
- *   │      │ ███ NRS FACILITIES MANAGEMENT   │
- *   │      │ Workstation Desk                │
- *   │ logo │ HQ-GF-MR-FF-001                 │
- *   │      │ NRS-FF-DSK-00001                │
- *   │      │ ‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖       ▓▓▓     │
- *   │ GF-MR│  HQ-GF-MR-FF-001        ▓▓▓     │
- *   └──────┴─────────────────────────────────┘
+ *   ┌───────────────────────────────────────┐
+ *   │ ▓▓▓▓▓▓▓   Apple M4                    │
+ *   │ ▓▓ QR ▓   (GWSRW0S14)                 │
+ *   │ ▓▓▓▓▓▓▓   NRS-AST-011933              │
+ *   │ ‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖ │
+ *   └───────────────────────────────────────┘
  *
- * The colour band is inset from the left so the brand mark sits in its own
- * column, and the human-readable code repeats under the barcode so a tag
- * stays usable once the bars scuff. Sizes differ only in the root font-size
- * and the barcode/QR dimensions — everything else is in `em`.
+ * The QR on the left with the name, the serial in brackets (left off when the
+ * asset has none — a `tag_id` or `record_only` class) and the tag number
+ * beside it; the Code 128 on its own row across the WHOLE label. The width is
+ * the point: a 14-character tag is ~209 modules with its quiet zones, so
+ * beside the QR on 50 mm stock a module printed at ~0.14 mm — below what a
+ * phone camera reads and under one dot of a 203 dpi printer. Across the label
+ * it is ~0.23 mm. The quiet zones are inside the SVG, so the side padding is
+ * kept thin. Sizes differ only in the root font-size and the barcode/QR
+ * boxes — everything else is in `em`.
  */
-function labelMarkup(d: LabelData, size: LabelSize, brandPrimary: string, logo: string): string {
+/** How many characters of the tag fit the text column at full size. A longer
+ *  tag is shrunk to fit, never clipped or wrapped: the printed number must
+ *  agree with the bars under it. Kept in step with `tagmax` in
+ *  asset_tag_report.xml. */
+const TAG_MAX: Record<Exclude<LabelSize, "sheet">, number> = {
+  small: 23, standard: 19, large: 21,
+};
+
+function labelMarkup(d: LabelData, size: Exclude<LabelSize, "sheet">): string {
   // Trim once so the printed text and the encoded barcode can't disagree —
   // code128Svg trims internally.
   const tag = (d.tag_number || "").trim();
-  const qrPx = size === "small" ? 120 : 200;
-  const brand = getBrand();
-  const brandName = brand.short_name || brand.name;
+  const serial = (d.serial_number || "").trim();
+  const qrPx = size === "large" ? 360 : 200;
+  const tagScale = tag.length > TAG_MAX[size] ? TAG_MAX[size] / tag.length : 1;
 
   return `
     <div class="lbl lbl-${size}">
-      <div class="side">
-        ${logo ? `<img class="side-logo" data-logo="1" src="${esc(logo)}" alt=""/>`
-               : `<span class="side-name" style="color:${esc(brandPrimary)}">${esc(brandName)}</span>`}
-        <div class="side-room">${esc(d.floor_room || "")}</div>
-      </div>
-      <div class="content">
-        <div class="hdr" style="background:${esc(brandPrimary)}">
-          <span class="hdr-brand">${esc(brandName)}</span>
-          <span class="hdr-sub">FACILITIES MANAGEMENT</span>
+      <div class="top">
+        <div class="col-qr">
+          <img class="qr" data-qr="1" src="${qrUrl(tag, qrPx)}" alt=""/>
         </div>
-        <div class="body">
+        <div class="col-txt">
           <div class="asset-name">${esc((d.asset_name || "").slice(0, 40))}</div>
-          <div class="tag-code">${esc(tag)}</div>
-          <div class="asset-code">${esc(d.asset_code || "")}</div>
-          <div class="row">
-            <div class="col-bc">
-              ${code128Img(tag, "bc-wide")}
-              <div class="bc-text">${esc(tag)}</div>
-            </div>
-            <div class="col-qr">
-              <img class="qr" data-qr="1" src="${qrUrl(tag, qrPx)}" alt=""/>
-            </div>
-          </div>
+          ${serial ? `<div class="serial">(${esc(serial)})</div>` : ""}
+          <div class="tag-code" style="font-size:${(1.1 * tagScale).toFixed(3)}em">${esc(tag)}</div>
         </div>
       </div>
+      ${code128Img(tag, "bc")}
     </div>`;
 }
 
@@ -175,60 +171,32 @@ const STYLES = `
   .page { page-break-after: always; break-after: page; overflow: hidden; }
   .page:last-child { page-break-after: auto; break-after: auto; }
 
-  /* ── Option 1 layout. Everything scales off .lbl's font-size. ── */
-  .lbl { display: flex; overflow: hidden; background: #fff; line-height: 1; }
-  /* Brand mark centred in its own column; the floor/room pair is positioned
-     rather than flowed, so pinning it to the bottom can't shove the mark up. */
-  .side { flex: 0 0 auto; position: relative; display: flex; align-items: center;
-          justify-content: center; padding: .8em .4em 2em; }
-  .side-logo { width: 100%; max-height: 4.2em; object-fit: contain; }
-  .side-name { font-weight: 900; font-size: 1.4em; }
-  /* The floor/room pair a walking auditor reads first, without having to parse
-     the full tag code. */
-  .side-room { position: absolute; left: 0; right: 0; bottom: .6em; text-align: center;
-               font-size: .85em; color: #888; letter-spacing: .3px; white-space: nowrap; }
-
-  .content { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-  .hdr { flex: 0 0 auto; color: #fff; display: flex; align-items: baseline; gap: .5em;
-         padding: .35em .8em; }
-  .hdr-brand { font-weight: 900; font-size: 1.15em; letter-spacing: .2px; }
-  .hdr-sub { font-weight: 600; font-size: .95em; letter-spacing: .4px; }
-
-  .body { flex: 1 1 auto; min-height: 0; padding: .35em .8em .3em; display: flex; flex-direction: column; }
-  .asset-name { font-weight: 700; font-size: 1.15em; line-height: 1.15;
-                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tag-code { font-family: "Courier New", monospace; font-weight: 700; font-size: 1.95em;
-              letter-spacing: .5px; line-height: 1.15; }
-  .asset-code { font-family: "Courier New", monospace; font-size: .95em; color: #777;
-                line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* Follows the codes directly. Left flexible it would be shoved to the very
-     bottom edge, which reads as a mistake on a 60mm label. */
-  .row { flex: 0 0 auto; display: flex; align-items: flex-end; gap: .8em; margin-top: .5em; }
-  .col-bc { flex: 1 1 auto; min-width: 0; }
+  /* Everything scales off .lbl's font-size. */
+  .lbl { display: flex; flex-direction: column; justify-content: center; padding: .6em .5em;
+         overflow: hidden; background: #fff; line-height: 1.2; }
+  .top { display: flex; align-items: center; gap: .9em; }
   .col-qr { flex: 0 0 auto; }
   .qr { display: block; }
-  .bc-wide { width: 100%; display: block; }
-  .bc-text { font-family: "Courier New", monospace; font-weight: 700; font-size: 1.15em;
-             letter-spacing: 1.5px; text-align: center; line-height: 1.1; }
-  .bc-fallback { font-family: "Courier New", monospace; font-weight: 700; letter-spacing: 1px;
-                 text-align: center; }
+  .col-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+  .asset-name { font-size: 1em;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .serial { font-size: .8em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag-code { letter-spacing: .3px; white-space: nowrap; margin-top: .1em; }
+  .bc { display: block; width: 100%; flex: 0 0 auto; margin-top: .5em; }
+  .bc-fallback { font-family: "Courier New", monospace; font-weight: 700; letter-spacing: 1px; }
 
   /* Per-size scale. Only the type scale and the barcode/QR boxes change. */
-  .lbl-small    { width: 50mm;  height: 25mm; font-size: 4pt; }
-  .lbl-small    .side { width: 8mm; }
-  .lbl-small    .bc-wide { height: 6.5mm; }
-  .lbl-small    .qr { width: 8mm; height: 8mm; }
+  .lbl-small    { width: 50mm;  height: 25mm; font-size: 6pt; }
+  .lbl-small    .qr { width: 11mm; height: 11mm; }
+  .lbl-small    .bc { height: 8mm; }
 
-  .lbl-standard { width: 50mm;  height: 30mm; font-size: 4.6pt; }
-  .lbl-standard .side { width: 9mm; }
-  .lbl-standard .bc-wide { height: 8mm; }
-  .lbl-standard .qr { width: 10mm; height: 10mm; }
+  .lbl-standard { width: 50mm;  height: 30mm; font-size: 7pt; }
+  .lbl-standard .qr { width: 13mm; height: 13mm; }
+  .lbl-standard .bc { height: 10mm; }
 
-  .lbl-large    { width: 100mm; height: 60mm; font-size: 8.5pt; }
-  .lbl-large    .side { width: 17mm; }
-  .lbl-large    .bc-wide { height: 21mm; }
-  .lbl-large    .qr { width: 24mm; height: 24mm; }
+  .lbl-large    { width: 100mm; height: 60mm; font-size: 13pt; }
+  .lbl-large    .qr { width: 26mm; height: 26mm; }
+  .lbl-large    .bc { height: 20mm; }
 
   /* A4 sheet — 2 x 4 grid with a dashed cut border. Inside a 6mm page margin
      that leaves 198 x 285mm, so 97 x 68mm cells: near enough the large label's
@@ -239,10 +207,6 @@ const STYLES = `
 `;
 
 function buildDocument(labels: LabelData[], size: LabelSize): string {
-  const brand = getBrand();
-  const logo = absolute(brandLogoSrc());
-  const primary = brand.primary || "#C8102E";
-
   let content: string;
   if (size === "sheet") {
     // 8 per page — a page break every 8 cells keeps the grid aligned.
@@ -250,14 +214,14 @@ function buildDocument(labels: LabelData[], size: LabelSize): string {
     for (let i = 0; i < labels.length; i += 8) {
       const cells = labels
         .slice(i, i + 8)
-        .map((d) => `<div class="cell">${labelMarkup(d, "large", primary, logo)}</div>`)
+        .map((d) => `<div class="cell">${labelMarkup(d, "large")}</div>`)
         .join("");
       pages.push(`<div class="page"><div class="sheet">${cells}</div></div>`);
     }
     content = pages.join("");
   } else {
     content = labels
-      .map((d) => `<div class="page">${labelMarkup(d, size, primary, logo)}</div>`)
+      .map((d) => `<div class="page">${labelMarkup(d, size)}</div>`)
       .join("");
   }
 
@@ -326,7 +290,7 @@ export async function printLabels(labels: LabelData[], size: LabelSize): Promise
     // Hide any server-fetched image that fails to load, so a broken-image glyph
     // never prints. Set from here (not an inline onerror) to stay CSP-safe.
     let qrFailed = false;
-    for (const img of Array.from(doc.querySelectorAll<HTMLImageElement>("img[data-qr], img[data-logo]"))) {
+    for (const img of Array.from(doc.querySelectorAll<HTMLImageElement>("img[data-qr]"))) {
       const isQr = img.hasAttribute("data-qr");
       const markFailed = () => {
         if (isQr) qrFailed = true;
