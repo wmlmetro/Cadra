@@ -23,6 +23,27 @@
         <field name="dpi">96</field>
     </record>
 
+    <!-- 2" x 1" roll (50.8 x 25.4 mm) — the Zebra ZT231's stock. Odoo stores
+         a page's width and height as whole millimetres, so 51 x 25 here is
+         only a stand-in: `ir.actions.report._build_wkhtmltopdf_args`
+         (models/asset_tag.py) hands wkhtmltopdf the exact 50.8 x 25.4 for
+         this format. 46.8 x 23.4 mm content box. -->
+    <record id="paperformat_asset_tag_2x1" model="report.paperformat">
+        <field name="name">Asset Tag — 2 x 1 in (50.8x25.4mm)</field>
+        <field name="default" eval="False"/>
+        <field name="format">custom</field>
+        <field name="page_height">25</field>
+        <field name="page_width">51</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">1</field>
+        <field name="margin_bottom">1</field>
+        <field name="margin_left">2</field>
+        <field name="margin_right">2</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+
     <record id="paperformat_asset_tag_medium" model="report.paperformat">
         <field name="name">Zebra Label 50x30</field>
         <field name="default" eval="False"/>
@@ -79,6 +100,15 @@
         <field name="paperformat_id" ref="paperformat_asset_tag_small"/>
     </record>
 
+    <record id="action_report_asset_tag_2x1" model="ir.actions.report">
+        <field name="name">Asset Tag — 2 x 1 in</field>
+        <field name="model">nrs.asset</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">myservice_asset_register.report_asset_tag_label_2x1</field>
+        <field name="report_file">myservice_asset_register.report_asset_tag_label_2x1</field>
+        <field name="paperformat_id" ref="paperformat_asset_tag_2x1"/>
+    </record>
+
     <!-- Print Tag — single record from form view -->
     <record id="action_report_asset_tag" model="ir.actions.report">
         <field name="name">Print Tag</field>
@@ -124,6 +154,8 @@
              eval="[[ref('action_report_asset_tag_small')], {'model': 'nrs.asset'}]"/>
     <function model="ir.actions.report" name="write"
              eval="[[ref('action_report_asset_tag_large')], {'model': 'nrs.asset'}]"/>
+    <function model="ir.actions.report" name="write"
+             eval="[[ref('action_report_asset_tag_2x1')], {'model': 'nrs.asset'}]"/>
     <function model="ir.actions.report" name="write"
              eval="[[ref('action_report_asset_tag_sheet')],
                     {'model': 'nrs.asset',

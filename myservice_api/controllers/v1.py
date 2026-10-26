@@ -105,7 +105,7 @@ _logger = logging.getLogger(__name__)
 #: OpenAPI enum on the route. Not a model Selection — there is nothing to
 #: read it off, so the two copies are kept honest by
 #: `tests/test_query_param_guard.py`.
-_LABEL_SIZES = ("small", "medium", "large", "sheet")
+_LABEL_SIZES = ("small", "2x1", "medium", "large", "sheet")
 
 
 # ─── route metadata registry (drives the OpenAPI generator) ─────────
@@ -3165,10 +3165,11 @@ class MyserviceApiV1(http.Controller):
                           "id, because the label reports are registered on "
                           "nrs.asset — do not feed it back in here.")},
                      {"name": "size", "schema": {"type": "string",
-                      "enum": ["small", "medium", "large", "sheet"],
+                      "enum": ["small", "2x1", "medium", "large", "sheet"],
                       "default": "medium"},
                       "description": (
-                          "Label size. `sheet` is the A4 multi-label sheet. "
+                          "Label size. `sheet` is the A4 multi-label sheet; "
+                          "`2x1` is 2 x 1 in (50.8 x 25.4 mm) roll stock. "
                           "A value outside the enum is a 400 "
                           "`invalid_request` carrying `details.allowed_"
                           "values`. It used to fall back to `medium`, which "

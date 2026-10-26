@@ -10,9 +10,11 @@
            │ ▓▓ QR ▓   (GWSRW0S14)                 │
            │ ▓▓▓▓▓▓▓   NRS-AST-011933              │
            │ ‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖‖ │
+           │      [logo] Nigeria Revenue Service   │
            └───────────────────────────────────────┘
 
-         The serial line is left off when the asset has none (a `tag_id` or
+         The footer is the tenant's logo (cadra.brand_logo, else the
+         company's) and the company's name. The serial line is left off when the asset has none (a `tag_id` or
          `record_only` class). The Code 128 has a row of its own across the
          whole content box: a 14-character tag is ~209 modules with its quiet
          zones, so beside the QR a module printed at ~0.14 mm — below what a
@@ -45,6 +47,9 @@
             .lbl-serial { white-space: nowrap; overflow: hidden; }
             .lbl-tag { letter-spacing: .3px; white-space: nowrap; }
             .lbl-bc { display: block; width: 100%; }
+            .lbl-foot { border-collapse: collapse; margin: 0 auto; }
+            .lbl-foot td { vertical-align: middle; white-space: nowrap; }
+            .lbl-foot-name { font-weight: 700; }
             .lbl-cell { border: 0.3mm dashed #c8c8c8; vertical-align: top; }
         </style>
     </template>
@@ -53,19 +58,26 @@
     <template id="asset_tag_label_body">
         <!-- Per-scale metrics. Every value is tuned against the content box
              quoted above; changing a page margin means revisiting these.
-             Height: qr + bcgap + bc fits the box (standard 13 + 1 + 10 = 24
-             of 28 mm). The text column is what is left beside the QR
+             Height: qr + bcgap + bc + footgap + foot fits the box (standard
+             13 + 1 + 9 + 0.8 + 3 = 26.8 of 28 mm). The text column is what is left beside the QR
              (standard 46 − 13 − 1.5 = 31.5 mm). `bcw` is a high source width
              so the bars are not resampled unevenly on the way to 46 mm. -->
         <t t-set="cfg" t-value="{
             'small':    {'qr': '11mm', 'gap': '1.5mm', 'namefs': '6pt', 'serialfs': '5pt',
-                         'tagpt': 6.5, 'bc': '8mm', 'bcgap': '0.8mm',
+                         'tagpt': 6.5, 'bc': '7mm', 'bcgap': '0.8mm',
+                         'foot': '2.6mm', 'footgap': '0.6mm', 'footfs': '4.5pt',
+                         'tagmax': 23, 'bcw': 1000, 'bch': 80, 'qrpx': 200},
+            '2x1':      {'qr': '11mm', 'gap': '1.5mm', 'namefs': '6pt', 'serialfs': '5pt',
+                         'tagpt': 6.5, 'bc': '7mm', 'bcgap': '0.8mm',
+                         'foot': '2.6mm', 'footgap': '0.6mm', 'footfs': '4.5pt',
                          'tagmax': 23, 'bcw': 1000, 'bch': 80, 'qrpx': 200},
             'standard': {'qr': '13mm', 'gap': '1.5mm', 'namefs': '7pt', 'serialfs': '5.5pt',
-                         'tagpt': 7.5, 'bc': '10mm', 'bcgap': '1mm',
+                         'tagpt': 7.5, 'bc': '9mm', 'bcgap': '1mm',
+                         'foot': '3mm', 'footgap': '0.8mm', 'footfs': '5.25pt',
                          'tagmax': 19, 'bcw': 1000, 'bch': 80, 'qrpx': 200},
             'large':    {'qr': '26mm', 'gap': '3mm',   'namefs': '13pt', 'serialfs': '10pt',
-                         'tagpt': 14.0, 'bc': '20mm', 'bcgap': '2mm',
+                         'tagpt': 14.0, 'bc': '18mm', 'bcgap': '2mm',
+                         'foot': '5.5mm', 'footgap': '1.5mm', 'footfs': '9.75pt',
                          'tagmax': 21, 'bcw': 1600, 'bch': 110, 'qrpx': 360}
             }[size]"/>
 
@@ -79,6 +91,10 @@
         <t t-set="tag_pt" t-value="round(cfg['tagpt'] * tagscale, 2)"/>
         <t t-set="tag_val" t-value="o.asset_tag or ''"/>
         <t t-set="serial" t-value="(o.serial_number or '').strip()"/>
+        <t t-set="foot_name" t-value="env.company.name or ''"/>
+        <!-- cadra.brand_logo is already a data: URI; company.logo is raw base64. -->
+        <t t-set="brand_logo" t-value="env['ir.config_parameter'].sudo().get_param('cadra.brand_logo') or ''"/>
+        <t t-set="foot_logo" t-value="brand_logo or (('data:image/png;base64,' + env.company.logo.decode('utf-8')) if env.company.logo else '')"/>
 
         <table class="lbl">
             <tr>
@@ -107,6 +123,20 @@
                          alt="Code128"/>
                 </td>
             </tr>
+            <tr t-if="foot_name or foot_logo">
+                <td colspan="2" t-attf-style="padding-top: {{ cfg['footgap'] }}; height: {{ cfg['foot'] }}; vertical-align: middle;">
+                    <table class="lbl-foot">
+                        <tr>
+                            <td t-if="foot_logo" t-attf-style="padding-right: 0.8mm;">
+                                <img t-att-src="foot_logo" alt=""
+                                     t-attf-style="height: {{ cfg['foot'] }}; max-width: 14mm;"/>
+                            </td>
+                            <td t-if="foot_name" class="lbl-foot-name"
+                                t-attf-style="font-size: {{ cfg['footfs'] }};" t-out="foot_name"/>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
         </table>
     </template>
 
@@ -119,6 +149,21 @@
                                    {{ 'page-break-after: always;' if not o_last else '' }}">
                     <t t-call="myservice_asset_register.asset_tag_label_body">
                         <t t-set="size" t-value="'small'"/>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- ═══ 2 x 1 in — 50.8 x 25.4 mm roll (the Zebra ZT231's stock), 46.8 x 23.4 mm usable ═══ -->
+    <template id="report_asset_tag_label_2x1">
+        <t t-call="web.html_container">
+            <t t-call="myservice_asset_register.asset_tag_label_styles"/>
+            <t t-foreach="docs" t-as="o">
+                <div t-attf-style="width: 100%; height: 23.4mm; overflow: hidden;
+                                   {{ 'page-break-after: always;' if not o_last else '' }}">
+                    <t t-call="myservice_asset_register.asset_tag_label_body">
+                        <t t-set="size" t-value="'2x1'"/>
                     </t>
                 </div>
             </t>

@@ -1,5 +1,5 @@
 /**
- * Code 128 (subset B) → inline SVG.
+ * Code 128 (subset B, with runs of digits packed in subset C) → inline SVG.
  *
  * Labels are printed by the browser from the Barcode Station, so the barcode
  * has to be generated client-side. Drawing it as vector SVG (rather than
@@ -9,7 +9,11 @@
  *
  * Subset B covers ASCII 32..126, which is every character an asset tag code
  * uses (uppercase letters, digits, dashes). Values outside that range are
- * dropped rather than mis-encoded.
+ * dropped rather than mis-encoded. A run of digits long enough to pay for the
+ * switch is packed two to a symbol in subset C, the way a label printer's own
+ * firmware encodes it: `NRS-AST-011933` is 167 modules instead of 189, which
+ * is what lets it print at a whole two dots per module across 2-inch stock on
+ * a 203 dpi printer (see labels.ts).
  */
 
 /**
@@ -43,6 +47,10 @@ const PATTERNS = [
 ];
 
 const START_B = 104;
+const START_C = 105;
+/** Switch codes: CODE C read in subset B, CODE B read in subset C. */
+const CODE_C = 99;
+const CODE_B = 100;
 const STOP = 106;
 
 /** Characters Code 128 subset B can encode. */
@@ -55,22 +63,89 @@ export function isCode128Encodable(value: string): boolean {
   return true;
 }
 
+const isDigit = (c: string) => c >= "0" && c <= "9";
+
+/** Length of the run of digits starting at `i`. */
+function digitRun(value: string, i: number): number {
+  let n = 0;
+  while (i + n < value.length && isDigit(value[i + n])) n++;
+  return n;
+}
+
 /**
- * Code values for `value` in subset B, including the start code and the mod-103
- * check character, terminated by the stop pattern.
+ * Code values for `value`, including the start code and the mod-103 check
+ * character, terminated by the stop pattern.
+ *
+ * Subset B throughout, except that a run of digits is packed in subset C when
+ * the switch saves modules: four or more at the start or the end of the value
+ * (one switch), six or more in the middle (a switch in and one back). An odd
+ * run leaves its first digit in B so the rest pair up.
  */
-function encodeB(value: string): number[] {
-  const codes = [START_B];
-  let sum = START_B;
-  for (let i = 0; i < value.length; i++) {
-    const v = value.charCodeAt(i) - 32;
-    codes.push(v);
-    // Weight is the 1-based position of the character after the start code.
-    sum += v * (i + 1);
+function encode(value: string): number[] {
+  const symbols: number[] = [];
+  let i = 0;
+  let inC = false;
+
+  if (digitRun(value, 0) >= 4) {
+    // Start in C with the even part of the leading run; an odd last digit
+    // drops back to B below.
+    symbols.push(START_C);
+    inC = true;
+  } else {
+    symbols.push(START_B);
   }
-  codes.push(sum % 103);
-  codes.push(STOP);
-  return codes;
+
+  while (i < value.length) {
+    const run = digitRun(value, i);
+    const atEnd = i + run === value.length;
+    if (inC) {
+      if (run >= 2) {
+        symbols.push(Number(value.slice(i, i + 2)));
+        i += 2;
+        continue;
+      }
+      symbols.push(CODE_B);
+      inC = false;
+      continue;
+    }
+    if (run >= 6 || (run >= 4 && atEnd)) {
+      if (run % 2 === 1) {
+        symbols.push(value.charCodeAt(i) - 32);
+        i += 1;
+      }
+      symbols.push(CODE_C);
+      inC = true;
+      continue;
+    }
+    symbols.push(value.charCodeAt(i) - 32);
+    i += 1;
+  }
+
+  // Weight is the 1-based position of the symbol after the start code; the
+  // start code itself carries weight 1.
+  let sum = symbols[0];
+  for (let k = 1; k < symbols.length; k++) sum += symbols[k] * k;
+  return [...symbols, sum % 103, STOP];
+}
+
+/** Module widths of `value`'s bars and spaces, quiet zones excluded. */
+function elementWidths(value: string): number[] {
+  const widths: number[] = [];
+  for (const c of encode(value)) {
+    for (const ch of PATTERNS[c]) widths.push(Number(ch));
+  }
+  return widths;
+}
+
+/**
+ * The symbol's total width in modules, quiet zones included — what a label
+ * needs to size the barcode to a whole number of printer dots per module.
+ * 0 when the value can't be encoded.
+ */
+export function code128Modules(value: string, quietModules = 10): number {
+  const code = (value || "").trim();
+  if (!isCode128Encodable(code)) return 0;
+  return elementWidths(code).reduce((a, b) => a + b, 0) + quietModules * 2;
 }
 
 export interface Code128Options {
@@ -83,7 +158,7 @@ export interface Code128Options {
 }
 
 /**
- * Render `value` as a Code 128-B barcode SVG that stretches to fill its box.
+ * Render `value` as a Code 128 barcode SVG that stretches to fill its box.
  * Returns "" when the value can't be encoded, so callers can fall back to
  * printing the code as text rather than emitting a broken label.
  */
@@ -95,11 +170,7 @@ export function code128Svg(value: string, opts: Code128Options = {}): string {
   const heightRatio = opts.barHeightRatio ?? 1;
   const color = opts.color ?? "#000";
 
-  const codes = encodeB(code);
-  const widths: number[] = [];
-  for (const c of codes) {
-    for (const ch of PATTERNS[c]) widths.push(Number(ch));
-  }
+  const widths = elementWidths(code);
 
   // Alternating bar/space, starting with a bar. Merge nothing — each run is
   // emitted at its exact module width so the printer rounds consistently.

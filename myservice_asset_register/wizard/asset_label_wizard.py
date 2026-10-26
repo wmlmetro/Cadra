@@ -8,7 +8,8 @@ class AssetLabelWizard(models.TransientModel):
 
     label_size = fields.Selection([
         ('small', 'Small (50 x 25 mm)'),
-        ('medium', 'Medium (70 x 40 mm)'),
+        ('2x1', '2 x 1 in (50.8 x 25.4 mm)'),
+        ('medium', 'Medium (50 x 30 mm)'),
         ('large', 'Large (100 x 60 mm)'),
         ('a4_sheet', 'A4 Sheet (8 per page)'),
     ], string='Label Size', required=True, default='medium')
@@ -39,6 +40,10 @@ class AssetLabelWizard(models.TransientModel):
             'small': (
                 'myservice_asset_register.action_report_asset_tag_small',
                 'myservice_asset_register.report_asset_tag_label_small',
+            ),
+            '2x1': (
+                'myservice_asset_register.action_report_asset_tag_2x1',
+                'myservice_asset_register.report_asset_tag_label_2x1',
             ),
             'medium': (
                 'myservice_asset_register.action_report_asset_tag',

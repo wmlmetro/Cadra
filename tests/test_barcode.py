@@ -182,6 +182,19 @@ def test_print_url(client, test_asset, capture):
     assert body["data"]["url"].endswith("/%d" % test_asset["id"])
 
 
+def test_barcode_print_url_2x1(client, test_asset):
+    """`size=2x1` is the 2" x 1" roll's own report, not the small 50 x 25 one
+    — the page is 50.8 x 25.4 mm, and a 50 x 25 page drifts down the roll."""
+    r = client.get("/api/v1/barcode/print-url", params={
+        "tag_id": test_asset["tagging"]["label_id"],
+        "size": "2x1",
+    })
+    body = assert_envelope_ok(r)
+    url = body["data"]["url"]
+    assert "/myservice_asset_register.report_asset_tag_label_2x1/" in url, url
+    assert url.endswith("/%d" % test_asset["id"])
+
+
 def test_tags_lookup(client, test_asset, capture):
     """GET /api/v1/tags/lookup — public-style tag lookup, JWT-protected."""
     r = client.get("/api/v1/tags/lookup", params={"query": test_asset["tag"]})

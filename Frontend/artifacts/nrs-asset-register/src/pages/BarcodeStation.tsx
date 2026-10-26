@@ -16,7 +16,7 @@ import {
 // set in that one file; this screen imported one of them.
 import { useEnum, useEnumLabel } from "@/hooks/useEnums";
 import { CadraApiError } from "@/lib/api";
-import { printLabels, floorRoomFromTag, type LabelData, type LabelSize } from "@/lib/labels";
+import { printLabels, floorRoomFromTag, LABEL_SIZES, type LabelData, type LabelSize } from "@/lib/labels";
 import {
   RequestTagReplacementDialog, ApproveTagReplacementDialog, RejectTagReplacementDialog,
 } from "@/components/TagReplacementDialogs";
@@ -52,6 +52,28 @@ type Notice = { kind: "error" | "warn" | "ok"; text: string } | null;
 type StationMode = "scan" | "capture";
 const STATION_MODE_KEY = "cadra.station.mode";
 
+/** The label size last printed at, per browser: the printer on a desk is
+ *  loaded with one stock, so asking again on every visit only invites a
+ *  label printed at the wrong size. */
+const LABEL_SIZE_KEY = "cadra.station.labelSize";
+
+function readLabelSize(): LabelSize {
+  try {
+    const v = window.localStorage.getItem(LABEL_SIZE_KEY);
+    return LABEL_SIZES.find((s) => s.value === v)?.value ?? "standard";
+  } catch {
+    return "standard";
+  }
+}
+
+function rememberLabelSize(s: LabelSize) {
+  try {
+    window.localStorage.setItem(LABEL_SIZE_KEY, s);
+  } catch {
+    // Not remembered: the next visit opens on Standard, the default.
+  }
+}
+
 function readStationMode(): StationMode {
   try {
     return window.localStorage.getItem(STATION_MODE_KEY) === "capture" ? "capture" : "scan";
@@ -82,7 +104,8 @@ export default function BarcodeStation() {
   const scopes = useScopes();
   const canCapture = scopes.has(SCOPE.auditCapture);
   const [chosen, setChosen] = useState<StationMode>(readStationMode);
-  const [size, setSize] = useState<LabelSize>("standard");
+  const [size, setSizeState] = useState<LabelSize>(readLabelSize);
+  const setSize = (s: LabelSize) => { setSizeState(s); rememberLabelSize(s); };
   const stationMode: StationMode = canCapture ? chosen : "scan";
 
   useEffect(() => {
