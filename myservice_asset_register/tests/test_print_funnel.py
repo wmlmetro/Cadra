@@ -31,6 +31,7 @@ Run with:
     odoo -d <db> -u myservice_asset_register --test-enable \\
          --test-tags /myservice_asset_register --stop-after-init
 """
+import re
 from unittest.mock import patch
 
 from odoo.exceptions import UserError
@@ -38,6 +39,7 @@ from odoo.tests import tagged
 from odoo.addons.myservice_nrs_base.tests.common import CadraTransactionCase
 
 MEDIUM = 'myservice_asset_register.report_asset_tag_label'
+TWO_BY_ONE = 'myservice_asset_register.report_asset_tag_label_2x1'
 SHEET = 'myservice_asset_register.report_asset_tag_label_sheet'
 
 
@@ -344,6 +346,7 @@ class TestTheFourReportsAgreeOnTheirModel(PrintFunnelCase):
     _ACTIONS = (
         'myservice_asset_register.action_report_asset_tag',
         'myservice_asset_register.action_report_asset_tag_small',
+        'myservice_asset_register.action_report_asset_tag_2x1',
         'myservice_asset_register.action_report_asset_tag_large',
         'myservice_asset_register.action_report_asset_tag_sheet',
     )
@@ -385,3 +388,50 @@ class TestTheFourReportsAgreeOnTheirModel(PrintFunnelCase):
             self.assertIn(label.name, body)
         labels.invalidate_recordset()
         self.assertEqual(set(labels.mapped('label_state')), {'printed'})
+
+
+@tagged('post_install', '-at_install')
+class TestTwoByOneIsTwoByOne(PrintFunnelCase):
+    """A 2" x 1" roll is 50.8 x 25.4 mm, and `report.paperformat` stores a
+    page's width and height as whole millimetres. A label rendered 51 x 25
+    drifts 0.4 mm a label down the roll until the printer loses registration,
+    so the exact size is handed to wkhtmltopdf for that one format.
+    """
+
+    def _args(self, xmlid):
+        paperformat = self.env.ref(xmlid)
+        return self.Report._build_wkhtmltopdf_args(paperformat, False)
+
+    def _value(self, args, flag):
+        self.assertIn(flag, args)
+        return args[args.index(flag) + 1]
+
+    def test_the_2x1_page_is_given_its_exact_size(self):
+        args = self._args('myservice_asset_register.paperformat_asset_tag_2x1')
+        self.assertEqual(self._value(args, '--page-width'), '50.8mm')
+        self.assertEqual(self._value(args, '--page-height'), '25.4mm')
+
+    def test_the_other_label_pages_are_left_alone(self):
+        args = self._args('myservice_asset_register.paperformat_asset_tag_medium')
+        self.assertEqual(self._value(args, '--page-width'), '50mm')
+        self.assertEqual(self._value(args, '--page-height'), '30mm')
+
+
+@tagged('post_install', '-at_install', 'pdf')
+class TestTwoByOneRendersTwoByOne(PrintFunnelCase):
+    """The arguments above, proved on the paper: the real renderer's page."""
+
+    def test_the_pdf_page_is_two_inches_by_one(self):
+        asset = self._asset('H2x1 Real PDF Asset')
+        content, kind = self.Report.with_context(
+            force_report_rendering=True)._render_qweb_pdf(TWO_BY_ONE, [asset.id])
+        self.assertEqual(kind, 'pdf')
+        box = re.search(
+            rb'/MediaBox\s*\[\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s*\]',
+            content)
+        self.assertTrue(box, 'the PDF names a page box')
+        x0, y0, x1, y1 = (float(v) for v in box.groups())
+        # 2 x 1 in is 144 x 72 pt.
+        self.assertAlmostEqual(x1 - x0, 144, delta=1)
+        self.assertAlmostEqual(y1 - y0, 72, delta=1)
+

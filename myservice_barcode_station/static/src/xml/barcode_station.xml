@@ -132,9 +132,10 @@
                                 <!-- Print size selector -->
                                 <div class="ms-bc-size-row">
                                     <span style="font-size:11px;color:var(--color-text-secondary);margin-right:8px">Label size:</span>
-                                    <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="small"/> Small 50×30</label>
-                                    <label class="ms-bc-size-opt selected"><input type="radio" name="label-size" value="medium" checked="checked"/> Medium 85×55</label>
-                                    <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="large"/> Large 100×70</label>
+                                    <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="small"/> Small 50×25</label>
+                                    <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="2x1"/> 2×1 in</label>
+                                    <label class="ms-bc-size-opt selected"><input type="radio" name="label-size" value="medium" checked="checked"/> Medium 50×30</label>
+                                    <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="large"/> Large 100×60</label>
                                     <label class="ms-bc-size-opt"><input type="radio" name="label-size" value="sheet"/> A4 Sheet</label>
                                 </div>
                                 <div class="ms-bc-result-actions">
@@ -180,10 +181,11 @@
                                 <option value="it">IT &amp; Comms</option>
                             </select>
                             <select class="ms-bc-select" id="batch-size-select" style="width:100%">
-                                <option value="medium">Medium labels (85×55mm)</option>
-                                <option value="small">Small labels (50×30mm)</option>
-                                <option value="large">Large labels (100×70mm)</option>
-                                <option value="sheet">A4 sheet (6 per page)</option>
+                                <option value="medium">Medium labels (50×30mm)</option>
+                                <option value="small">Small labels (50×25mm)</option>
+                                <option value="2x1">2×1 in labels (50.8×25.4mm)</option>
+                                <option value="large">Large labels (100×60mm)</option>
+                                <option value="sheet">A4 sheet (8 per page)</option>
                             </select>
                             <button class="ms-bc-btn" id="batch-print-execute" style="width:100%;justify-content:center">
                                 Generate Batch PDF

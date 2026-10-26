@@ -391,6 +391,7 @@ class BarcodeStationController(http.Controller):
         """
         action_map = {
             'small':  'myservice_asset_register.action_report_asset_tag_small',
+            '2x1':    'myservice_asset_register.action_report_asset_tag_2x1',
             'medium': 'myservice_asset_register.action_report_asset_tag',
             'large':  'myservice_asset_register.action_report_asset_tag_large',
             'sheet':  'myservice_asset_register.action_report_asset_tag_sheet',

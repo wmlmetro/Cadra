@@ -451,4 +451,4 @@ def test_an_unrecognised_label_size_is_refused(client):
     body = assert_envelope_err(r, 400, "invalid_request")
     assert "size" in body["error"]["message"]
     assert body["error"]["details"]["allowed_values"] == [
-        "small", "medium", "large", "sheet"]
+        "small", "2x1", "medium", "large", "sheet"]

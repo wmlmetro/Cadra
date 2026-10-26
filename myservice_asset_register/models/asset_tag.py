@@ -1217,9 +1217,38 @@ class IrActionsReport(models.Model):
     _TAG_LABEL_REPORTS = (
         'myservice_asset_register.report_asset_tag_label',
         'myservice_asset_register.report_asset_tag_label_small',
+        'myservice_asset_register.report_asset_tag_label_2x1',
         'myservice_asset_register.report_asset_tag_label_large',
         'myservice_asset_register.report_asset_tag_label_sheet',
     )
+
+    #: Paper formats whose true size is not a whole number of millimetres.
+    #: `report.paperformat.page_width`/`page_height` are Integer fields, so
+    #: the record carries a stand-in and the exact size is given to
+    #: wkhtmltopdf here. A 2" x 1" label rendered at 51 x 25 mm drifts by
+    #: 0.4 mm a label down a roll and the printer loses registration.
+    _EXACT_PAGE_SIZES_MM = {
+        'myservice_asset_register.paperformat_asset_tag_2x1': ('50.8', '25.4'),
+    }
+
+    @api.model
+    def _build_wkhtmltopdf_args(self, paperformat_id, landscape,
+                                specific_paperformat_args=None,
+                                set_viewport_size=False):
+        args = super()._build_wkhtmltopdf_args(
+            paperformat_id, landscape,
+            specific_paperformat_args=specific_paperformat_args,
+            set_viewport_size=set_viewport_size)
+        if not paperformat_id:
+            return args
+        xmlid = paperformat_id.get_external_id().get(paperformat_id.id)
+        exact = self._EXACT_PAGE_SIZES_MM.get(xmlid)
+        if not exact:
+            return args
+        for flag, mm in zip(('--page-width', '--page-height'), exact):
+            if flag in args:
+                args[args.index(flag) + 1] = mm + 'mm'
+        return args
 
     def report_action(self, docids, data=None, config=True):
         """Refuse a foreign recordset on a tag label report, loudly.

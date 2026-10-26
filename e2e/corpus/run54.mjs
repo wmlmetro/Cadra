@@ -78,9 +78,10 @@ const READER_OPTIONS = {
  * barcode's row; the baseline in expected-pass.json was measured on that.)
  */
 const CADRA_SIZES = {
-  small:    { contentW: 46, qr: 11, bch: 8,  bcw: 1000, bchpx: 80,  qrpx: 200 },
-  standard: { contentW: 46, qr: 13, bch: 10, bcw: 1000, bchpx: 80,  qrpx: 200 },
-  large:    { contentW: 92, qr: 26, bch: 20, bcw: 1600, bchpx: 110, qrpx: 360 },
+  small:    { contentW: 46,   qr: 11, bch: 7,  bcw: 1000, bchpx: 80,  qrpx: 200 },
+  "2x1":    { contentW: 46.8, qr: 11, bch: 7,  bcw: 1000, bchpx: 80,  qrpx: 200 },
+  standard: { contentW: 46,   qr: 13, bch: 9,  bcw: 1000, bchpx: 80,  qrpx: 200 },
+  large:    { contentW: 92,   qr: 26, bch: 18, bcw: 1600, bchpx: 110, qrpx: 360 },
 };
 for (const c of Object.values(CADRA_SIZES)) {
   c.bcWmm = c.contentW; // printed Code 128 width, mm
