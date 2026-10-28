@@ -811,6 +811,9 @@ _GUARDED_READS = {
     ("utils.py", "caller_holds", "request", "jwt_claims"): None,
     ("utils.py", "_request_is_frontend", "request", "jwt_claims"): None,
     ("utils.py", "_limit_claim", "request", "jwt_claims"): None,
+    # Handoff 69: set only once the token was accepted — `on_refusal` is
+    # called for a refusal a verified person was sent, never at the door.
+    ("utils.py", "recording", "request", "jwt_claims"): None,
     ("utils.py", "truncation_warning", "request", "cadra_truncation"): None,
     ("v1.py", "whoami", "request", "jwt_claims"): None,
     ("v1_meta.py", "meta_database", "request", "jwt_claims"): None,

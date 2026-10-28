@@ -1890,3 +1890,28 @@ Evidence: `docs/handoffs/68-evidence/`.
   provider keeping its own model, a switch to a provider without its key
   refused naming its variable. With `TestAiSuggestion` (by provider):
   0 failed of 24.
+
+## Handoff 69 — where the captures went
+
+Evidence: `docs/handoffs/69-evidence/`.
+
+- **Part A on `staging`** (read-only): 11 captures, all stored, 0 on gtb,
+  jaizbankplc and lasg. Five in campaign 1, which names no reviewer (H1); five
+  in campaign 3, behind the dropdown's default, campaign 4, which holds 0 (H4;
+  the log shows the review page asking only for 4). 2 POSTs in the surviving
+  log (the pod started 26 Oct 08:08), both 201. 3 phone photos identified and
+  on no capture, unprovable either way. One photo on 4 captures (a mobile defect).
+- **Find a capture** (`?q=`, exact by id / code / old tag through a stored
+  `legacy_tag_key`), **`reviewers_active`**, the review list **paged past
+  100**, the review page opening the campaign with work in it, device and
+  received-at on every card: `tests/test_where_the_captures_went.py` 7 of 7
+  (incl. the 101st reachable, a closed campaign's capture found), spec 69
+  2 of 2, specs 66 and 67 3 of 3.
+- **Refused syncs kept** (`nrs.audit.capture.refusal`, `on_refusal` on the
+  decorator, own cursor, 90 days; `GET /audit/refusals`, `audit:manage`):
+  the refused capture leaves one row and no capture, the code still
+  reserved; a replay is a second row; an accepted capture and a refusal at
+  the door leave none; in-registry `TestCaptureRefusal` 0 failed of 5.
+- **`scripts/audit_trace.sh`**, read-only, explicit kube context, `--local`:
+  reproduces Part A on staging (`C1-audit-trace-staging.txt`) and finds an
+  H6 by searching the other tenants.

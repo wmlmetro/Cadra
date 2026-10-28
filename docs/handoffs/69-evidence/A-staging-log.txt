@@ -1,0 +1,35 @@
+# A3 — the Odoo log, deploy/odoo-19 --since=168h; the pod started 2026-10-26 08:08:06 UTC, so nothing earlier exists
+# client addresses removed
+
+## every audit/AI request, by tenant, method, path, status
+   1 staging GET /api/v1/ai/config 200
+   2 staging GET /api/v1/audit/blocks 200
+  27 staging GET /api/v1/audit/campaigns 200
+   1 staging GET /api/v1/audit/campaigns/1 200
+   1 staging GET /api/v1/audit/campaigns/1/lists 200
+   1 staging GET /api/v1/audit/campaigns/2 200
+   1 staging GET /api/v1/audit/campaigns/2/lists 200
+   1 staging GET /api/v1/audit/campaigns/3 200
+   1 staging GET /api/v1/audit/campaigns/3/lists 200
+  14 staging GET /api/v1/audit/campaigns/3/slice 200
+   2 staging GET /api/v1/audit/campaigns/4 200
+   1 staging GET /api/v1/audit/campaigns/4/lists 200
+   1 staging GET /api/v1/audit/campaigns/5 200
+   1 staging GET /api/v1/audit/campaigns/5/lists 200
+  63 staging GET /api/v1/audit/captures 200
+   8 staging GET /api/v1/audit/captures/<uuid> 200
+   7 staging GET /api/v1/audit/devices 200
+   2 staging GET /api/v1/audit/people 200
+   2 staging POST /api/v1/ai/identify 201
+   2 staging POST /api/v1/audit/captures 201
+   2 staging POST /api/v1/audit/photos 201
+
+## the POSTs to /audit/captures, with time and status
+2026-10-26 09:23:57,603 10 INFO staging werkzeug: <addr> - - [26/Oct/2026 09:23:57] "POST /api/v1/audit/captures HTTP/1.1" 201 - 30 0.142 0.100
+2026-10-27 21:48:54,759 23 INFO staging werkzeug: <addr> - - [27/Oct/2026 21:48:54] "POST /api/v1/audit/captures HTTP/1.1" 201 - 30 0.110 0.054
+
+## 4xx/5xx on any /api/v1/audit route
+0
+
+## which campaign the review page asked for
+   2 GET /api/v1/audit/captures?campaign_id=4&state=pending_review&limit=100

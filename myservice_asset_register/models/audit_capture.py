@@ -878,6 +878,12 @@ class NRSAuditCapture(models.Model):
     category_id = fields.Many2one('nrs.asset.category', ondelete='restrict')
     condition = fields.Selection([(c, c) for c in CONDITIONS])
     confirmed_json = fields.Text('Confirmed fields (as sent)')
+    # Handoff 69 §4 B2: the old FIRS tag the capturer confirmed, as the SAP
+    # matcher compares it (`norm_tag`), so *Find a capture* is an index
+    # probe rather than a read of every capture's JSON.
+    legacy_tag_key = fields.Char('Old Tag (as compared)', index=True,
+                                 compute='_compute_legacy_tag_key',
+                                 store=True)
     photo_ids = fields.Many2many(
         'nrs.audit.photo', 'nrs_audit_capture_photo_rel', 'capture_id',
         'photo_id', string='Photos')
@@ -922,6 +928,17 @@ class NRSAuditCapture(models.Model):
     _capture_uuid_unique = models.Constraint(
         'UNIQUE (capture_uuid)',
         'A capture id is stored once: a capture synced twice is one capture.')
+
+    @api.depends('confirmed_json')
+    def _compute_legacy_tag_key(self):
+        for cap in self:
+            try:
+                tag = json.loads(cap.confirmed_json or '{}').get(
+                    'legacy_asset_code')
+            except (ValueError, AttributeError):
+                tag = None
+            cap.legacy_tag_key = (norm_tag(tag) or False) \
+                if isinstance(tag, str) else False
 
     # ── receipt ───────────────────────────────────────────────────────
 

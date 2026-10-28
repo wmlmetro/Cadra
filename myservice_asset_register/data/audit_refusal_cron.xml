@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Handoff 69 §5 C2. A refused capture sync is kept 90 days, then this
+         removes it (`nrs.audit.capture.refusal`, RETENTION_DAYS). -->
+    <data noupdate="1">
+        <record id="cron_audit_capture_refusal_purge" model="ir.cron">
+            <field name="name">Audit — remove refused capture syncs older than 90 days</field>
+            <field name="model_id" ref="model_nrs_audit_capture_refusal"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_purge_old()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="user_id" ref="base.user_root"/>
+        </record>
+    </data>
+</odoo>

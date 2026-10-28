@@ -140,7 +140,7 @@ PAGINATION_QUERY_PARAMS = (
 def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
                 success_status=None, request_schema=None, request_example=None,
                 query_params=None, response_schema=None, error_statuses=(),
-                max_content_length=None, scopes_any=()):
+                max_content_length=None, scopes_any=(), on_refusal=None):
     """REST route registrar + auth/envelope wrapper.
 
     method:          "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
@@ -212,6 +212,7 @@ def cadra_route(path, *, method="GET", summary="", scopes=(), idempotent=False,
             idempotent=idempotent,
             success_status=success_status,
             scopes_any=scopes_any,
+            on_refusal=on_refusal,
         )(fn)
         routing = {}
         if max_content_length:

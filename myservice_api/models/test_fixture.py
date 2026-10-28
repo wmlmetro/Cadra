@@ -381,3 +381,9 @@ class NRSAuditPhoto(models.Model):
 class NRSAuditCapture(models.Model):
     _name = 'nrs.audit.capture'
     _inherit = ['nrs.audit.capture', 'cadra.test.fixture.mixin']
+
+
+class NRSAuditCaptureRefusal(models.Model):
+    """Handoff 69: a refused sync a test provoked says so."""
+    _name = 'nrs.audit.capture.refusal'
+    _inherit = ['nrs.audit.capture.refusal', 'cadra.test.fixture.mixin']

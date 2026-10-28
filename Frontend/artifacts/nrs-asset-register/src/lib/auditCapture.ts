@@ -195,6 +195,10 @@ export interface AuditCampaign {
   closed_at: string | null;
   progress: CampaignProgress;
   rooms?: CampaignRoom[];
+  /** Handoff 69: how many of `reviewers` are active users — the count the
+   *  server makes, so a campaign whose captures wait with nobody able to
+   *  review them is said, not guessed. Absent on a server before 69. */
+  reviewers_active?: number;
 }
 
 export interface FoundNotInSap {
@@ -405,7 +409,9 @@ export interface CaptureGps { latitude: number; longitude: number; accuracy_m?: 
 export interface AuditCapture {
   capture_id: string;
   id: number;
-  campaign: { id: number; name: string };
+  /** Since handoff 69 the block carries the campaign's state and its ACTIVE
+   *  reviewers, so a capture found by `?q=` says who may review it. */
+  campaign: { id: number; name: string; state?: "open" | "closed"; reviewers?: UserRef[] };
   location: { id: number; name: string; location_code: string | null };
   outcome: Outcome;
   state: CaptureState;
@@ -489,9 +495,12 @@ export interface CapturesPage {
 export async function fetchCaptures(p: {
   campaign_id?: number; location_id?: number; state?: CaptureState; outcome?: Outcome;
   exception_state?: "open" | "registered" | "voided"; duplicates?: boolean; mine?: boolean;
+  /** Handoff 69: an exact capture_id, printed code or old FIRS tag. */
+  q?: string;
   cursor?: string; limit?: number;
 }): Promise<CapturesPage> {
   const res = await apiGet<AuditCapture[]>("/api/v1/audit/captures", {
+    q: p.q && p.q.trim() ? p.q.trim() : undefined,
     campaign_id: p.campaign_id, location_id: p.location_id, state: p.state,
     outcome: p.outcome, exception_state: p.exception_state,
     duplicates: p.duplicates == null ? undefined : String(p.duplicates),
@@ -499,6 +508,14 @@ export async function fetchCaptures(p: {
   });
   const pg: CadraPagination | undefined = res.pagination;
   return { rows: res.data ?? [], nextCursor: pg?.next_cursor ?? null, totalEstimate: pg?.total_estimate ?? null };
+}
+
+/** Find a capture wherever it is (handoff 69 §4 B2): the server matches
+ *  `q` EXACTLY against the capture_id, the printed code, or the confirmed
+ *  old tag normalised as SAP's matcher normalises it — never a partial
+ *  match, and with no campaign or state filter. */
+export async function findCaptures(q: string): Promise<CapturesPage> {
+  return fetchCaptures({ q, limit: 50 });
 }
 
 export async function fetchCapture(captureId: string): Promise<AuditCapture> {
@@ -563,6 +580,48 @@ export async function registerException(
 export async function voidException(captureId: string, reason: string): Promise<AuditCapture> {
   return (await apiPost<AuditCapture>(`/api/v1/audit/captures/${encodeURIComponent(captureId)}/void`,
     { reason: reason.trim() })).data;
+}
+
+// ── refused syncs (handoff 69 §5 C2) ─────────────────────────────────────
+
+/** One `POST /audit/captures` the server refused after the token was
+ *  accepted — kept on its own cursor so the request's rollback cannot take
+ *  it with it. What was sent, as sent; never the photos, fields or GPS. */
+export interface CaptureRefusal {
+  id: number;
+  refused_at: string;
+  capture_id: string | null;
+  user: UserRef | null;
+  device_code: string | null;
+  device: { id: number; name: string } | null;
+  campaign: { id: number; name: string } | null;
+  location: { id: number; name: string } | null;
+  outcome: Outcome | null;
+  code: string | null;
+  http_status: number;
+  error_code: string | null;
+  reason: string | null;
+  message: string | null;
+  request_id: string | null;
+}
+
+export interface RefusalsPage {
+  rows: CaptureRefusal[];
+  nextCursor: string | null;
+  totalEstimate: number | null;
+}
+
+/** `GET /api/v1/audit/refusals` (`audit:manage`), newest first. `since` is
+ *  a Lagos day, `YYYY-MM-DD`. */
+export async function fetchRefusals(p: {
+  since?: string; device_id?: number; user_id?: number; capture_id?: string; cursor?: string; limit?: number;
+} = {}): Promise<RefusalsPage> {
+  const res = await apiGet<CaptureRefusal[]>("/api/v1/audit/refusals", {
+    since: p.since, device_id: p.device_id, user_id: p.user_id, capture_id: p.capture_id,
+    cursor: p.cursor, limit: p.limit ?? 50,
+  });
+  const pg: CadraPagination | undefined = res.pagination;
+  return { rows: res.data ?? [], nextCursor: pg?.next_cursor ?? null, totalEstimate: pg?.total_estimate ?? null };
 }
 
 // ── the room, by its code ────────────────────────────────────────────────

@@ -4501,13 +4501,14 @@ design (handoff 48).
 | 175 | POST   | `/api/v1/audit/photos` | `audit:capture` (handoff 66: multipart `file`, `source`; one photo for a capture — §19.5) |
 | 176 | GET    | `/api/v1/audit/photos/<id>` | `audit:read`, checked inline — the bytes, not the envelope (handoff 66 — §19.5) |
 | 177 | POST   | `/api/v1/audit/captures` | `audit:capture` + the `X-Cadra-Device` header (handoff 66: one capture, idempotent on its `capture_id` — §19.6) |
-| 178 | GET    | `/api/v1/audit/captures` | `audit:read` (handoff 66: by campaign, room, state, outcome, `duplicates`, `mine` — §19.6) |
+| 178 | GET    | `/api/v1/audit/captures` | `audit:read` (handoff 66: by campaign, room, state, outcome, `duplicates`, `mine`; handoff 69: `?q=` finds one by its `capture_id`, code or old tag — §19.6) |
 | 179 | GET    | `/api/v1/audit/captures/<capture_id>` | `audit:read` (handoff 66: one capture by its UUID — the phone confirming a sync — §19.6) |
 | 180 | POST   | `/api/v1/audit/captures/<capture_id>/accept` | `audit:review` (handoff 66: never the capturer — §19.7) |
 | 181 | POST   | `/api/v1/audit/captures/<capture_id>/return` | `audit:review` (handoff 66: a `reason`; the code is kept for the re-capture — §19.7) |
 | 182 | POST   | `/api/v1/audit/captures/accept` | `audit:review` (handoff 66: a batch — `capture_ids`, or a room's waiting captures; `dry_run` — §19.7) |
 | 183 | POST   | `/api/v1/audit/captures/<capture_id>/register-new` | `audit:manage` (handoff 66: a found-not-in-SAP exception sent to the Register Maker — §19.8) |
 | 184 | POST   | `/api/v1/audit/captures/<capture_id>/void` | `audit:manage` (handoff 66: a found-not-in-SAP exception voided with a `reason`, and its code — §19.8) |
+| 184a | GET    | `/api/v1/audit/refusals` | `audit:manage` (handoff 69: every refused `POST /audit/captures` after a valid token, newest first, kept 90 days — §19.10) |
 
 
 ## 11.8 GET `/api/v1/settings` and PATCH `/api/v1/settings/receipt-gate` — are receipts gated? (handoff 57, kept by 58)
@@ -5697,7 +5698,9 @@ Each accepted a and b — and a c registered as new — writes one append-only
 campaign, capturer and reviewer as JSON). **Nothing an audit outcome does is
 sent to SAP.**
 
-Every refusal below is in words, and nothing is written. The statuses are
+Every refusal below is in words, and nothing is written — except, since
+handoff 69, one row recording that a `POST /audit/captures` was refused and
+what the phone was told (§19.10). The statuses are
 the receipt gates' (§14.4): `400 validation_failed`, `403 forbidden`, and
 `409 conflict` with the kind in `details.reason` (`invalid_state`,
 `not_on_the_register`, `segregation_of_duties`). A body key a route does not
@@ -5799,9 +5802,15 @@ registration, `void` if IAD rejects the receipt.
   `reviewer_ids`, `date_end`; refused `409` once closed.
 - `GET /api/v1/audit/campaigns` (`?state=open|closed`), `GET
   /api/v1/audit/campaigns/<id>` (adds `rooms`: captured and waiting per
-  room). Each campaign carries `progress`: `captured`,
+  room), newest first. Each campaign carries `progress`: `captured`,
   `waiting_for_review`, `accepted`, `returned`, `reviewed`,
-  `duplicates_held`, `exceptions`, `exceptions_open`.
+  `duplicates_held`, `exceptions`, `exceptions_open`; its `capturers` and
+  `reviewers` (`{id, name}`, active users only); and, since handoff 69,
+  **`reviewers_active`** — the count of active users named as reviewers.
+  `progress.waiting_for_review > 0` with `reviewers_active: 0` is a campaign
+  whose captures nobody can review until the Asset Controller names a
+  reviewer (`PATCH … reviewer_ids`): the review page lists only the open
+  campaigns that name the person signed in, and opens on the newest.
 
 **`GET /api/v1/audit/campaigns/<id>/slice?location_id=<room>`**
 (`audit:read`) is what an offline phone caches for a room:
@@ -5877,7 +5886,9 @@ a `capture_id` another person synced is `403`.
 Friday, Lagos days, today not counted; `details.earliest` names the first
 day accepted) and never in the future beyond five minutes of clock skew.
 
-**Refused:** a closed campaign `409`; the caller not a capturer on it
+**Refused** — and since handoff 69 each refusal after a valid token is
+kept, with the sentence below, for the Asset Controller (§19.10): a closed
+campaign `409`; the caller not a capturer on it
 `403`; a room outside it `409`; a code not reserved to this device and this
 person `403`; a code already used `409` (`details.code_state`); a scanned
 label that is not the code `400`; an asset that is a receipt candidate
@@ -5903,11 +5914,43 @@ the same Cadra asset, the same SAP record, or the same old tag
 `exception_resolved_by`, `exception_resolved_at`, `exception_void_reason`,
 and `replayed`.
 
+`campaign` is `{id, name, state, reviewers}` — **`state`** (`open`,
+`closed`) and **`reviewers`** (the campaign's ACTIVE reviewers, `{id,
+name}`, the same list as the campaign's own `reviewers`) added in handoff
+69, so a reader can say why a reviewer does not see a capture: not named on
+its campaign, or the campaign closed.
+
 **`GET /api/v1/audit/captures/<capture_id>`** (`audit:read`) — the phone
 confirming a sync, and reading the review's result. **`GET
 /api/v1/audit/captures`** — `?campaign_id=`, `?location_id=`, `?state=`,
 `?outcome=`, `?exception_state=`, `?duplicates=true|false`, `?mine=true`,
-cursor-paged.
+`?q=`, cursor-paged (`limit`, `cursor`, `pagination.next_cursor`,
+`pagination.total_estimate`), **id ascending** — oldest first, the review
+order. A list longer than one page continues on `next_cursor`; a reader
+that does not follow it misses the newest.
+
+**`?q=<text>`** (handoff 69) — *find a capture*, wherever it is. A capture
+matches when ANY of:
+
+- its `capture_id` equals `q` read as a UUID (case-insensitive; braces and
+  upper case accepted);
+- its `code` equals `q` trimmed, case-insensitively and **exactly** — never
+  a partial match (a fragment of a code names other codes);
+- the old FIRS tag confirmed on it (`fields.legacy_asset_code`), normalised
+  as the SAP matcher compares one (trimmed, upper case, `\` → `/`, inner
+  whitespace removed), equals `q` normalised.
+
+`q` is ANDed with every other filter, so `?q=` alone searches every
+campaign, open or closed, and `?q=…&state=pending_review` only the waiting.
+An empty or whitespace-only `q` is ignored; longer than 200 characters is
+`400 invalid_request` (`details.field: "q"`). No match is `200` with an
+empty `data` — not a `404`.
+
+```bash
+acurl "$API/api/v1/audit/captures?q=0D4B1C4D-BDBE-4839-AC59-6BEB2D6203EA"
+acurl "$API/api/v1/audit/captures?q=NRS-AST-012001"
+acurl "$API/api/v1/audit/captures?q=firs/abj/0412"
+```
 
 ### 19.7 Review — `audit:review`
 
@@ -6009,6 +6052,63 @@ auditors who take it away. `?list=` is required.
 The label layout is data so the phone never guesses: **QR first, the code
 verbatim, no Code 128 below `large`** (handoffs 54 and 61: a camera read the
 small and medium Code 128 0 of 24).
+
+### 19.10 GET `/api/v1/audit/refusals` — refused syncs, kept (handoff 69)
+
+`audit:manage` (the Asset Controller). A refused `POST /audit/captures`
+writes nothing — the request is rolled back with the refusal — so until
+handoff 69 a capture the phone failed to send left no trace but an Odoo log
+line, and the person holding the phone believed it submitted. Now **every
+`POST /api/v1/audit/captures` answered 4xx or 5xx after the token was
+accepted leaves one row** (`nrs.audit.capture.refusal`), written on its own
+cursor so the request's rollback cannot remove it. A replay refused again
+is a second row. **Not recorded:** a `401` (no, expired or invalid token)
+and a `403` at the scope check (the token does not hold `audit:capture`) —
+there is no verified person to attribute either to, and a stranger must not
+be able to make the server write. Those are in the Odoo log only. **Never
+kept:** the body's photos, fields or GPS. Rows are append-only and removed
+by a daily job **90 days** after `refused_at`.
+
+Newest first, cursor-paged (`limit`, `cursor`, `pagination.next_cursor`,
+`pagination.total_estimate`). Filters, ANDed:
+
+- `device_id` (int) — the device the `X-Cadra-Device` header resolved to;
+- `user_id` (int) — who sent it;
+- `since` — `YYYY-MM-DD`, a Lagos day from its midnight in Lagos, or an
+  ISO-8601 date-time;
+- `capture_id` — the capture's UUID as sent (normalised like a capture's).
+
+```bash
+acurl "$API/api/v1/audit/refusals?since=2026-10-21&device_id=2"
+```
+
+```json
+{"id": 12, "refused_at": "2026-10-28T09:14:02Z",
+ "capture_id": "0d4b1c4d-bdbe-4839-ac59-6beb2d6203ea",
+ "user": {"id": 9, "name": "…"},
+ "device_code": "DEV-1a2b3c4d",
+ "device": {"id": 2, "name": "…"},
+ "campaign": {"id": 3, "name": "…"},
+ "location": {"id": 11, "name": "…"},
+ "outcome": "in_neither", "code": "NRS-AST-012001",
+ "http_status": 400, "error_code": "validation_failed", "reason": null,
+ "message": "The label scanned (…) is not the code this capture used (…). …",
+ "request_id": "8238efe742c042338c819888efe6d103"}
+```
+
+- `capture_id`, `device_code`, `outcome`, `code` are **as sent** (text, cut
+  at 200 characters; `null` when not sent) — a refusal is often *because*
+  a value does not resolve, so it is kept as the phone sent it. A malformed
+  `capture_id` is kept as sent.
+- `device`, `campaign`, `location` are linked only when the value sent names
+  a record that exists; otherwise `null`.
+- `http_status`, `error_code`, `reason` (`details.reason`, e.g.
+  `invalid_state`, or `null`), `message` (the sentence the phone was sent,
+  verbatim) and `request_id` (the refused answer's `error.request_id`)
+  are the answer itself.
+
+The web app shows the last seven days on **Devices and codes › Refused
+syncs**: time, person, device, the sentence.
 
 
 ## 20 · The station captures (handoff 67)

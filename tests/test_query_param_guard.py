@@ -236,6 +236,11 @@ INVENTORY = {
     ("v1_audit_capture", "exception_state"): ("enum", ""),
     ("v1_audit_capture", "duplicates"): ("bool", ""),
     ("v1_audit_capture", "kind"): ("enum", ""),
+    # handoff 69 — find a capture, and the refused syncs
+    ("v1_audit_capture", "q"): ("text", "a capture id, a code or an old tag, matched exactly (`_find_domain`); at most 200 characters, refused 400 beyond"),
+    ("v1_audit_capture", "user_id"): ("int", ""),
+    ("v1_audit_capture", "capture_id"): ("text", "a capture id as the phone sent it, matched exactly after UUID normalisation: a refused one may not be a UUID at all"),
+    ("v1_audit_capture", "since"): ("date", "a Lagos day or an ISO date-time, read by `v1_audit_capture._parse_since`, refused 400 when unreadable"),
     ("v1_audit_capture", "updated_since"): ("date", "the sync rule of handoff 61 §6, read by `v1_assets._parse_updated_since`, refused 400 when unreadable"),
     # ── v1_sap_links.py — handoff 65, the link ────────────────────────
     ("v1_sap_links", "status"): ("enum", ""),

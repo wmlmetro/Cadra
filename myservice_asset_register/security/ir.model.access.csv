@@ -53,3 +53,4 @@ access_nrs_audit_campaign_system,nrs.audit.campaign system,model_nrs_audit_campa
 access_nrs_audit_campaign_scope_system,nrs.audit.campaign.scope system,model_nrs_audit_campaign_scope,base.group_system,1,0,0,0
 access_nrs_audit_photo_system,nrs.audit.photo system,model_nrs_audit_photo,base.group_system,1,0,0,0
 access_nrs_audit_capture_system,nrs.audit.capture system,model_nrs_audit_capture,base.group_system,1,0,0,0
+access_nrs_audit_capture_refusal_system,nrs.audit.capture.refusal system,model_nrs_audit_capture_refusal,base.group_system,1,0,0,0
