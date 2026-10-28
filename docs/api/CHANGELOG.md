@@ -33,6 +33,16 @@ live at was never the point.
 
 ---
 
+## 2026-10-28 — handoff 69: where the captures went · `myservice_api` 19.0.3.39.0, `myservice_asset_register` 19.0.1.37.0
+
+Additive throughout; the one behaviour change below alters no answer.
+
+- **New query parameter (additive):** `GET /api/v1/audit/captures?q=<text>` (`audit:read`, unchanged) — *find a capture*. Matches a capture whose `capture_id` equals `q` read as a UUID (case-insensitive, braces accepted), whose `code` equals `q` trimmed and case-insensitively, exactly, or whose confirmed old FIRS tag (`fields.legacy_asset_code`) equals `q` under the SAP matcher's normalisation (upper case, `\` → `/`, whitespace removed). Never a partial match. ANDed with every other filter; paged and ordered as before (id ascending). Empty `q` ignored; over 200 characters `400 invalid_request`. Endpoint reference §19.6.
+- **New keys (additive) on every capture row:** `campaign.state` (`open` | `closed`) and `campaign.reviewers` (`[{id, name}]`, the campaign's active reviewers) beside `campaign.id` and `campaign.name`.
+- **New key (additive) on `GET /api/v1/audit/campaigns` and `GET /api/v1/audit/campaigns/<id>`:** `reviewers_active` — the count of active users named as reviewers. `progress.waiting_for_review > 0` with `reviewers_active: 0` is a campaign whose captures nobody can review. §19.4.
+- **New route:** `GET /api/v1/audit/refusals` (`audit:manage`) — every `POST /api/v1/audit/captures` answered 4xx/5xx after the token was accepted, newest first, cursor-paged; filters `device_id`, `user_id`, `since` (a Lagos day or an ISO date-time), `capture_id`. A row: `id`, `refused_at`, `capture_id`, `user`, `device_code`, `device`, `campaign`, `location`, `outcome`, `code` (the identifying values as sent), `http_status`, `error_code`, `reason`, `message` (the sentence sent back), `request_id`. **Not recorded:** a `401` and a scope `403`. Never the body's photos, fields or GPS. Kept 90 days. §19.10.
+- **BEHAVIOUR CHANGE (no change to any answer):** a refused `POST /api/v1/audit/captures` still saves no capture and answers exactly as before, but now leaves one `nrs.audit.capture.refusal` row, written on its own cursor so the refusal's rollback does not remove it. A replay refused again is a second row.
+
 ## 2026-10-20 — handoff 68: a second provider · no module version changed
 
 - **New enum value (additive):** `provider` = `openai` on `GET`/`PATCH /api/v1/settings/ai-identify`, on every `POST /api/v1/ai/identify` answer and on `GET /api/v1/settings` → `ai_identify.provider`. OpenAI's Responses API, the same prompt (67.1) and the same schema; `provider_label` "OpenAI (GPT)". A client that branches on `provider` should expect three values: `anthropic`, `openai`, `fake`.
@@ -807,7 +817,7 @@ credentials are unaffected.
 
 ## 2026-10-03 — handoff 48: what this tenant has · `myservice_api` 19.0.3.20.0
 
-All additive.
+Additive throughout; the one behaviour change below alters no answer.
 
 - **New route `GET /api/v1/settings/sidebar`** — any valid token. Which
   sidebar items and groups this tenant shows, each switch's own position
@@ -833,7 +843,7 @@ All additive.
 
 ## 2026-10-03 — handoff 46: everyone sees their own job · `myservice_api` 19.0.3.19.0
 
-All additive.
+Additive throughout; the one behaviour change below alters no answer.
 
 - **New key on every user row** (`GET /api/v1/users`, `/users/<id>`, and the
   rows the user writes return): `is_test_fixture` (boolean, read-only, in no

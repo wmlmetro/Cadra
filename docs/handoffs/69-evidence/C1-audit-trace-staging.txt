@@ -1,0 +1,167 @@
+# C1 — scripts/audit_trace.sh against the cluster's 'staging' (read-only), run 2026-10-28 00:07 UTC
+# ids only; the log's client address is replaced by <addr> by the script itself. Trimmed to the parts each run adds.
+
+$ scripts/audit_trace.sh staging
+audit_trace — tenant 'staging' on the cluster do-ams3-cadra-1779758691124, namespace cadra-dev — 2026-10-28 00:07 UTC
+asked: every capture received since 2026-10-14
+(ids only: users, rooms, campaigns and devices by id; times UTC)
+
+== captures on this tenant (the denominator)
+ all_time | received_since |  first_received  |  last_received   
+----------+----------------+------------------+------------------
+       11 |             11 | 2026-10-20 16:53 | 2026-10-27 21:48
+(1 row)
+
+== the captures asked for (A1)
+   hidden_by, for a waiting capture: H1 no active reviewer named · H2 campaign closed ·
+   H3 past the first 100 in its list (the review page before handoff 69 showed one page) ·
+   H4 open with reviewers, but no reviewer's dropdown opens on it (they must pick it)
+ id |             capture_uuid             |      code      | camp | camp_state | loc |     state      |  outcome   | dup_of | op | dev | device_code  |   captured_at    |   received_at    | reviewers_named | rank_in_review_list | hidden_by 
+----+--------------------------------------+----------------+------+------------+-----+----------------+------------+--------+----+-----+--------------+------------------+------------------+-----------------+---------------------+-----------
+  1 | ef6970b0-2c4e-411a-906b-3e4b71c09018 | NRS-AST-011941 |    1 | open       | 162 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-20 16:53 | 2026-10-20 16:53 |               0 |                   1 | H1
+  2 | e7f76a05-28ac-49b4-8299-c4b0f4b230d2 | NRS-AST-011996 |    1 | open       | 260 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-20 23:27 | 2026-10-20 23:27 |               0 |                   2 | H1
+  3 | f9b26ddc-2f31-4ced-a28c-32374afe733d | NRS-AST-011997 |    1 | open       | 279 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-20 22:48 | 2026-10-20 23:40 |               0 |                   3 | H1
+  4 | 1e290908-4fcb-402c-ab75-e32d9525f7d8 | NRS-AST-011998 |    1 | open       | 279 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-21 09:19 | 2026-10-21 09:22 |               0 |                   4 | H1
+  5 | 2439bcc9-fd82-4885-9291-d955a2e34c9e | NRS-AST-011999 |    1 | open       | 304 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-21 12:42 | 2026-10-21 12:45 |               0 |                   5 | H1
+  6 | 51a4be0f-9ec8-4962-9124-5228f7ea8126 | NRS-AST-012000 |    3 | open       |  11 | accepted       | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-21 13:00 | 2026-10-21 13:00 |               1 |                   1 | 
+  7 | 0d4b1c4d-bdbe-4839-ac59-6beb2d6203ea | NRS-AST-012001 |    3 | open       |   7 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-22 07:05 | 2026-10-22 07:08 |               1 |                   1 | H4
+  8 | 766b97f9-7b30-46a4-837f-ca801f0e164b | NRS-AST-012046 |    3 | open       |   8 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-22 09:39 | 2026-10-22 09:50 |               1 |                   2 | H4
+  9 | bbaac6f0-da7b-4a87-85f0-565400baebe5 | NRS-AST-012047 |    3 | open       |   8 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-22 12:49 | 2026-10-22 12:50 |               1 |                   3 | H4
+ 10 | 2fc60d5d-0acb-4731-a5c1-373ed07923e3 | NRS-AST-012048 |    3 | open       |  11 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-26 09:16 | 2026-10-26 09:23 |               1 |                   4 | H4
+ 11 | 63fd610c-8763-45ee-8b9a-ca64ef41d00a | NRS-AST-012049 |    3 | open       |  11 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-27 21:46 | 2026-10-27 21:48 |               1 |                   5 | H4
+(11 rows)
+
+== per campaign
+ campaign | state |  created   | created_by | captured | pending_review | accepted | returned | reviewers_named | reviewer_ids | dropdown_opens_here_for | capturer_ids 
+----------+-------+------------+------------+----------+----------------+----------+----------+-----------------+--------------+-------------------------+--------------
+        1 | open  | 2026-10-20 |          9 |        5 |              5 |        0 |        0 |               0 |              |                         | 9
+        2 | open  | 2026-10-20 |          9 |        0 |              0 |        0 |        0 |               0 |              |                         | 9
+        3 | open  | 2026-10-21 |          2 |        6 |              5 |        1 |        0 |               1 | 2            |                         | 9
+        4 | open  | 2026-10-21 |          9 |        0 |              0 |        0 |        0 |               1 | 2            | 2                       | 9
+        5 | open  | 2026-10-21 |          9 |        0 |              0 |        0 |        0 |               0 |              |                         | 9
+(5 rows)
+
+== devices
+ id | device_code  | active | bound_to |    registered    | captures_all_time |   last_capture   
+----+--------------+--------+----------+------------------+-------------------+------------------
+  1 | DEV-48A87615 | t      |        8 | 2026-10-20 13:59 |                 0 | 
+  2 | DEV-9FC2E414 | t      |        9 | 2026-10-20 14:26 |                11 | 2026-10-27 21:48
+(2 rows)
+
+
+this tenant has no nrs_audit_capture_refusal table (myservice_asset_register older than 19.0.1.37.0, handoff 69):
+a refusal there left nothing but the Odoo log line — run again with --logs.
+
+== photos uploaded since the window opened and on NO capture (a capture photographed and never sent, or sent and refused)
+ source | uploaded_since | on_no_capture 
+--------+----------------+---------------
+ mobile |              9 |             3
+ web    |              8 |             6
+(2 rows)
+
+ photo | source | by |     uploaded     | ai_calls 
+-------+--------+----+------------------+----------
+     1 | web    |  9 | 2026-10-20 14:28 |        2
+     2 | web    |  9 | 2026-10-20 14:40 |        3
+     3 | web    |  9 | 2026-10-20 16:15 |        1
+     5 | web    |  2 | 2026-10-20 17:12 |        1
+     6 | web    |  9 | 2026-10-20 22:13 |        3
+     7 | mobile |  9 | 2026-10-20 22:36 |        1
+    10 | web    |  9 | 2026-10-20 23:34 |        1
+    12 | mobile |  9 | 2026-10-22 07:10 |        1
+    14 | mobile |  9 | 2026-10-22 09:35 |        1
+(9 rows)
+
+== one photo on several captures (each capture should carry its own photo — handoff 69 Part A: staging photo 8 on four)
+ photo | captures | capture_ids | rooms 
+-------+----------+-------------+-------
+     8 |        4 | 3,4,5,6     |     3
+(1 row)
+
+
+$ scripts/audit_trace.sh staging --capture {0D4B1C4D-BDBE-4839-AC59-6BEB2D6203EA}   # braces and upper case normalised
+== the captures asked for (A1)
+   hidden_by, for a waiting capture: H1 no active reviewer named · H2 campaign closed ·
+   H3 past the first 100 in its list (the review page before handoff 69 showed one page) ·
+   H4 open with reviewers, but no reviewer's dropdown opens on it (they must pick it)
+ id |             capture_uuid             |      code      | camp | camp_state | loc |     state      |  outcome   | dup_of | op | dev | device_code  |   captured_at    |   received_at    | reviewers_named | rank_in_review_list | hidden_by 
+----+--------------------------------------+----------------+------+------------+-----+----------------+------------+--------+----+-----+--------------+------------------+------------------+-----------------+---------------------+-----------
+  7 | 0d4b1c4d-bdbe-4839-ac59-6beb2d6203ea | NRS-AST-012001 |    3 | open       |   7 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-22 07:05 | 2026-10-22 07:08 |               1 |                   1 | H4
+(1 row)
+
+$ scripts/audit_trace.sh staging --code " nrs-ast-011941 "
+== the captures asked for (A1)
+   hidden_by, for a waiting capture: H1 no active reviewer named · H2 campaign closed ·
+   H3 past the first 100 in its list (the review page before handoff 69 showed one page) ·
+   H4 open with reviewers, but no reviewer's dropdown opens on it (they must pick it)
+ id |             capture_uuid             |      code      | camp | camp_state | loc |     state      |  outcome   | dup_of | op | dev | device_code  |   captured_at    |   received_at    | reviewers_named | rank_in_review_list | hidden_by 
+----+--------------------------------------+----------------+------+------------+-----+----------------+------------+--------+----+-----+--------------+------------------+------------------+-----------------+---------------------+-----------
+  1 | ef6970b0-2c4e-411a-906b-3e4b71c09018 | NRS-AST-011941 |    1 | open       | 162 | pending_review | in_neither |        |  9 |   2 | DEV-9FC2E414 | 2026-10-20 16:53 | 2026-10-20 16:53 |               0 |                   1 | H1
+(1 row)
+
+$ scripts/audit_trace.sh gtb --code NRS-AST-011941          # asked on the wrong tenant: H6
+== not stored on 'gtb' — looking on every other database (H6)
+  jaizbankplc: not there
+  lasg: not there
+  nrs: no capture table
+  odoo: no capture table
+  staging: FOUND — capture id 1 (campaign 1, pending_review, received 2026-10-20 16:53)
+  the phone sent it to another tenant (H6): its base URL is not 'gtb'.
+
+$ scripts/audit_trace.sh staging --capture 00000000-0000-4000-8000-000000000000   # on no tenant
+== not stored on 'staging' — looking on every other database (H6)
+  gtb: not there
+  jaizbankplc: not there
+  lasg: not there
+  nrs: no capture table
+  odoo: no capture table
+  found on no database, and no refusal kept for it here. Not stored anywhere: refused
+  (by a 401/403 at the door, which is never kept, or before handoff 69 kept refusals) (H5),
+  or still on the phone (H7) — run with --logs for the POSTs that reached the server.
+
+$ scripts/audit_trace.sh staging --device DEV-9FC2E414 --since 2026-10-20 --logs   # (log part)
+a refusal there left nothing but the Odoo log line — run again with --logs.
+
+== photos uploaded since the window opened and on NO capture (a capture photographed and never sent, or sent and refused)
+ source | uploaded_since | on_no_capture 
+--------+----------------+---------------
+ mobile |              9 |             3
+ web    |              7 |             5
+(2 rows)
+
+ photo | source | by |     uploaded     | ai_calls 
+-------+--------+----+------------------+----------
+     1 | web    |  9 | 2026-10-20 14:28 |        2
+     2 | web    |  9 | 2026-10-20 14:40 |        3
+     3 | web    |  9 | 2026-10-20 16:15 |        1
+     6 | web    |  9 | 2026-10-20 22:13 |        3
+     7 | mobile |  9 | 2026-10-20 22:36 |        1
+    10 | web    |  9 | 2026-10-20 23:34 |        1
+    12 | mobile |  9 | 2026-10-22 07:10 |        1
+    14 | mobile |  9 | 2026-10-22 09:35 |        1
+(8 rows)
+
+== one photo on several captures (each capture should carry its own photo — handoff 69 Part A: staging photo 8 on four)
+ photo | captures | capture_ids | rooms 
+-------+----------+-------------+-------
+     8 |        4 | 3,4,5,6     |     3
+(1 row)
+
+
+== the Odoo log: POST /api/v1/audit/captures for 'staging' since 2026-10-20 (193h), client address removed
+  pod odoo-19-64c5cf6bb6-pmj6v started 2026-10-26T08:08:05Z (restarts=0); nothing before that is in its log.
+  2026-10-26 09:23:57,603 10 INFO staging werkzeug: <addr> - - [26/Oct/2026 09:23:57] "POST /api/v1/audit/captures HTTP/1.1" 201 - 30 0.142 0.100
+  2026-10-27 21:48:54,759 23 INFO staging werkzeug: <addr> - - [27/Oct/2026 21:48:54] "POST /api/v1/audit/captures HTTP/1.1" 201 - 30 0.110 0.054
+  by status, all 2:
+     2 201
+
+# the refusals
+$ scripts/audit_trace.sh 'nrs19'
+Refused: 'nrs19' — a replica of a real NRS staff extract; handoff 69 says it is not touched, read-only included.
+  (exit 1)
+$ scripts/audit_trace.sh 'staging;x'
+Refused: 'staging;x' is not a tenant name.
+  (exit 2)
+$ CADRA_KUBE_CONTEXT=do-lon1-vendra-api-cluster scripts/audit_trace.sh staging
+Refused: context 'do-lon1-vendra-api-cluster' has no pod db-0 and deployment odoo-19 in 'cadra-dev' — not the Cadra cluster.
+  (exit 1)
