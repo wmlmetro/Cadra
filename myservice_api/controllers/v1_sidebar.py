@@ -88,7 +88,9 @@ SIDEBAR_GROUPS = (
                   "receipt_gate", "ai_identify", "role_exclusions",
                   "sap_asset_master",
                   "sidebar_settings")),
-    ("audit", ("access_changes", "configuration_changes", "disposals_report",
+    ("audit", ("access_changes", "configuration_changes",
+               # Handoff 70 — the acts the administrator override allowed.
+               "admin_overrides", "disposals_report",
                "register_snapshot", "register_export",
                # Handoff 66 — the audit in the room.
                "audit_campaigns", "audit_review", "audit_capture",

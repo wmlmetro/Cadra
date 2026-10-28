@@ -159,7 +159,8 @@ _PAYLOAD_OF_TYPE = {
     # attachment ids, the maker's SAP code and cost) so the row says what
     # the actor attested to, not only that they clicked.
     EVENT_GATE_FIRED: frozenset(
-        {'from_value', 'to_value', 'reason', 'notes', 'gate', 'gate_action'}),
+        {'from_value', 'to_value', 'reason', 'notes', 'gate', 'gate_action',
+         'admin_override', 'override_of'}),
     # Handoff 61 §5. Which photo, and why — the reason is REQUIRED by the
     # one writer, `nrs.asset.photo.action_supersede`. No `from_value` /
     # `to_value`: nothing about the photo changes, which is the point.
@@ -170,7 +171,8 @@ _PAYLOAD_OF_TYPE = {
         {'ai_suggestion_id', 'photo_id', 'notes'}),
     # Handoff 65 §1.
     EVENT_SAP_LINK: frozenset(
-        {'from_value', 'to_value', 'reason', 'notes', 'gate', 'gate_action'}),
+        {'from_value', 'to_value', 'reason', 'notes', 'gate', 'gate_action',
+         'admin_override', 'override_of'}),
     # Handoff 65 §2.
     EVENT_SAP_DUPLICATE_FLAGGED: frozenset({'to_value', 'notes'}),
     # Handoff 66.
@@ -319,6 +321,13 @@ class NRSAssetEvent(models.Model):
     # AS FIRED, like `from_value`.
     gate = fields.Char(string='Gate', index=True)
     gate_action = fields.Char(string='Gate Action')
+    # Handoff 70: the act went ahead because an administrator acted under the
+    # tenant's override, and `override_of` is the sentence the no-two-gates
+    # rule would have answered (*"You verified this unit on 20 Oct; a different
+    # person must approve it."*). Set on gate and SAP-link events
+    # only; an act that broke no rule carries neither.
+    admin_override = fields.Boolean(string='As Administrator', index=True)
+    override_of = fields.Char(string='Rule Lifted')
 
     # Carried only by `photo_superseded` (handoff 61 §5). A foreign key,
     # unlike the Chars above, because what it names cannot be emptied: a

@@ -69,6 +69,8 @@ PUBLISHED_ITEMS = {
     # The audit in the room (handoff 66), in the Audit group.
     "audit_campaigns", "audit_review", "audit_capture", "audit_exceptions",
     "audit_devices",
+    # Administrator overrides (handoff 70), in the Audit group.
+    "admin_overrides",
 }
 
 _KEY = re.compile(r"^[a-z][a-z0-9_]*$")

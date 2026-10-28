@@ -425,7 +425,14 @@ def test_settings_routes_use_settings_write_and_not_admin():
         "checking nothing."
     )
 
-    admin_gated = [path for path, scopes in routes if "SCOPE_ADMIN" in scopes]
+    # Handoff 70: the one Settings route meant for administrators ALONE.
+    # The administrator override lifts the two-person rule the Asset
+    # Manager's own staff are held to, so `settings:write` (which the
+    # manager holds) must not reach it; nobody needs a wildcard to read the
+    # Settings screens because of it.
+    admin_only = {"/api/v1/settings/admin-override"}
+    admin_gated = [path for path, scopes in routes
+                   if "SCOPE_ADMIN" in scopes and path not in admin_only]
     assert not admin_gated, (
         f"{_SETTINGS_CONTROLLER} gates these on `admin`, which is a wildcard "
         "in require_jwt:\n  " + "\n  ".join(admin_gated) + "\n\n"

@@ -12,7 +12,7 @@ import {
   Wrench, Tag, Monitor, TrendingDown, SlidersHorizontal, Layers, Palette,
   Hourglass, ShieldCheck, History, PanelLeft,
   FileCog, Trash2, Camera, Download, Inbox, UserX, Database, Scale, Link2,
-  ClipboardList, ClipboardCheck, ScanLine, AlertTriangle, Smartphone,
+  ClipboardList, ClipboardCheck, ScanLine, AlertTriangle, Smartphone, ShieldAlert,
   type LucideIcon,
   Sparkles,
 } from "lucide-react";
@@ -188,6 +188,10 @@ export const ALL_NAV_GROUPS: NavGroup[] = [
   { key: "audit", label: "Audit", items: [
     { key: "access_changes",          name: "Access changes",          path: "/admin/access-changes",  icon: History,     scope: "access:read" },
     { key: "configuration_changes",   name: "Configuration changes",   path: "/admin/configuration-changes", icon: FileCog, scope: "settings:read" },
+    // Every act an administrator could take only because the tenant's
+    // override lifted a two-person rule (handoff 70 §5). `settings:read`,
+    // as the server's report requires — the Auditor reads it.
+    { key: "admin_overrides",         name: "Administrator overrides", path: "/audit/admin-overrides", icon: ShieldAlert, scope: "settings:read" },
     { key: "disposals_report",        name: "Disposals",               path: "/reports/disposals",     icon: Trash2,      scope: "assets:read" },
     { key: "register_snapshot",       name: "Register snapshot",       path: "/reports/asset-register", icon: Camera,     scope: "assets:read" },
     { key: "register_export",         name: "Export",                  path: "/reports/export",        icon: Download,    scope: "export:read" },

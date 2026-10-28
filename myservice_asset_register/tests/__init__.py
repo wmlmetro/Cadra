@@ -15,3 +15,4 @@ from . import test_renomination
 from . import test_tag_number
 from . import test_sap_mirror
 from . import test_audit_refusal
+from . import test_admin_override

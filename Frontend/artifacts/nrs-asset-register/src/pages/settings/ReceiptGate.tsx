@@ -12,6 +12,11 @@
  * `settings:write`, as the server's PATCH is — which the Asset Manager holds,
  * so the person the gates constrain can switch them off. Every switch is a
  * row in Configuration changes; handoff 58 should take the switch off the API.
+ *
+ * Handoff 70: a second section, drawn only for a system administrator (the
+ * `admin` scope — the server's PATCH takes nothing less, `settings:write`
+ * included): the administrator override, `cadra.admin_override`. Its
+ * sentence is the server's too, verbatim.
  */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,8 +25,11 @@ import { apiGet, apiPatch, CadraApiError } from "@/lib/api";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import { Switch } from "@/components/ui/switch";
 import { ApiErrorMessage } from "@/components/ApiErrorMessage";
-import { AlertCircle, Check, Clock, Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, Check, Clock, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ADMIN_OVERRIDE_KEY, fetchAdminOverride, updateAdminOverride, type AdminOverrideSetting,
+} from "@/lib/adminOverride";
 
 export interface ReceiptGateSetting {
   enabled: boolean;
@@ -46,7 +54,7 @@ async function updateReceiptGate(enabled: boolean): Promise<ReceiptGateSetting> 
   return (await apiPatch<ReceiptGateSetting>("/api/v1/settings/receipt-gate", { enabled })).data;
 }
 
-function changedLine(s: ReceiptGateSetting): string {
+function changedLine(s: Pick<ReceiptGateSetting, "configured" | "changed_by" | "changed_at">): string {
   if (!s.configured) return "Nobody has set this on this tenant; it is off by default.";
   if (!s.changed_by || !s.changed_at) return "Set on this tenant.";
   const at = s.changed_at;
@@ -157,6 +165,90 @@ export default function ReceiptGateSettingsPage() {
       {readOnly && (
         <p className="text-[11px] text-muted-foreground" data-testid="settings-read-only">
           Changing this needs the settings role (Asset Manager or administrator).
+        </p>
+      )}
+
+      {/* Handoff 70: a system administrator's own switch. Not drawn for
+          anybody else — the server refuses them the PATCH anyway. */}
+      {scopes.all.includes(SCOPE.admin) && <AdminOverrideSection />}
+    </div>
+  );
+}
+
+/** "Administrators may act at every step" — the switch, the server's
+ *  sentence under it, and who last changed it. */
+function AdminOverrideSection() {
+  const qc = useQueryClient();
+  const [note, setNote] = useState<string | null>(null);
+  const setting = useQuery<AdminOverrideSetting | null, CadraApiError>({
+    queryKey: ADMIN_OVERRIDE_KEY,
+    queryFn: fetchAdminOverride,
+    staleTime: 0,
+  });
+  const save = useMutation<AdminOverrideSetting, CadraApiError, boolean>({
+    mutationFn: updateAdminOverride,
+    onSuccess: (d) => {
+      qc.setQueryData(ADMIN_OVERRIDE_KEY, d);
+      // Every gate button, link decision and audit list answers this
+      // person differently now.
+      qc.invalidateQueries();
+      setNote(d.enabled
+        ? "On. Every act an administrator takes alone is listed under Audit › Administrator overrides."
+        : "Off. Every two-person rule applies to administrators again.");
+    },
+  });
+  const err = setting.error ?? save.error;
+  const s = setting.data;
+
+  if (setting.isLoading) return (
+    <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1.5">
+      <Clock size={12} className="animate-pulse" /> Loading the administrator override…
+    </p>
+  );
+
+  return (
+    <div className="space-y-3">
+      {err && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3"
+             data-testid="admin-override-error">
+          <AlertCircle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <ApiErrorMessage err={err} stacked />
+        </div>
+      )}
+      {note && !err && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/30 rounded-2xl px-4 py-3 flex items-center gap-2">
+          <Check size={14} className="text-emerald-600 dark:text-emerald-400" />
+          <p className="text-[12px] text-emerald-800 dark:text-emerald-300" data-testid="admin-override-note">{note}</p>
+        </div>
+      )}
+      {s ? (
+        <section className="bg-card border border-border rounded-2xl p-5 space-y-3"
+                 data-testid="admin-override" data-enabled={s.enabled ? "true" : "false"}>
+          <div className="flex items-start gap-3">
+            <ShieldAlert size={18} className={cn("shrink-0 mt-0.5",
+              s.enabled ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")} />
+            <div className="flex-1 min-w-0 space-y-1">
+              <h2 className="text-[13px] font-bold">
+                Administrators may act at every step {s.enabled ? "— on" : "— off"}
+              </h2>
+              <p className="text-[12px] text-foreground" data-testid="admin-override-statement">
+                {s.statement}
+              </p>
+              <p className="text-[11px] text-muted-foreground">{changedLine(s)}</p>
+            </div>
+            {save.isPending
+              ? <Loader2 size={16} className="animate-spin text-muted-foreground mt-0.5" />
+              : <Switch
+                  checked={s.enabled}
+                  data-testid="admin-override-switch"
+                  aria-label="Administrators may act at every step"
+                  onCheckedChange={(v) => { setNote(null); save.mutate(v); }}
+                />}
+          </div>
+        </section>
+      ) : !err && (
+        <p className="text-[11px] text-muted-foreground" data-testid="admin-override-absent">
+          This server does not offer the administrator override.
         </p>
       )}
     </div>

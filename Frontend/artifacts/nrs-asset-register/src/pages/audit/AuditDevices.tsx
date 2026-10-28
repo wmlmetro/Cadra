@@ -64,7 +64,16 @@ export default function AuditDevices() {
   if (!canManage) {
     return <ScopeRefusal scope={SCOPE.auditManage} detail="The Asset Controller holds it." />;
   }
-  const capturers = people.data?.capturers ?? [];
+  // A device is bound to a capturer — or, while the administrator override
+  // is on, to an administrator, who may then capture in any open campaign
+  // (handoff 70).
+  const named = people.data?.capturers ?? [];
+  const capturers = [
+    ...named,
+    ...(people.data?.administrators ?? [])
+      .filter(a => !named.some(c => c.id === a.id))
+      .map(a => ({ ...a, name: `${a.name} — administrator` })),
+  ];
 
   return (
     <div className="flex flex-col h-full">

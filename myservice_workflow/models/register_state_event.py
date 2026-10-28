@@ -73,9 +73,10 @@ class NRSAssetRegisterStateEvent(models.Model):
             self._queue_register_state_event(action, reason)
         return result.with_env(self.env)
 
-    def _gate_move(self, to, action, gate, reason=None, notes=None):
+    def _gate_move(self, to, action, gate, reason=None, notes=None,
+                   override_of=None):
         result = super()._gate_move(to, action, gate, reason=reason,
-                                    notes=notes)
+                                    notes=notes, override_of=override_of)
         # Outside an act `_fire_gate` is running — the affix, which the
         # station fires through the label — the move IS the act.
         if not self.env.context.get(_ONE_ACT):

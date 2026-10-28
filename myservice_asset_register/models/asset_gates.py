@@ -63,6 +63,7 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.fields import Domain
 
+from .admin_override import admin_overrides
 from .asset_event import EVENT_GATE_FIRED, EVENT_SAP_LINK
 
 _logger = logging.getLogger(__name__)
@@ -616,12 +617,18 @@ class NRSAssetGates(models.Model):
         """
         held = self._gate_scopes(scopes)
         user = user or self.env.user
+        # Handoff 70: the rule bars an administrator under the override from
+        # nothing, so their badge counts every unit their scopes reach.
+        overridden = admin_overrides(self.env, user)
         Event = self.env['nrs.asset.event']
         Event.flush_model(['asset_id', 'event_type', 'actor_id', 'gate'])
         self.flush_model(['register_state'])
         clauses = []
         for state, (_act, gate, act_scopes) in WAITING_ACT.items():
             if not set(act_scopes) & held:
+                continue
+            if overridden:
+                clauses.append(Domain('register_state', '=', state))
                 continue
             self.env.cr.execute(
                 "SELECT DISTINCT e.asset_id FROM nrs_asset_event e "
@@ -662,8 +669,9 @@ class NRSAssetGates(models.Model):
              ('event_type', 'in', (EVENT_GATE_FIRED, EVENT_SAP_LINK)),
              ('gate', '!=', False)], order='occurred_at, id')
 
-    def _two_gates_refusal(self, gate, user=None):
-        """The sentence refusing `user` gate `gate` here, or None."""
+    def _two_gates_rule(self, gate, user=None):
+        """The sentence the no-two-gates rule answers `user` for gate `gate`
+        here, or None — the rule itself, whoever the caller is."""
         self.ensure_one()
         user = user or self.env.user
         for event in self._segregation_events():
@@ -677,8 +685,21 @@ class NRSAssetGates(models.Model):
                     todo=_GATE_TODO.get(gate, gate)), event)
         return None
 
+    def _two_gates_refusal(self, gate, user=None):
+        """The sentence refusing `user` gate `gate` here, or None. None for
+        an administrator under the override (handoff 70, S1)."""
+        found = self._two_gates_rule(gate, user)
+        if found and admin_overrides(self.env, user or self.env.user):
+            return None
+        return found
+
     def _assert_two_gates(self, gate, user=None):
-        found = self._two_gates_refusal(gate, user)
+        """Raise the rule's refusal. Returns the sentence the override
+        LIFTED — what the rule would have answered — or None when the rule
+        did not stand in the way, so the act's event can say so."""
+        found = self._two_gates_rule(gate, user)
+        if found and admin_overrides(self.env, user or self.env.user):
+            return found[0]
         if found:
             message, event = found
             raise GateRefused(message, 'segregation_of_duties', {
@@ -688,6 +709,7 @@ class NRSAssetGates(models.Model):
                     'date': fields.Datetime.to_string(event.occurred_at),
                     'user_name': event.actor_name,
                 }})
+        return None
 
     # ── what the caller may do (the serialiser's `gates` block) ───────
 
@@ -701,11 +723,15 @@ class NRSAssetGates(models.Model):
                 continue
             if not set(row['scopes']) & held:
                 continue
-            found = self._two_gates_refusal(self._acting_gate(row, held))
+            found = self._two_gates_rule(self._acting_gate(row, held))
+            # Handoff 70: an administrator under the override may fire what
+            # the rule would refuse, and the action says so (`as_admin`).
+            as_admin = bool(found) and admin_overrides(self.env)
             available.append({
                 'action': row['action'],
-                'can_fire': not found,
-                'refusal': found[0] if found else None,
+                'can_fire': not found or as_admin,
+                'as_admin': as_admin,
+                'refusal': found[0] if found and not as_admin else None,
                 'reason_required': row['action'] in REASON_REQUIRED,
             })
         events = self._gate_events()
@@ -777,11 +803,11 @@ class NRSAssetGates(models.Model):
                 'validation_failed', {'field': needs})
         evidence = self._gate_validate(action, payload)
         gate = self._acting_gate(row, held)
-        self._assert_two_gates(gate)
+        lifted = self._assert_two_gates(gate)
         # ── everything after this line writes ──
         notes = self._gate_apply(action, payload, evidence)
         self._gate_move(row['to'], action, row.get('gate'),
-                        reason=text or None, notes=notes)
+                        reason=text or None, notes=notes, override_of=lifted)
         if action == 'request-tagging':
             self._gate_issue_tag()
         if row['to'] == SKIP_TAGGING['frm'][0] \
@@ -791,17 +817,23 @@ class NRSAssetGates(models.Model):
             self._on_registered()
         return self
 
-    def _gate_move(self, to, action, gate, reason=None, notes=None):
+    def _gate_move(self, to, action, gate, reason=None, notes=None,
+                   override_of=None):
         """THE move: every change of `register_state` passes through here
         (handoff 62 searched for another writer and found none — `create`
         sets a birth state, which is not a change). `myservice_workflow`
-        hangs the `asset.register_state.changed` event on it."""
+        hangs the `asset.register_state.changed` event on it.
+
+        `override_of` (handoff 70): the sentence the no-two-gates rule would
+        have answered, when an administrator went ahead under the override;
+        the event carries it with `admin_override`."""
         frm = self.register_state
         self.env['nrs.asset.event']._record(
             self, EVENT_GATE_FIRED, source='api_gate' if self._in_api()
             else None, from_value=frm, to_value=to, gate=gate,
             gate_action=action, reason=reason,
-            notes=json.dumps(notes, sort_keys=True) if notes else None)
+            notes=json.dumps(notes, sort_keys=True) if notes else None,
+            admin_override=bool(override_of), override_of=override_of)
         self.with_context(**{_GATE_WRITE_KEY: True}).sudo().write(
             {'register_state': to,
              'register_state_since': self._next_state_since()})
@@ -1104,7 +1136,9 @@ class NRSAssetTagLabelGates(models.Model):
             # a ValidationError and the affix route answered it 400
             # `validation_failed`, the only gate whose refusal had another
             # shape. `_assert_two_gates` raises it with `details.earlier`.
-            asset._assert_two_gates(GATE_TAGGING)
+            lifted = asset._assert_two_gates(GATE_TAGGING)
+        else:
+            lifted = None
         was_affixed = self.label_state == 'affixed'
         result = super()._mark_affixed(scanned_tag_number, *args, **kwargs)
         if candidate and not was_affixed and self.label_state == 'affixed' \
@@ -1115,7 +1149,8 @@ class NRSAssetTagLabelGates(models.Model):
             # route, which is where the body is read.
             check = self.env.context.get('cadra_affix_check') or 'label_only'
             asset._gate_move('tagged', 'affix', GATE_TAGGING,
-                             notes={'tag_number': self.name, 'check': check})
+                             notes={'tag_number': self.name, 'check': check},
+                             override_of=lifted)
         return result
 
 

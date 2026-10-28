@@ -93,6 +93,17 @@ const ACTION_WORDS: Record<GateAction, string> = {
   "return-registration":  "Return to maker",
 };
 
+/** The button's words. An action the server made firable ONLY because the
+ *  caller is an administrator under the override (handoff 70, `as_admin`)
+ *  says so: its verb, then "(as administrator)" — "Approve (as
+ *  administrator)", the qualifier in brackets dropped so the button carries
+ *  one bracket, not two. Everything else reads as it always has. */
+export function gateButtonWords(a: Pick<GateAvailability, "action" | "as_admin">): string {
+  const words = ACTION_WORDS[a.action];
+  if (!a.as_admin) return words;
+  return `${words.replace(/\s*\([^)]*\)$/, "")} (as administrator)`;
+}
+
 /** What each dialog says the action does, before the person commits. */
 const ACTION_SENTENCES: Record<GateAction, string> = {
   "submit":               "Sends this received unit to Internal Audit for value-for-money verification.",
@@ -272,6 +283,7 @@ export function GateActions({ row, compact }: GateActionsProps) {
               type="button"
               onClick={() => setOpen(a)}
               data-testid={`gate-${a.action}`}
+              data-as-admin={a.as_admin ? "true" : undefined}
               className={cn(
                 "font-semibold rounded-xl transition-colors",
                 compact ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
@@ -280,7 +292,7 @@ export function GateActions({ row, compact }: GateActionsProps) {
                   : "bg-primary text-primary-foreground hover:bg-primary/90",
               )}
             >
-              {ACTION_WORDS[a.action]}
+              {gateButtonWords(a)}
             </button>
           ))}
         </div>
@@ -522,6 +534,13 @@ function GateDialog({ row, action, spec, onClose }: {
             <span className="font-semibold text-foreground">{row.asset_code}</span> · {row.name}
             <br />
             <span data-testid="gate-dialog-sentence">{actionSentence(action, row)}</span>
+            {spec.as_admin && (<>
+              <br />
+              <span className="text-amber-800 dark:text-amber-300" data-testid="gate-dialog-as-admin">
+                You act as an administrator under this tenant's override: the two-person rule would
+                otherwise refuse you this step. It is listed under Audit › Administrator overrides.
+              </span>
+            </>)}
           </DialogDescription>
         </DialogHeader>
 
@@ -666,7 +685,7 @@ function GateDialog({ row, action, spec, onClose }: {
             )}
           >
             {mutation.isPending && <Loader2 size={12} className="animate-spin" />}
-            {ACTION_WORDS[action]}
+            {gateButtonWords(spec)}
           </button>
           </>)}
         </DialogFooter>

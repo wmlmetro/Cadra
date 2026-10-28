@@ -18,6 +18,7 @@ from .utils import (
     ERR_INVALID_REQUEST,
     ERR_NOT_FOUND,
     ERR_FORBIDDEN,
+    SCOPE_ADMIN,
     SCOPE_ASSETS_READ,
     SCOPE_SETTINGS_CLASSES,
     SCOPE_SETTINGS_READ,
@@ -210,6 +211,62 @@ def _receipt_gate_block(env):
         "changed_by": ({"id": writer.id, "name": writer.name}
                        if writer else None),
         "changed_at": (row[2].isoformat() if row and row[2] else None),
+    }
+
+
+# ── The administrator override (handoff 70) ──────────────────────────
+
+#: Said on Settings › Receipt gates, from here, so the screen and the API
+#: cannot describe the switch differently.
+ADMIN_OVERRIDE_STATEMENT = (
+    "An administrator can then fire every receipt gate and review every "
+    "audit capture alone, their own included. Each such act is listed under "
+    "Audit › Administrator overrides. Leave it off where two people must "
+    "sign.")
+
+_ADMIN_OVERRIDE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "enabled": {"type": "boolean"},
+        "configured": {"type": "boolean"},
+        "default_when_unset": {"type": "boolean"},
+        "parameter": {"type": "string"},
+        "statement": {"type": "string"},
+        "since": {"type": "string", "format": "date-time", "nullable": True,
+                  "description": "When it was last switched on, while it is "
+                                 "on; null while it is off."},
+        "changed_by": {"type": "object", "nullable": True,
+                       "properties": {"id": {"type": "integer"},
+                                      "name": {"type": "string"}}},
+        "changed_at": {"type": "string", "format": "date-time",
+                       "nullable": True},
+    },
+}
+
+
+def admin_override_block(env):
+    """The switch, as `_receipt_gate_block` says the receipt switch. Read
+    with raw SQL through the one reader the override's sites use."""
+    from odoo.addons.myservice_asset_register.models.admin_override import (
+        ADMIN_OVERRIDE_PARAM, override_switched_on)
+    enabled = override_switched_on(env)
+    env.cr.execute(
+        "SELECT write_uid, write_date FROM ir_config_parameter "
+        "WHERE key = %s", (ADMIN_OVERRIDE_PARAM,))
+    row = env.cr.fetchone()
+    writer = env["res.users"].sudo().browse(row[0]).exists() \
+        if row and row[0] else None
+    changed_at = row[1].isoformat() if row and row[1] else None
+    return {
+        "enabled": enabled,
+        "configured": row is not None,
+        "default_when_unset": False,
+        "parameter": ADMIN_OVERRIDE_PARAM,
+        "statement": ADMIN_OVERRIDE_STATEMENT,
+        "since": changed_at if enabled else None,
+        "changed_by": ({"id": writer.id, "name": writer.name}
+                       if writer else None),
+        "changed_at": changed_at,
     }
 
 
@@ -831,6 +888,9 @@ class CadraConfigV1(http.Controller):
                              "provider": {"type": "string"},
                              "provider_label": {"type": "string"},
                              "notice": {"type": "string"}}},
+                         # Handoff 70: whether an administrator may act at
+                         # every step alone, so a page can label the act.
+                         "admin_override": _ADMIN_OVERRIDE_SCHEMA,
                      },
                  })
     def get_settings(self, **kwargs):
@@ -839,7 +899,47 @@ class CadraConfigV1(http.Controller):
             "receipt_gated": request.env["nrs.asset"].sudo()._receipt_gated(),
             "receipt_gate": _receipt_gate_block(request.env),
             "ai_identify": ai_switch_block(request.env),
+            "admin_override": admin_override_block(request.env),
         }
+
+    @cadra_route("/api/v1/settings/admin-override", method="PATCH",
+                 summary="Let administrators act at every step alone, or not",
+                 # `admin` ONLY, never `settings:write` (handoff 70 §3): the
+                 # Asset Manager holds `settings:write`, and the switch lifts
+                 # the two-person rule the manager's own staff are held to.
+                 # `admin` is a wildcard for every OTHER check; here it is the
+                 # whole of it — the one Settings route
+                 # `test_settings_routes_use_settings_write_and_not_admin`
+                 # names as an exception, and why.
+                 scopes=[SCOPE_ADMIN],
+                 success_status=200,
+                 request_schema={
+                     "type": "object",
+                     "required": ["enabled"],
+                     "properties": {"enabled": {"type": "boolean"}},
+                 },
+                 request_example={"enabled": True},
+                 response_schema=_ADMIN_OVERRIDE_SCHEMA)
+    def patch_admin_override(self, **kwargs):
+        """Stored as `true`/`false` and never deleted, as the receipt switch
+        is, so the row's writer and write time are the configuration-change
+        report's record of who switched it, and when."""
+        body = get_params()
+        rejected = [k for k in body if k != "enabled"]
+        if rejected:
+            return refuse_unwritable(rejected, {"enabled"})
+        enabled = body.get("enabled")
+        if not isinstance(enabled, bool):
+            return err(ERR_INVALID_REQUEST,
+                       "Say whether administrators may act at every step "
+                       "with `enabled`: true or false.",
+                       details={"field": "enabled", "received": enabled})
+        from odoo.addons.myservice_asset_register.models.admin_override import (
+            ADMIN_OVERRIDE_PARAM)
+        request.env["ir.config_parameter"].sudo().set_param(
+            ADMIN_OVERRIDE_PARAM, "true" if enabled else "false")
+        request.env.flush_all()
+        return admin_override_block(request.env)
 
     @cadra_route("/api/v1/settings/receipt-gate", method="PATCH",
                  summary="Turn the receipt gates on or off for this tenant",
