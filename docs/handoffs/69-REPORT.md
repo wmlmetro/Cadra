@@ -1,9 +1,19 @@
 # Handoff 69 — report · where the captures went
 
-**Branch:** `fix/where-the-captures-went` · **PR:** __PR__ · **CI:** __CI__
+**Branch:** `fix/where-the-captures-went` · **PR:** [#133](https://github.com/wmlmetro/Cadra/pull/133) · **CI:** **could not start** — see Needs the owner, item 0
 
 ## Needs the owner
 
+0. **GitHub Actions has started no run since 27 Oct 18:20 UTC, on any
+   branch.** Every run since then ends in `startup_failure` with no jobs:
+   `dev`'s scheduled uptime check, my Step 0 push to `dev`, and this PR's
+   push and pull-request runs (40608666123, 40608694094). The last success
+   was the uptime check at 12:41 that day. No workflow file has changed
+   since 25 Oct, and the uptime check's file not since August, so this is the
+   account, not the code. It is most likely Actions minutes or a spending
+   limit, which the token here cannot read (`admin:org`). Until it is fixed
+   nothing deploys either, because `deploy-dev` is a workflow. In CI's place
+   I ran its two jobs locally (The numbers: gates on, and the module suites).
 1. **On staging, add a reviewer to campaign 1.** Five captures (ids 1–5) wait
    there and the campaign names nobody, so nobody can review them. Audit
    campaigns → campaign 1 → reviewers. Nothing was written to staging (§7).
