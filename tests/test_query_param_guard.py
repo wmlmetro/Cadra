@@ -133,6 +133,10 @@ INVENTORY = {
     # `to` cannot come to mean two different things on two audit reports.
     ("v1_audit", "from"): ("date", "_parse_report_date — 400 for unparseable, absent-but-required, and a reversed period"),
     ("v1_audit", "to"): ("date", "_parse_report_date"),
+    # Handoff 70: /reports/admin-overrides.
+    ("v1_audit", "since"): ("date", "_parse_report_date — a Lagos day, 400 for unparseable and for a reversed period"),
+    ("v1_audit", "until"): ("date", "_parse_report_date — a Lagos day, inclusive"),
+    ("v1_audit", "kind"): ("enum", "parse_enum over `_OVERRIDE_KINDS` (gate, audit)"),
     # `limit` and `cursor` are in SHARED_PARAMS and are not inventoried per
     # module; `_page` runs them through `parse_limit` and `decode_cursor`.
     ("v1_assets", "to"): ("date", "_parse_report_date"),

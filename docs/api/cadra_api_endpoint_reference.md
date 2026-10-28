@@ -4277,7 +4277,7 @@ a deleted parameter's old value to twenty-four writing tests.
 
 # Endpoint index (grouped by area, alphabetical inside groups)
 
-Every first-party route under `/api/v1` — 198 of them as of handoff 66 (169 at handoff 65, 141 at handoff 60, 133 at handoff 58, 115 at handoff 52); the
+Every first-party route under `/api/v1` — 204 of them as of handoff 70 by the guard's census (198 at handoff 66, 169 at handoff 65, 141 at handoff 60, 133 at handoff 58, 115 at handoff 52); the
 first-party routes OUTSIDE `/api/v1` are `docs/api/EXTERNAL-SURFACES.md`'s.
 This table is held to the code by `tests/test_endpoint_reference.py` (handoff
 52 §6b), which re-derives the route census from every
@@ -4432,6 +4432,7 @@ design (handoff 48).
 | 109 | GET    | `/api/v1/reports/configuration-changes` | `settings:read` |
 | 110 | GET    | `/api/v1/reports/depreciation` | `dashboards:read` |
 | 111 | GET    | `/api/v1/reports/disposals` | `assets:read` |
+| 111a | GET    | `/api/v1/reports/admin-overrides` | `settings:read` (handoff 70: every act an administrator could take only under the tenant's override, newest first; `since`, `until`, `kind` — §21) |
 | 112 | GET    | `/api/v1/identity/employees` | `identity:read` |
 | 113 | GET    | `/api/v1/identity/employees/<id>` | `identity:read` |
 | 114 | GET    | `/api/v1/identity/employees/<id>/assets` | `identity:read` + `assets:read` |
@@ -4452,6 +4453,7 @@ design (handoff 48).
 | 129 | PATCH  | `/api/v1/settings/depreciation` | `settings:write` |
 | 130 | POST   | `/api/v1/settings/depreciation/recompute` | `settings:write` |
 | 131 | PATCH  | `/api/v1/settings/receipt-gate` | `settings:write` |
+| 131a | PATCH  | `/api/v1/settings/admin-override` | `admin` **only** — `settings:write` is not enough (handoff 70: may an administrator act at every step alone — §11.8) |
 | 132 | GET    | `/api/v1/settings/role-exclusions` | `settings:read` |
 | 133 | POST   | `/api/v1/settings/role-exclusions` | `settings:write` |
 | 134 | PATCH  | `/api/v1/settings/role-exclusions/<id>` | `settings:write` |
@@ -4482,7 +4484,7 @@ design (handoff 48).
 | 159 | POST   | `/api/v1/audit/devices` | `audit:manage` (handoff 66: register a device, optionally bound to a person; answers its `device_code` — §19.2) |
 | 160 | POST   | `/api/v1/audit/devices/<id>/bind` | `audit:manage` (handoff 66: rebind to a person, or `null` for nobody — §19.2) |
 | 161 | POST   | `/api/v1/audit/devices/<id>/deactivate` | `audit:manage` (handoff 66: refused while a block is open — §19.2) |
-| 161a | GET    | `/api/v1/audit/people` | `audit:manage` (handoff 66: the active holders of the capturer and reviewer roles, to bind a device or name a team — §19.2) |
+| 161a | GET    | `/api/v1/audit/people` | `audit:manage` (handoff 66: the active holders of the capturer and reviewer roles, to bind a device or name a team — §19.2; handoff 70: `administrators` while the override is on) |
 | 162 | GET    | `/api/v1/audit/blocks` | `audit:read` (handoff 66: blocks, `?device_id=`, `?state=` — §19.3) |
 | 163 | POST   | `/api/v1/audit/blocks` | `audit:manage` (handoff 66: issue 1–500 codes to a device and its bound person — §19.3) |
 | 164 | GET    | `/api/v1/audit/blocks/<id>` | `audit:read` (handoff 66: one block and every code in it — §19.3) |
@@ -4536,6 +4538,35 @@ GET `200`: `{"data": {"receipt_gated": true, "receipt_gate": {...}}}`. PATCH `20
 * `statement`: the sentence the Settings screen shows, from the server, describing the current state only.
 * `candidates_in_flight`: units with `register_state != registered`. Switching off registers none of them; they stay off the register until their gates are passed.
 * PATCH body is `enabled` (boolean) and nothing else: any other key is `400 invalid_request` with `rejected_fields`; a non-boolean is `400`. Nothing is written on a refusal. The value is stored as `true`/`false`, never deleted, so the row keeps its writer.
+
+### 11.8.1 PATCH `/api/v1/settings/admin-override` — may an administrator act at every step alone? (handoff 70)
+
+The second switch on *Settings › Receipt gates*, drawn there only for a caller holding `admin`. **When on**, a system administrator — a PERSON signed in through `/auth/login` whose account is in `base.group_system` — may act where a two-person rule would refuse them: fire every receipt gate on a unit and both ends of a SAP link (§14.13), capture in any open audit campaign and accept or return any capture, their own included (§19.7). It lifts **who** may act, never **what** must be true (§14.13 lists both). Nobody else is affected: an Asset Manager, an Asset Controller or any other role is refused exactly as before, and a token from `/auth/token` (a machine credential — Vendra's, the SAP sync's) never overrides, even when its user is in `base.group_system`: the override reads the token's audience, and only `/auth/login` (and `/auth/refresh` after it) stamps `aud: frontend`.
+
+The parameter is `cadra.admin_override`, read with raw SQL; **absent means OFF**, and no migration sets it, so it is off on every tenant until somebody switches it on. On NRS's production tenant it stays off until NRS accepts in writing that administrators may act alone (`docs/GO-LIVE.md` §36.1).
+
+PATCH scope **`admin` only** — the one route on the settings controller gated on `admin` (`tests/test_source_guards.py::test_settings_routes_use_settings_write_and_not_admin` names it as the exception, and why): the Asset Manager holds `settings:write`, and the switch lifts the rule the manager's own staff are held to. A `settings:write` token without `admin` is `403 forbidden`.
+
+```bash
+acurl $API/api/v1/settings                       # → data.admin_override
+acurl -X PATCH $API/api/v1/settings/admin-override -d '{"enabled": true}'
+```
+
+`GET /api/v1/settings` (`assets:read`, as above) carries the block as `admin_override`, so every page can label an act; the PATCH answers `200` with the block alone:
+
+```json
+{"enabled": true, "configured": true, "default_when_unset": false,
+ "parameter": "cadra.admin_override",
+ "statement": "An administrator can then fire every receipt gate and review every audit capture alone, their own included. Each such act is listed under Audit › Administrator overrides. Leave it off where two people must sign.",
+ "since": "2026-10-28T10:02:11.418000",
+ "changed_by": {"id": 2, "name": "…"}, "changed_at": "2026-10-28T10:02:11.418000"}
+```
+
+* `configured`: whether the row exists at all (never set and set off behave the same).
+* `statement`: the sentence the Settings screen shows under the switch, from the server.
+* `since`: the parameter row's last write time while the switch is on; `null` while it is off. `changed_by` / `changed_at`: the row's last writer and write time (UTC, naive, as `receipt_gate`'s).
+* Body is `enabled` (boolean) and nothing else: any other key is `400 invalid_request` with `rejected_fields`; a non-boolean is `400 invalid_request` (`details.field: "enabled"`). Stored as `true`/`false`, never deleted, so the row's writer and write time are the record in `GET /reports/configuration-changes`, under the key `cadra.admin_override`.
+* Every act the switch made possible is listed on `GET /api/v1/reports/admin-overrides` (§21). Switching it off lifts nothing further; the acts taken while it was on stay listed.
 
 
 ## 12 · People and roles (handoffs 41, 42, 43)
@@ -4934,8 +4965,8 @@ since handoff 58 refuses what the unit's class cannot accept (§14.6).
   "waiting_on": "iad",
   "state_since": "2026-10-07T20:45:12Z",
   "available": [
-    {"action": "verify", "can_fire": true, "refusal": null, "reason_required": false},
-    {"action": "query",  "can_fire": true, "refusal": null, "reason_required": true}
+    {"action": "verify", "can_fire": true, "as_admin": false, "refusal": null, "reason_required": false},
+    {"action": "query",  "can_fire": true, "as_admin": false, "refusal": null, "reason_required": true}
   ]
 }
 ```
@@ -4946,7 +4977,10 @@ since handoff 58 refuses what the unit's class cannot accept (§14.6).
 `reg_submitted`, `registered` — read-only, refused in any body.
 `gates.available` lists the actions the **caller's scopes** earn from the
 current state; `can_fire: false` carries the no-two-gates sentence in
-`refusal`. For a registered asset: `{"waiting_on": null, "state_since": null,
+`refusal`. `as_admin` (handoff 70, additive, always present): `true` only
+when the rule WOULD refuse the caller and the administrator override lets
+them fire it anyway — then `can_fire: true` and `refusal: null` (§14.13).
+For a registered asset: `{"waiting_on": null, "state_since": null,
 "available": []}`.
 
 `waiting_on`: `store` (captured, vfm_query) · `iad` (vfm_pending) ·
@@ -5261,6 +5295,52 @@ names none); records created before keep what they had. A `tag_id` unit
 created with the gates off is therefore affixed on its label and the
 attributes tick, as a gated one is; a `record_only` one is minted no label at
 creation.
+
+### 14.13 The administrator override — one person through every gate (handoff 70)
+
+With `cadra.admin_override` on (§11.8.1), a system administrator signed in
+as a person is not refused by **the no-two-gates rule** (§14.4) — on the ten
+gate actions, the batch routes of §14.12 (each unit's fire is judged alone,
+as always), the affix (`POST /assets/<id>/tag-affixed`), and both ends of a
+SAP link (§18: propose, propose undo, approve, return). Everything else still
+holds: the unit must be in the state the act needs (`409 invalid_state`),
+the act needs its body (`400 validation_failed`), the affix still checks the
+scanned tag against the issued one, and a class with no SAP asset class is
+still refused at registration. With the switch off — the default on every
+tenant — nothing in this section happens and every answer is what it was.
+
+**On the asset.** `gates.available[]` carries `as_admin: true` on an action
+the rule would refuse and the override opens (`can_fire: true`, `refusal:
+null`); the app labels that button *"Approve (as administrator)"*. An action
+the rule does not stand in the way of — the administrator is simply the
+first person at that gate — is `as_admin: false` and is not an override.
+`GET /api/v1/candidates?waiting_on_me=true` and the sidebar badge count
+every unit the administrator's scopes reach, because the rule bars them from
+none.
+
+**On the record.** A gate fired, or a link act taken, only because of the
+override writes its append-only event with two new columns:
+`admin_override = true` and `override_of` — the sentence the rule would have
+answered, verbatim (*"You verified this unit on 20 Oct; a different person
+must approve it."*). An act that broke no rule carries `admin_override =
+false` and no `override_of`. `GET /api/v1/assets/<id>/history` publishes
+both on every `gate_fired` and `sap_link` row's `detail` (`admin_override`:
+bool, `override_of`: string or `null`), and an overridden act's `summary`
+says so, the earlier act in the third person:
+
+```text
+Value for money approved (verified → VfM approved), by A. Admin, as administrator (they verified this unit on 20 Oct).
+```
+
+Every such act is also a row on `GET /api/v1/reports/admin-overrides`
+(§21). **Vendra is told nothing new**: the INT-05b
+`asset.register_state.changed` event carries the actor as before and no
+override field.
+
+**On a SAP link** (§18.3): each proposal row carries `as_admin` beside
+`can_decide` — `true` when deciding is open to the caller only as an
+administrator under the override (then `can_decide: true`, `refusal:
+null`).
 
 
 ## 15 · Role exclusions — Addendum A §4, rule 2 (handoff 58)
@@ -5647,7 +5727,9 @@ confident match, a contested record (`details.contested`, decided on
 
 `GET` lists proposals (`?state=proposed` by default, `approved`,
 `returned`, `all`; `?kind=link|unlink`; `?asset_id=`), each with
-`can_decide` and, when the rule bars the caller, `refusal` verbatim.
+`can_decide` and, when the rule bars the caller, `refusal` verbatim; since
+handoff 70 also `as_admin` — `true` when the caller may decide only as an
+administrator under the tenant's override (§14.13).
 `POST /api/v1/sap-links/approve {"link_ids": [..], "dry_run": false}` and
 `POST /api/v1/sap-links/return {"link_ids": [..], "reason": ".."}` — the
 reason is required to return. An approval re-checks that the asset still
@@ -5744,7 +5826,12 @@ capture is refused unless that device is active and bound to the caller.
   may bind a device to or name on a team: `{"capturers": [{id, name,
   login}], "reviewers": [...]}`, the ACTIVE holders of each role, sorted by
   name. `GET /users` is the administrator's; this is the Controller's one
-  list of people.
+  list of people. **Since handoff 70** it also carries `administrators:
+  [{id, name, login}]`: the active people in `base.group_system` (never an
+  API credential's user), listed only while the administrator override is
+  on and `[]` while it is off — so the Controller can bind a device to an
+  administrator, who may then capture in any open campaign. *Devices and
+  codes* offers them in its person picker, marked "— administrator".
 
 A device: `{id, name, device_code, bound_to: {id, name}, bound_at,
 bound_by, active, registered_by, registered_at, open_block_id}`.
@@ -5889,7 +5976,9 @@ day accepted) and never in the future beyond five minutes of clock skew.
 **Refused** — and since handoff 69 each refusal after a valid token is
 kept, with the sentence below, for the Asset Controller (§19.10): a closed
 campaign `409`; the caller not a capturer on it
-`403`; a room outside it `409`; a code not reserved to this device and this
+`403` (lifted for a system administrator under the tenant's override —
+§19.7, handoff 70; the capture is stored with `captured_as_admin: true`); a
+room outside it `409`; a code not reserved to this device and this
 person `403`; a code already used `409` (`details.code_state`); a scanned
 label that is not the code `400`; an asset that is a receipt candidate
 `409 not_on_the_register`, or disposed `409`; a SAP record retired or not in
@@ -5912,6 +6001,7 @@ the same Cadra asset, the same SAP record, or the same old tag
 `result_asset` (`id`, `asset_code`, `register_state`), `reprint_label_id`,
 `photos_copied`, `exception_state` (`open`, `registered`, `voided`),
 `exception_resolved_by`, `exception_resolved_at`, `exception_void_reason`,
+`captured_as_admin`, `reviewed_as_admin`, `override_of` (handoff 70, §19.7),
 and `replayed`.
 
 `campaign` is `{id, name, state, reviewers}` — **`state`** (`open`,
@@ -5988,6 +6078,47 @@ acurl "$API/api/v1/audit/captures?q=firs/abj/0412"
   `dry_run`. `200`: `{action, dry_run, total, done, refused, results}`, each
   result `{capture_id, outcome (done | would_do | refused), status, code,
   message, details, asset_id}`.
+
+**The administrator override (handoff 70).** With `cadra.admin_override`
+on (§11.8.1), a system administrator signed in as a person is not refused by
+the three audit rules about **who**:
+
+| Rule lifted | Where it would refuse | Code recorded |
+|---|---|---|
+| S2 — the capturer must be named on the campaign | `POST /audit/captures` (`403`) | `not_a_capturer` |
+| S3 — nobody reviews their own capture | accept, return (`409 segregation_of_duties`) | `own_capture` |
+| S4 — the reviewer must be named on the campaign | accept, return (`403`) | `not_a_reviewer` |
+
+**Nothing about what is true is lifted.** A capture still needs a device
+bound to the caller in `X-Cadra-Device`, a code from a block reserved to
+that device and person, a scanned label equal to the code, a room inside an
+open campaign and a `captured_at` within the five working days; a review
+still needs the campaign open and the capture `pending_review`, and is still
+refused when another capture of the same thing is already accepted. So an
+administrator who captures needs a device and a block issued to them on
+*Devices and codes*, as anybody does.
+
+**Recorded on the capture, and published on every capture read**
+(`GET /audit/captures`, `GET /audit/captures/<capture_id>`, the `201` of a
+sync, the answer of accept and return), three additive keys:
+
+- `captured_as_admin` (bool) — the capture was stored only because S2 was
+  lifted;
+- `reviewed_as_admin` (bool) — the acceptance or return went ahead only
+  because S3 and/or S4 was lifted;
+- `override_of` (array of strings) — the rules lifted, capture's first then
+  review's: `not_a_capturer`, `own_capture`, `not_a_reviewer`. `[]` when
+  neither act needed the override.
+
+An act that broke no rule — a named reviewer accepting somebody else's
+capture, the administrator among them — is `false` / `[]` and is not an
+override. **The batch** `POST /audit/captures/accept` is judged per capture,
+as every one of its acts is: each line is lifted and recorded on its own.
+The app lists every open campaign to an administrator under the override
+(review, capture, the station's Capture mode) and labels the button on their
+own capture *"Accept (as administrator)"*. Every such act is also a row on
+`GET /api/v1/reports/admin-overrides` (§21). With the switch off nothing here
+changes.
 
 ### 19.8 The exceptions, closing, and the two lists — `audit:manage`
 
@@ -6186,3 +6317,86 @@ used, `null` when nothing was used. Class is the class SUGGESTED; site is
 the campaign location covering the capture's room (suggestions no capture
 used are one row); model is the model that answered.
 
+
+## 21 · GET `/api/v1/reports/admin-overrides` — what an administrator did alone (handoff 70)
+
+Scope **`settings:read`** — so the **Auditor** reads it, as they read the
+configuration-change report; `admin` passes as the wildcard it is. The web
+app shows it as *Audit › Administrator overrides* (sidebar key
+`admin_overrides`, `settings:read`), with a date filter and a CSV download.
+
+Every act an administrator could take **only** because the tenant's
+override (§11.8.1) lifted a two-person rule: a receipt gate or a SAP-link act
+(the events with `admin_override = true`, §14.13) and an audit capture,
+acceptance or return (`captured_as_admin` / `reviewed_as_admin`, §19.7). An
+act that broke no rule — the administrator was simply the first person at
+that gate — is never an override and is not here. Acts taken while the
+switch was on stay listed after it is switched off.
+
+```bash
+acurl "$API/api/v1/reports/admin-overrides?since=2026-10-20&until=2026-10-28&kind=gate"
+```
+
+**Parameters**, all optional, ANDed:
+
+- `since` — `YYYY-MM-DD`, the first **Lagos** day, from its midnight in
+  Lagos;
+- `until` — `YYYY-MM-DD`, the last Lagos day, **inclusive** (the whole of
+  it). Unparseable either way is `400 invalid_request` naming the
+  parameter; `since` after `until` is `400 invalid_request` (*"The period
+  ends before it starts…"*);
+- `kind` — `gate` (receipt gates and the SAP link) or `audit` (captures and
+  reviews); both when absent; any other value `400 invalid_request` naming
+  the allowed values;
+- `limit`, `cursor` — the API's paging. **Newest first**; `pagination.next_cursor`
+  continues (the cursor carries `before`, the last row's instant and key);
+  `pagination.total_estimate` is the count for the filters. A gate row is
+  dated by its event's `occurred_at`, a capture row by `received_at`, a
+  review row by `reviewed_at`. An external (non-app) caller is held to its
+  record cap, announced in `_warnings.truncated`.
+
+**A row:**
+
+```json
+{"at": "2026-10-28T11:02:14.104512+01:00", "kind": "gate",
+ "act": "approve", "act_words": "approve",
+ "by": {"id": 2, "name": "A. Admin"},
+ "asset": {"id": 23511, "asset_code": "NRS-AST-021340"},
+ "capture": null, "rules": [],
+ "override_of": "They verified this unit on 28 Oct; a different person must approve it."}
+```
+
+```json
+{"at": "2026-10-28T11:20:03.552100+01:00", "kind": "audit",
+ "act": "accept", "act_words": "accept capture",
+ "by": {"id": 2, "name": "A. Admin"},
+ "asset": null,
+ "capture": {"id": 41, "capture_id": "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+             "campaign": {"id": 3, "name": "…"}, "room": {"id": 812, "name": "…"}},
+ "rules": ["own_capture", "not_a_reviewer"],
+ "override_of": "They captured the item themselves; they were not named a reviewer on campaign …."}
+```
+
+- `at` — Lagos time, with its offset.
+- `kind` — `gate` | `audit`.
+- `act` — the gate action (`submit`, `verify`, `approve`, `query`,
+  `resubmit`, `reject`, `request-tagging`, `affix`, `register`,
+  `approve-registration`, `return-registration`), a SAP-link act
+  (`propose`, `approve`, `return`, `propose_undo`, `approve_undo`,
+  `return_undo`) or an audit act (`capture`, `accept`, `return_capture`).
+  `act_words` says it in words; a SAP-link act's words name the link
+  (*"approve SAP link"*), so it is not read as a gate's approval.
+- `by` — who acted (`{id, name}`; a gate row whose account is gone keeps the
+  name recorded on the event, `id: null`).
+- `asset` — a gate row's asset (`id`, `asset_code`); `null` on an audit row.
+- `capture` — an audit row's capture: `id`, `capture_id` (the phone's UUID),
+  `campaign` and `room` (`{id, name}`); `null` on a gate row.
+- `rules` — an audit row's lifted rules (`not_a_capturer`, `own_capture`,
+  `not_a_reviewer`); `[]` on a gate row.
+- `override_of` — **in words**, what the rule would have said: for a gate
+  row the no-two-gates sentence as the person was refused it, turned to the
+  third person (*"They verified this unit on 28 Oct; a different person must
+  approve it."*); for an audit row each lifted rule as a clause (*"they
+  captured the item themselves"*, *"they were not named a capturer on
+  campaign X"*, *"they were not named a reviewer on campaign X"*), joined
+  with `; `.

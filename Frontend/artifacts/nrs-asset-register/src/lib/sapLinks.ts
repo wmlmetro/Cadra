@@ -65,6 +65,9 @@ export interface SapLink {
   /** The caller holds `register:check` and the no-two-gates rule does not
    *  bar them. */
   can_decide: boolean;
+  /** Handoff 70: `can_decide` is true only because the caller is an
+   *  administrator under the tenant's override. */
+  as_admin?: boolean;
   /** Why not, in words, when the rule bars them. */
   refusal: string | null;
 }

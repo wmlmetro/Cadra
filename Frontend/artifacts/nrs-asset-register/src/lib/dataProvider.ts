@@ -3209,6 +3209,11 @@ export interface GateAvailability {
   can_fire: boolean;
   refusal: string | null;
   reason_required: boolean;
+  /** Handoff 70: true when `can_fire` is true ONLY because the caller is an
+   *  administrator under the tenant's override — the no-two-gates rule
+   *  would otherwise have refused them. The button says so. Absent from an
+   *  older server, which reads as false. */
+  as_admin?: boolean;
 }
 
 /** What the Register Maker submitted, as entered (handoff 60 §2d) — null

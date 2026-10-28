@@ -52,6 +52,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 from ..approval_policy import EXEMPT_KEY
+from .admin_override import (OVERRIDE_NOT_A_CAPTURER, OVERRIDE_NOT_A_REVIEWER,
+                             OVERRIDE_OWN_CAPTURE, admin_overrides)
 from .asset_event import EVENT_AUDIT_CAPTURE, EVENT_GATE_FIRED
 from .asset_gates import (GateRefused, REGISTERED, _GATE_WRITE_KEY,
                           MODE_RECORD_ONLY)
@@ -913,6 +915,16 @@ class NRSAuditCapture(models.Model):
                              default='pending_review', index=True)
     reviewed_by_id = fields.Many2one('res.users', ondelete='set null')
     reviewed_at = fields.Datetime()
+    # Handoff 70: the act went ahead because an administrator acted under
+    # the tenant's override; `*_override_of` names the rules it lifted
+    # (comma-separated: `not_a_capturer`; `own_capture`, `not_a_reviewer`).
+    # An act that broke no rule carries neither.
+    captured_as_admin = fields.Boolean('Captured as Administrator',
+                                       index=True)
+    capture_override_of = fields.Char('Capture: Rules Lifted')
+    reviewed_as_admin = fields.Boolean('Reviewed as Administrator',
+                                       index=True)
+    review_override_of = fields.Char('Review: Rules Lifted')
     return_reason = fields.Text()
     result_asset_id = fields.Many2one('nrs.asset', 'Became / Verified',
                                       ondelete='restrict')
@@ -971,11 +983,16 @@ class NRSAuditCapture(models.Model):
             raise _refuse(_('No such campaign.'), 'validation_failed',
                           field='campaign_id')
         campaign._assert_open()
+        # S2, lifted for an administrator under the override (handoff 70);
+        # the device, the code and the room below still hold.
+        lifted = []
         if me not in campaign.capturer_ids:
-            raise _refuse(_(
-                'You are not a capturer on campaign %s. The Asset Controller '
-                'names the team.') % campaign.name, 'forbidden',
-                campaign_id=campaign.id)
+            if not admin_overrides(self.env, me):
+                raise _refuse(_(
+                    'You are not a capturer on campaign %s. The Asset '
+                    'Controller names the team.') % campaign.name,
+                    'forbidden', campaign_id=campaign.id)
+            lifted.append(OVERRIDE_NOT_A_CAPTURER)
         room = self.env['generic.location'].sudo().browse(
             _int(body.get('location_id'), 'location_id')).exists()
         if not room:
@@ -1048,6 +1065,8 @@ class NRSAuditCapture(models.Model):
             'ai_suggestion_id': suggestion.id or False,
             'captured_at': captured_at, 'received_at': now,
             'operator_id': me.id, 'device_id': device.id,
+            'captured_as_admin': bool(lifted),
+            'capture_override_of': ','.join(lifted) or False,
             **gps,
         }
         code_row = None
@@ -1256,6 +1275,9 @@ class NRSAuditCapture(models.Model):
     # ── review ────────────────────────────────────────────────────────
 
     def _assert_reviewable(self):
+        """Refuse a review this person may not make. Returns the rules an
+        administrator's override lifted (handoff 70, S3 and S4) — empty when
+        none stood in the way."""
         self.ensure_one()
         me = self.env.user
         self.campaign_id._assert_open()
@@ -1264,7 +1286,13 @@ class NRSAuditCapture(models.Model):
                             id=self.capture_uuid,
                             state=dict(CAPTURE_STATES)[self.state].lower()),
                           capture_state=self.state)
-        if me == self.operator_id:
+        own = me == self.operator_id
+        stranger = me not in self.campaign_id.reviewer_ids
+        if (own or stranger) and admin_overrides(self.env, me):
+            return [rule for rule, broken in (
+                (OVERRIDE_OWN_CAPTURE, own),
+                (OVERRIDE_NOT_A_REVIEWER, stranger)) if broken]
+        if own:
             raise _refuse(_(
                 'You captured this item; a different person must review it. '
                 'The reviewer is the second person.'),
@@ -1276,6 +1304,7 @@ class NRSAuditCapture(models.Model):
             raise _refuse(_('You are not a reviewer on campaign %s.')
                           % self.campaign_id.name, 'forbidden',
                           campaign_id=self.campaign_id.id)
+        return []
 
     def _accepted_twin(self):
         """Another capture of the same thing, already ACCEPTED in this
@@ -1300,7 +1329,7 @@ class NRSAuditCapture(models.Model):
 
     def _accept(self, dry_run=False):
         self.ensure_one()
-        self._assert_reviewable()
+        lifted = self._assert_reviewable()
         twin = self.sudo()._accepted_twin()
         if twin:
             raise _refuse(_(
@@ -1320,7 +1349,9 @@ class NRSAuditCapture(models.Model):
             asset = self.env['nrs.asset']
         vals = {'state': 'accepted', 'reviewed_by_id': reviewer.id,
                 'reviewed_at': fields.Datetime.now(),
-                'result_asset_id': asset.id or False}
+                'result_asset_id': asset.id or False,
+                'reviewed_as_admin': bool(lifted),
+                'review_override_of': ','.join(lifted) or False}
         if cap.outcome == OUTCOME_IN_NEITHER:
             vals['exception_state'] = 'open'
         cap._w(vals)
@@ -1438,8 +1469,16 @@ class NRSAuditCapture(models.Model):
             'rejected_by': False, 'rejected_date': False,
             'decision_reason': False,
         })
+        ctx = {'cadra_audit_reprint': tag.id}
+        if reviewer == self.operator_id \
+                and admin_overrides(self.env, reviewer):
+            # Handoff 70: an administrator accepting their OWN capture under
+            # the override (S3 lifted, recorded on the capture as
+            # `own_capture`) asked for the reprint and approves it too. Only
+            # this label, only in this acceptance.
+            ctx['cadra_audit_reprint_own'] = tag.id
         return tag.with_user(reviewer).sudo().with_context(
-            cadra_audit_reprint=tag.id).action_approve_replacement(
+            **ctx).action_approve_replacement(
             decision_reason=_('Accepted on audit capture %s.')
             % self.capture_uuid)
 
@@ -1488,7 +1527,7 @@ class NRSAuditCapture(models.Model):
 
     def _return_capture(self, reason):
         self.ensure_one()
-        self._assert_reviewable()
+        lifted = self._assert_reviewable()
         text = (reason or '').strip() if isinstance(reason, str) else ''
         if not text:
             raise _refuse(_('A reason is required to return a capture — say '
@@ -1496,7 +1535,9 @@ class NRSAuditCapture(models.Model):
                           'validation_failed', field='reason')
         cap = self.sudo()
         cap._w({'state': 'returned', 'reviewed_by_id': self.env.user.id,
-                'reviewed_at': fields.Datetime.now(), 'return_reason': text})
+                'reviewed_at': fields.Datetime.now(), 'return_reason': text,
+                'reviewed_as_admin': bool(lifted),
+                'review_override_of': ','.join(lifted) or False})
         code = cap.code_id
         if code and code.state == 'in_review':
             if cap.duplicate_of_id or code.block_id.state != 'issued':
@@ -1673,9 +1714,10 @@ class NRSAssetAuditLedger(models.Model):
         self.env['nrs.asset.code']._for_assets(records)
         return records
 
-    def _gate_move(self, to, action, gate, reason=None, notes=None):
+    def _gate_move(self, to, action, gate, reason=None, notes=None,
+                   override_of=None):
         result = super()._gate_move(to, action, gate, reason=reason,
-                                    notes=notes)
+                                    notes=notes, override_of=override_of)
         if to in (REGISTERED, 'vfm_rejected'):
             rows = self.env['nrs.asset.code'].sudo().search(
                 [('code', '=', self.asset_code)])
@@ -1699,4 +1741,20 @@ class NRSAssetTagLabelAuditReprint(models.Model):
         if self.env.context.get('cadra_audit_reprint') == self.id \
                 and user.id != self.requested_by.id:
             return True
+        if self._own_audit_reprint(user):
+            return True
         return super()._may_decide(user)
+
+    def _own_audit_reprint(self, user):
+        """Handoff 70: the reprint of an administrator's own capture,
+        accepted by them under the override — the one case the requester
+        decides. Read again here, not trusted from the context alone."""
+        return (self.env.context.get('cadra_audit_reprint') == self.id
+                and self.env.context.get('cadra_audit_reprint_own') == self.id
+                and user.id == self.requested_by.id
+                and admin_overrides(self.env, user))
+
+    def _assert_may_decide(self, user):
+        if self._own_audit_reprint(user):
+            return
+        return super()._assert_may_decide(user)

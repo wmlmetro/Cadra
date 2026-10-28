@@ -2726,3 +2726,35 @@ nothing else.
 ### 35.3 · The phone app is the mobile team's — `[open]`, mobile team
 `docs/integrations/mobile-ai-capture-endpoints.md` lists every route as
 *exists* or *not needed*, and §10 there what they still cannot build.
+
+
+## 36 · The administrator override (handoff 70)
+
+### 36.1 · Administrators acting alone needs NRS's written acceptance — `[open]`, NRS's written acceptance required
+Handoff 70 lets a system administrator (a person signed in, `base.group_system`)
+fire every receipt gate on a unit, act at both ends of a SAP link, and
+capture and review in any open audit campaign — their own capture included —
+when the tenant's switch `cadra.admin_override` is on. NRS's Addendum A §4
+and the PRD require two people at each control, so this is a deviation from
+both, the same shape as R7's hosting (§30.1).
+
+**It is off by default on every tenant**, absent included; no migration or
+seed sets it. **Before it is turned on on NRS's production tenant**, NRS
+accepts in writing that administrators may act alone at those controls.
+Owner: **the owner**, to obtain it. Until then it is for the demo estate and
+test tenants only.
+
+**How to turn it on:** *Settings › Receipt gates*, the section
+*"Administrators may act at every step"*, by an administrator — the switch is
+drawn only for, and accepted only from, the `admin` scope
+(`PATCH /api/v1/settings/admin-override`; `settings:write` alone, which the
+Asset Manager holds, is refused). Each change is a row in
+*Audit › Configuration changes* under `cadra.admin_override`.
+
+**Where the acts are listed:** *Audit › Administrator overrides*
+(`GET /api/v1/reports/admin-overrides`, `settings:read`, so the Auditor reads
+it), with a date filter and a CSV download; an overridden gate or SAP-link act
+also says *"as administrator"* on the asset's history, and an overridden
+capture or review carries `captured_as_admin` / `reviewed_as_admin`. Acts taken while it was on stay
+listed after it is switched off. A machine credential (Vendra's, the SAP
+sync's) never overrides, whatever its groups.

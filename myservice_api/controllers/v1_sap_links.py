@@ -39,6 +39,9 @@ from odoo import fields, http
 from odoo.exceptions import UserError, ValidationError
 from odoo.http import request
 
+from odoo.addons.myservice_asset_register.models.admin_override import (
+    admin_overrides,
+)
 from odoo.addons.myservice_asset_register.models.asset_gates import (
     CANDIDATES_CTX,
     GateRefused,
@@ -112,13 +115,17 @@ def serialize_link(link, held=None):
     """One proposal. `can_decide`: the caller holds `register:check` and the
     no-two-gates rule does not bar them; `refusal` says why not."""
     held = held if held is not None else set(_token_scopes())
-    can, refusal = False, None
+    can, refusal, as_admin = False, None, False
     if link.state == "proposed":
         asset = link.asset_id.sudo()
         scopes = asset._gate_scopes(list(held))
         if SCOPE_REGISTER_CHECK in scopes:
-            found = asset._two_gates_refusal("link_check")
-            can, refusal = not found, (found[0] if found else None)
+            # Handoff 70: an administrator under the override may decide
+            # what the rule would refuse them, and the row says so.
+            found = asset._two_gates_rule("link_check")
+            as_admin = bool(found) and admin_overrides(request.env)
+            can = not found or as_admin
+            refusal = found[0] if found and not as_admin else None
     return {
         "id": link.id,
         "kind": link.kind,
@@ -135,6 +142,7 @@ def serialize_link(link, held=None):
         "decided_at": _iso(link.decided_at),
         "return_reason": link.return_reason or None,
         "can_decide": can,
+        "as_admin": as_admin,
         "refusal": refusal,
     }
 
@@ -178,6 +186,10 @@ LINK_SCHEMA = {
                        "nullable": True},
         "return_reason": {"type": "string", "nullable": True},
         "can_decide": {"type": "boolean"},
+        "as_admin": {"type": "boolean",
+                     "description": "Handoff 70: deciding is open to the "
+                                    "caller only as an administrator under "
+                                    "the tenant's override."},
         "refusal": {"type": "string", "nullable": True},
     }}
 _LINE_SCHEMA = {

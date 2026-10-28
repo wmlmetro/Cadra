@@ -88,6 +88,10 @@ export interface AuditBlock {
 
 export interface AuditPeople {
   capturers: (UserRef & { login: string })[];
+  /** Handoff 70: system administrators, listed only while the tenant's
+   *  administrator override is on — they may then capture in any open
+   *  campaign, so a device may be bound to them. */
+  administrators?: (UserRef & { login: string })[];
   reviewers: (UserRef & { login: string })[];
 }
 
@@ -448,7 +452,21 @@ export interface AuditCapture {
   exception_void_reason: string | null;
   gps?: CaptureGps | null;
   replayed?: boolean;
+  /** Handoff 70: the capture, or its review, went ahead only because the
+   *  person was an administrator under the tenant's override; `override_of`
+   *  names the rules lifted (`not_a_capturer` for the capture, `own_capture`
+   *  and `not_a_reviewer` for the review). Absent from an older server. */
+  captured_as_admin?: boolean;
+  reviewed_as_admin?: boolean;
+  override_of?: string[];
 }
+
+/** The rules the override lifted on a capture, in words (handoff 70). */
+export const OVERRIDE_RULE_WORDS: Record<string, string> = {
+  not_a_capturer: "not named as a capturer in this campaign",
+  own_capture: "their own capture",
+  not_a_reviewer: "not named as a reviewer in this campaign",
+};
 
 export const DUPLICATE_WORDS: Record<string, string> = {
   cadra_asset: "the same Cadra asset",

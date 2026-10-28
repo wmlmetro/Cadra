@@ -151,7 +151,8 @@ class NRSSapLink(models.Model):
         return (self.proposed_by_id.name or None,
                 self.decided_by_id.name or None)
 
-    def _record_event(self, action, gate, *, reason=None, actor=None):
+    def _record_event(self, action, gate, *, reason=None, actor=None,
+                      override_of=None):
         self.ensure_one()
         maker, checker = self._who()
         notes = {'link_id': self.id, 'kind': self.kind,
@@ -167,7 +168,8 @@ class NRSSapLink(models.Model):
             source='api_sap_link' if self.asset_id._in_api() else None,
             actor=actor, from_value=frm, to_value=to, gate=gate,
             gate_action=action, reason=reason,
-            notes=json.dumps(notes, sort_keys=True))
+            notes=json.dumps(notes, sort_keys=True),
+            admin_override=bool(override_of), override_of=override_of)
 
     # ── the checker's acts ────────────────────────────────────────────
 
@@ -194,7 +196,7 @@ class NRSSapLink(models.Model):
                                 '— say why, in words.'),
                               'validation_failed', {'field': 'reason'})
         # The no-two-gates rule: whoever proposed it may not decide it.
-        asset._assert_two_gates(GATE_LINK_CHECK)
+        lifted = asset._assert_two_gates(GATE_LINK_CHECK)
         if approve:
             if self.kind == 'link':
                 self._assert_still_linkable()
@@ -227,7 +229,8 @@ class NRSSapLink(models.Model):
         action = ('approve' if approve else 'return') + (
             '' if self.kind == 'link' else '_undo')
         self._record_event(action, GATE_LINK_CHECK if approve else None,
-                           reason=self.reason if approve else text)
+                           reason=self.reason if approve else text,
+                           override_of=lifted)
         return self
 
     def _assert_still_linkable(self):
@@ -382,7 +385,9 @@ class NRSAssetSapLink(models.Model):
                 'Register Checker (by %(who)s).', code=self.asset_code,
                 who=pending.proposed_by_id.name), 'invalid_state',
                 {'link_id': pending.id})
-        self._assert_two_gates(GATE_LINK_MAKE)
+        # The sentence an administrator's override lifted, or None
+        # (handoff 70): the proposal's event records it.
+        return self._assert_two_gates(GATE_LINK_MAKE)
 
     def _sap_link_propose(self, targets=None, sap_record=None, note=None,
                           scopes=None):
@@ -392,7 +397,7 @@ class NRSAssetSapLink(models.Model):
         (`sap_record`, from the contested list): the maker chose."""
         self.ensure_one()
         Sap = self.env['nrs.sap.asset'].sudo()
-        self._assert_may_make_link(scopes)
+        lifted = self._assert_may_make_link(scopes)
         self._refuse_posting_in_flight()
         targets = targets if targets is not None else Sap._confident_targets()
         hit = targets['target'].get(self.id)
@@ -442,7 +447,8 @@ class NRSAssetSapLink(models.Model):
                 'note': (note or '').strip() or False,
                 'proposed_by_id': self.env.user.id,
                 'proposed_at': fields.Datetime.now()})
-        link._record_event('propose', GATE_LINK_MAKE, reason=reason)
+        link._record_event('propose', GATE_LINK_MAKE, reason=reason,
+                           override_of=lifted)
         # Handed back WITHOUT the write flag it was created under: a caller
         # holding the returned record must not be able to write a decision
         # onto it (found by `test_a_link_row_is_never_deleted_or_edited`).
@@ -461,7 +467,7 @@ class NRSAssetSapLink(models.Model):
                 '%s carries no SAP number linked from the mirror; only a '
                 'link is undone here.') % self.asset_code, 'invalid_state',
                 {'sap_code_source': self.sap_code_source or None})
-        self._assert_may_make_link(scopes)
+        lifted = self._assert_may_make_link(scopes)
         rec = self.env['nrs.sap.asset'].sudo()._for_asset(self)
         last = self.env['nrs.sap.link'].sudo().search(
             [('asset_id', '=', self.id), ('kind', '=', 'link'),
@@ -479,7 +485,8 @@ class NRSAssetSapLink(models.Model):
                 'reason_code': 'undo', 'reason': text,
                 'proposed_by_id': self.env.user.id,
                 'proposed_at': fields.Datetime.now()})
-        link._record_event('propose_undo', GATE_LINK_MAKE, reason=text)
+        link._record_event('propose_undo', GATE_LINK_MAKE, reason=text,
+                           override_of=lifted)
         return self.env['nrs.sap.link'].browse(link.id)
 
     # ── §2: the flag ──────────────────────────────────────────────────

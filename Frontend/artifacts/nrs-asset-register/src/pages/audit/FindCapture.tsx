@@ -9,6 +9,8 @@
  * which device, when the server received it, and who may review it. A
  * person who is not one of the campaign's reviewers is told so in words,
  * with the names of those who are; nothing found says where else to look.
+ * An administrator under the override (handoff 70) is offered the review
+ * anyway, and told it goes as the administrator's.
  */
 import { useState } from "react";
 import { Link } from "wouter";
@@ -21,6 +23,7 @@ import {
 } from "@/lib/auditCapture";
 import { cn } from "@/lib/utils";
 import { Btn, ErrorPanel, INPUT, Pill, when } from "./shared";
+import { useAdminOverride } from "@/hooks/use-admin-override";
 
 /** Where a reviewer is sent to review a found capture. */
 export interface ReviewTarget { campaignId: number; locationId: number; state: AuditCapture["state"]; captureId: string }
@@ -108,6 +111,10 @@ function Found({ c, canReview, onReview }: {
   const me = myUid();
   const reviewers = c.campaign.reviewers;
   const isReviewer = me != null && !!reviewers?.some(u => u.id === me);
+  // Handoff 70: an administrator under the override may review where they
+  // are not named. The server decides; this offers the button.
+  const { active: overrideOn } = useAdminOverride();
+  const mayReview = isReviewer || overrideOn;
   const open = c.campaign.state !== "closed";
   const target: ReviewTarget = { campaignId: c.campaign.id, locationId: c.location.id, state: c.state, captureId: c.capture_id };
   const names = (reviewers ?? []).map(u => u.name).join(", ");
@@ -142,12 +149,13 @@ function Found({ c, canReview, onReview }: {
         <p className="text-amber-800 dark:text-amber-300" data-testid="found-not-a-reviewer">
           You are not a reviewer on {c.campaign.name}.{" "}
           {names ? <>Its reviewers are {names}</> : <>Its reviewers: none named</>}; the Asset Controller adds reviewers on Audit campaigns.
+          {overrideOn && <> As an administrator under the override you may review it anyway; it is listed under Audit › Administrator overrides.</>}
         </p>
       )}
-      {isReviewer && !open && (
+      {mayReview && !open && (
         <p className="text-muted-foreground" data-testid="found-closed">The campaign is closed; nothing more is reviewed in it.</p>
       )}
-      {isReviewer && open && canReview && (
+      {mayReview && open && canReview && (
         onReview
           ? <Btn kind="plain" testid={`button-review-found-${c.capture_id}`} onClick={() => onReview(target)}>Review it here</Btn>
           : <Link href={reviewHref(target)} className="inline-block text-primary font-semibold hover:underline"

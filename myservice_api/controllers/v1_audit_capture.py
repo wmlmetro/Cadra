@@ -255,6 +255,12 @@ def _photo_brief(p):
             "height": p.height, "sha256": p.sha256}
 
 
+def _override_codes(cap):
+    return [code for value in (cap.capture_override_of,
+                               cap.review_override_of)
+            for code in (value or "").split(",") if code]
+
+
 def _capture_out(cap):
     suggestion = cap.ai_suggestion_id
     sap = cap.sap_record_id
@@ -309,6 +315,12 @@ def _capture_out(cap):
         "duplicate_basis": cap.duplicate_basis or None,
         "reviewed_by": _user(cap.reviewed_by_id),
         "reviewed_at": _iso(cap.reviewed_at),
+        # Handoff 70: an act the administrator override made possible, and
+        # the rules it lifted (`not_a_capturer`; `own_capture`,
+        # `not_a_reviewer`). False / [] for every other act.
+        "captured_as_admin": bool(cap.captured_as_admin),
+        "reviewed_as_admin": bool(cap.reviewed_as_admin),
+        "override_of": _override_codes(cap),
         "return_reason": cap.return_reason or None,
         "result_asset": ({"id": cap.result_asset_id.id,
                           "asset_code": cap.result_asset_id.asset_code,
@@ -549,6 +561,22 @@ class CadraAuditCaptureV1(http.Controller):
             members = group.sudo().all_user_ids if group else _env("res.users")
             out[key] = [{"id": u.id, "name": u.name, "login": u.login}
                         for u in members.filtered("active").sorted("name")]
+        # Handoff 70: while the administrator override is on, an
+        # administrator may capture in any open campaign, and needs a device
+        # bound to them for it — so the controller can bind one. People
+        # only: an API credential's user never overrides. Empty while off.
+        from odoo.addons.myservice_asset_register.models.admin_override \
+            import override_switched_on
+        admins = _env("res.users")
+        if override_switched_on(request.env):
+            group = request.env.ref("base.group_system")
+            credentials = _env("myservice.api.client").with_context(
+                active_test=False).search([]).user_id
+            admins = (group.sudo().all_user_ids - credentials).filtered(
+                lambda u: u.active and not u.share and u.id != 1)
+        out["administrators"] = [{"id": u.id, "name": u.name,
+                                  "login": u.login}
+                                 for u in admins.sorted("name")]
         return out
 
     # ── code blocks and the ledger ────────────────────────────────────

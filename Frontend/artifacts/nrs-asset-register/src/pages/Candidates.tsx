@@ -221,6 +221,12 @@ export default function Candidates() {
     && (r.gates?.available ?? []).some(a => a.action === (batchAction as GateAction) && a.can_fire);
   const selectableRows = rows.filter(selectable);
   const selectedRows = rows.filter(r => selected.has(r.id) && selectable(r));
+  // Handoff 70: a selection holding a unit the batch's act is firable on
+  // ONLY because this person is an administrator under the override says
+  // so on its button — the batch is N single fires, and that one goes as
+  // the administrator's.
+  const batchAsAdmin = !!batchAction && selectedRows.some(r => (r.gates?.available ?? [])
+    .some(a => a.action === batchAction && a.can_fire && a.as_admin));
   const allVisibleSelected = selectableRows.length > 0 && selectableRows.every(r => selected.has(r.id));
   const toggle = (id: number) => setSelected(prev => {
     const next = new Set(prev);
@@ -299,28 +305,28 @@ export default function Candidates() {
                 <span className="font-bold text-foreground">{selectedRows.length}</span> selected
               </span>
               {batchAction === "verify" && (
-                <BatchButton testid="button-batch-verify" n={selectedRows.length} onClick={() => openBatch("verify")}>
+                <BatchButton testid="button-batch-verify" n={selectedRows.length} asAdmin={batchAsAdmin} onClick={() => openBatch("verify")}>
                   Verify selected
                 </BatchButton>
               )}
               {batchAction === "submit" && (
-                <BatchButton testid="button-batch-submit" n={selectedRows.length} onClick={() => openBatch("submit")}>
+                <BatchButton testid="button-batch-submit" n={selectedRows.length} asAdmin={batchAsAdmin} onClick={() => openBatch("submit")}>
                   Submit selected
                 </BatchButton>
               )}
               {batchAction === "approve" && (
-                <BatchButton testid="button-batch-approve" n={selectedRows.length} onClick={() => openBatch("approve")}>
+                <BatchButton testid="button-batch-approve" n={selectedRows.length} asAdmin={batchAsAdmin} onClick={() => openBatch("approve")}>
                   Approve selected
                 </BatchButton>
               )}
               {batchAction === "request-tagging" && (
-                <BatchButton testid="button-batch-request-tagging" n={selectedRows.length}
+                <BatchButton testid="button-batch-request-tagging" n={selectedRows.length} asAdmin={batchAsAdmin}
                   onClick={() => openBatch("request-tagging")}>
                   Request tagging for selected
                 </BatchButton>
               )}
               {batchAction === "approve-registration" && (
-                <BatchButton testid="button-batch-approve-registration" n={selectedRows.length}
+                <BatchButton testid="button-batch-approve-registration" n={selectedRows.length} asAdmin={batchAsAdmin}
                   onClick={() => openBatch("approve-registration")}>
                   Approve selected
                 </BatchButton>
@@ -555,17 +561,20 @@ export default function Candidates() {
 }
 
 /** "Verify selected (N)" — disabled with nothing selected. */
-function BatchButton({ testid, n, onClick, children }: {
+function BatchButton({ testid, n, onClick, children, asAdmin = false }: {
   testid: string; n: number; onClick: () => void; children: React.ReactNode;
+  /** "Approve selected as administrator (3)" — handoff 70. */
+  asAdmin?: boolean;
 }) {
   const ready = n > 0 && n <= GATE_BATCH_MAX;
   return (
     <button type="button" disabled={!ready} onClick={onClick} data-testid={testid}
+      data-as-admin={asAdmin ? "true" : undefined}
       className={cn(
         "px-3 py-1.5 text-xs font-semibold rounded-xl transition-colors",
         ready ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed",
       )}>
-      {children} ({n})
+      {children}{asAdmin && " as administrator"} ({n})
     </button>
   );
 }

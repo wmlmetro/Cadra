@@ -1,0 +1,30 @@
+# e2e70.log
+  1) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › administrator: lands, sees, and is refused what it does not see 
+  2) [chromium] › tests/46-everyone-sees-their-own-job.spec.ts:178:9 › 46 — everyone sees their own job › auditor: lands, sees, and is refused what it does not see 
+  3) [chromium] › tests/57-the-gates-tonight.spec.ts:262:7 › 57 — the gates, tonight › store: submits the unit to IAD from the Candidates page 
+  4) [chromium] › tests/57-the-gates-tonight.spec.ts:730:7 › 59 — a record_only unit: five gates, no label › store submits; the Candidates row says who it waits on 
+  5) [chromium] › tests/65-the-link.spec.ts:122:7 › handoff 65 — the link › a maker proposes two confident matches and a checker approves them 
+  3 failed
+  2 flaky
+  5 skipped
+  19 did not run
+  24 passed (10.0m)
+# e2e70b.log
+  1) [chromium] › tests/57-the-gates-tonight.spec.ts:272:7 › 57 — the gates, tonight › IAD officer: verify is refused without the four checks and evidence, then verifies 
+  2) [chromium] › tests/57-the-gates-tonight.spec.ts:302:7 › 57 — the gates, tonight › Asset Controller: requests tagging, and the label is minted then 
+  3) [chromium] › tests/57-the-gates-tonight.spec.ts:730:7 › 59 — a record_only unit: five gates, no label › store submits; the Candidates row says who it waits on 
+  2 failed
+  1 flaky
+  9 did not run
+  21 passed (9.5m)
+# e2e57.log
+  1) [chromium] › tests/57-the-gates-tonight.spec.ts:262:7 › 57 — the gates, tonight › store: submits the unit to IAD from the Candidates page 
+  2) [chromium] › tests/57-the-gates-tonight.spec.ts:730:7 › 59 — a record_only unit: five gates, no label › store submits; the Candidates row says who it waits on 
+  3) [chromium] › tests/57-the-gates-tonight.spec.ts:744:7 › 59 — a record_only unit: five gates, no label › IAD officer verifies 
+  2 failed
+  1 flaky
+  11 did not run
+  4 passed (2.2m)
+# e2e70c.log
+  5 skipped
+  15 passed (2.4m)

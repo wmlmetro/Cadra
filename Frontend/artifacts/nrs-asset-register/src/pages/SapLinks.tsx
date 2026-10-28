@@ -573,6 +573,9 @@ function CheckerTab({ canCheck }: { canCheck: boolean }) {
   const selectable = (l: SapLink) => canCheck && l.can_decide;
   const selectableRows = rows.filter(selectable);
   const selectedRows = rows.filter(l => selected.has(l.id) && selectable(l));
+  // Handoff 70: a selection holding a proposal this person may decide only
+  // as an administrator under the override says so on its buttons.
+  const selectedAsAdmin = selectedRows.some(l => l.as_admin);
   const allSelected = selectableRows.length > 0 && selectableRows.every(l => selected.has(l.id));
   const toggle = (id: number) => setSelected(prev => {
     const next = new Set(prev);
@@ -606,11 +609,11 @@ function CheckerTab({ canCheck }: { canCheck: boolean }) {
             </span>
             <SelectionButton testid="button-approve-selected" n={selectedRows.length}
               onClick={() => setDeciding({ approve: true, rows: selectedRows })}>
-              Approve selected
+              Approve selected{selectedAsAdmin && " as administrator"}
             </SelectionButton>
             <SelectionButton testid="button-return-selected" n={selectedRows.length}
               onClick={() => setDeciding({ approve: false, rows: selectedRows })}>
-              Return selected
+              Return selected{selectedAsAdmin && " as administrator"}
             </SelectionButton>
             <span className="text-[11px] text-muted-foreground">
               Only proposals you may decide can be selected; one you proposed says why in its row.
@@ -685,13 +688,15 @@ function CheckerTab({ canCheck }: { canCheck: boolean }) {
                     <div className="flex gap-1.5">
                       <button type="button" onClick={() => setDeciding({ approve: true, rows: [l] })}
                         data-testid={`button-approve-link-${l.id}`}
+                        data-as-admin={l.as_admin ? "true" : undefined}
                         className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
-                        Approve
+                        {l.as_admin ? "Approve (as administrator)" : "Approve"}
                       </button>
                       <button type="button" onClick={() => setDeciding({ approve: false, rows: [l] })}
                         data-testid={`button-return-link-${l.id}`}
+                        data-as-admin={l.as_admin ? "true" : undefined}
                         className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-border text-foreground hover:bg-accent">
-                        Return
+                        {l.as_admin ? "Return (as administrator)" : "Return"}
                       </button>
                     </div>
                   ) : l.refusal ? (
@@ -734,6 +739,7 @@ function DecideDialog({ approve, rows, onClose, onDone }: {
   const close = () => { if (!m.isPending) onClose(); };
   const ready = rows.length > 0 && rows.length <= SAP_LINK_BATCH_MAX && (approve || reason.trim().length > 0);
   const many = rows.length === 1 ? "proposal" : "proposals";
+  const asAdmin = rows.some(l => l.as_admin);
 
   return (
     <Dialog open onOpenChange={(next) => { if (!next) close(); }}>
@@ -764,6 +770,12 @@ function DecideDialog({ approve, rows, onClose, onDone }: {
                 placeholder="Say why, in words — the maker reads this." />
             </div>
           )}
+          {asAdmin && (
+            <p className="text-[11px] text-amber-800 dark:text-amber-300" data-testid="decide-as-admin">
+              You decide {rows.length === 1 ? "this" : "some of these"} as an administrator under this tenant's override:
+              the two-person rule would otherwise refuse you. Each such decision is listed under Audit › Administrator overrides.
+            </p>
+          )}
           {m.error && <ErrorPanel err={m.error} testid="decide-error" />}
         </div>
         <DialogFooter>
@@ -772,7 +784,7 @@ function DecideDialog({ approve, rows, onClose, onDone }: {
             Cancel
           </button>
           <SendButton testid="button-decide-send" ready={ready} pending={m.isPending} onClick={() => m.mutate()}>
-            {approve ? "Approve" : "Return"} {rows.length}
+            {approve ? "Approve" : "Return"} {rows.length}{asAdmin && " (as administrator)"}
           </SendButton>
         </DialogFooter>
       </DialogContent>

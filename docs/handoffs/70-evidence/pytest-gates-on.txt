@@ -1,0 +1,3 @@
+# pytest gates on, fresh test19f
+Captured responses: /Users/macbookprom1/Desktop/WML/myservicenrs/docs/api/test-responses/
+1583 passed, 14 skipped in 770.02s (0:12:50)

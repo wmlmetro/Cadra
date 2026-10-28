@@ -120,6 +120,27 @@ NOT_RECORDED = (
      "complete account of it."),
 )
 
+
+def _with_override(summary, ev, detail, named=False):
+    """Handoff 70 §5: an act an administrator could do only under the
+    tenant's override says so — *"…, by A. Admin, as administrator (they
+    verified this unit on 20 Oct)."* — and its detail carries both columns.
+    `named`: the sentence already names the actor (a SAP link's), so only
+    *"as administrator (…)"* is added. Every other gate or link event is
+    returned unchanged, with `admin_override: false`."""
+    detail.update(admin_override=bool(ev.admin_override),
+                  override_of=ev.override_of or None)
+    if not ev.admin_override:
+        return summary
+    earlier = (ev.override_of or "").split(";")[0].strip()
+    if earlier.startswith("You "):
+        earlier = "they " + earlier[4:]
+    if named:
+        return "%s, as administrator (%s)." % (summary.rstrip("."), earlier)
+    return "%s, by %s, as administrator (%s)." % (
+        summary.rstrip("."), ev.actor_name or "—", earlier)
+
+
 #: Handoff 57: the history's sentence per gate action.
 _GATE_SENTENCES = {
     "submit": "Submitted to Internal Audit",
@@ -704,6 +725,7 @@ class NRSAssetHistory(models.Model):
                                "reason": ev.reason or None,
                                "evidence": _gate_evidence_for_caller(
                                    ev.notes)})
+                summary = _with_override(summary, ev, detail)
             elif etype == "photo_superseded":
                 # Handoff 61 §5. The photo itself is never touched; this row
                 # is what says it no longer stands, who said so and why.
@@ -785,6 +807,7 @@ class NRSAssetHistory(models.Model):
                                "reason_code": who.get("reason_code"),
                                "proposed_by": who.get("proposed_by"),
                                "decided_by": who.get("decided_by")})
+                summary = _with_override(summary, ev, detail, named=True)
             elif etype == "sap_duplicate_flagged":
                 # Handoff 65 §2. A record for NRS; nothing was merged.
                 published = "sap_duplicate_flagged"

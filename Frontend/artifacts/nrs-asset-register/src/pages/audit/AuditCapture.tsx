@@ -4,7 +4,8 @@
  * mobile team's; this is for an item brought to a desk, or a room audited
  * from a laptop.
  *
- *   1. the campaign (only those naming this person as a capturer), the
+ *   1. the campaign (only those naming this person as a capturer — every
+ *      open one for an administrator under the override, handoff 70), the
  *      device bound to them (sent as `X-Cadra-Device`), and the room —
  *      picked from the campaign's rooms or its room code typed or scanned;
  *   2. a photo (the browser's camera on a phone, a file on a desk), made
@@ -45,6 +46,7 @@ import {
 } from "@/components/station/CaptureStationParts";
 import type { CadraApiError } from "@/lib/api";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
+import { useAdminOverride } from "@/hooks/use-admin-override";
 import { preparePhotoForUpload } from "@/lib/assetPhotos";
 import { identifyAuditPhoto, type AiSuggestion } from "@/lib/aiIdentify";
 import type { LabelSize } from "@/lib/labels";
@@ -129,12 +131,16 @@ export function CaptureScreen(props: CaptureScreenProps = {}) {
   const ai = useAiSwitch();
 
   // ── 1. where ──
+  // Handoff 70: an administrator under the override may capture in any open
+  // campaign, so every one is listed for them — the key says which list it
+  // is, so switching the override never paints the other from the cache.
+  const { active: overrideOn } = useAdminOverride();
   const campaigns = useQuery<AuditCampaign[], CadraApiError>({
-    queryKey: [...AUDIT_KEY, "campaigns", "open", "capturing"],
+    queryKey: [...AUDIT_KEY, "campaigns", "open", "capturing", overrideOn ? "every" : "mine"],
     queryFn: async () => {
       const me = myUid();
       const all = await fetchCampaigns("open");
-      return me == null ? all : all.filter(c => c.capturers.some(u => u.id === me));
+      return me == null || overrideOn ? all : all.filter(c => c.capturers.some(u => u.id === me));
     },
   });
   const devices = useQuery({ queryKey: [...AUDIT_KEY, "devices", "mine"], queryFn: () => fetchDevices(true) });
@@ -377,7 +383,7 @@ export function CaptureScreen(props: CaptureScreenProps = {}) {
           <div className="flex flex-wrap gap-2 items-center">
             <select className={INPUT} data-testid="capture-campaign" aria-label="Campaign"
                     value={campaignId ?? ""} onChange={e => setCampaignId(e.target.value ? Number(e.target.value) : null)}>
-              {(campaigns.data ?? []).length === 0 && <option value="">No open campaign names you as a capturer</option>}
+              {(campaigns.data ?? []).length === 0 && <option value="">{overrideOn ? "No campaign is open" : "No open campaign names you as a capturer"}</option>}
               {(campaigns.data ?? []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             {!station && (
@@ -388,6 +394,12 @@ export function CaptureScreen(props: CaptureScreenProps = {}) {
               </select>
             )}
           </div>
+          {overrideOn && campaign && !campaign.capturers.some(u => u.id === myUid()) && (
+            <p className="text-[11px] text-amber-800 dark:text-amber-300" data-testid="capture-as-admin">
+              {campaign.name} does not name you as a capturer. You capture in it as an administrator under the override;
+              each capture is listed under Audit › Administrator overrides.
+            </p>
+          )}
           {!station && devices.data && myDevices.length === 0 && (
             <p className="text-[11px] text-amber-800 dark:text-amber-300">The Asset Controller binds a device to you on <span className="font-semibold">Devices and codes</span>; a capture names the device it was taken on.</p>
           )}

@@ -55,6 +55,7 @@ const AuditReview                = lazy(() => import("@/pages/audit/AuditReview"
 const AuditCapture               = lazy(() => import("@/pages/audit/AuditCapture"));
 const AuditExceptions            = lazy(() => import("@/pages/audit/AuditExceptions"));
 const AuditDevices               = lazy(() => import("@/pages/audit/AuditDevices"));
+const AuditAdminOverrides        = lazy(() => import("@/pages/audit/AdminOverrides"));
 const Locations                  = lazy(() => import("@/pages/Locations"));
 const LocationDetail             = lazy(() => import("@/pages/LocationDetail"));
 const LocationForm               = lazy(() => import("@/pages/LocationForm"));
@@ -204,6 +205,7 @@ function AppRoutes() {
           <Route path="/audit/capture"       component={AuditCapture}    />
           <Route path="/audit/exceptions"    component={AuditExceptions} />
           <Route path="/audit/devices"       component={AuditDevices}    />
+          <Route path="/audit/admin-overrides" component={AuditAdminOverrides} />
           <Route path="/assets/:id"          component={AssetDetail}    />
           <Route path="/locations"           component={Locations}      />
           <Route path="/locations/new"       component={() => <LocationForm mode="create" />} />
@@ -377,6 +379,10 @@ function App() {
               // about the record NOW, and a restored copy would show it as
               // it stood on another day without saying so.
               && q.queryKey[0] !== "configuration-changes"
+              // Handoff 70: whether an administrator may act alone, and the
+              // list of when one did — both questions about NOW.
+              && q.queryKey[0] !== "admin-override"
+              && q.queryKey[0] !== "admin-overrides"
               && q.queryKey[0] !== "disposals-report"
               && q.queryKey[0] !== "register-snapshot"
               && q.queryKey[0] !== "departed-holders",

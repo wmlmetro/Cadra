@@ -23,6 +23,12 @@
  * with captures waiting; captures waiting where this person is no reviewer
  * are counted under it; a find box finds any capture by ID or code; and
  * each card names the device it came from and when the server received it.
+ *
+ * Handoff 70: an administrator under the tenant's override reviews alone —
+ * the dropdown lists EVERY open campaign, and on a capture whose review
+ * needs the override (their own, or a campaign not naming them a reviewer)
+ * the buttons say "(as administrator)". A capture captured or reviewed that
+ * way says so on its card. With the switch off nothing here changes.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearch } from "wouter";
@@ -35,8 +41,9 @@ import {
 } from "@/components/ui/dialog";
 import type { CadraApiError } from "@/lib/api";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
+import { useAdminOverride } from "@/hooks/use-admin-override";
 import {
-  AUDIT_KEY, CONFIRMED_FIELD_WORDS, DUPLICATE_WORDS, LABEL_WORDS, OUTCOME_WORDS, STATE_WORDS,
+  AUDIT_KEY, CONFIRMED_FIELD_WORDS, DUPLICATE_WORDS, LABEL_WORDS, OUTCOME_WORDS, OVERRIDE_RULE_WORDS, STATE_WORDS,
   acceptCapture, acceptRoom, fetchCampaign, fetchCampaigns, fetchCapture, fetchCaptures, myUid, returnCapture,
   type AcceptBatchAnswer, type AuditCampaign, type AuditCapture, type CapturesPage, type CaptureState, type ConfirmedFields,
 } from "@/lib/auditCapture";
@@ -60,6 +67,9 @@ export default function AuditReview() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const scopes = useScopes();
   const canReview = scopes.has(SCOPE.auditReview);
+  // Handoff 70: an administrator under the override may review in any open
+  // campaign, so every one is listed for them.
+  const { active: overrideOn } = useAdminOverride();
   // Handoff 69: a found capture opens here through the address — Audit
   // campaigns' find box links to `?campaign=&room=&show=&capture=`.
   const search = useSearch();
@@ -88,6 +98,7 @@ export default function AuditReview() {
   // Every open campaign; the dropdown lists those naming this person as a
   // reviewer (the server names the team), and the rest are counted so a
   // capture waiting where nobody here may review it is said (handoff 69 B3).
+  // An administrator under the override is listed every one (handoff 70).
   const openCampaigns = useQuery<AuditCampaign[], CadraApiError>({
     queryKey: [...AUDIT_KEY, "campaigns", "open"],
     queryFn: () => fetchCampaigns("open"),
@@ -96,11 +107,11 @@ export default function AuditReview() {
   const { mine, waitingElsewhere, waitingMine } = useMemo(() => {
     const me = myUid();
     const all = openCampaigns.data ?? [];
-    const mineList = me == null ? all : all.filter(c => c.reviewers.some(u => u.id === me));
+    const mineList = me == null || overrideOn ? all : all.filter(c => c.reviewers.some(u => u.id === me));
     const ids = new Set(mineList.map(c => c.id));
     const sum = (cs: AuditCampaign[]) => cs.reduce((t, c) => t + (c.progress?.waiting_for_review ?? 0), 0);
     return { mine: mineList, waitingMine: sum(mineList), waitingElsewhere: sum(all.filter(c => !ids.has(c.id))) };
-  }, [openCampaigns.data]);
+  }, [openCampaigns.data, overrideOn]);
   // The default (handoff 69, the staging defect): the first campaign naming
   // this person that has captures WAITING — the newest open one may have
   // none while an older one has five — falling back to the first.
@@ -157,12 +168,29 @@ export default function AuditReview() {
   const rows = (captures.data?.pages ?? []).flatMap(p => p.rows);
   const total = captures.data?.pages[0]?.totalEstimate ?? null;
   const waitingHere = rows.filter(c => c.state === "pending_review" && !c.duplicate_of).length;
+  // Handoff 70: whether THIS person's review of a capture needs the
+  // override — their own capture, or a campaign that does not name them a
+  // reviewer. The server decides; this only words the buttons.
+  const me = myUid();
+  const reviewersOf = (cid: number) =>
+    (campaign.data?.id === cid ? campaign.data.reviewers : undefined)
+    ?? openCampaigns.data?.find(x => x.id === cid)?.reviewers ?? [];
+  const reviewAsAdmin = (c: AuditCapture) => overrideOn && me != null
+    && (c.captured_by?.id === me || !(c.campaign.reviewers ?? reviewersOf(c.campaign.id)).some(u => u.id === me));
+  const roomAsAdmin = overrideOn && roomId != null
+    && rows.some(c => c.state === "pending_review" && !c.duplicate_of && c.location.id === roomId && reviewAsAdmin(c));
 
   return (
     <div className="flex flex-col h-full">
       <PageHeader icon={<ClipboardCheck size={15} />} title="Audit review">
         You are the second person. Read each capture — the photos, what it names, what the capturer confirmed — and
         accept it or return it to the capturer with a reason. You cannot review a capture you made.
+        {overrideOn && (
+          <span className="block mt-1 text-amber-800 dark:text-amber-300" data-testid="review-override-on">
+            The administrator override is on: as an administrator you may review in every open campaign, your own
+            captures included. Each such review is listed under Audit › Administrator overrides.
+          </span>
+        )}
       </PageHeader>
       <div className="px-5 py-3 border-b border-border">
         <FindCapture canReview={canReview} canSeeRefusals={scopes.has(SCOPE.auditManage)} onReview={openFound} />
@@ -171,7 +199,7 @@ export default function AuditReview() {
         <label className="text-[11px] text-muted-foreground" htmlFor="review-campaign">Campaign</label>
         <select id="review-campaign" className={INPUT} data-testid="review-campaign"
                 value={campaignId ?? ""} onChange={e => chooseCampaign(e.target.value ? Number(e.target.value) : null)}>
-          {mine.length === 0 && <option value="">No open campaign names you as a reviewer</option>}
+          {mine.length === 0 && <option value="">{overrideOn ? "No campaign is open" : "No open campaign names you as a reviewer"}</option>}
           {mine.map(c => (
             <option key={c.id} value={c.id}>{c.name} ({n(c.progress?.waiting_for_review ?? 0)} waiting)</option>
           ))}
@@ -197,7 +225,7 @@ export default function AuditReview() {
         <div className="ml-auto flex items-center gap-2">
           {roomId == null && <span className="text-[11px] text-muted-foreground">Choose a room to accept it as a batch.</span>}
           <Btn testid="button-accept-room" disabled={campaignId == null || roomId == null} onClick={() => setBatch(true)}>
-            Accept the room
+            {roomAsAdmin ? "Accept the room (as administrator)" : "Accept the room"}
           </Btn>
         </div>
       </div>
@@ -218,7 +246,7 @@ export default function AuditReview() {
         {captures.error && <ErrorPanel err={captures.error} />}
         {captures.isLoading ? <Loading what="Reading the captures…" /> : rows.length === 0 && !captures.error ? (
           <Empty testid="review-empty">
-            {campaignId == null ? "No open campaign names you as a reviewer." : show === "pending_review" ? "Nothing here is waiting for review." : "No capture matches."}
+            {campaignId == null ? (overrideOn ? "No campaign is open." : "No open campaign names you as a reviewer.") : show === "pending_review" ? "Nothing here is waiting for review." : "No capture matches."}
           </Empty>
         ) : (
           <>
@@ -228,7 +256,8 @@ export default function AuditReview() {
                 Showing {n(rows.length)} of {n(total)} {SHOW_WORD[show]}{roomId != null ? " in this room" : ""}.
               </p>
             )}
-            {rows.map(c => <CaptureCard key={c.capture_id} c={c} siblings={rows} focused={focus === c.capture_id} />)}
+            {rows.map(c => <CaptureCard key={c.capture_id} c={c} siblings={rows} focused={focus === c.capture_id}
+                                        asAdmin={reviewAsAdmin(c)} />)}
           </>
         )}
         {captures.hasNextPage && (
@@ -306,7 +335,35 @@ function Target({ c }: { c: AuditCapture }) {
   return <p className="text-[12px]" data-testid="capture-target">Neither register holds it — on acceptance it becomes an exception for the Asset Controller.</p>;
 }
 
-function CaptureCard({ c, siblings, focused = false }: { c: AuditCapture; siblings: AuditCapture[]; focused?: boolean }) {
+/** The override's own line on a card (handoff 70): which act went ahead
+ *  only because an administrator was under the override, and the rule it
+ *  lifted. Nothing is drawn for a capture neither flag is on. */
+function OverrideNote({ c }: { c: AuditCapture }) {
+  const codes = c.override_of ?? [];
+  const words = (wanted: string[]) => codes.filter(x => wanted.includes(x)).map(x => OVERRIDE_RULE_WORDS[x] ?? x);
+  const lines: string[] = [];
+  if (c.captured_as_admin) {
+    const w = words(["not_a_capturer"]);
+    lines.push(`Captured by an administrator under the override${w.length ? ` (${w.join("; ")})` : ""}.`);
+  }
+  if (c.reviewed_as_admin) {
+    const w = words(["own_capture", "not_a_reviewer"]);
+    const verb = c.state === "returned" ? "Returned" : "Accepted";
+    lines.push(`${verb} by an administrator under the override${w.length ? ` (${w.join("; ")})` : ""}.`);
+  }
+  if (lines.length === 0) return null;
+  return (
+    <p className="text-[11px] text-amber-800 dark:text-amber-300" data-testid="capture-override-note">
+      {lines.join(" ")}
+    </p>
+  );
+}
+
+function CaptureCard({ c, siblings, focused = false, asAdmin = false }: {
+  c: AuditCapture; siblings: AuditCapture[]; focused?: boolean;
+  /** This person's review of it goes ahead only under the override. */
+  asAdmin?: boolean;
+}) {
   const qc = useQueryClient();
   const accept = useMutation<AuditCapture, CadraApiError>({
     mutationFn: () => acceptCapture(c.capture_id),
@@ -413,10 +470,15 @@ function CaptureCard({ c, siblings, focused = false }: { c: AuditCapture; siblin
           {c.exception_state && <> — exception {c.exception_state}</>}.
         </p>
       )}
+      <OverrideNote c={c} />
       {waiting && (
         <div className="flex gap-2 items-center flex-wrap">
-          <Btn testid={`button-accept-${c.capture_id}`} pending={accept.isPending} onClick={() => accept.mutate()}>Accept</Btn>
-          <Btn testid={`button-return-${c.capture_id}`} kind="plain" onClick={() => setReturning(true)}>Return to the capturer</Btn>
+          <Btn testid={`button-accept-${c.capture_id}`} pending={accept.isPending} onClick={() => accept.mutate()}>
+            {asAdmin ? "Accept (as administrator)" : "Accept"}
+          </Btn>
+          <Btn testid={`button-return-${c.capture_id}`} kind="plain" onClick={() => setReturning(true)}>
+            {asAdmin ? "Return to the capturer (as administrator)" : "Return to the capturer"}
+          </Btn>
         </div>
       )}
       {accept.error && <ErrorPanel err={accept.error} testid="accept-error" />}
