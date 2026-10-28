@@ -58,8 +58,21 @@ RUN
     # two providers, one table each, the same photos:
         --models openai:gpt-6.1-sol,openai:gpt-6-luna,anthropic:claude-opus-5-5
 
+SIGNING IN. Three ways, none of which puts a secret on the command line:
+  --login <account>   the password is asked for, never echoed. REFUSED on a
+                      tenant with the bot check (Turnstile) switched on —
+                      staging has it — because a script cannot pass it.
+  --token             a token from a browser session you signed in to: on the
+                      tenant's app, DevTools → Application → Local Storage →
+                      `cadra.token`. Pasted at a hidden prompt, or set
+                      CADRA_TOKEN. It lasts as long as the app's session.
+  --client-id <id>    an API credential (`/auth/token`, no bot check); the
+                      secret at a hidden prompt, or CADRA_CLIENT_SECRET. Its
+                      scopes must include assets:write, settings:read and,
+                      for more than one model, settings:write.
+
 It signs in as an account you name (`--login`, the password is asked for and
-never echoed) — an administrator sees the SAP candidates; an account without
+never echoed), or uses `--token` / `--client-id` as above — an administrator sees the SAP candidates; an account without
 `sap_mirror:read` sees only their count. `--models` with more than one model
 needs `settings:write` (it changes the tenant's model for the run). Every
 photo is one identification against the tenant's daily cap — so N photos
@@ -279,8 +292,14 @@ def run_folder(base, auth, photos, labels, out, model, provider=None):
         print(f"{'':<28} SAP: {sap_line}")
         print(f"{'':<28} {seconds:.1f} s, "
               f"{'$%.4f' % cost if cost is not None else 'price not set'}, "
-              f"{usage.get('input_tokens')} in / "
-              f"{usage.get('output_tokens')} out tokens"
+              f"{usage.get('input_tokens')} in"
+              # A provider's cache: the fixed part of the prompt (the classes
+              # and SAP's descriptions) is WRITTEN on a first call and READ
+              # after. Both are input; printing only the uncached part read as
+              # "3 in" on staging's first OpenAI run (handoff 68 addendum).
+              f" (+{usage.get('cache_read_tokens') or 0} cached, "
+              f"+{usage.get('cache_write_tokens') or 0} written to the cache)"
+              f" / {usage.get('output_tokens')} out tokens"
               f"{'' if answered == model else f' (answered by {answered})'}\n")
         rows.append({"file": path.name, "ok": True, "first": first,
                      "top3": top3, "seconds": seconds, "cost": cost,
@@ -327,7 +346,16 @@ def main():
     ap.add_argument("--base", required=True,
                     help="the tenant, e.g. http://test19.localhost:8069")
     ap.add_argument("--folder", required=True, type=pathlib.Path)
-    ap.add_argument("--login", help="the account to sign in as")
+    who = ap.add_mutually_exclusive_group()
+    who.add_argument("--login", help="the account to sign in as (not on a "
+                     "tenant with the bot check on — use --token there)")
+    who.add_argument("--token", action="store_true",
+                     help="use a browser session's token (`cadra.token` in "
+                          "the app's Local Storage), asked for hidden or "
+                          "read from CADRA_TOKEN")
+    who.add_argument("--client-id",
+                     help="sign in as an API credential; the secret is asked "
+                          "for hidden or read from CADRA_CLIENT_SECRET")
     ap.add_argument("--models",
                     help="comma-separated model ids, or provider:model pairs, "
                          "to compare on the same folder, e.g. "
@@ -335,7 +363,19 @@ def main():
                          "(default: the tenant's provider and model)")
     ap.add_argument("--out", type=pathlib.Path,
                     help="also write every answer as JSON lines here")
-    args = ap.parse_args()
+    args, extra = ap.parse_known_args()
+    if extra:
+        # A token typed after `--token` would otherwise be ECHOED by
+        # argparse's "unrecognized arguments" — and it is already in the
+        # shell's history. Refuse it without repeating it.
+        if any(x.startswith("eyJ") or len(x) > 60 for x in extra):
+            sys.exit("A token was typed on the command line: it was NOT used, "
+                     "and it is now in your shell history. Sign out of the app "
+                     "(that ends the session), delete the line from your "
+                     "shell's history file, sign in again, and run with "
+                     "`--token` and NOTHING after it — the script then asks "
+                     "for the token at a hidden prompt.")
+        ap.error("unrecognized arguments: " + " ".join(extra))
 
     wanted = parse_models(args.models)
     folder = args.folder.expanduser()
@@ -350,18 +390,44 @@ def main():
               "contains it.\n")
 
     base = args.base.rstrip("/")
-    login = args.login or input("Sign in as (login): ").strip()
-    password = os.environ.get("CADRA_PASSWORD") or getpass.getpass(
-        f"Password for {login} (hidden): ")
-    r = requests.post(f"{base}/api/v1/auth/login",
-                      json={"login": login, "password": password}, timeout=30)
-    if r.status_code != 200:
-        sys.exit(f"Sign-in refused: HTTP {r.status_code} {r.text[:200]}")
-    token = r.json()["data"]["access_token"]
+    if args.token:
+        token = (os.environ.get("CADRA_TOKEN") or getpass.getpass(
+            "Token from the app's Local Storage, `cadra.token` (hidden): ")
+        ).strip().strip('"')
+        if not token:
+            sys.exit("No token given.")
+    elif args.client_id:
+        secret = os.environ.get("CADRA_CLIENT_SECRET") or getpass.getpass(
+            f"Secret for API credential {args.client_id} (hidden): ")
+        r = requests.post(f"{base}/api/v1/auth/token",
+                          json={"client_id": args.client_id,
+                                "client_secret": secret.strip()}, timeout=30)
+        if r.status_code != 200:
+            sys.exit(f"Token refused: HTTP {r.status_code} {r.text[:200]}")
+        token = r.json()["data"]["access_token"]
+    else:
+        login = args.login or input("Sign in as (login): ").strip()
+        password = os.environ.get("CADRA_PASSWORD") or getpass.getpass(
+            f"Password for {login} (hidden): ")
+        r = requests.post(f"{base}/api/v1/auth/login",
+                          json={"login": login, "password": password},
+                          timeout=30)
+        if r.status_code == 400 and "turnstile_token" in r.text:
+            sys.exit("Sign-in refused: this tenant has the bot check "
+                     "(Turnstile) on, which a script cannot pass. Sign in to "
+                     "the app in a browser and run again with --token (the "
+                     "value of `cadra.token` in the app's Local Storage), or "
+                     "use --client-id with an API credential.")
+        if r.status_code != 200:
+            sys.exit(f"Sign-in refused: HTTP {r.status_code} {r.text[:200]}")
+        token = r.json()["data"]["access_token"]
     auth = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
     settings_url = f"{base}/api/v1/settings/ai-identify"
 
     s = requests.get(settings_url, headers=auth, timeout=30)
+    if s.status_code == 401:
+        sys.exit("The token was refused (401): it has expired or was copied "
+                 "wrong. Sign in to the app again and copy `cadra.token`.")
     if s.status_code != 200:
         sys.exit(f"Could not read the tenant's settings: HTTP {s.status_code} "
                  f"{s.text[:200]}")
