@@ -25,6 +25,17 @@ current cursor instead (the same branch, the same reason: a plain
 
 Append-only: created only by `_record`, never written, deleted only by the
 retention cron once older than `RETENTION_DAYS`.
+
+ONE ROW PER REPEATED FAILURE, NOT PER ATTEMPT (handoff 69b): a phone stuck
+retrying would otherwise write a row a minute for 90 days. A refusal with the
+same capture id, person, error code and sentence as a row FIRST recorded in
+the last `MERGE_HOURS` adds one to that row's `count` and moves its
+`last_refused_at` — the only write a row ever takes. Measured from the first
+refusal, not the last, so no row spans more than a day.
+
+`sync_in_flight` (the same capture landing in another request at that
+moment, handoff 66) is not a refusal and is not recorded: the capture is
+stored by the other request.
 """
 import logging
 import uuid
@@ -39,10 +50,15 @@ _logger = logging.getLogger(__name__)
 
 #: How long a refusal is kept (handoff 69 §5 C2).
 RETENTION_DAYS = 90
+#: A repeat inside this window adds to the row it repeats (handoff 69b).
+MERGE_HOURS = 24
+#: Not a refusal: the capture is landing in another request.
+NOT_A_REFUSAL = ('sync_in_flight',)
 #: The longest as-sent value kept; anything longer is cut, never refused.
 _AS_SENT_MAX = 200
 _CREATE_KEY = 'cadra_capture_refusal'
 _PURGE_KEY = 'cadra_capture_refusal_purge'
+_REPEAT_KEY = 'cadra_capture_refusal_repeat'
 
 
 def _text(value):
@@ -66,7 +82,11 @@ class NRSAuditCaptureRefusal(models.Model):
     _order = 'id desc'
     _rec_name = 'request_id'
 
-    refused_at = fields.Datetime(required=True, index=True, readonly=True)
+    refused_at = fields.Datetime('First Refused', required=True, index=True,
+                                 readonly=True)
+    last_refused_at = fields.Datetime('Last Refused', index=True,
+                                      readonly=True)
+    count = fields.Integer('Times', default=1, required=True, readonly=True)
     capture_uuid = fields.Char('Capture ID (as sent)', index=True,
                                readonly=True)
     user_id = fields.Many2one('res.users', 'Sent By', index=True,
@@ -95,8 +115,11 @@ class NRSAuditCaptureRefusal(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        raise UserError(_('A refused sync is a record of what the server '
-                          'answered; it is never changed.'))
+        if not (self.env.context.get(_REPEAT_KEY)
+                and set(vals) <= {'count', 'last_refused_at'}):
+            raise UserError(_('A refused sync is a record of what the server '
+                              'answered; it is never changed.'))
+        return super().write(vals)
 
     def unlink(self):
         cutoff = fields.Datetime.now() - timedelta(days=RETENTION_DAYS)
@@ -129,8 +152,10 @@ class NRSAuditCaptureRefusal(models.Model):
                 [('device_code', '=', device_code)], limit=1) \
             if device_code else self.env['nrs.audit.device']
         status = details.get('http_status')
+        now = fields.Datetime.now()
         return {
-            'refused_at': fields.Datetime.now(),
+            'refused_at': now,
+            'last_refused_at': now,
             'capture_uuid': _uuid_text(body.get('capture_id')),
             'user_id': self.env.uid,
             'device_code': device_code,
@@ -154,15 +179,16 @@ class NRSAuditCaptureRefusal(models.Model):
         """Keep one refused sync, on its own cursor (the module docstring
         says why). A failure to record is an ERROR line and never changes
         the refusal the phone is sent."""
+        if isinstance(answer, dict) and answer.get('code') in NOT_A_REFUSAL:
+            return
         try:
             vals = self._values(body, header, answer)
             if odoo_module.current_test:
-                self.with_context(**{_CREATE_KEY: True}).sudo().create(vals)
+                self._keep(vals)
                 return
             with Registry(self.env.cr.dbname).cursor() as cr:
                 env = api.Environment(cr, self.env.uid, self.env.context)
-                env['nrs.audit.capture.refusal'].with_context(
-                    **{_CREATE_KEY: True}).sudo().create(vals)
+                env['nrs.audit.capture.refusal']._keep(vals)
                 cr.commit()
         except Exception:   # noqa: BLE001
             # catch-all: reported — the refusal must reach the phone
@@ -170,6 +196,23 @@ class NRSAuditCaptureRefusal(models.Model):
             # unrecorded refusal leaves an ERROR line rather than nothing.
             _logger.exception("could not record the refused capture sync "
                               "(request %s)", (answer or {}).get('request_id'))
+
+    @api.model
+    def _keep(self, vals):
+        """A new row, or one more on the row this refusal repeats."""
+        since = vals['refused_at'] - timedelta(hours=MERGE_HOURS)
+        same = self.sudo().search([
+            ('capture_uuid', '=', vals['capture_uuid']),
+            ('user_id', '=', vals['user_id']),
+            ('error_code', '=', vals['error_code']),
+            ('message', '=', vals['message']),
+            ('refused_at', '>=', since)], order='id desc', limit=1)
+        if same:
+            same.with_context(**{_REPEAT_KEY: True}).sudo().write({
+                'count': same.count + 1,
+                'last_refused_at': vals['last_refused_at']})
+            return same
+        return self.with_context(**{_CREATE_KEY: True}).sudo().create(vals)
 
     @api.model
     def _cron_purge_old(self):

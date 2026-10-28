@@ -370,7 +370,11 @@ function RefusedSyncs() {
               {rows.map(r => (
                 <tr key={r.id} className="border-b border-border align-top" data-testid={`refusal-row-${r.id}`}
                     data-capture-id={r.capture_id ?? ""}>
-                  <td className="px-3 py-2 whitespace-nowrap">{when(r.refused_at)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap" data-testid="refusal-when">
+                    {(r.count ?? 1) > 1
+                      ? <>{r.count} times, last {when(r.last_refused_at ?? r.refused_at)}<div className="text-[10px] text-muted-foreground">first {when(r.refused_at)}</div></>
+                      : when(r.refused_at)}
+                  </td>
                   <td className="px-3 py-2">{r.user?.name ?? "—"}</td>
                   <td className="px-3 py-2" data-testid="refusal-device">
                     {r.device ? r.device.name : r.device_code

@@ -280,7 +280,10 @@ test.describe.serial("handoff 69 — where the captures went", () => {
     await signIn(page, "asset_controller");
     await page.getByRole("navigation", { name: "Primary navigation" }).getByText("Audit campaigns", { exact: true }).click();
     // B3: A waits with no reviewer named; B names one.
-    await expect(page.getByTestId(`campaign-no-reviewer-${w.campA.id}`)).toHaveText("1 capture waits and no reviewer is named.");
+    const warning = page.getByTestId(`campaign-no-reviewer-${w.campA.id}`);
+    await expect(warning).toContainText("1 capture waits and no reviewer is named.");
+    // 69b: and the way out, for whoever may change the team.
+    await expect(warning.getByTestId(`button-add-reviewer-${w.campA.id}`)).toHaveText("Add a reviewer");
     await expect(page.getByTestId(`audit-campaign-row-${w.campB.id}`)).toBeVisible();
     await expect(page.getByTestId(`campaign-no-reviewer-${w.campB.id}`)).toHaveCount(0);
 
@@ -305,5 +308,57 @@ test.describe.serial("handoff 69 — where the captures went", () => {
     await expect(row.getByTestId("refusal-message")).toHaveText(w.refusalMessage);
     await expect(row.getByTestId("refusal-device")).toContainText(w.device.name);
     await expect(row.getByTestId("refusal-status")).toContainText("HTTP 4");
+  });
+
+  // Handoff 69b: the owner could not add a reviewer to a campaign that had
+  // none — no screen called the PATCH the server had since 66.
+  test("an administrator adds a reviewer to the campaign nobody reviews, and the reviewer then sees its capture", async ({ page }) => {
+    const revUid = uidOf(await personaToken("audit_reviewer"));
+    await signIn(page, "administrator");
+    await page.getByRole("navigation", { name: "Primary navigation" }).getByText("Audit campaigns", { exact: true }).click();
+    // The warning line's link opens the Edit form on that campaign.
+    await page.getByTestId(`button-add-reviewer-${w.campA.id}`).click();
+    const detail = page.getByTestId("audit-campaign-detail");
+    await expect(detail).toHaveAttribute("data-campaign-id", String(w.campA.id));
+    const form = detail.getByTestId("edit-campaign-form");
+    await expect(form).toBeVisible();
+    await expect(form.getByTestId("edit-campaign-scope-note")).toHaveText("The rooms and offices are fixed once the campaign is open.");
+    await expect(form.getByTestId("button-edit-campaign-save")).toBeDisabled();
+    const patch = page.waitForRequest(r => r.method() === "PATCH" && r.url().includes(`/api/v1/audit/campaigns/${w.campA.id}`));
+    await form.getByTestId(`edit-campaign-reviewers-${revUid}`).check();
+    await form.getByTestId("button-edit-campaign-save").click();
+    // Only what changed, and the list it changed sent whole.
+    expect((await patch).postDataJSON()).toEqual({ reviewer_ids: [revUid] });
+    await expect(form).toHaveCount(0);
+    await expect(page.getByTestId(`campaign-no-reviewer-${w.campA.id}`)).toHaveCount(0);
+    await expect(page.getByTestId(`audit-campaign-row-${w.campA.id}`)).toContainText(`Review: ${w.reviewerName}`);
+
+    // A refusal is the server's sentence, verbatim: the campaign closes
+    // while the form is open.
+    const empty = await ok(await asPersona("asset_controller", "POST", "/audit/campaigns", {
+      name: `e2e69b closing ${w.u}`, scope: [{ location_id: w.roomB }], capturer_ids: [], reviewer_ids: [],
+    }), 201, "open an empty campaign");
+    await page.reload();
+    await page.getByTestId(`audit-campaign-row-${empty.id}`).click();
+    await page.getByTestId("button-edit-campaign").click();
+    await page.getByTestId("input-edit-campaign-name").fill(`e2e69b renamed ${w.u}`);
+    await ok(await asPersona("asset_controller", "POST", `/audit/campaigns/${empty.id}/close`, {}), 200, "close it meanwhile");
+    const refused = await asPersona("asset_controller", "PATCH", `/audit/campaigns/${empty.id}`, { name: "x" });
+    expect(refused.status).toBe(409);
+    await page.getByTestId("button-edit-campaign-save").click();
+    await expect(page.getByTestId("edit-campaign-error")).toContainText(refused.body.error.message);
+    // Closed: no Edit.
+    await page.reload();
+    await page.getByTestId(`audit-campaign-row-${empty.id}`).click();
+    await expect(page.getByTestId("audit-campaign-detail")).toHaveAttribute("data-campaign-id", String(empty.id));
+    await expect(page.getByTestId("button-edit-campaign")).toHaveCount(0);
+
+    // The reviewer just added sees the capture that waited with nobody to review it.
+    await page.context().clearCookies();
+    await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* private window */ } });
+    await signIn(page, "audit_reviewer");
+    await page.getByRole("navigation", { name: "Primary navigation" }).getByText("Audit review", { exact: true }).click();
+    await page.getByTestId("review-campaign").selectOption(String(w.campA.id));
+    await expect(page.getByTestId(`capture-card-${w.cap2}`)).toBeVisible();
   });
 });

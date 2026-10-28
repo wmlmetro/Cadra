@@ -27,16 +27,16 @@
  * reviewer named says so on its row — nobody can review them until the
  * Asset Controller names one.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, Download, Plus, X } from "lucide-react";
+import { ClipboardList, Download, Pencil, Plus, X } from "lucide-react";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { ScopeRefusal } from "@/components/ScopeRefusal";
 import RecordPicker from "@/components/RecordPicker";
 import { apiGet, type CadraApiError } from "@/lib/api";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import {
-  AUDIT_KEY, closeCampaign, downloadCampaignList, fetchAuditPeople, fetchCampaign, fetchCampaignLists,
+  AUDIT_KEY, closeCampaign, downloadCampaignList, fetchAuditPeople, fetchCampaign, fetchCampaignLists, patchCampaign,
   fetchCampaigns, openCampaign,
   type AuditCampaign, type CampaignLists, type ListKey,
 } from "@/lib/auditCapture";
@@ -52,6 +52,9 @@ export default function AuditCampaigns() {
   const canRead = scopes.has(SCOPE.auditRead);
   const canManage = scopes.has(SCOPE.auditManage);
   const [selected, setSelected] = useState<number | null>(null);
+  /** The campaign whose detail opens straight on its Edit form — the
+   *  warning line's *Add a reviewer* (handoff 69b). */
+  const [editFor, setEditFor] = useState<number | null>(null);
   const [opening, setOpening] = useState(false);
 
   useEffect(() => {
@@ -124,6 +127,13 @@ export default function AuditCampaigns() {
                     {c.progress.waiting_for_review > 0 && c.reviewers_active === 0 && (
                       <div className="mt-1 text-amber-800 dark:text-amber-300 font-semibold" data-testid={`campaign-no-reviewer-${c.id}`}>
                         {n(c.progress.waiting_for_review)} {c.progress.waiting_for_review === 1 ? "capture waits" : "captures wait"} and no reviewer is named.
+                        {canManage && c.state === "open" && (
+                          <>{" "}<button type="button" className="text-primary hover:underline font-semibold"
+                                    data-testid={`button-add-reviewer-${c.id}`}
+                                    onClick={(e) => { e.stopPropagation(); setSelected(c.id); setEditFor(c.id); }}>
+                            Add a reviewer
+                          </button></>
+                        )}
                       </div>
                     )}
                   </td>
@@ -148,7 +158,10 @@ export default function AuditCampaigns() {
             </tbody>
           </table>
         )}
-        {selected != null && <CampaignDetail id={selected} canManage={canManage} onClose={() => setSelected(null)} />}
+        {selected != null && (
+          <CampaignDetail key={`${selected}-${editFor === selected ? "edit" : "read"}`} id={selected} canManage={canManage}
+            editOnOpen={editFor === selected} onClose={() => { setSelected(null); setEditFor(null); }} />
+        )}
       </div>
     </div>
   );
@@ -156,7 +169,9 @@ export default function AuditCampaigns() {
 
 // ─── one campaign ────────────────────────────────────────────────────────────
 
-function CampaignDetail({ id, canManage, onClose }: { id: number; canManage: boolean; onClose: () => void }) {
+function CampaignDetail({ id, canManage, editOnOpen = false, onClose }: {
+  id: number; canManage: boolean; editOnOpen?: boolean; onClose: () => void;
+}) {
   const qc = useQueryClient();
   const c = useQuery<AuditCampaign, CadraApiError>({
     queryKey: [...AUDIT_KEY, "campaign", id],
@@ -167,6 +182,7 @@ function CampaignDetail({ id, canManage, onClose }: { id: number; canManage: boo
     onSuccess: () => invalidateAudit(qc),
   });
   const [confirming, setConfirming] = useState(false);
+  const [editing, setEditing] = useState(editOnOpen);
   const camp = c.data;
 
   return (
@@ -205,10 +221,17 @@ function CampaignDetail({ id, canManage, onClose }: { id: number; canManage: boo
         </div>
       )}
 
+      {canManage && camp?.state === "open" && editing && (
+        <EditCampaignForm camp={camp} onClose={() => setEditing(false)} />
+      )}
+
       {canManage && camp?.state === "open" && (
         <div className="space-y-2">
           {!confirming ? (
-            <Btn testid="button-close-campaign" kind="plain" onClick={() => setConfirming(true)}>Close the campaign</Btn>
+            <div className="flex gap-2">
+              {!editing && <Btn testid="button-edit-campaign" kind="plain" onClick={() => setEditing(true)}><Pencil size={12} /> Edit</Btn>}
+              <Btn testid="button-close-campaign" kind="plain" onClick={() => setConfirming(true)}>Close the campaign</Btn>
+            </div>
           ) : (
             <div className="flex flex-wrap gap-2 items-center" data-testid="close-campaign-confirm">
               <span className="text-[12px]">Close {camp.name}? Nothing more is captured or reviewed in it, and its two lists are kept as they stand now.</span>
@@ -434,6 +457,76 @@ function OpenCampaignForm({ onClose }: { onClose: (id: number | null) => void })
       <div className="flex gap-2">
         <Btn type="submit" testid="button-open-campaign-send" pending={m.isPending}>Open the campaign</Btn>
         <Btn kind="plain" onClick={() => onClose(null)}>Cancel</Btn>
+      </div>
+    </form>
+  );
+}
+
+/** Change an open campaign's team, name or end date (handoff 69b) — the
+ *  server's `PATCH /audit/campaigns/<id>`, which no screen called, so a
+ *  campaign opened without a reviewer stranded its captures (report 69, H1).
+ *  Only what changed is sent; a list that changed is sent WHOLE, because
+ *  the server replaces it. A member who no longer holds the role stays on
+ *  the list until unticked, so saving another field never drops them. */
+function EditCampaignForm({ camp, onClose }: { camp: AuditCampaign; onClose: () => void }) {
+  const qc = useQueryClient();
+  const people = useQuery({ queryKey: [...AUDIT_KEY, "people"], queryFn: fetchAuditPeople });
+  const startCapturers = useMemo(() => new Set(camp.capturers.map(u => u.id)), [camp]);
+  const startReviewers = useMemo(() => new Set(camp.reviewers.map(u => u.id)), [camp]);
+  const [name, setName] = useState(camp.name);
+  const [end, setEnd] = useState(camp.date_end ?? "");
+  const [capturers, setCapturers] = useState<Set<number>>(startCapturers);
+  const [reviewers, setReviewers] = useState<Set<number>>(startReviewers);
+  const same = (a: Set<number>, b: Set<number>) => a.size === b.size && [...a].every(x => b.has(x));
+  const body: Parameters<typeof patchCampaign>[1] = {};
+  if (name.trim() !== camp.name) body.name = name;
+  if ((end || null) !== (camp.date_end || null)) body.date_end = end || null;
+  if (!same(capturers, startCapturers)) body.capturer_ids = [...capturers];
+  if (!same(reviewers, startReviewers)) body.reviewer_ids = [...reviewers];
+  const changed = Object.keys(body).length > 0;
+  const m = useMutation<AuditCampaign, CadraApiError>({
+    mutationFn: () => patchCampaign(camp.id, body),
+    onSuccess: () => { invalidateAudit(qc); onClose(); },
+  });
+  const toggle = (set: Set<number>, fn: (s: Set<number>) => void, id: number) => {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    fn(next);
+  };
+  const withCurrent = (holders: { id: number; name: string; login: string }[], current: { id: number; name: string }[]) => [
+    ...holders,
+    ...current.filter(u => !holders.some(p => p.id === u.id))
+      .map(u => ({ id: u.id, name: u.name, login: "no longer holds the role" })),
+  ];
+
+  return (
+    <form className="space-y-3 max-w-3xl rounded-2xl border border-border p-3" data-testid="edit-campaign-form"
+          onSubmit={(e) => { e.preventDefault(); if (changed) m.mutate(); }}>
+      <div>
+        <label className={LABEL} htmlFor="edit-campaign-name">Name</label>
+        <input id="edit-campaign-name" value={name} onChange={e => setName(e.target.value)} className={cn(INPUT, "w-full mt-1")}
+               data-testid="input-edit-campaign-name" />
+      </div>
+      {people.error && <ErrorPanel err={people.error as CadraApiError} />}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <PeopleChecklist title="Capturers" testid="edit-campaign-capturers"
+          people={withCurrent(people.data?.capturers ?? [], camp.capturers)}
+          chosen={capturers} onToggle={(id) => toggle(capturers, setCapturers, id)}
+          empty="Nobody holds the Audit Capturer role." />
+        <PeopleChecklist title="Reviewers" testid="edit-campaign-reviewers"
+          people={withCurrent(people.data?.reviewers ?? [], camp.reviewers)}
+          chosen={reviewers} onToggle={(id) => toggle(reviewers, setReviewers, id)}
+          empty="Nobody holds the Audit Reviewer role." />
+      </div>
+      <label className="text-[11px] text-muted-foreground">Ends <input type="date" value={end} onChange={e => setEnd(e.target.value)}
+             className={INPUT} data-testid="input-edit-campaign-end" /></label>
+      <p className="text-[11px] text-muted-foreground" data-testid="edit-campaign-scope-note">
+        The rooms and offices are fixed once the campaign is open.
+      </p>
+      {m.error && <ErrorPanel err={m.error} testid="edit-campaign-error" />}
+      <div className="flex gap-2">
+        <Btn type="submit" testid="button-edit-campaign-save" disabled={!changed} pending={m.isPending}>Save</Btn>
+        <Btn kind="plain" onClick={onClose}>Cancel</Btn>
       </div>
     </form>
   );

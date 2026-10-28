@@ -91,7 +91,9 @@ class TestCaptureRefusal(CadraTransactionCase):
                 **{audit_refusal._PURGE_KEY: True}).unlink()
 
     def test_the_retention_job_removes_only_what_is_past_90_days(self):
-        old, new = self._record(), self._record()
+        # Two different refusals (the same one twice is one row, 69b).
+        old = self._record()
+        new = self._record(answer={**ANSWER, 'message': 'Another.'})
         past = datetime.datetime.now() - datetime.timedelta(
             days=audit_refusal.RETENTION_DAYS + 1)
         # The model refuses to change a row, so the fixture backdates by SQL.
@@ -101,6 +103,29 @@ class TestCaptureRefusal(CadraTransactionCase):
         self.assertGreaterEqual(self.Refusal._cron_purge_old(), 1)
         self.assertFalse(old.exists())
         self.assertTrue(new.exists())
+
+    def test_a_repeat_adds_to_its_row_and_sync_in_flight_is_none(self):
+        body = {'capture_id': '0d4b1c4d-0000-4000-8000-000000000069'}
+        first = self._record(body)
+        again = self._record(body)
+        self.assertFalse(again, 'a repeat writes no new row')
+        self.assertEqual(first.count, 2)
+        other = self._record(body, answer={**ANSWER, 'message': 'Another.'})
+        self.assertEqual(len(other), 1)
+        self.assertNotEqual(other, first)
+        # A day later the same refusal starts a row of its own.
+        self.env.cr.execute("UPDATE nrs_audit_capture_refusal SET "
+                            "refused_at = refused_at - interval '25 hours' "
+                            "WHERE id = %s", (first.id,))
+        self.Refusal.invalidate_model(['refused_at'])
+        self.assertEqual(len(self._record(body)), 1)
+        # The only write a row takes is that one.
+        with self.assertRaises(UserError):
+            first.with_context(**{audit_refusal._REPEAT_KEY: True}).write(
+                {'message': 'changed'})
+        # Not a refusal: the same capture landing in another request.
+        self.assertFalse(self._record(body, answer={
+            **ANSWER, 'code': 'sync_in_flight'}))
 
     def test_a_failure_to_record_never_raises(self):
         with patch.object(type(self.Refusal), '_values',
