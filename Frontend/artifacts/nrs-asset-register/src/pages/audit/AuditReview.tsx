@@ -143,6 +143,13 @@ export default function AuditReview() {
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: canReview && campaignId != null,
   });
+  // Handoff 69b: a found capture past the first page — load the pages up
+  // to it, one at a time; its card scrolls itself into view on mount.
+  const { data: pages, isFetching, hasNextPage, fetchNextPage } = captures;
+  useEffect(() => {
+    if (!focus || !pages || isFetching || !hasNextPage) return;
+    if (!pages.pages.some(p => p.rows.some(r => r.capture_id === focus))) void fetchNextPage();
+  }, [focus, pages, isFetching, hasNextPage, fetchNextPage]);
 
   if (!canReview) {
     return <ScopeRefusal scope={SCOPE.auditReview} detail="Audit Reviewers hold it — never the person who captured." />;

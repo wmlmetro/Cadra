@@ -385,6 +385,9 @@ def _refusal_out(r):
     def named(rec):
         return {"id": rec.id, "name": rec.display_name} if rec else None
     return {"id": r.id, "refused_at": _iso(r.refused_at),
+            # Handoff 69b: one row per repeated failure.
+            "count": r.count,
+            "last_refused_at": _iso(r.last_refused_at or r.refused_at),
             "capture_id": r.capture_uuid or None, "user": _user(r.user_id),
             "device_code": r.device_code or None,
             "device": named(r.device_id), "campaign": named(r.campaign_id),
@@ -1224,7 +1227,9 @@ class CadraAuditCaptureV1(http.Controller):
         if user_id:
             domain.append(("user_id", "=", user_id))
         if since:
-            domain.append(("refused_at", ">=", since))
+            # A row repeated since `since` is in the window, wherever its
+            # first refusal fell.
+            domain.append(("last_refused_at", ">=", since))
         capture_id = (kwargs.get("capture_id") or "").strip()
         if capture_id:
             domain.append(("capture_uuid", "=", _norm_uuid(capture_id)))

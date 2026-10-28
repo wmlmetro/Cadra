@@ -232,11 +232,24 @@ def test_a_refused_capture_leaves_one_refusal_and_no_capture(client, place):
     assert row["request_id"] == sent["request_id"]
     # Never the body's photos, fields or GPS.
     assert not {"photo_ids", "fields", "gps", "photos"} & set(row)
-    # A replay refused again is a second row, newest first.
+    assert row["count"] == 1 and row["last_refused_at"] == row["refused_at"]
+    # Handoff 69b: a replay refused again with the same sentence is the
+    # same row, counted twice — not a row per attempt.
     again = _post(client, p, body)
     assert again.status_code == r.status_code
+    assert again.json()["error"]["message"] == sent["message"]
+    rows = _refusals(client, capture_id=body["capture_id"])["data"]
+    assert [x["id"] for x in rows] == [row["id"]]
+    assert rows[0]["count"] == 2
+    assert rows[0]["last_refused_at"] >= rows[0]["refused_at"]
+    # A different sentence (another wrong label) is a row of its own,
+    # newest first.
+    body["scanned_label"] = code + "Y"
+    other = _post(client, p, body)
+    assert other.json()["error"]["message"] != sent["message"]
     rows = _refusals(client, capture_id=body["capture_id"])["data"]
     assert len(rows) == 2 and rows[0]["id"] > rows[1]["id"]
+    assert [x["count"] for x in rows] == [1, 2]
     # Filters: the device, the person, the day.
     assert {x["id"] for x in rows} <= {x["id"] for x in _refusals(
         client, device_id=p["device"]["id"], user_id=p["cap_id"],
@@ -277,3 +290,32 @@ def test_only_the_asset_controller_reads_the_refusals(client, place):
     assert_envelope_err(_as(client, CTL, "GET", "/audit/refusals",
                             params={"since": "yesterday"}),
                         400, "invalid_request")
+
+
+# ── 69b · the team can be changed ────────────────────────────────────────
+
+def test_the_team_of_an_open_campaign_is_changed_and_a_pair_refused(
+        client, place):
+    """The PATCH the Edit form sends: a list it changed is sent whole and
+    REPLACES the list; one person on both lists is refused in words and
+    nothing is written."""
+    p = place
+    camp = _campaign(client, f"pytest-69b team {p['u']}", p["building"],
+                     p["cap_id"], [])
+    path = f"/audit/campaigns/{camp['id']}"
+    got = assert_envelope_ok(_as(client, CTL, "PATCH", path,
+                                 json={"reviewer_ids": [p["rev_id"]]}))[
+        "data"]
+    assert [u["id"] for u in got["reviewers"]] == [p["rev_id"]]
+    assert got["reviewers_active"] == 1
+    assert [u["id"] for u in got["capturers"]] == [p["cap_id"]]
+    r = _as(client, CTL, "PATCH", path,
+            json={"reviewer_ids": [p["rev_id"], p["cap_id"]]})
+    assert_envelope_err(r, 400, "validation_failed")
+    assert "cannot both capture and review" in r.json()["error"]["message"]
+    after = assert_envelope_ok(_as(client, CTL, "GET", path))["data"]
+    assert [u["id"] for u in after["reviewers"]] == [p["rev_id"]]
+    assert_envelope_ok(_as(client, CTL, "PATCH", path,
+                           json={"reviewer_ids": []}))
+    after = assert_envelope_ok(_as(client, CTL, "GET", path))["data"]
+    assert after["reviewers"] == [] and after["reviewers_active"] == 0

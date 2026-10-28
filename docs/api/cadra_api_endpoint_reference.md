@@ -6061,8 +6061,13 @@ handoff 69 a capture the phone failed to send left no trace but an Odoo log
 line, and the person holding the phone believed it submitted. Now **every
 `POST /api/v1/audit/captures` answered 4xx or 5xx after the token was
 accepted leaves one row** (`nrs.audit.capture.refusal`), written on its own
-cursor so the request's rollback cannot remove it. A replay refused again
-is a second row. **Not recorded:** a `401` (no, expired or invalid token)
+cursor so the request's rollback cannot remove it. **One row per repeated
+failure, not per attempt** (handoff 69b): a refusal with the same
+`capture_id`, person, `error_code` and `message` as a row first refused in
+the last 24 hours adds one to that row's `count` and moves its
+`last_refused_at`; a different sentence is a row of its own. **Not
+recorded:** `409 sync_in_flight` (the same capture is landing in another
+request — it is stored there), a `401` (no, expired or invalid token)
 and a `403` at the scope check (the token does not hold `audit:capture`) —
 there is no verified person to attribute either to, and a stranger must not
 be able to make the server write. Those are in the Odoo log only. **Never
@@ -6075,7 +6080,8 @@ Newest first, cursor-paged (`limit`, `cursor`, `pagination.next_cursor`,
 - `device_id` (int) — the device the `X-Cadra-Device` header resolved to;
 - `user_id` (int) — who sent it;
 - `since` — `YYYY-MM-DD`, a Lagos day from its midnight in Lagos, or an
-  ISO-8601 date-time;
+  ISO-8601 date-time; compared with `last_refused_at`, so a row repeated
+  inside the window is in it wherever its first refusal fell;
 - `capture_id` — the capture's UUID as sent (normalised like a capture's).
 
 ```bash
@@ -6084,6 +6090,7 @@ acurl "$API/api/v1/audit/refusals?since=2026-10-21&device_id=2"
 
 ```json
 {"id": 12, "refused_at": "2026-10-28T09:14:02Z",
+ "count": 3, "last_refused_at": "2026-10-28T10:42:17Z",
  "capture_id": "0d4b1c4d-bdbe-4839-ac59-6beb2d6203ea",
  "user": {"id": 9, "name": "…"},
  "device_code": "DEV-1a2b3c4d",

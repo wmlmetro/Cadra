@@ -589,7 +589,11 @@ export async function voidException(captureId: string, reason: string): Promise<
  *  it with it. What was sent, as sent; never the photos, fields or GPS. */
 export interface CaptureRefusal {
   id: number;
+  /** The first refusal of this row; a repeat within 24 hours adds to
+   *  `count` and moves `last_refused_at` (handoff 69b). */
   refused_at: string;
+  count?: number;
+  last_refused_at?: string;
   capture_id: string | null;
   user: UserRef | null;
   device_code: string | null;

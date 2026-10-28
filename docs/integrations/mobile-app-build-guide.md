@@ -737,7 +737,9 @@ campaign and room as sent, and the status, error code and sentence the
 phone was answered — and the Asset Controller reads it on the web app's
 **Devices and codes › Refused syncs** (`GET /audit/refusals`, Ref §19.10).
 A `401` and a missing-scope `403` are not kept (there is no verified person
-to attribute them to). Nothing of the capture itself is kept: no photo, no
+to attribute them to), nor is `409 sync_in_flight` (the capture is landing
+in another request). A refusal repeated within a day is one row with a
+count, not one row per attempt (release 69b). Nothing of the capture itself is kept: no photo, no
 fields, no GPS — the capture still has to be sent again. So:
 
 - **Show the server's `error.message` to the person, verbatim, on any 4xx.**

@@ -12,3 +12,12 @@ Budget: 3 h. Risk: C2 (new model + route + screen) is the largest single part; i
 - 01:15 Progress: 80% — full pytest, gates off, fresh test19f: 1,568 passed, 3 failed, 14 skipped in 7 m 23 s. The 3 are guards: the query-parameter inventory and the model-create resolver (fixed; 233/233 rerun) and the endpoint index row for /audit/refusals (docs, in progress). Verification pass running.
 - 01:25 Progress: 90% — verification pass: 1 defect (reviewers_active counted deactivated users on the detail routes) and 4 smaller points fixed, 3 named; affected tests 22/22 + browser 5/5. Committing and pushing.
 - 01:27 Progress: 95% — pushed, PR #133. CI cannot start: every Actions run in the repo since 27 Oct 18:20 UTC is startup_failure (account side, not this branch). Running CI's other two jobs locally instead: full pytest gates on, then the myservice_asset_register and myservice_api in-registry suites (~30 min).
+- 01:45 Progress: 100% — local in CI's place: pytest gates on 1,571 passed / 0 failed / 14 skipped of 1,585 (12 m 04 s); module suites 0 failed, 0 error(s) of 1,052 tests. Report final; CI itself still cannot start (owner). Closing step on dev.
+
+## 69b — the team can be changed
+
+Plan (weights sum 100): B1 edit the campaign 50 · the three leftovers 30 (merged refusal rows 15, sync_in_flight not recorded 5, Review it here past 100 10) · tests and report 20. Budget 1 h.
+
+- 01:48 Progress: 0% — Step 0: instruction committed on dev; PR #133 was already merged (00:35 UTC), so 69b continues on the same branch, now open as PR #134, merged up to dev. Next: B1.
+- 01:51 Progress: 60% — B1 built (Edit on an open campaign, Add a reviewer on the warning line); leftovers built: repeated refusals merge into one row (count, last_refused_at, 19.0.1.38.0 + migration), sync_in_flight not recorded, Review it here loads pages up to the capture. Next: upgrade test19f's template, tests.
+- 01:59 Progress: 100% — 69b: HTTP 256 passed, in-registry 0 failed of 6, browser 3 of 3 (spec 69) + 3 of 3 (66, 67); report §69b appended; pushed to PR #134. CI still blocked repo-wide (owner).
