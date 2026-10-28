@@ -1,6 +1,6 @@
 # Handoff 69 — report · where the captures went
 
-**Branch:** `fix/where-the-captures-went` · **PR:** [#133](https://github.com/wmlmetro/Cadra/pull/133) · **CI:** **could not start** — see Needs the owner, item 0
+**Branch:** `fix/where-the-captures-went` · **PR:** [#133](https://github.com/wmlmetro/Cadra/pull/133) · **CI:** **could not start** (Needs the owner, item 0); its two jobs run locally instead, green
 
 ## Needs the owner
 
@@ -129,6 +129,12 @@ where the Asset Controller can see it.
   `test_source_guards.py` 233 of 233; `test_where_the_captures_went.py` +
   `test_endpoint_reference.py` + `test_the_audit.py` 22 of 22 after the
   verification pass's fixes. CI runs both switch states on the push.
+- **In CI's place, because Actions cannot start** (Needs the owner, item 0):
+  the full pytest suite with **gates on**, on a fresh `test19f`:
+  **1,571 passed, 0 failed, 14 skipped of 1,585** in 12 m 04 s. Then the
+  in-registry suites of the two modules changed (`-u myservice_asset_register,myservice_api
+  --test-tags /myservice_asset_register,/myservice_api --workers=0`):
+  **0 failed, 0 error(s) of 1,052 tests**.
 - **New HTTP tests** `tests/test_where_the_captures_went.py`: 7 of 7. That
   covers B1 (the 101st reachable through the cursor, `total_estimate` 101), B2
   (id in three casings, code in three spellings, old tag normalised, a
@@ -178,10 +184,10 @@ where the Asset Controller can see it.
    showed it was the cause of H4.
 5. **`nrs19` was not upgraded** (§2 overrides CLAUDE.md's fan-out); see Needs
    the owner, item 3.
-6. **Found, not mine:** locally, `TestPublishedNamesResolve.test_every_bare_override_of_an_inherited_route_is_named`
-   fails on `dev`'s controller code too (four back-office doors "no longer
-   exist" to the walk; 1 failed of 1 with this branch's controllers stashed).
-   CI passes it. Recorded, not fixed.
+6. **Found, not mine:** on `test19`, `TestPublishedNamesResolve.test_every_bare_override_of_an_inherited_route_is_named`
+   fails, and fails the same way with this branch's controllers stashed (1
+   failed of 1). On `test19f` it passes as part of the 1,052. It is a property
+   of the `test19` tenant, not of the code. Recorded, not chased.
 7. `docs/integrations/mobile-app-build-guide.md` had never been committed. It
    is committed here with the §5.8 and §6.6 edits.
 
