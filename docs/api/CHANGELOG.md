@@ -33,6 +33,22 @@ live at was never the point.
 
 ---
 
+## 2026-10-28 — handoff 70: the administrator can finish it · `myservice_asset_register` 19.0.1.39.0, `myservice_api` 19.0.3.40.0
+
+Additive throughout. **With the new switch off — the default on every tenant, absent included, and no migration sets it — every answer is what it was**, apart from the new keys below carrying `false` / `[]` / `null`.
+
+- **New switch:** `cadra.admin_override` (`ir.config_parameter`, read with raw SQL, absent = off). When on, a system administrator signed in as a PERSON (`/auth/login`, `base.group_system`) is not refused by four two-person rules — the no-two-gates rule on the receipt gates and the SAP link, and the audit's capturer-named, not-your-own-capture and reviewer-named rules. A machine credential (`/auth/token`) never overrides. State, the tag match, the device, the code, the room and the five-day window still hold. Endpoint reference §11.8.1, §14.13, §19.7.
+- **New route:** `PATCH /api/v1/settings/admin-override` — `{"enabled": true|false}`, scope **`admin` only** (`settings:write` alone is `403`). Answers the block below. Recorded in `GET /reports/configuration-changes` under `cadra.admin_override`. §11.8.1.
+- **New key (additive) on `GET /api/v1/settings`:** `admin_override` — `{enabled, configured, default_when_unset, parameter, statement, since, changed_by, changed_at}`.
+- **New key (additive) on `GET /api/v1/audit/people`:** `administrators` — the active people in `base.group_system` (no API credential's user) while the override is on, `[]` while off; so a device can be bound to an administrator. §19.
+- **New route:** `GET /api/v1/reports/admin-overrides` (`settings:read`) — every act the override made possible, newest first, cursor-paged; `since` / `until` (Lagos days, `until` inclusive), `kind` = `gate` | `audit`. A row: `at` (Lagos time), `kind`, `act`, `act_words`, `by`, `asset`, `capture`, `rules`, `override_of` (in words). §21.
+- **New key (additive) on every `gates.available[]` action:** `as_admin` — `true` only when the rule would refuse the caller and the override opens the action (`can_fire: true`, `refusal: null`). §14.2, §14.13.
+- **New key (additive) on every `GET /api/v1/sap-links` row:** `as_admin`, beside `can_decide`, the same meaning. §18.3.
+- **New keys (additive) on `GET /api/v1/assets/<id>/history`:** `detail.admin_override` (bool) and `detail.override_of` (the sentence the rule would have said, or `null`) on every `gate_fired` and `sap_link` row. An overridden act's `summary` adds *", by <name>, as administrator (they <earlier act> on <day>)."* — no other row's summary changes.
+- **New keys (additive) on every audit capture read:** `captured_as_admin`, `reviewed_as_admin` (bool) and `override_of` (array: `not_a_capturer`, `own_capture`, `not_a_reviewer`). §19.6, §19.7.
+- **New sidebar key (additive):** `admin_overrides`, in the `audit` group (`settings:read`).
+- **Not changed:** the move, custody, disposal and tag-replacement approvals; the role exclusions; the INT-05b event sent to Vendra (no new field).
+
 ## 2026-10-28 — handoff 69b: the team can be changed · `myservice_asset_register` 19.0.1.38.0
 
 - **New keys (additive) on `GET /api/v1/audit/refusals` rows:** `count` and `last_refused_at`. A refusal with the same `capture_id`, person, `error_code` and `message` as a row first refused in the last 24 hours adds to that row instead of writing a new one; `since` is compared with `last_refused_at`. §19.10.

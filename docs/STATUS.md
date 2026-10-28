@@ -1915,3 +1915,42 @@ Evidence: `docs/handoffs/69-evidence/`.
 - **`scripts/audit_trace.sh`**, read-only, explicit kube context, `--local`:
   reproduces Part A on staging (`C1-audit-trace-staging.txt`) and finds an
   H6 by searching the other tenants.
+
+## Handoff 70 — the administrator can finish it
+
+Evidence: `docs/handoffs/70-evidence/`; test counts in report 70.
+
+- **The switch** `cadra.admin_override`, off on every tenant, absent
+  included (read with raw SQL; no migration sets it): `admin_override` on
+  `GET /api/v1/settings`, `PATCH /api/v1/settings/admin-override` on the
+  `admin` scope only (`settings:write` alone refused), a configuration row
+  like every setting; the section on *Settings › Receipt gates*, drawn for
+  an administrator. One helper (`admin_override.admin_overrides`): a
+  person's token (`aud: frontend`), `base.group_system`, the switch on.
+- **The receipt gates and the SAP link (S1):** the no-two-gates rule lifted
+  for that person only — `as_admin` on `gates.available` and on SAP-link
+  rows, the Candidates badge counting what they may now act on, the
+  overridden act's event carrying `admin_override` and `override_of` (two
+  new columns on `nrs.asset.event`), the history line *"…, by …, as
+  administrator (they … on …)."* Nothing new sent to Vendra.
+- **The audit (S2–S4):** capture in a campaign that does not name them, and
+  accept or return any capture, their own included — device, code, label,
+  room and five-day window unchanged; `captured_as_admin`,
+  `reviewed_as_admin`, `override_of` on every capture read; the batch
+  accept judged per capture.
+- **The list:** `GET /api/v1/reports/admin-overrides` (`settings:read`;
+  `since`/`until` Lagos days, `kind` gate|audit, newest first, cursor-paged,
+  `override_of` in words) and *Audit › Administrator overrides* (sidebar key
+  `admin_overrides`) with a date filter and a CSV.
+- **Tests:** `tests/test_the_administrator.py` (one administrator takes a
+  unit to the register alone; the switch off refuses the second gate; the
+  suite's own machine credential refused its second gate; non-administrators
+  held to S2 and S4; the audit capture and own acceptance — a missing label
+  reprinted included — on and off; only `admin` switches it; the report's
+  filters and refusals) and in-registry
+  `myservice_asset_register/tests/test_admin_override.py` (an Asset Manager,
+  and a machine token whose user IS in `base.group_system`, held to the
+  no-two-gates rule with the switch on) — see report 70.
+- **Modules:** `myservice_asset_register` 19.0.1.39.0, `myservice_api`
+  19.0.3.40.0. NRS production: off until NRS accepts in writing
+  (`docs/GO-LIVE.md` §36.1).

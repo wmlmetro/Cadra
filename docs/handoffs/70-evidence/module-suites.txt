@@ -1,0 +1,4 @@
+# in-registry: myservice_asset_register, myservice_api, myservice_workflow on test19
+2026-10-28 07:16:00,700 60 ERROR test19 odoo.addons.myservice_api.tests.test_published_names_resolve: FAIL: TestPublishedNamesResolve.test_every_route_that_takes_a_body_is_classified
+2026-10-28 07:17:55,202 60 ERROR test19 odoo.tests.result: 1 failed, 0 error(s) of 1193 tests when loading database 'test19' 
+# rerun TestPublishedNamesResolve after the census fix: 1 failed of 14 (test_every_bare_override_of_an_inherited_route_is_named, local-only, report 69)
