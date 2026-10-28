@@ -16,10 +16,17 @@
  * sentence for any refused. Held duplicates are left out of a room's batch
  * by the server and reviewed one by one. The server refuses a capturer
  * reviewing their own capture; the refusal is shown verbatim.
+ *
+ * Handoff 69 (where the captures went): nothing past the first page is
+ * invisible any more — the list follows the server's cursor, 100 at a time,
+ * and says how many of how many it shows; the dropdown opens on a campaign
+ * with captures waiting; captures waiting where this person is no reviewer
+ * are counted under it; a find box finds any capture by ID or code; and
+ * each card names the device it came from and when the server received it.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "wouter";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useSearch } from "wouter";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ClipboardCheck, Copy, Loader2, XCircle } from "lucide-react";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { ScopeRefusal } from "@/components/ScopeRefusal";
@@ -31,62 +38,117 @@ import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import {
   AUDIT_KEY, CONFIRMED_FIELD_WORDS, DUPLICATE_WORDS, LABEL_WORDS, OUTCOME_WORDS, STATE_WORDS,
   acceptCapture, acceptRoom, fetchCampaign, fetchCampaigns, fetchCapture, fetchCaptures, myUid, returnCapture,
-  type AcceptBatchAnswer, type AuditCampaign, type AuditCapture, type CaptureState, type ConfirmedFields,
+  type AcceptBatchAnswer, type AuditCampaign, type AuditCapture, type CapturesPage, type CaptureState, type ConfirmedFields,
 } from "@/lib/auditCapture";
 import { cn, formatIsoDate } from "@/lib/utils";
 import {
   Btn, Empty, ErrorPanel, INPUT, LABEL, Loading, PageHeader, Photo, Pill, TEXTAREA, invalidateAudit, n, when,
 } from "./shared";
+import { FindCapture, type ReviewTarget } from "./FindCapture";
+
+/** One page of the review list — the server's own limit. */
+const PAGE = 100;
+
+/** What the "Showing N of M …" line calls the rows, by the Show filter. */
+const SHOW_WORD: Record<CaptureState | "all", string> = {
+  pending_review: "waiting", accepted: "accepted", returned: "returned", all: "captures",
+};
+
+const SHOWS: (CaptureState | "all")[] = ["pending_review", "accepted", "returned", "all"];
 
 export default function AuditReview() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
   const scopes = useScopes();
   const canReview = scopes.has(SCOPE.auditReview);
-  const [campaignId, setCampaignId] = useState<number | null>(null);
-  const [roomId, setRoomId] = useState<number | null>(null);
-  const [show, setShow] = useState<CaptureState | "all">("pending_review");
+  // Handoff 69: a found capture opens here through the address — Audit
+  // campaigns' find box links to `?campaign=&room=&show=&capture=`.
+  const search = useSearch();
+  const initial = useMemo(() => {
+    const p = new URLSearchParams(search);
+    const num = (k: string) => (p.get(k) && /^\d+$/.test(p.get(k) as string) ? Number(p.get(k)) : null);
+    const show = p.get("show") as CaptureState | "all" | null;
+    return { campaign: num("campaign"), room: num("room"), show: show && SHOWS.includes(show) ? show : null, capture: p.get("capture") };
+    // Read once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [campaignId, setCampaignId] = useState<number | null>(initial.campaign);
+  const [roomId, setRoomId] = useState<number | null>(initial.room);
+  const [show, setShow] = useState<CaptureState | "all">(initial.show ?? "pending_review");
+  const [focus, setFocus] = useState<string | null>(initial.capture);
   const [batch, setBatch] = useState(false);
+  /** A campaign the person chose (or arrived on) is never replaced by the
+   *  default. */
+  const chosen = useRef(initial.campaign != null);
 
   useEffect(() => {
     setTitle("Audit review");
     setSearchHandler(undefined);
   }, [setTitle, setSearchHandler]);
 
-  // The open campaigns this person reviews on — the server names the team.
-  const campaigns = useQuery<AuditCampaign[], CadraApiError>({
-    queryKey: [...AUDIT_KEY, "campaigns", "open", "reviewing"],
-    queryFn: async () => {
-      const me = myUid();
-      const all = await fetchCampaigns("open");
-      return me == null ? all : all.filter(c => c.reviewers.some(u => u.id === me));
-    },
+  // Every open campaign; the dropdown lists those naming this person as a
+  // reviewer (the server names the team), and the rest are counted so a
+  // capture waiting where nobody here may review it is said (handoff 69 B3).
+  const openCampaigns = useQuery<AuditCampaign[], CadraApiError>({
+    queryKey: [...AUDIT_KEY, "campaigns", "open"],
+    queryFn: () => fetchCampaigns("open"),
     enabled: canReview,
   });
-  // The first open campaign, unless the person chose one.
+  const { mine, waitingElsewhere, waitingMine } = useMemo(() => {
+    const me = myUid();
+    const all = openCampaigns.data ?? [];
+    const mineList = me == null ? all : all.filter(c => c.reviewers.some(u => u.id === me));
+    const ids = new Set(mineList.map(c => c.id));
+    const sum = (cs: AuditCampaign[]) => cs.reduce((t, c) => t + (c.progress?.waiting_for_review ?? 0), 0);
+    return { mine: mineList, waitingMine: sum(mineList), waitingElsewhere: sum(all.filter(c => !ids.has(c.id))) };
+  }, [openCampaigns.data]);
+  // The default (handoff 69, the staging defect): the first campaign naming
+  // this person that has captures WAITING — the newest open one may have
+  // none while an older one has five — falling back to the first.
   useEffect(() => {
-    if (campaignId == null && campaigns.data && campaigns.data.length > 0) setCampaignId(campaigns.data[0].id);
-  }, [campaigns.data, campaignId]);
+    if (chosen.current || mine.length === 0) return;
+    if (campaignId != null && mine.some(c => c.id === campaignId)) return;
+    const pick = mine.find(c => (c.progress?.waiting_for_review ?? 0) > 0) ?? mine[0];
+    setCampaignId(pick.id);
+    setRoomId(null);
+  }, [mine, campaignId]);
+  const chooseCampaign = (id: number | null) => {
+    chosen.current = true;
+    setCampaignId(id);
+    setRoomId(null);
+    setFocus(null);
+  };
+  const openFound = (t: ReviewTarget) => {
+    chosen.current = true;
+    setCampaignId(t.campaignId);
+    setRoomId(t.locationId);
+    setShow(t.state);
+    setFocus(t.captureId);
+  };
   const campaign = useQuery<AuditCampaign, CadraApiError>({
     queryKey: [...AUDIT_KEY, "campaign", campaignId],
     queryFn: () => fetchCampaign(campaignId as number),
     enabled: canReview && campaignId != null,
   });
   const rooms = campaign.data?.rooms ?? [];
-  useEffect(() => { setRoomId(null); }, [campaignId]);
 
-  const captures = useQuery({
+  // Every page, not only the first (handoff 69 B1, H3): the server's order
+  // (id ascending — oldest waiting first) and its cursor, 100 at a time.
+  const captures = useInfiniteQuery<CapturesPage, CadraApiError>({
     queryKey: [...AUDIT_KEY, "captures", "review", campaignId, roomId, show],
-    queryFn: () => fetchCaptures({
+    queryFn: ({ pageParam }) => fetchCaptures({
       campaign_id: campaignId as number, location_id: roomId ?? undefined,
-      state: show === "all" ? undefined : show, limit: 100,
+      state: show === "all" ? undefined : show, limit: PAGE, cursor: pageParam as string | undefined,
     }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: canReview && campaignId != null,
   });
 
   if (!canReview) {
     return <ScopeRefusal scope={SCOPE.auditReview} detail="Audit Reviewers hold it — never the person who captured." />;
   }
-  const rows = captures.data?.rows ?? [];
+  const rows = (captures.data?.pages ?? []).flatMap(p => p.rows);
+  const total = captures.data?.pages[0]?.totalEstimate ?? null;
   const waitingHere = rows.filter(c => c.state === "pending_review" && !c.duplicate_of).length;
 
   return (
@@ -95,16 +157,21 @@ export default function AuditReview() {
         You are the second person. Read each capture — the photos, what it names, what the capturer confirmed — and
         accept it or return it to the capturer with a reason. You cannot review a capture you made.
       </PageHeader>
+      <div className="px-5 py-3 border-b border-border">
+        <FindCapture canReview={canReview} canSeeRefusals={scopes.has(SCOPE.auditManage)} onReview={openFound} />
+      </div>
       <div className="px-5 py-3 border-b border-border flex flex-wrap gap-2 items-center">
         <label className="text-[11px] text-muted-foreground" htmlFor="review-campaign">Campaign</label>
         <select id="review-campaign" className={INPUT} data-testid="review-campaign"
-                value={campaignId ?? ""} onChange={e => setCampaignId(e.target.value ? Number(e.target.value) : null)}>
-          {(campaigns.data ?? []).length === 0 && <option value="">No open campaign names you as a reviewer</option>}
-          {(campaigns.data ?? []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                value={campaignId ?? ""} onChange={e => chooseCampaign(e.target.value ? Number(e.target.value) : null)}>
+          {mine.length === 0 && <option value="">No open campaign names you as a reviewer</option>}
+          {mine.map(c => (
+            <option key={c.id} value={c.id}>{c.name} ({n(c.progress?.waiting_for_review ?? 0)} waiting)</option>
+          ))}
         </select>
         <label className="text-[11px] text-muted-foreground ml-2" htmlFor="review-room">Room</label>
         <select id="review-room" className={INPUT} data-testid="review-room"
-                value={roomId ?? ""} onChange={e => setRoomId(e.target.value ? Number(e.target.value) : null)}>
+                value={roomId ?? ""} onChange={e => { setRoomId(e.target.value ? Number(e.target.value) : null); setFocus(null); }}>
           <option value="">Every room</option>
           {rooms.map(r => (
             <option key={r.location.id} value={r.location.id}>
@@ -127,6 +194,11 @@ export default function AuditReview() {
           </Btn>
         </div>
       </div>
+      {openCampaigns.data && waitingMine === 0 && waitingElsewhere > 0 && (
+        <p className="px-5 pt-2 text-[12px] text-amber-800 dark:text-amber-300" data-testid="review-waiting-elsewhere">
+          {n(waitingElsewhere)} {waitingElsewhere === 1 ? "capture waits" : "captures wait"} in campaigns that don't name you as a reviewer.
+        </p>
+      )}
       {campaign.data && (
         <p className="px-5 pt-2 text-[11px] text-muted-foreground" data-testid="review-progress">
           {campaign.data.name}: {n(campaign.data.progress.waiting_for_review)} waiting for review of {n(campaign.data.progress.captured)} captured
@@ -135,15 +207,29 @@ export default function AuditReview() {
         </p>
       )}
       <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
-        {campaigns.error && <ErrorPanel err={campaigns.error} />}
-        {captures.error && <ErrorPanel err={captures.error as CadraApiError} />}
+        {openCampaigns.error && <ErrorPanel err={openCampaigns.error} />}
+        {captures.error && <ErrorPanel err={captures.error} />}
         {captures.isLoading ? <Loading what="Reading the captures…" /> : rows.length === 0 && !captures.error ? (
           <Empty testid="review-empty">
             {campaignId == null ? "No open campaign names you as a reviewer." : show === "pending_review" ? "Nothing here is waiting for review." : "No capture matches."}
           </Empty>
-        ) : rows.map(c => <CaptureCard key={c.capture_id} c={c} siblings={rows} />)}
-        {captures.data?.nextCursor && (
-          <p className="text-[11px] text-muted-foreground">Showing the first 100 of {n(captures.data.totalEstimate)}; choose a room to see the rest.</p>
+        ) : (
+          <>
+            {total != null && (
+              <p className="text-[11px] text-muted-foreground" data-testid="review-count"
+                 data-shown={rows.length} data-total={total}>
+                Showing {n(rows.length)} of {n(total)} {SHOW_WORD[show]}{roomId != null ? " in this room" : ""}.
+              </p>
+            )}
+            {rows.map(c => <CaptureCard key={c.capture_id} c={c} siblings={rows} focused={focus === c.capture_id} />)}
+          </>
+        )}
+        {captures.hasNextPage && (
+          <div className="flex items-center gap-2">
+            <Btn kind="plain" testid="button-review-next" pending={captures.isFetchingNextPage}
+                 onClick={() => captures.fetchNextPage()}>Show the next {PAGE}</Btn>
+            {total != null && <span className="text-[11px] text-muted-foreground">{n(Math.max(total - rows.length, 0))} more after these.</span>}
+          </div>
         )}
       </div>
       {batch && campaignId != null && roomId != null && (
@@ -213,7 +299,7 @@ function Target({ c }: { c: AuditCapture }) {
   return <p className="text-[12px]" data-testid="capture-target">Neither register holds it — on acceptance it becomes an exception for the Asset Controller.</p>;
 }
 
-function CaptureCard({ c, siblings }: { c: AuditCapture; siblings: AuditCapture[] }) {
+function CaptureCard({ c, siblings, focused = false }: { c: AuditCapture; siblings: AuditCapture[]; focused?: boolean }) {
   const qc = useQueryClient();
   const accept = useMutation<AuditCapture, CadraApiError>({
     mutationFn: () => acceptCapture(c.capture_id),
@@ -230,15 +316,24 @@ function CaptureCard({ c, siblings }: { c: AuditCapture; siblings: AuditCapture[
   });
   const twinCapture = twinInList ?? twin.data;
   const waiting = c.state === "pending_review";
+  // A capture opened from the find box is brought into view (handoff 69).
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (focused) box.current?.scrollIntoView({ block: "center" }); }, [focused]);
 
   return (
-    <div className={cn("rounded-2xl border p-3 space-y-2", held ? "border-amber-400 bg-amber-50/40 dark:bg-amber-950/20" : "border-border bg-card")}
-         data-testid={`capture-card-${c.capture_id}`} data-state={c.state} data-duplicate={held ? "true" : "false"}>
+    <div ref={box} className={cn("rounded-2xl border p-3 space-y-2", held ? "border-amber-400 bg-amber-50/40 dark:bg-amber-950/20" : "border-border bg-card",
+                    focused && "ring-2 ring-primary")}
+         data-testid={`capture-card-${c.capture_id}`} data-focused={focused ? "true" : "false"} data-state={c.state} data-duplicate={held ? "true" : "false"}>
       <div className="flex flex-wrap items-center gap-2">
         <Pill tone={c.outcome === "on_register" ? "green" : c.outcome === "in_sap" ? "blue" : "amber"} testid="capture-outcome">{OUTCOME_WORDS[c.outcome]}</Pill>
         <Pill tone={c.state === "accepted" ? "green" : c.state === "returned" ? "red" : "plain"} testid="capture-state">{STATE_WORDS[c.state]}</Pill>
-        <span className="text-[11px] text-muted-foreground">
-          {c.location.name} · captured by {c.captured_by?.name ?? "—"} on {c.device.name}, {when(c.captured_at)}
+        {/* Where it came from (handoff 69 B4): the device tells a phone
+            capture from a station one, and received-at is when the server
+            had it — a gap from captured-at is time spent queued on the phone. */}
+        <span className="text-[11px] text-muted-foreground" data-testid="capture-provenance">
+          {c.location.name} · captured by {c.captured_by?.name ?? "—"} on{" "}
+          <span className="font-semibold text-foreground" data-testid="capture-device">{c.device?.name ?? "—"}</span>, {when(c.captured_at)};
+          {" "}received <span data-testid="capture-received">{when(c.received_at)}</span>
         </span>
       </div>
       {held && (

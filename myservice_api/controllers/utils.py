@@ -2003,7 +2003,7 @@ def _client_value_error(exc):
 # ─── endpoint decorator ──────────────────────────────────────────────
 
 def cadra_endpoint(scopes=(), idempotent=False, success_status=200,
-                   scopes_any=()):
+                   scopes_any=(), on_refusal=None):
     """Auth + scope-check + idempotency + envelope-wrap + JSON HTTP response.
 
     Apply BELOW Odoo's @http.route decorator (or use the `cadra_route`
@@ -2015,6 +2015,16 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200,
 
     The wrapper turns that into a real HTTP response with Content-Type:
     application/json and the right status code.
+
+    `on_refusal(response)` (handoff 69) is called with the FINAL response
+    when it is a 4xx/5xx and the token was accepted — after every mapping
+    below and after the rollback, so it sees exactly what the caller is
+    sent, whichever path refused. A refusal by `require_jwt` (the token, or
+    `scopes`) is not passed: there is no verified person to attribute it
+    to, and a stranger must not be able to make the server write. A
+    `scopes_any` 403 comes after the token is accepted and IS passed. A
+    serialization failure is re-raised for Odoo to retry, not answered
+    here, so it never reaches the hook.
     """
     def decorator(fn):
         @functools.wraps(fn)
@@ -2296,5 +2306,15 @@ def cadra_endpoint(scopes=(), idempotent=False, success_status=200,
                     )
 
             return _http_response(body, success_status=success_status)
-        return wrapper
+        if on_refusal is None:
+            return wrapper
+
+        @functools.wraps(fn)
+        def recording(*args, **kwargs):
+            response = wrapper(*args, **kwargs)
+            if response.status_code >= 400 and getattr(
+                    request, "jwt_claims", None):
+                on_refusal(response)
+            return response
+        return recording
     return decorator

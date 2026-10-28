@@ -15,9 +15,15 @@
  *
  * Every refusal is the server's sentence, verbatim — a rebind while the
  * device still carries a block issued to somebody else among them.
+ *
+ * Handoff 69: *Refused syncs (last 7 days)* — every capture a phone or a
+ * station sent that the server refused after accepting the token, with the
+ * sentence the device was sent. Until then a refused capture left a line in
+ * the Odoo log and nothing anybody else could read.
  */
-import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useSearch } from "wouter";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Smartphone } from "lucide-react";
 import { useLayoutCtx } from "@/components/layout/AppLayout";
 import { ScopeRefusal } from "@/components/ScopeRefusal";
@@ -25,10 +31,10 @@ import type { CadraApiError } from "@/lib/api";
 import { useScopes, SCOPE } from "@/hooks/use-scopes";
 import {
   AUDIT_KEY, CODE_STATE_WORDS, bindDevice, deactivateDevice, fetchAuditPeople, fetchBlock, fetchBlocks,
-  fetchDevices, issueBlock, registerDevice, returnBlock,
-  type AuditBlock, type AuditDevice, type AuditPeople, type CodeState,
+  fetchDevices, fetchRefusals, issueBlock, registerDevice, returnBlock,
+  type AuditBlock, type AuditDevice, type AuditPeople, type CodeState, type RefusalsPage,
 } from "@/lib/auditCapture";
-import { cn } from "@/lib/utils";
+import { addDaysIso, cn, lagosToday } from "@/lib/utils";
 import {
   Btn, Empty, ErrorPanel, INPUT, Loading, PageHeader, Pill, invalidateAudit, n, when,
 } from "./shared";
@@ -105,6 +111,8 @@ export default function AuditDevices() {
             </div>
           )}
         </section>
+
+        <RefusedSyncs />
       </div>
     </div>
   );
@@ -297,5 +305,101 @@ function BlockRow({ b }: { b: AuditBlock }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── refused syncs (handoff 69 §5 C2) ────────────────────────────────────────
+
+const REFUSALS_DAYS = 7;
+
+/** Every `POST /audit/captures` the server refused in the last seven Lagos
+ *  days, newest first: when, who, on which device (its name, or the device
+ *  code as the phone sent it when that resolved to nothing), and the
+ *  sentence the device was sent. The page is the Asset Controller's
+ *  (`audit:manage`), which is the route's scope. A refusal before the token
+ *  was accepted (a 401, or a 403 at the scope check) is not here: no person
+ *  was verified, and only the Odoo log has it. */
+function RefusedSyncs() {
+  // Seven Lagos days, today included.
+  const since = addDaysIso(lagosToday(), -(REFUSALS_DAYS - 1));
+  const q = useInfiniteQuery<RefusalsPage, CadraApiError>({
+    queryKey: [...AUDIT_KEY, "refusals", since],
+    queryFn: ({ pageParam }) => fetchRefusals({ since, cursor: pageParam as string | undefined, limit: 50 }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    staleTime: 0,
+  });
+  const rows = (q.data?.pages ?? []).flatMap(p => p.rows);
+  const total = q.data?.pages[0]?.totalEstimate ?? null;
+  // Arriving from the find box's "Devices and codes › Refused syncs".
+  const search = useSearch();
+  const here = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (new URLSearchParams(search).get("section") === "refused-syncs") here.current?.scrollIntoView({ block: "start" });
+  }, [search, q.data]);
+
+  return (
+    <section ref={here} id="refused-syncs" className="space-y-2" data-testid="refused-syncs">
+      <h2 className="text-[13px] font-bold">Refused syncs (last {REFUSALS_DAYS} days)</h2>
+      <p className="text-[11px] text-muted-foreground max-w-3xl">
+        A capture the server refused is not stored: the phone keeps it and shows the sentence below. Each refusal is
+        kept here for 90 days — what was sent, never the photos or fields. A sync refused before the person was
+        signed in is in the server's log only.
+      </p>
+      {q.error && <ErrorPanel err={q.error} testid="refusals-error" />}
+      {q.isLoading ? <Loading what="Reading the refused syncs…" /> : rows.length === 0 && !q.error ? (
+        <Empty testid="refusals-empty">No sync was refused in the last {REFUSALS_DAYS} days.</Empty>
+      ) : rows.length > 0 && (
+        <>
+          {total != null && (
+            <p className="text-[11px] text-muted-foreground" data-testid="refusals-count">
+              Showing {n(rows.length)} of {n(total)} since {since}.
+            </p>
+          )}
+          <table className="w-full text-xs" data-testid="refusals-table">
+            <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-left px-3 py-2">When</th>
+                <th className="text-left px-3">Person</th>
+                <th className="text-left px-3">Device</th>
+                <th className="text-left px-3">What was sent</th>
+                <th className="text-left px-3">What the device was told</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.id} className="border-b border-border align-top" data-testid={`refusal-row-${r.id}`}
+                    data-capture-id={r.capture_id ?? ""}>
+                  <td className="px-3 py-2 whitespace-nowrap">{when(r.refused_at)}</td>
+                  <td className="px-3 py-2">{r.user?.name ?? "—"}</td>
+                  <td className="px-3 py-2" data-testid="refusal-device">
+                    {r.device ? r.device.name : r.device_code
+                      ? <><span className="font-mono">{r.device_code}</span><div className="text-muted-foreground">not a registered device</div></>
+                      : <span className="text-muted-foreground">none named</span>}
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {r.campaign && <div>{r.campaign.name}</div>}
+                    {r.location && <div>{r.location.name}</div>}
+                    {r.code && <div>code <span className="font-mono">{r.code}</span></div>}
+                    {r.capture_id && <div>capture <span className="font-mono" title={r.capture_id}>{r.capture_id.slice(0, 8)}</span></div>}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div data-testid="refusal-message">{r.message ?? "—"}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 font-mono" data-testid="refusal-status">
+                      HTTP {r.http_status}{r.error_code && <> · {r.error_code}</>}{r.reason && <> · {r.reason}</>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {q.hasNextPage && (
+            <Btn kind="plain" testid="button-refusals-more" pending={q.isFetchingNextPage} onClick={() => q.fetchNextPage()}>
+              Show more
+            </Btn>
+          )}
+        </>
+      )}
+    </section>
   );
 }

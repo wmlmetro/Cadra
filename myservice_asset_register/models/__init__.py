@@ -48,3 +48,6 @@ from . import sap_link
 # it extends `nrs.asset.create` and `_gate_move` (the gates) and the label's
 # `_may_decide` (the tag model).
 from . import audit_capture
+# Handoff 69 — a refused capture sync, kept on its own cursor. Links the
+# audit models, so after them.
+from . import audit_refusal

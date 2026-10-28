@@ -33,11 +33,20 @@ captures, a capture by its id (the phone confirming a sync), photos,
 devices, blocks, the ledger, and a room's slice for an offline phone.
 `GET /ai/config` is the phone's one read of the AI switch, the model, the
 cap left today and the label layout.
+
+Handoff 69: `GET /audit/captures?q=` finds a capture by its id, its code or
+the old tag confirmed on it, wherever it is; every refused
+`POST /audit/captures` is kept (`nrs.audit.capture.refusal`, written by
+`_record_refusal` on its own cursor) and read by the Asset Controller on
+`GET /audit/refusals`.
 """
 import csv
+import datetime
 import io
 import json
 import uuid
+
+import pytz
 
 from odoo import fields, http
 from odoo.exceptions import UserError, ValidationError
@@ -60,6 +69,7 @@ from odoo.addons.myservice_asset_register.models.audit_capture import (
     OUTCOMES,
     earliest_capture_day,
 )
+from odoo.addons.myservice_asset_register.models.sap_mirror import norm_tag
 
 from .query_params import BadFilter, parse_bool, parse_enum, parse_int
 from .utils import (
@@ -90,6 +100,7 @@ from .v1_assets import _parse_updated_since
 from .v1_gates import BATCH_MAX, _DryRun
 
 _ISO = "%Y-%m-%dT%H:%M:%SZ"
+_LAGOS = pytz.timezone("Africa/Lagos")
 DEVICE_HEADER = "X-Cadra-Device"
 LISTS = ("found_not_in_sap", "in_sap_not_found")
 SLICE_KINDS = ("assets", "sap_records")
@@ -216,6 +227,10 @@ def _campaign_out(c, detail=False):
                      for l in c.scope_ids],
            "capturers": [_user(u) for u in c.capturer_ids],
            "reviewers": [_user(u) for u in c.reviewer_ids],
+           # Handoff 69 §4 B3: active users only, so a page can say "nobody
+           # can review this" without guessing. Filtered, not read through
+           # `active_test`: `_browse_or_404` browses with it off.
+           "reviewers_active": len(c.reviewer_ids.filtered("active")),
            "created_by": _user(c.created_by_id),
            "closed_by": _user(c.closed_by_id), "closed_at": _iso(c.closed_at),
            "progress": c._progress()}
@@ -246,7 +261,13 @@ def _capture_out(cap):
     asset = cap.asset_id
     return {
         "capture_id": cap.capture_uuid, "id": cap.id,
-        "campaign": {"id": cap.campaign_id.id, "name": cap.campaign_id.name},
+        # Handoff 69 §4 B2: whether it is open and who may review it, so
+        # *Find a capture* can say why a reviewer does not see it.
+        "campaign": {"id": cap.campaign_id.id, "name": cap.campaign_id.name,
+                     "state": cap.campaign_id.state,
+                     "reviewers": [
+                         _user(u) for u in
+                         cap.campaign_id.reviewer_ids.filtered("active")]},
         "location": {"id": cap.location_id.id,
                      "name": cap.location_id.display_name,
                      "location_code": cap.location_id.location_code or None},
@@ -321,6 +342,78 @@ def _capture_or_404(capture_id):
                          % capture_id, status=404,
                          details={"capture_id": capture_id})
     return cap, None
+
+
+#: The longest `q` *Find a capture* reads — a capture id is 36, a code or
+#: an old tag far shorter.
+FIND_MAX = 200
+
+
+def _find_domain(q):
+    """`?q=` (handoff 69 §4 B2): the capture whose id, code or confirmed
+    old tag IS this text — each compared exactly, as the register stores
+    it, never a partial match (a fragment of a code names other codes)."""
+    text = q.strip()
+    escaped = (text.replace("\\", "\\\\").replace("%", "\\%")
+               .replace("_", "\\_"))
+    alternatives = [("code", "=ilike", escaped)]
+    try:
+        alternatives.append(("capture_uuid", "=", str(uuid.UUID(text))))
+    except ValueError:
+        pass
+    tag = norm_tag(text)
+    if tag:
+        alternatives.append(("legacy_tag_key", "=", tag))
+    return ["|"] * (len(alternatives) - 1) + alternatives
+
+
+def _record_refusal(response):
+    """`on_refusal` for `POST /audit/captures` (handoff 69 §5 C2): keep
+    the refused sync — who, which device, the ids as sent, and the answer
+    the phone was given. Never raises: the model logs its own failure."""
+    try:
+        answer = json.loads(response.get_data(as_text=True) or "{}")
+        body = get_params() or {}
+    except (ValueError, TypeError):
+        answer, body = {}, {}
+    error = answer.get("error") if isinstance(answer, dict) else None
+    _env("nrs.audit.capture.refusal").with_user(request.env.uid)._record(
+        body, request.httprequest.headers.get(DEVICE_HEADER), error)
+
+
+def _refusal_out(r):
+    def named(rec):
+        return {"id": rec.id, "name": rec.display_name} if rec else None
+    return {"id": r.id, "refused_at": _iso(r.refused_at),
+            "capture_id": r.capture_uuid or None, "user": _user(r.user_id),
+            "device_code": r.device_code or None,
+            "device": named(r.device_id), "campaign": named(r.campaign_id),
+            "location": named(r.location_id), "outcome": r.outcome or None,
+            "code": r.code or None, "http_status": r.http_status,
+            "error_code": r.error_code or None, "reason": r.reason or None,
+            "message": r.message or None, "request_id": r.request_id or None}
+
+
+def _parse_since(raw):
+    """`?since=`: a Lagos day (`2026-10-21`, from its midnight in Lagos)
+    or an ISO date-time, as `updated_since` reads one."""
+    text = raw.strip() if isinstance(raw, str) else raw
+    if not text:
+        return None
+    if isinstance(text, str) and len(text) == 10:
+        try:
+            day = fields.Date.from_string(text)
+        except ValueError:
+            day = None
+        if day:
+            return _LAGOS.localize(datetime.datetime.combine(
+                day, datetime.time.min)).astimezone(pytz.utc).replace(
+                    tzinfo=None)
+    try:
+        return _parse_updated_since(text)
+    except BadFilter:
+        raise BadFilter("`since` must be a date (a Lagos day) or an ISO-8601 "
+                        "date-time", details={"since": raw})
 
 
 def _browse_or_404(model, rec_id, what):
@@ -969,6 +1062,7 @@ class CadraAuditCaptureV1(http.Controller):
                  summary="Sync one capture from a device (idempotent on "
                          "`capture_id`)",
                  scopes=[SCOPE_AUDIT_CAPTURE], success_status=201,
+                 on_refusal=_record_refusal,
                  request_schema={
                      "type": "object",
                      "required": ["capture_id", "campaign_id", "location_id",
@@ -1045,6 +1139,11 @@ class CadraAuditCaptureV1(http.Controller):
                          "enum": [s for s, _l in EXCEPTION_STATES]}},
                      {"name": "duplicates", "schema": {"type": "boolean"}},
                      {"name": "mine", "schema": {"type": "boolean"}},
+                     {"name": "q", "schema": {
+                         "type": "string", "maxLength": FIND_MAX},
+                      "description": "Find a capture: its `capture_id`, "
+                                     "its code, or the old tag confirmed on "
+                                     "it — each exactly (handoff 69)."},
                      *PAGINATION_QUERY_PARAMS])
     def captures(self, **kwargs):
         try:
@@ -1064,7 +1163,12 @@ class CadraAuditCaptureV1(http.Controller):
             limit = parse_limit(kwargs)
         except BadFilter as e:
             return err(ERR_INVALID_REQUEST, str(e), details=e.details)
-        domain = []
+        q = kwargs.get("q")
+        if q is not None and len(q) > FIND_MAX:
+            return err(ERR_INVALID_REQUEST,
+                       "`q` is a capture id, a code or an old tag — at most "
+                       "%d characters." % FIND_MAX, details={"field": "q"})
+        domain = _find_domain(q) if q and q.strip() else []
         if campaign_id:
             domain.append(("campaign_id", "=", campaign_id))
         if location_id:
@@ -1092,6 +1196,44 @@ class CadraAuditCaptureV1(http.Controller):
     def capture_get(self, capture_id, **kwargs):
         cap, error = _capture_or_404(capture_id)
         return error or _capture_out(cap)
+
+    @cadra_route("/api/v1/audit/refusals", method="GET",
+                 summary="Refused capture syncs, newest first — what each "
+                         "phone was told",
+                 scopes=[SCOPE_AUDIT_MANAGE],
+                 query_params=[
+                     {"name": "device_id", "schema": {"type": "integer"}},
+                     {"name": "user_id", "schema": {"type": "integer"}},
+                     {"name": "since", "schema": {"type": "string"},
+                      "description": "A Lagos day (`YYYY-MM-DD`) or an "
+                                     "ISO-8601 date-time."},
+                     {"name": "capture_id", "schema": {"type": "string"}},
+                     *PAGINATION_QUERY_PARAMS])
+    def refusals(self, **kwargs):
+        try:
+            device_id = parse_int("device_id", kwargs.get("device_id"),
+                                  minimum=1)
+            user_id = parse_int("user_id", kwargs.get("user_id"), minimum=1)
+            since = _parse_since(kwargs.get("since"))
+            limit = parse_limit(kwargs)
+        except BadFilter as e:
+            return err(ERR_INVALID_REQUEST, str(e), details=e.details)
+        domain = []
+        if device_id:
+            domain.append(("device_id", "=", device_id))
+        if user_id:
+            domain.append(("user_id", "=", user_id))
+        if since:
+            domain.append(("refused_at", ">=", since))
+        capture_id = (kwargs.get("capture_id") or "").strip()
+        if capture_id:
+            domain.append(("capture_uuid", "=", _norm_uuid(capture_id)))
+        rows, nxt, total = paginate(_env("nrs.audit.capture.refusal"),
+                                    domain, limit=limit,
+                                    cursor=kwargs.get("cursor"),
+                                    descending=True)
+        return ok([_refusal_out(r) for r in rows],
+                  pagination={"next_cursor": nxt, "total_estimate": total})
 
     # ── review ────────────────────────────────────────────────────────
 

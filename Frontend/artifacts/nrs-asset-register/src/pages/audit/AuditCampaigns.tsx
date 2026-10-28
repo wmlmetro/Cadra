@@ -21,6 +21,11 @@
  * controls are drawn only for a holder and the server refuses everybody
  * else. Closing needs every capture reviewed: the server says how many are
  * still waiting, verbatim.
+ *
+ * Handoff 69: a find box finds any capture by ID, printed code or old tag,
+ * wherever it is; and a campaign whose captures wait with no active
+ * reviewer named says so on its row — nobody can review them until the
+ * Asset Controller names one.
  */
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +44,7 @@ import { cn, formatIsoDate } from "@/lib/utils";
 import {
   Btn, Empty, ErrorPanel, INPUT, LABEL, Loading, PageHeader, Pill, Tabs, invalidateAudit, n, when,
 } from "./shared";
+import { FindCapture } from "./FindCapture";
 
 export default function AuditCampaigns() {
   const { setTitle, setSearchHandler } = useLayoutCtx();
@@ -80,6 +86,9 @@ export default function AuditCampaigns() {
               : <Btn testid="button-open-campaign" onClick={() => setOpening(true)}><Plus size={12} /> Open a campaign</Btn>}
           </div>
         )}
+        <div className="px-5 py-3 border-b border-border">
+          <FindCapture canReview={scopes.has(SCOPE.auditReview)} canSeeRefusals={canManage} />
+        </div>
         {q.error && <div className="px-5 py-2"><ErrorPanel err={q.error} /></div>}
         {q.isLoading ? <Loading what="Reading the campaigns…" /> : rows.length === 0 && !q.error ? (
           <Empty testid="audit-campaigns-empty">No audit campaign has been opened on this tenant.</Empty>
@@ -111,6 +120,12 @@ export default function AuditCampaigns() {
                         </span>
                       )}
                     </div>
+                    {/* Waiting where nobody can review it (handoff 69 B3, H1). */}
+                    {c.progress.waiting_for_review > 0 && c.reviewers_active === 0 && (
+                      <div className="mt-1 text-amber-800 dark:text-amber-300 font-semibold" data-testid={`campaign-no-reviewer-${c.id}`}>
+                        {n(c.progress.waiting_for_review)} {c.progress.waiting_for_review === 1 ? "capture waits" : "captures wait"} and no reviewer is named.
+                      </div>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">
                     {c.scope.map((s, i) => (
