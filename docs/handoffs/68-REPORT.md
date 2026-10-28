@@ -75,3 +75,36 @@ The new browser test caught one real bug on the settings screen, which was older
 - Targeted tests and fixes: 13:28–13:38.
 - Final suite (10 min), verification pass (5 min) in parallel, and report: 13:38–13:53.
 - CI run 1 failed at 13:50 and the guard was fixed by 13:53; CI was green on both legs by 14:07.
+
+## Addendum — the first live check on staging (20 October 2026, ~14:50 UTC)
+
+Run by the owner: `staging`, provider OpenAI, the server holding OpenAI's key and not Anthropic's. **Three photos only, file names not naming the item and no `labels.json`**, so the class score below is not a measurement of either model; it is a smoke test of the road.
+
+```
+MODEL openai:gpt-6.1-sol
+  photos sent              3  (identified 3, refused 0)
+  class right first time   0 of 3
+  class right in top three 0 of 3
+  seconds per photo        mean 8.5, median 8.7  (the server's provider call: mean 4.6, median 4.8)
+  cost per photo           $0.0053  (total $0.0158 over 3)
+  labels                   none (class name contains the kind)
+
+MODEL openai:gpt-6-luna
+  photos sent              3  (identified 3, refused 0)
+  class right first time   0 of 3
+  class right in top three 0 of 3
+  seconds per photo        mean 7.0, median 6.9  (the server's provider call: mean 3.0, median 2.9)
+  cost per photo           $0.0003  (total $0.0010 over 3)
+  labels                   none (class name contains the kind)
+```
+
+What it proves:
+- The OpenAI provider works on the cluster: 6 of 6 calls answered, none refused, none discarded. The strict schema was accepted (no 400), the photo was read (*DELL*, as a brand), and the SAP matcher was fed.
+- The live-check script restored the tenant afterwards (*back to openai:gpt-6.1-sol*).
+
+What it does not:
+- **"0 of 3" is the file names.** The true kind is taken from the name, and `156360_1784078447.webp` names nothing.
+- **"3 in" tokens was the uncached remainder.** The fixed prompt was written to OpenAI's cache on the first photo and read from it after. Sol's per-photo cost fell $0.0086 → $0.0054 → $0.0017 as the cache took over. The script now prints cached and cache-written tokens (PR #130).
+- **Every answer said 99–100% confident.** Three photos say nothing about whether that confidence is earned.
+
+On these three, both models chose the same class every time, and Luna cost about 1/18th as much. **Still owed:** 30–50 photos named after what they are, with a `labels.json`, the same command.
