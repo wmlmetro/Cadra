@@ -196,3 +196,67 @@ build (server by me; front end, script and docs by two agents in
 parallel) 00:50–01:03 · targeted tests, upgrades and the full suite
 01:03–01:13 · verification pass and its fixes 01:08–01:24 · report and record
 01:20–01:30.
+
+
+## 69b · The team can be changed
+
+**In plain words.** The screen to add a reviewer to a campaign did not
+exist. The server had been able to do it since handoff 66, but nothing in
+the web app called it. That is what stranded staging's five captures. Now an
+open campaign has an **Edit** button (name, end date, capturers, reviewers),
+and the "no reviewer is named" warning has an **Add a reviewer** link that
+opens it. After saving, the reviewer sees the waiting captures. The three
+leftovers from report 69 are closed too.
+
+**Built.**
+- **Edit** beside *Close the campaign*, for `audit:manage` on an open
+  campaign only. It is the opening form's fields, filled in. Save sends only
+  what changed; a changed list is sent whole, because the server replaces
+  it. The line *"The rooms and offices are fixed once the campaign is
+  open."* is under the form. Every refusal shows the server's sentence. A
+  save invalidates every audit query. A member who no longer holds the role
+  is listed (marked) and stays ticked, so saving the name never drops them.
+- **A repeated refusal is one row** (`count`, `last_refused_at`;
+  `myservice_asset_register` 19.0.1.38.0 with a post-migration that fills
+  `last_refused_at` on older rows). It merges on the same capture id,
+  person, error code and sentence within 24 hours of the row's FIRST
+  refusal, so no row spans more than a day. Refused syncs reads *"3 times,
+  last 10:42"*.
+- **`sync_in_flight` is not recorded.**
+- **Review it here** on a capture past the first 100 loads the pages up to
+  it, one at a time, and its card scrolls itself into view. No browser
+  test: it would need 101 captures in one room.
+
+**The numbers** (targeted only, as §3 says; the full suite ran for 69).
+- HTTP, on `test19f`: `test_where_the_captures_went.py` +
+  `test_the_audit.py` + the endpoint, query-parameter and source guards:
+  **256 passed**. That includes:
+  - two identical refusals → one row, count 2;
+  - a different sentence → two rows, counts `[1, 2]`;
+  - the PATCH replacing a list, and one person on both lists refused
+    (*"… cannot both capture and review in one campaign …"*) with nothing
+    written.
+- In-registry `TestCaptureRefusal`: **0 failed of 6** (merge, a new row after
+  24 h, the one permitted write, `sync_in_flight` → no row).
+- Browser: spec 69 **3 of 3**. The new test signs in as the administrator,
+  follows *Add a reviewer*, ticks the reviewer and saves. The PATCH body is
+  exactly `{reviewer_ids: [<id>]}`; the warning goes and the team shows the
+  name. Then it renames a campaign that is closed meanwhile, and the
+  server's *"Campaign … was closed on …"* is shown. A closed campaign has no
+  Edit. Signed in as the reviewer, the stranded capture is on Audit review.
+  Specs 66 and 67: 3 of 3.
+- Upgrades: `test19` (19.0.1.38.0; migration "set on 0 row(s)") and the
+  `test19f` template rebuilt.
+- **CI:** blocked for the whole repository (report 69, Needs the owner,
+  item 0). Not waited on.
+
+**Deviations.**
+1. **Same branch, but PR #133 was already merged** (00:35 UTC, before this
+   handoff). 69b went onto `fix/where-the-captures-went`, which is open
+   again as PR #134.
+2. **"A capturer named as reviewer too" cannot be done in the browser.** Both
+   pickers list only role holders, and the role exclusion (handoff 58) bars
+   one person from holding both roles. So the refusal is proved over HTTP,
+   and the browser proves the closed-campaign refusal word for word instead.
+3. **Needs the owner, updated:** `upgrade-19` now moves
+   `myservice_asset_register` to 19.0.1.38.0. Same inputs as item 2 above.

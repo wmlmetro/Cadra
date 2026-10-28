@@ -33,6 +33,12 @@ live at was never the point.
 
 ---
 
+## 2026-10-28 — handoff 69b: the team can be changed · `myservice_asset_register` 19.0.1.38.0
+
+- **New keys (additive) on `GET /api/v1/audit/refusals` rows:** `count` and `last_refused_at`. A refusal with the same `capture_id`, person, `error_code` and `message` as a row first refused in the last 24 hours adds to that row instead of writing a new one; `since` is compared with `last_refused_at`. §19.10.
+- **BEHAVIOUR CHANGE:** `409 sync_in_flight` on `POST /api/v1/audit/captures` is no longer recorded as a refusal (the capture lands in the other request). A replay refused again with the same sentence is now one row counted twice, where 69 wrote a second row.
+- No route changed for editing a campaign: the web app now calls the `PATCH /api/v1/audit/campaigns/<id>` that has existed since handoff 66.
+
 ## 2026-10-28 — handoff 69: where the captures went · `myservice_api` 19.0.3.39.0, `myservice_asset_register` 19.0.1.37.0
 
 Additive throughout; the one behaviour change below alters no answer.
