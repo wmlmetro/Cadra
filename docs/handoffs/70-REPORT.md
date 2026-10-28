@@ -1,14 +1,12 @@
 # Handoff 70 — report · the administrator can finish it
 
-**Branch:** `feat/the-administrator-can-finish-it` · **PR:** [#135](https://github.com/wmlmetro/Cadra/pull/135) · **CI:** **could not start** (Needs the owner, item 0); both switch states run locally instead
+**Branch:** `feat/the-administrator-can-finish-it` · **PR:** [#135](https://github.com/wmlmetro/Cadra/pull/135) · **CI:** **green** — [run 40653336109](https://github.com/wmlmetro/Cadra/actions/runs/40653336109): `bootstrap-and-test` gates on ✓, gates off ✓, `image-addons-complete` ✓, `prod-compose-lint` ✓, `commit-messages` ✓
 
 ## Needs the owner
 
-0. **GitHub Actions still starts nothing.** Every run since 27 Oct 18:20 UTC
-   ends `startup_failure` with no jobs, this branch's included (report 69,
-   item 0). Nothing deploys until it is fixed. In CI's place I ran the full
-   pytest suite in both switch states and the module suites here (The
-   numbers).
+0. **GitHub Actions is working again** (it started nothing from 27 Oct
+   18:20 UTC until 07:56 UTC today). This PR's CI is green; the local runs
+   below were made while it was down.
 1. **Merge the PR, then run `upgrade-19`.** Two new columns on
    `nrs.asset.event` and four on `nrs.audit.capture`:
    `target_dbs=staging,gtb,jaizbankplc,lasg`,
@@ -84,8 +82,8 @@ administrator (they received this unit on 28 Oct)."* The buttons say it too:
 
 ## The numbers
 
-Local, `test19f` restored fresh before each full run. CI could not start
-(item 0). Evidence: `70-evidence/`.
+Local, `test19f` restored fresh before each full run, made while CI was
+down; CI then ran both switch states green (run above). Evidence: `70-evidence/`.
 
 | Run | Result |
 |---|---|
